@@ -1,0 +1,1501 @@
+swagger: "2.0"
+info:
+  version: "1.3.0"
+  title: "🏹 Archer"
+  contact:
+    name: SAP SE / Converged Cloud
+    url: https://sap.com
+  license:
+    name: "Apache 2.0"
+    url: "https://www.apache.org/licenses/LICENSE-2.0.html"
+  x-logo:
+    url: "https://avatars.githubusercontent.com/u/4242847"
+    backgroundColor: "#FFFFFF"
+    altText: "Archer logo"
+  description: |
+    Archer is an API service that can privately connect services from one private [OpenStack Network](https://docs.openstack.org/neutron/latest/admin/intro-os-networking.html) to another. Consumers can select a *service* from a service catalog and **inject** it to their network, which means making this *service* available via a private ip address.
+        
+    Archer implements an *OpenStack* like API and integrates with *OpenStack Keystone* and *OpenStack Neutron*.
+        
+    ### Architecture
+    There are two types of resources: **services** and **endpoints**
+        
+    * **Services** are private or public services that are manually configured in *Archer*. They can be accessed by creating an endpoint.
+    * **Service endpoints**, or short **endpoints**, are IP endpoints in a local network used to transparently access services residing in different private networks.
+        
+    ### Features
+    * Multi-tenant capable via OpenStack Identity service
+    * OpenStack `policy.json` access policy support
+    * Prometheus Exporter
+    * Rate limiting
+        
+    ### Supported Backends
+    * F5 BigIP
+        
+    ### Requirements
+    * PostgreSQL Database
+        
+    ### API
+    This section describes properties of the Archer API. It uses a ReSTful HTTP API.
+        
+    #### Request format
+    The Archer API only accepts requests with the JSON data serialization format. The Content-Type header for POST requests is always expected to be `application/json`.
+        
+    #### Response format
+    The Archer API always response with JSON data serialization format. The Content-Type header is always `Content-Type: application/json`.
+        
+    #### Authentication and authorization
+    The **Archer API** uses the OpenStack Identity service as the default authentication service. When Keystone is enabled, users that submit requests to the OpenStack Networking service must provide an authentication token in `X-Auth-Token` request header. 
+    You obtain the token by authenticating to the Keystone endpoint.
+    
+    When Keystone is enabled, the `project_id` attribute is not required in create requests because the project ID is derived from the authentication token.
+    
+    #### Pagination
+    To reduce load on the service, list operations will return a maximum number of items at a time. To navigate the collection, the parameters limit, marker and page_reverse can be set in the URI. For example:
+    
+    ```
+    ?limit=100&marker=1234&page_reverse=False
+    ```
+        
+    The `marker` parameter is the ID of the last item in the previous list. The `limit` parameter sets the page size. The `page_reverse` parameter sets the page direction. 
+    These parameters are optional. 
+    If the client requests a limit beyond the maximum limit configured by the deployment, the server returns the maximum limit number of items.
+    
+    For convenience, list responses contain atom **next** links and **previous** links. The last page in the list requested with `page_reverse=False` will not contain **next** link, and the last page in the list requested with `page_reverse=True` will not contain **previous** link. 
+    
+    To determine if pagination is supported, a user can check whether the `pagination` capability is available through the Archer API detail endpoint.
+    
+    #### Sorting
+    You can use the `sort` parameter to sort the results of list operations.
+    The sort parameter contains a comma-separated list of sort keys, in order of the sort priority. Each sort key can be optionally prepended with a minus **-** character to reverse default sort direction (ascending).
+    
+    For example: 
+    
+    ```
+    ?sort=key1,-key2,key3
+    ```
+    
+    **key1** is the first key (ascending order), **key2** is the second key (descending order) and **key3** is the third key in ascending order.
+    
+    
+    To determine if sorting is supported, a user can check whether the `sort` capability is available through the Archer API detail endpoint.
+    
+    #### Filtering by tags
+    Most resources (e.g. service and endpoint) support adding tags to the resource attributes. Archer supports advanced filtering using these tags for list operations. The following tag filters are supported by the Archer API:
+    
+    * `tags` - Return the list of entities that have this tag or tags.
+    * `tags-any` - Return the list of entities that have one or more of the given tags.
+    * `not-tags` - Return the list of entities that do not have one or more of the given tags.
+    * `not-tags-any` - Return the list of entities that do not have at least one of the given tags.
+    
+    Each tag supports a maximum amount of 64 characters.
+    
+    For example to get a list of resources having both, **red** and **blue** tags:
+    
+    ```
+    ?tags=red,blue
+    ```
+    
+    To get a list of resourcing having either, **red** or **blue** tags:
+    
+    ```
+    ?tags-any=red,blue
+    ```
+    
+    Tag filters can also be combined in the same request:
+    
+    ```
+    ?tags=red,blue&tags-any=green,orange
+    ```
+    
+    #### Response Codes (Faults)
+    
+    | Code  | Description       |
+    | ----- | ----------------- |
+    | 400   | Validation Error |
+    | 401   | Unauthorized |
+    | 403   | Policy does not allow current user to do this <br> The project is over quota for the request |
+    | 404   | Not Found <br> Resource not found |
+    | 409   | Conflict |
+    | 422   | Unprocessable Entity |
+    | 429   | You have reached maximum request limit |
+    | 500   | Internal server error |
+
+externalDocs:
+  description: GitHub
+  url: https://github.com/sapcc/archer
+consumes:
+  - application/json
+produces:
+  - application/json
+tags:
+  - name: Version
+    description: |
+      ### Version API
+      Lists information of enabled Archer capabilities.
+  - name: Service
+    description: |
+      ### Services
+      Services are for publishing TCP/UDP services using internal IP addresses in your private network.
+  - name: Endpoint
+    description: |
+      ### Endpoints
+      Endpoints are for accessing existing Services using internal IP addresses in your private network.
+  - name: RBAC
+    x-go-name: rbac
+    description: |
+      ### RBAC Policies
+      RBAC Policies are used to provide service visibility to specific project or domains.
+  - name: Quota
+    description: |
+      ### Quota Operations
+      Administrative API for listing and setting quotas for services and endpoints.
+schemes:
+  - "https"
+  - "http"
+security:
+  - "X-Auth-Token": []
+  - {}
+securityDefinitions:
+  "X-Auth-Token":
+    type: "apiKey"
+    description: |
+      The **Archer API** uses the OpenStack Identity service as the default authentication service. When Keystone is enabled, users that submit requests to the OpenStack Networking service must provide an authentication token in `X-Auth-Token` request header. 
+      You obtain the token by authenticating to the Keystone endpoint.
+    name: "X-Auth-Token"
+    in: "header"
+paths:
+  /:
+    get:
+      security: []
+      tags:
+        - Version
+      summary: Shows details for Archer API
+      responses:
+        200:
+          description: Version
+          schema:
+            $ref: "#/definitions/Version"
+  /service:
+    get:
+      tags:
+        - Service
+      summary: List services
+      x-policy: service:read
+      parameters:
+        - $ref: '#/parameters/marker'
+        - $ref: '#/parameters/limit'
+        - $ref: '#/parameters/sort'
+        - $ref: '#/parameters/page_reverse'
+        - $ref: '#/parameters/tags'
+        - $ref: '#/parameters/tags-any'
+        - $ref: '#/parameters/not-tags'
+        - $ref: '#/parameters/not-tags-any'
+        - $ref: '#/parameters/project_id'
+      responses:
+        200:
+          description: An array of services.
+          schema:
+            type: object
+            properties:
+              links:
+                x-omitempty: true
+                type: array
+                items:
+                  $ref: '#/definitions/Link'
+              items:
+                type: array
+                items:
+                  $ref: "#/definitions/Service"
+        400:
+          description: Bad request
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+    post:
+      tags:
+        - Service
+      summary: Add a new service to the catalog
+      x-policy: service:create
+      parameters:
+        - in: body
+          name: body
+          description: Service object that needs to be added to the catalog
+          required: true
+          schema:
+            $ref: "#/definitions/Service"
+      responses:
+        201:
+          description: Service
+          schema:
+            $ref: "#/definitions/Service"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+          schema:
+            $ref: "#/definitions/Error"
+        409:
+          description: Duplicate entry
+          schema:
+            $ref: "#/definitions/Error"
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+  /service/{service_id}:
+    parameters:
+      - in: path
+        name: service_id
+        required: true
+        type: string
+        format: uuid
+        description: The UUID of the service
+    get:
+      tags:
+        - Service
+      summary: Show details of an service
+      x-policy: service:read
+      responses:
+        200:
+          description: Service
+          schema:
+            $ref: "#/definitions/Service"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+    put:
+      tags:
+        - Service
+      summary: Update an existing service
+      x-policy: service:update
+      parameters:
+        - in: body
+          name: body
+          description: Service object that needs to be updated
+          required: true
+          schema:
+            $ref: "#/definitions/ServiceUpdatable"
+      responses:
+        200:
+          description: Service
+          schema:
+            $ref: "#/definitions/Service"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        409:
+          description: Duplicate entry
+          schema:
+            $ref: "#/definitions/Error"
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+    delete:
+      tags:
+        - Service
+      summary: Remove service from catalog
+      x-policy: service:delete
+      description: |
+        Deletes this service. There **must** be no active associated endpoint for successfully deleting the service. 
+        Active endpoints can be rejected by the service owner via the `/service/{service_id}/reject_endpoints` API.
+      responses:
+        202:
+          description: Delete request successfully accepted.
+        404:
+          description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+        409:
+          description: In use.
+          schema:
+            $ref: "#/definitions/Error"
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+  /service/{service_id}/endpoints:
+    parameters:
+      - in: path
+        name: service_id
+        required: true
+        type: string
+        format: uuid
+        description: The UUID of the service
+    get:
+      tags:
+        - Service
+      summary: List service endpoints consumers
+      x-policy: service-endpoint:read
+      description: |
+        Provides a list of service consumers (endpoints).
+        
+        This list can be used to accept or reject requests, or disable active endpoints. 
+        Rejected endpoints will be cleaned up after a specific time.
+      parameters:
+        - $ref: '#/parameters/marker'
+        - $ref: '#/parameters/limit'
+        - $ref: '#/parameters/sort'
+        - $ref: '#/parameters/page_reverse'
+      responses:
+        200:
+          description: An array of service endpoint consumers.
+          schema:
+            type: object
+            properties:
+              links:
+                x-omitempty: true
+                type: array
+                items:
+                  $ref: '#/definitions/Link'
+              items:
+                type: array
+                items:
+                  $ref: "#/definitions/EndpointConsumer"
+        400:
+          description: Bad request
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+  /service/{service_id}/accept_endpoints:
+    parameters:
+      - in: path
+        name: service_id
+        required: true
+        type: string
+        format: uuid
+        description: The UUID of the service
+    put:
+      summary: Accept endpoints
+      x-policy: service-endpoint:accept
+      description: |
+        Specify a list of endpoint consumers (`endpoint_ids` and/or `project_ids`) whose endpoints should be accepted.
+        * Existing active endpoints will be untouched.
+        * Rejected endpoints will be accepted.
+        * Pending endpoints will be accepted.
+      tags:
+        - Service
+      parameters:
+        - in: body
+          name: body
+          description: Service object that needs to be updated
+          required: true
+          schema:
+            $ref: "#/definitions/EndpointConsumerList"
+      responses:
+        200:
+          description: Ok
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/EndpointConsumer"
+        400:
+          description: Must declare at least one, endpoint_id(s) or project_id(s)
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: Not Found
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+  /service/{service_id}/reject_endpoints:
+    parameters:
+      - in: path
+        name: service_id
+        required: true
+        type: string
+        format: uuid
+        description: The UUID of the service
+    put:
+      summary: Reject endpoints
+      x-policy: service-endpoint:reject
+      description: |
+        Specify a list of consumers (`endpoint_ids` and/or `project_ids`) whose endpoints should be rejected.
+        * Existing active endpoints will be rejected.
+        * Rejected endpoints will be untouched.
+        * Pending endpoints will be rejected.
+      tags:
+        - Service
+      parameters:
+        - in: body
+          name: body
+          description: Service object that needs to be updated
+          required: true
+          schema:
+            $ref: "#/definitions/EndpointConsumerList"
+      responses:
+        200:
+          description: Ok
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/EndpointConsumer"
+        400:
+          description: Must declare at least one, endpoint_id(s) or project_id(s)
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: Not Found
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+
+  /endpoint:
+    get:
+      tags:
+        - Endpoint
+      summary: List existing service endpoints
+      x-policy: endpoint:read
+      parameters:
+        - $ref: '#/parameters/marker'
+        - $ref: '#/parameters/limit'
+        - $ref: '#/parameters/sort'
+        - $ref: '#/parameters/page_reverse'
+        - $ref: '#/parameters/tags'
+        - $ref: '#/parameters/tags-any'
+        - $ref: '#/parameters/not-tags'
+        - $ref: '#/parameters/not-tags-any'
+        - $ref: '#/parameters/project_id'
+      responses:
+        200:
+          description: An array of endpoints.
+          schema:
+            type: object
+            properties:
+              links:
+                x-omitempty: true
+                type: array
+                items:
+                  $ref: '#/definitions/Link'
+              items:
+                type: array
+                items:
+                  $ref: "#/definitions/Endpoint"
+        400:
+          description: Bad request
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+    post:
+      tags:
+        - Endpoint
+      summary: Create endpoint for accessing a service
+      x-policy: endpoint:create
+      parameters:
+        - in: body
+          name: body
+          description: Service and target network to inject. Only one of `target_network`, `target_subnet` or `target_port` must be specified.
+          required: true
+          schema:
+            $ref: "#/definitions/Endpoint"
+      responses:
+        201:
+          description: Endpoint
+          schema:
+            $ref: "#/definitions/Endpoint"
+        400:
+          description: Bad request
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+          schema:
+            $ref: "#/definitions/Error"
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+  /endpoint/{endpoint_id}:
+    parameters:
+      - in: path
+        name: endpoint_id
+        required: true
+        type: string
+        format: uuid
+        description: The UUID of the endpoint
+    get:
+      tags:
+        - Endpoint
+      summary: Show existing service endpoint
+      x-policy: endpoint:read
+      responses:
+        200:
+          description: An endpoint detail.
+          schema:
+            $ref: "#/definitions/Endpoint"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: Not Found
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+    put:
+      tags:
+        - Endpoint
+      summary: Update an existing endpoint
+      x-policy: endpoint:update
+      parameters:
+        - in: body
+          name: body
+          description: Endpoint object that needs to be updated
+          required: true
+          schema:
+            type: object
+            properties:
+              tags:
+                type: array
+                description: The list of tags on the resource.
+                x-nullable: true
+                items:
+                  type: string
+                  maxLength: 64
+              name:
+                type: string
+                description: Name of the endpoint.
+                example: Example endpoint.
+                maxLength: 64
+                x-nullable: true
+              description:
+                type: string
+                description: Description of the endpoint.
+                example: An example of an endpoint.
+                maxLength: 255
+                x-nullable: true
+      responses:
+        200:
+          description: Endpoint
+          schema:
+            $ref: "#/definitions/Endpoint"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+    delete:
+      tags:
+        - Endpoint
+      summary: Remove an existing endpoint
+      x-policy: endpoint:delete
+      responses:
+        202:
+          description: Delete request successfully accepted.
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: Not Found
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+
+  /rbac-policies:
+    get:
+      tags:
+        - RBAC
+      summary: List RBAC policies
+      x-policy: rbac-policy:read
+      parameters:
+        - $ref: '#/parameters/marker'
+        - $ref: '#/parameters/limit'
+        - $ref: '#/parameters/sort'
+        - $ref: '#/parameters/page_reverse'
+      responses:
+        200:
+          description: A JSON array of rbac policies
+          schema:
+            type: object
+            properties:
+              links:
+                x-omitempty: true
+                type: array
+                items:
+                  $ref: '#/definitions/Link'
+              items:
+                type: array
+                items:
+                  $ref: "#/definitions/RBACPolicy"
+        400:
+          description: Bad request
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+    post:
+      tags:
+        - RBAC
+      summary: Create RBAC policy
+      x-policy: rbac-policy:create
+      parameters:
+        - in: body
+          name: body
+          description: RBAC Policy
+          required: true
+          schema:
+            $ref: "#/definitions/RBACPolicy"
+      responses:
+        201:
+          description: RBAC policy
+          schema:
+            $ref: '#/definitions/RBACPolicy'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+        404:
+          description: service_id not found
+        409:
+          description: Duplicate RBAC Policy
+          schema:
+            $ref: "#/definitions/Error"
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+  /rbac-policies/{rbac_policy_id}:
+    parameters:
+      - in: path
+        name: rbac_policy_id
+        required: true
+        type: string
+        format: uuid
+        description: The UUID of the RBAC policy.
+    get:
+      tags:
+        - RBAC
+      summary: Show details of an RBAC policy
+      x-policy: rbac-policy:read
+      responses:
+        200:
+          description: RBAC Policy
+          schema:
+            $ref: '#/definitions/RBACPolicy'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+    put:
+      tags:
+        - RBAC
+      summary: Update an existing RBAC policy
+      x-policy: rbac-policy:update
+      parameters:
+        - in: body
+          name: body
+          description: RBAC policy resource that needs to be updated
+          required: true
+          schema:
+            $ref: "#/definitions/RBACPolicyCommon"
+      responses:
+        200:
+          description: RBAC Policy
+          schema:
+            $ref: "#/definitions/RBACPolicy"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        409:
+          description: Duplicate RBAC Policy
+          schema:
+            $ref: "#/definitions/Error"
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+    delete:
+      tags:
+        - RBAC
+      summary: Delete RBAC policy
+      x-policy: rbac-policy:delete
+      responses:
+        204:
+          description: RBAC policy successfully deleted.
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+
+  /quotas:
+    parameters:
+      - in: query
+        name: project_id
+        type: string
+        description: The ID of the project to query.
+        minLength: 32
+        maxLength: 32
+    get:
+      tags:
+        - Quota
+      summary: List Quotas
+      x-policy: quota:read
+      responses:
+        200:
+          description: A JSON array of quotas
+          schema:
+            type: object
+            properties:
+              quotas:
+                type: array
+                items:
+                  allOf:
+                    - $ref: '#/definitions/Quota'
+                    - $ref: '#/definitions/QuotaUsage'
+                    - type: object
+                      properties:
+                        project_id:
+                          $ref: "#/definitions/Project"
+              links:
+                x-omitempty: true
+                type: array
+                items:
+                  $ref: '#/definitions/Link'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+  /quotas/defaults:
+    get:
+      tags:
+        - Quota
+      summary: Show Quota Defaults
+      x-policy: quota:read-defaults
+      responses:
+        200:
+          description: Show the quota defaults configured for new projects.
+          schema:
+            type: object
+            properties:
+              quota:
+                $ref: '#/definitions/Quota'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+  /quotas/{project_id}:
+    parameters:
+      - in: path
+        name: project_id
+        required: true
+        type: string
+        description: The ID of the project to query.
+    get:
+      tags:
+        - Quota
+      summary: Show Quota detail
+      x-policy: quota:read
+      responses:
+        200:
+          description: Shows the details of a specific monitor.
+          schema:
+            allOf:
+              - $ref: '#/definitions/Quota'
+              - $ref: '#/definitions/QuotaUsage'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+    put:
+      tags:
+        - Quota
+      summary: Update Quota
+      x-policy: quota:update
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/Quota'
+      responses:
+        200:
+          description: Updated quota for a project.
+          schema:
+            $ref: '#/definitions/Quota'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+        404:
+          description: Not found
+          schema:
+            $ref: "#/definitions/Error"
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+    delete:
+      tags:
+        - Quota
+      summary: Reset all Quota of a project
+      x-policy: quota:delete
+      responses:
+        204:
+          description: Resource successfully reset
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+
+parameters:
+  marker:
+    name: marker
+    in: query
+    type: string
+    format: uuid
+    description: Pagination ID of the last item in the previous list.
+  limit:
+    name: limit
+    in: query
+    type: integer
+    description: Sets the page size.
+  sort:
+    name: sort
+    in: query
+    type: string
+    description: Comma-separated list of sort keys, optinally prefix with - to reverse sort order.
+  page_reverse:
+    name: page_reverse
+    in: query
+    type: boolean
+    description: Sets the page direction.
+  tags:
+    name: tags
+    in: query
+    type: array
+    description: |
+      Filter for tags, multiple tags are considered as logical AND. 
+      Should be provided in a comma separated list.
+    items:
+      type: string
+  tags-any:
+    name: tags-any
+    in: query
+    type: array
+    description: |
+      Filter for tags, multiple tags are considered as logical OR.
+      Should be provided in a comma separated list.
+    items:
+      type: string
+  not-tags:
+    name: not-tags
+    in: query
+    type: array
+    description: |
+      Filter for resources not having tags, multiple not-tags are considered as logical AND.
+      Should be provided in a comma separated list.
+    items:
+      type: string
+  not-tags-any:
+    name: not-tags-any
+    in: query
+    type: array
+    description: |
+      Filter for resources not having tags, multiple tags are considered as logical OR.
+      Should be provided in a comma separated list.
+    items:
+      type: string
+  project_id:
+    name: project_id
+    in: query
+    type: string
+    description: |
+      Filter for resources belonging or accessible by a specific project.
+    minLength: 32
+    maxLength: 32
+
+definitions:
+  Service:
+    required:
+      - port
+      - network_id
+      - ip_addresses
+    type: object
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: The ID of the resource.
+        readOnly: true
+      enabled:
+        type: boolean
+        description: Enable/disable this service. Existing endpoints are not touched by this.
+        default: true
+      name:
+        type: string
+        description: Name of the service.
+        example: ExampleService
+        maxLength: 64
+        x-omitempty: false
+      description:
+        type: string
+        description: Description of the service.
+        example: An example of an Service.
+        maxLength: 255
+        x-omitempty: false
+      port:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 65535
+        example: 80
+        description: Port exposed by the service.
+        x-nullable: false
+      network_id:
+        type: string
+        format: uuid
+        description: Network ID of the network that provides this service.
+      ip_addresses:
+        type: array
+        description: IP Addresses of the providing service, multiple addresses will be round robin load balanced.
+        minItems: 1
+        items:
+          type: string
+          format: ipv4
+          description: IP Address of the providing service.
+          example: 1.2.3.4
+      status:
+        type: string
+        description: |
+          Status of the service.
+          
+          ### Status can be one of
+          | Status           | Description                            |
+          | ---------------- | -------------------------------------- |
+          | AVAILABLE        | Service is ready for consumption.      |
+          | PENDING_CREATE   | Service is being set up                |
+          | PENDING_UPDATE   | Service is being updated               |
+          | PENDING_DELETE   | Service is being deleted               |
+          | UNAVAILABLE      | Service is unavailable (e.g. disabled) |
+        enum:
+          - AVAILABLE
+          - PENDING_CREATE
+          - PENDING_UPDATE
+          - PENDING_DELETE
+          - UNAVAILABLE
+        readOnly: true
+      require_approval:
+        type: boolean
+        description: Require explicit project approval for the service owner.
+        default: true
+      visibility:
+        type: string
+        description: Set global visibility of the service. For `private` visibility, RBAC policies can extend the visibility to specific projects.
+        default: private
+        enum:
+          - private
+          - public
+      availability_zone:
+        type: string
+        description: Availability zone of this service.
+        example: AZ-A
+        x-nullable: true
+        x-omitempty: false
+      host:
+        type: string
+        description: Device host.
+        readOnly: true
+        x-nullable: true
+      proxy_protocol:
+        type: boolean
+        default: true
+        description: Proxy protocol v2 enabled for this service.
+      tags:
+        type: array
+        description: The list of tags on the resource.
+        x-nullable: true
+        items:
+          type: string
+          maxLength: 64
+      provider:
+        type: string
+        description: Provider type, defaults to tenant type.
+        default: tenant
+        enum:
+          - tenant
+          - cp
+        x-nullable: true
+      created_at:
+        $ref: "#/definitions/Timestamp"
+      updated_at:
+        $ref: "#/definitions/Timestamp"
+      project_id:
+        $ref: "#/definitions/Project"
+  ServiceUpdatable:
+    type: object
+    properties:
+      enabled:
+        type: boolean
+        description: Enable/disable this service. Existing endpoints are not touched by this.
+        x-nullable: true
+      name:
+        type: string
+        description: Name of the service.
+        example: ExampleService
+        maxLength: 64
+        x-nullable: true
+      description:
+        type: string
+        description: Description of the service.
+        example: An example of an Service.
+        maxLength: 255
+        x-nullable: true
+      ip_addresses:
+        type: array
+        description: IP Addresses of the providing service, multiple addresses will be round robin load balanced.
+        minItems: 1
+        items:
+          type: string
+          format: ipv4
+          description: IP Address of the providing service.
+          example: 1.2.3.4
+      port:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 65535
+        example: 80
+        description: Port exposed by the service.
+        x-nullable: true
+      require_approval:
+        type: boolean
+        description: Require explicit project approval for the service owner.
+        x-nullable: true
+      visibility:
+        type: string
+        description: Set global visibility of the service. For `private` visibility, RBAC policies can extend the visibility to specific projects.
+        enum:
+          - private
+          - public
+        x-nullable: true
+      proxy_protocol:
+        type: boolean
+        description: Proxy protocol v2 enabled for this service.
+        x-nullable: true
+      tags:
+        type: array
+        description: The list of tags on the resource.
+        items:
+          type: string
+          maxLength: 64
+  EndpointConsumer:
+    type: object
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: The ID of the resource.
+        readOnly: true
+      status:
+        $ref: "#/definitions/EndpointStatus"
+      project_id:
+        $ref: "#/definitions/Project"
+  EndpointConsumerList:
+    type: object
+    description: list of consumer ids.
+    properties:
+      endpoint_ids:
+        type: array
+        items:
+          type: string
+          format: uuid
+          description: The ID of a service endpoint consumer.
+      project_ids:
+        type: array
+        items:
+          $ref: "#/definitions/Project"
+  Endpoint:
+    type: object
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: The ID of the resource.
+        readOnly: true
+      service_id:
+        type: string
+        format: uuid
+        description: The ID of the service.
+      name:
+        type: string
+        description: Name of the endpoint.
+        example: Example endpoint.
+        maxLength: 64
+        x-omitempty: false
+      description:
+        type: string
+        description: Description of the endpoint.
+        example: An example of an endpoint.
+        maxLength: 255
+        x-omitempty: false
+      target:
+        type: object
+        description: Endpoint target
+        x-nullable: false
+        properties:
+          network:
+            type: string
+            format: uuid
+            description: Endpoint network target. One of `target_network`, `target_subnet` or `target_port` must be specified.
+            example: 49b6480b-24d3-4376-a4c9-aecbb89e16d9
+            x-nullable: true
+          subnet:
+            type: string
+            format: uuid
+            description: Endpoint subnet target. One of `target_network`, `target_subnet` or `target_port` must be specified.
+            example: 1fb12a1a-a1a5-4732-9a2e-635ba6ec8d3b
+            x-nullable: true
+          port:
+            type: string
+            format: uuid
+            description: Endpoint port target. One of `target_network`, `target_subnet` or `target_port` must be specified.
+            example: b2accf1a-1c99-4b54-9eeb-22be53f177f5
+            x-nullable: true
+      tags:
+        type: array
+        description: The list of tags on the resource.
+        x-nullable: true
+        items:
+          type: string
+          maxLength: 64
+      status:
+        $ref: "#/definitions/EndpointStatus"
+      created_at:
+        $ref: "#/definitions/Timestamp"
+      updated_at:
+        $ref: "#/definitions/Timestamp"
+      project_id:
+        $ref: "#/definitions/Project"
+  EndpointStatus:
+    type: string
+    description: |
+      Status of the endpoint
+      
+      ### Status can be one of
+      | Status             | Description                           |
+      | ------------------ | ------------------------------------- |
+      | AVAILABLE          | Endpoint is active for consumption    |
+      | PENDING_APPROVAL   | Endpoint is waiting for approval      |
+      | PENDING_CREATE     | Endpoint is being set up              |
+      | PENDING_REJECTED   | Endpoint is being rejected            |
+      | PENDING_DELETE     | Endpoint is being deleted             |
+      | REJECTED           | Endpoint was rejected                 |
+      | FAILED             | Endpoint setup failed                 |
+    enum:
+      - ACTIVE
+      - PENDING_APPROVAL
+      - PENDING_CREATE
+      - PENDING_REJECTED
+      - PENDING_DELETE
+      - REJECTED
+      - FAILED
+    readOnly: true
+  RBACPolicyCommon:
+    x-go-name: rbacpolicycommon
+    required:
+      - target
+    type: object
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: The ID of the resource.
+        readOnly: true
+      target_type:
+        type: string
+        enum:
+          - project
+      target:
+        description: The ID of the project to which the RBAC policy will be enforced.
+        type: string
+        example: 666da95112694b37b3efb0913de3f499
+      project_id:
+        $ref: "#/definitions/Project"
+  RBACPolicy:
+    x-go-name: rbacpolicy
+    required:
+      - service_id
+    type: object
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: The ID of the resource.
+        readOnly: true
+      target_type:
+        type: string
+        enum:
+          - project_id
+          - domain_id
+      target:
+        description: The ID of the project to which the RBAC policy will be enforced.
+        type: string
+        example: 666da95112694b37b3efb0913de3f499
+      service_id:
+        type: string
+        format: uuid
+        description: The ID of the service resource.
+      created_at:
+        $ref: "#/definitions/Timestamp"
+      updated_at:
+        $ref: "#/definitions/Timestamp"
+      project_id:
+        $ref: "#/definitions/Project"
+  Quota:
+    type: object
+    properties:
+      service:
+        type: integer
+        format: int64
+        description: The configured service quota limit. A setting of null means it is using the deployment default quota. A setting of -1 means unlimited.
+        example: 5
+        minimum: -1
+        x-nullable: false
+      endpoint:
+        type: integer
+        format: int64
+        description: The configured endpoint quota limit. A setting of null means it is using the deployment default quota. A setting of -1 means unlimited.
+        example: 5
+        minimum: -1
+        x-nullable: false
+  Project:
+    type: string
+    description: The ID of the project owning this resource.
+    example: fa84c217f361441986a220edf9b1e337
+    minLength: 32
+    maxLength: 32
+    x-omitempty: false
+  QuotaUsage:
+    type: object
+    properties:
+      in_use_service:
+        type: integer
+        description: The current quota usage of services.
+        example: 5
+        x-omitempty: false
+      in_use_endpoint:
+        type: integer
+        description: The current quota usage of endpoints.
+        example: 5
+        x-omitempty: false
+  Version:
+    type: object
+    properties:
+      updated:
+        type: string
+        description: Last update of the running version
+        example: "2018-09-30T00:00:00Z"
+      version:
+        type: string
+        description: Version of Archer
+        example: 1.3.0
+      links:
+        type: array
+        items:
+          $ref: "#/definitions/Link"
+      capabilities:
+        type: array
+        example: ["pagination", "sort"]
+        items:
+          type: string
+  Timestamp:
+    type: object
+    x-go-type:
+      type: time.Time
+      hints:
+        noValidation: true
+    format: dateTime
+    description: The UTC date and timestamp.
+    readOnly: true
+    example: 2023-03-31T18:37:54.581099Z
+  Error:
+    type: object
+    properties:
+      code:
+        type: integer
+        x-nullable: false
+      message:
+        type: string
+        x-nullable: false
+  Link:
+    type: object
+    properties:
+      href:
+        type: string
+        example: /
+      rel:
+        type: string
+        example: self
