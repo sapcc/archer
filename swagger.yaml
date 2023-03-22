@@ -1,0 +1,515 @@
+swagger: "2.0"
+info:
+  description: "API without a name\nCustomer can select a foreign Service from a service catalog and let this service be injected (available via an internal IP/Port) into it's own private network."
+  version: "1.1.0"
+  title: "AWAN 1.1"
+  contact:
+    email: "andrew.karpow@sap.com"
+  license:
+    name: "Apache 2.0"
+    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
+basePath: "/v1"
+consumes:
+- application/json
+produces:
+- application/json
+tags:
+- name: service
+  description: Operations about services
+- name: inject
+  description: Operation about injection of services
+- name: rbac
+  description: RBAC Policies
+- name: admin
+  description: Administrative operations
+schemes:
+- "https"
+- "http"
+security:
+- api_key: []
+paths:
+  /service:
+    get:
+      tags:
+      - service
+      summary: List services
+      responses:
+        200:
+          description: An array of services.
+          schema:
+            type: array
+            items:
+              allOf:
+              - $ref: "#/definitions/Service"
+              - $ref: "#/definitions/Project"
+    post:
+      tags:
+      - service
+      summary: Add a new service to the catalog
+      parameters:
+      - in: body
+        name: body
+        description: Service object that needs to be added to the catalog
+        required: true
+        schema:
+          allOf:
+          - $ref: "#/definitions/Service"
+          - $ref: "#/definitions/Project"
+      responses:
+        200:
+          description: Service
+          schema:
+            allOf:
+            - $ref: "#/definitions/Service"
+            - $ref: "#/definitions/Project"
+        400:
+          description: Validation Error
+  /service/{service_id}:
+    parameters:
+    - in: path
+      name: service_id
+      required: true
+      type: string
+      format: uuid
+      description: The UUID of the service
+    get:
+      tags:
+      - service
+      summary: Show details of an service
+      responses:
+        200:
+          description: Service
+          schema:
+            allOf:
+            - $ref: "#/definitions/Service"
+            - $ref: "#/definitions/Project"
+        400:
+          description: Validation Error
+        404:
+          description: Not Found
+    put:
+      tags:
+      - service
+      summary: Update an existing service
+      parameters:
+      - in: body
+        name: body
+        description: Service object that needs to be updated
+        required: true
+        schema:
+          allOf:
+          - $ref: "#/definitions/Service"
+          - $ref: "#/definitions/Project"
+      responses:
+        400:
+          description: Validation Error
+        404:
+          description: Not Found
+    delete:
+      tags:
+      - service
+      summary: Remove service from catalog
+      responses:
+        204:
+          description: Resource successfully deleted.
+        404:
+          description: Not Found
+  /inject:
+    get:
+      tags:
+      - inject
+      summary: List existing service injections
+      responses:
+        200:
+          description: An array of injections.
+          schema:
+            type: array
+            items:
+              allOf:
+              - $ref: "#/definitions/Injection"
+              - $ref: "#/definitions/Project"
+    post:
+      tags:
+      - inject
+      summary: Inject a service into a target network.
+      parameters:
+      - in: body
+        name: body
+        description: Service and target network to inject. Only one of `target_network`, `target_subnet` or `target_port` must be specified.
+        required: true
+        schema:
+          allOf:
+          - $ref: "#/definitions/Injection"
+          - $ref: "#/definitions/Project"
+      responses:
+        200:
+          description: Injection
+          schema:
+            allOf:
+            - $ref: "#/definitions/Injection"
+            - $ref: "#/definitions/Project"
+        400:
+          description: Validation Error
+  /inject/{injection_id}:
+    parameters:
+    - in: path
+      name: injection_id
+      required: true
+      type: string
+      format: uuid
+      description: The UUID of the injection
+    get:
+      tags:
+      - inject
+      summary: Show existing service injection.
+      responses:
+        200:
+          description: An injection detail.
+          schema:
+            allOf:
+            - $ref: "#/definitions/Injection"
+            - $ref: "#/definitions/Project"
+        404:
+          description: Not Found
+    delete:
+      tags:
+      - inject
+      summary: Remove injected service
+      responses:
+        204:
+          description: Resource successfully deleted.
+        404:
+          description: Not Found
+  /rbac-policies:
+    get:
+      tags:
+        - rbac
+      summary: List RBAC policies.
+      responses:
+        200:
+          description: A JSON array of rbac policies
+          schema:
+            type: array
+            items:
+              allOf:
+              - $ref: "#/definitions/RBACPolicy"
+              - $ref: '#/definitions/RBACPolicyServiceID'
+              - $ref: "#/definitions/Project"
+        default:
+          description: Unexpected Error
+    post:
+      tags:
+      - rbac
+      summary: Create RBAC policy.
+      parameters:
+      - in: body
+        name: body
+        description: Service and target network to inject.
+        required: true
+        schema:
+          allOf:
+          - $ref: "#/definitions/RBACPolicy"
+          - $ref: '#/definitions/RBACPolicyServiceID'
+          - $ref: "#/definitions/Project"
+      responses:
+        200:
+          description: RBAC policy
+          schema:
+            allOf:
+            - $ref: '#/definitions/RBACPolicy'
+            - $ref: '#/definitions/RBACPolicyServiceID'
+            - $ref: "#/definitions/Project"
+        400:
+          description: Validation Error
+  /rbac-policies/{rbac_policy_id}:
+    parameters:
+    - in: path
+      name: rbac_policy_id
+      required: true
+      type: string
+      format: uuid
+      description: The UUID of the RBAC policy.
+    get:
+      tags:
+      - rbac
+      summary: Show details of an RBAC policy.
+      responses:
+        200:
+          description: RBAC Policy
+          schema:
+            allOf:
+            - $ref: '#/definitions/RBACPolicy'
+            - $ref: '#/definitions/RBACPolicyServiceID'
+            - $ref: "#/definitions/Project"
+        400:
+          description: Validation Error
+        404:
+          description: Not Found
+    put:
+      tags:
+      - rbac
+      summary: Update an existing RBAC policy.
+      parameters:
+      - in: body
+        name: body
+        description: RBAC policy resource that needs to be updated
+        required: true
+        schema:
+          $ref: "#/definitions/RBACPolicy"
+      responses:
+        200:
+          description: RBAC Policy
+          schema:
+            allOf:
+            - $ref: '#/definitions/RBACPolicy'
+            - $ref: "#/definitions/Project"
+        400:
+          description: Validation Error
+        404:
+          description: Not Found
+    delete:
+      tags:
+      - rbac
+      summary: Delete RBAC policy.
+      responses:
+        204:
+          description: Resource successfully deleted.
+        404:
+          description: Not Found
+  /quotas:
+    parameters:
+      - in: query
+        name: project_id
+        type: string
+        description: The ID of the project to query.
+        minLength: 32
+        maxLength: 32
+    get:
+      tags:
+        - admin
+      summary: List Quotas
+      responses:
+        200:
+          description: A JSON array of quotas
+          schema:
+            type: object
+            properties:
+              quotas:
+                type: array
+                items:
+                  allOf:
+                    - $ref: '#/definitions/Quota'
+                    - $ref: '#/definitions/QuotaUsage'
+                    - $ref: '#/definitions/Project'
+        default:
+          description: Unexpected Error
+  /quotas/defaults:
+    get:
+      tags:
+        - admin
+      summary: Show Quota Defaults
+      responses:
+        200:
+          description: Show the quota defaults configured for new projects.
+          schema:
+            type: object
+            properties:
+              quota:
+                $ref: '#/definitions/Quota'
+        default:
+          description: Unexpected Error
+  /quotas/{project_id}:
+    parameters:
+      - in: path
+        name: project_id
+        required: true
+        type: string
+        description: The ID of the project to query.
+    get:
+      tags:
+        - admin
+      summary: Show Quota detail
+      responses:
+        200:
+          description: Shows the details of a specific monitor.
+          schema:
+            type: object
+            properties:
+              quota:
+                allOf:
+                  - $ref: '#/definitions/Quota'
+                  - $ref: '#/definitions/QuotaUsage'
+        404:
+          description: Not Found
+    put:
+      tags:
+        - admin
+      summary: Update Quota
+      parameters:
+        - in: body
+          name: quota
+          required: true
+          schema:
+            type: object
+            required:
+              - quota
+            properties:
+              quota:
+                $ref: '#/definitions/Quota'
+      responses:
+        202:
+          description: Updated quota for a project.
+          schema:
+            type: object
+            properties:
+              quota:
+                $ref: '#/definitions/Quota'
+    delete:
+      tags:
+        - admin
+      summary: Reset all Quota of a project
+      responses:
+        204:
+          description: Resource successfully reseted.
+        404:
+          description: Not Found
+securityDefinitions:
+  api_key:
+    type: "apiKey"
+    name: "x-auth-token"
+    in: "header"
+definitions:
+  Service:
+    type: object
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: The id of the resource.
+        readOnly: true
+      name:
+        type: string
+        description: Name of the service.
+        example: ExampleService
+      description:
+        type: string
+        description: Description of the service.
+        example: An example of an Service.
+      ports:
+        type: array
+        description: Ports exposed by the service.
+        example: [80, 443]
+        items:
+          type: integer
+          description: Port of the service.
+      network_id:
+        type: string
+        format: uuid
+        description: Network ID of the network that provides this service.
+      ip_address:
+        type: string
+        format: ipv4
+        description: IP Address of the providing service.
+        example: 1.2.3.4
+      status:
+        type: string
+        description: Status of the service.
+        enum:
+        - AVAILABLE
+        - UNAVAILABLE
+        readOnly: true
+  Injection:
+    type: object
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: The ID of the resource.
+        readOnly: true
+      service_id:
+        type: string
+        format: uuid
+        description: The ID of the service.
+      service_name:
+        type: string
+        example: Example Service
+        description: The name of the service.
+        readOnly: true
+      target_network:
+        type: string
+        format: uuid
+        description: Injection network target. One of `target_network`, `target_subnet` or `target_port` must be specified.
+      target_subnet:
+        type: string
+        format: uuid
+        description: Injection subnet target. One of `target_network`, `target_subnet` or `target_port` must be specified.
+      target_port:
+        type: string
+        format: uuid
+        description: Injection port target. One of `target_network`, `target_subnet` or `target_port` must be specified.
+      status:
+        type: string
+        description: Status of the injection.
+        enum:
+        - READY
+        - PENDING
+        - FAILURE
+        readOnly: true
+  RBACPolicy:
+    required:
+      - target_project
+    type: object
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: The ID of the resource.
+        readOnly: true
+      target_project:
+        description: The ID of the project to which the RBAC policy will be enforced.
+        type: string
+        example: "*"
+  RBACPolicyServiceID:
+    required:
+    - service_id
+    type: object
+    properties:
+      service_id:
+        type: string
+        format: uuid
+        description: The ID of the service resource.
+  Quota:
+    type: object
+    properties:
+      service:
+        type: integer
+        description: The configured service quota limit. A setting of null means it is using the deployment default quota. A setting of -1 means unlimited.
+        example: 5
+        x-nullable: true
+      inject:
+        type: integer
+        description: The configured inject quota limit. A setting of null means it is using the deployment default quota. A setting of -1 means unlimited.
+        example: 5
+        x-nullable: true
+  Project:
+    type: object
+    properties:
+      project_id:
+        type: string
+        description: The ID of the project owning this resource.
+        example: fa84c217f361441986a220edf9b1e337
+        minLength: 32
+        maxLength: 32
+  QuotaUsage:
+    type: object
+    properties:
+      in_use_service:
+        type: integer
+        description: The current quota usage of service.
+        example: 5
+        x-omitempty: false
+      in_use_inject:
+        type: integer
+        description: The current quota usage of inject.
+        example: 5
+        x-omitempty: false
