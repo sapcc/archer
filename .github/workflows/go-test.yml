@@ -1,0 +1,32 @@
+name: go-test
+
+on:
+  push:
+    tags:
+      - v*
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  run-unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: 'go.mod'
+      - name: Run PostgreSQL
+        uses: harmon758/postgresql-action@v1
+        with:
+          postgresql version: '13'
+          postgresql db: 'test_suite_controller'
+          postgresql user: root
+          postgresql password: root
+      - name: Build
+        run: go build -v ./...
+      - name: Test
+        run: go test -v ./...
+        env:
+          DB_URL: postgresql://root:root@localhost/test_suite_controller?sslmode=disable
