@@ -1,13 +1,42 @@
 swagger: "2.0"
 info:
-  description: "API without a name\nCustomer can select a foreign Service from a service catalog and let this service be injected (available via an internal IP/Port) into it's own private network."
-  version: "1.1.0"
-  title: "AWAN 1.1"
+  version: "1.2.0"
+  title: "🏹 Archer"
   contact:
-    email: "andrew.karpow@sap.com"
+    name: SAP SE / Converged Cloud
+    url: https://sap.com
   license:
     name: "Apache 2.0"
     url: "http://www.apache.org/licenses/LICENSE-2.0.html"
+  x-logo:
+    url: "https://avatars.githubusercontent.com/u/4242847"
+    backgroundColor: "#FFFFFF"
+    altText: "Archer logo"
+  description: |
+    Archer is an API service that can privatly connect services from one private [OpenStack Network](https://docs.openstack.org/neutron/latest/admin/intro-os-networking.html) to another. Consumers can select a *service* from a service catalog and **inject** it, which means making this *service* available via a private ip address.
+    
+    Archer implements an *OpenStack* like API and integrates with *OpenStack Keystone* and *OpenStack Neutron*.
+    
+    ## Features
+    * Multi-tenant capable via OpenStack Identity service
+    * OpenStack `policy.json` access policy support
+    * Prometheus Exporter
+    * Rate limiting
+    
+    ## Supported Backends
+    * F5 BigIP
+    
+    ## Requirements
+    * PostgreSQL Database
+    
+    ## API
+    The **Archer API** uses the OpenStack Identity service as the default authentication service. When Keystone is enabled, users that submit requests to the OpenStack Networking service must provide an authentication token in `X-Auth-Token` request header. 
+    You obtain the token by authenticating to the Keystone endpoint.
+
+    When Keystone is enabled, the `project_id` attribute is not required in create requests because the project ID is derived from the authentication token.
+externalDocs:
+  description: GitHub
+  url: https://github.com/sapcc/archer
 basePath: "/v1"
 consumes:
 - application/json
@@ -20,13 +49,21 @@ tags:
   description: Operation about injection of services
 - name: rbac
   description: RBAC Policies
-- name: admin
-  description: Administrative operations
+- name: quota
+  description: Quota operations
 schemes:
 - "https"
 - "http"
 security:
-- api_key: []
+- "X-Auth-Token": []
+securityDefinitions:
+  "X-Auth-Token":
+    type: "apiKey"
+    description: |
+      The **Archer API** uses the OpenStack Identity service as the default authentication service. When Keystone is enabled, users that submit requests to the OpenStack Networking service must provide an authentication token in `X-Auth-Token` request header. 
+      You obtain the token by authenticating to the Keystone endpoint.
+    name: "X-Auth-Token"
+    in: "header"
 paths:
   /service:
     get:
@@ -109,11 +146,103 @@ paths:
       tags:
       - service
       summary: Remove service from catalog
+      description: |
+        Deletes this service. There **must** be no active injections for the service for successfully deleting the service. 
+        Active injections can be rejected by the service owner via the `/service/{service_id}/reject_consumers` API.
       responses:
         204:
           description: Resource successfully deleted.
         404:
           description: Not Found
+        409:
+          description: In use.
+  /service/{service_id}/consumers:
+    parameters:
+    - in: path
+      name: service_id
+      required: true
+      type: string
+      format: uuid
+      description: The UUID of the service
+    get:
+      tags:
+      - service
+      summary: List service injections consumers
+      description: |
+        Provides a list of service consumers (injections).
+        Status can be one of
+        * `ACTIVE`
+        * `PENDING`
+        * `REJECTED`
+        
+        This list can be used to accept or reject requests, or disable active injections. 
+        Rejected injections will be cleaned up after a specific time.
+      responses:
+        200:
+          description: An array of service injections consumers.
+          schema:
+            type: array
+            items:
+              allOf:
+              - $ref: "#/definitions/InjectionConsumer"
+              - $ref: "#/definitions/Project"
+  /service/{service_id}/accept_consumers:
+    parameters:
+    - in: path
+      name: service_id
+      required: true
+      type: string
+      format: uuid
+      description: The UUID of the service
+    put:
+      description: |
+        Specify a list of consumers (`consumer_ids` and/or `project_ids`) whose injections should be accepted.
+        Existing active injections will be untouched.
+        Rejected injection will be accepted.
+        Pending injections will be accepted.
+      tags:
+      - service
+      parameters:
+      - in: body
+        name: body
+        description: Service object that needs to be updated
+        required: true
+        schema:
+          $ref: "#/definitions/InjectionConsumerList"
+      responses:
+        400:
+          description: Validation Error
+        404:
+          description: Not Found
+  /service/{service_id}/reject_consumers:
+    parameters:
+    - in: path
+      name: service_id
+      required: true
+      type: string
+      format: uuid
+      description: The UUID of the service
+    put:
+      description: |
+        Specify a list of consumers (`consumer_ids` and/or `project_ids`) whose injections should be rejected.
+        Existing active injections will be closed/disabled.
+        Rejected injections will be untouched.
+        Pending injections will be declined.
+      tags:
+      - service
+      parameters:
+      - in: body
+        name: body
+        description: Service object that needs to be updated
+        required: true
+        schema:
+          $ref: "#/definitions/InjectionConsumerList"
+      responses:
+        400:
+          description: Validation Error
+        404:
+          description: Not Found
+
   /inject:
     get:
       tags:
@@ -286,7 +415,7 @@ paths:
         maxLength: 32
     get:
       tags:
-        - admin
+        - quota
       summary: List Quotas
       responses:
         200:
@@ -306,7 +435,7 @@ paths:
   /quotas/defaults:
     get:
       tags:
-        - admin
+        - quota
       summary: Show Quota Defaults
       responses:
         200:
@@ -327,7 +456,7 @@ paths:
         description: The ID of the project to query.
     get:
       tags:
-        - admin
+        - quota
       summary: Show Quota detail
       responses:
         200:
@@ -343,7 +472,7 @@ paths:
           description: Not Found
     put:
       tags:
-        - admin
+        - quota
       summary: Update Quota
       parameters:
         - in: body
@@ -366,18 +495,13 @@ paths:
                 $ref: '#/definitions/Quota'
     delete:
       tags:
-        - admin
+        - quota
       summary: Reset all Quota of a project
       responses:
         204:
           description: Resource successfully reseted.
         404:
           description: Not Found
-securityDefinitions:
-  api_key:
-    type: "apiKey"
-    name: "x-auth-token"
-    in: "header"
 definitions:
   Service:
     type: object
@@ -387,6 +511,9 @@ definitions:
         format: uuid
         description: The id of the resource.
         readOnly: true
+      enabled:
+        type: boolean
+        description: Enable/Disable this service. Existing injections are not touched by this.
       name:
         type: string
         description: Name of the service.
@@ -418,6 +545,60 @@ definitions:
         - AVAILABLE
         - UNAVAILABLE
         readOnly: true
+      require_approval:
+        type: boolean
+        description: Require explicit project approval for the service owner.
+        default: true
+      visibility:
+        type: string
+        description: Set global visibility of the service. For `private` visibility, RBAC policies can extend the visibility to specific projects.
+        default: private
+        enum:
+        - private
+        - public
+      availability_zone:
+        type: string
+        description: Availability zone of this service.
+        x-nullable: true
+        example: AZ-A
+  InjectionConsumer:
+    type: object
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: The ID of the resource.
+        readOnly: true
+      status:
+        type: string
+        description: Status of the injection consumer.
+        enum:
+        - ACTIVE
+        - PENDING
+        - REJECTED
+        readOnly: true
+      proxy_protocol:
+        type: boolean
+        description: Proxy protocol enabled.
+        readOnly: true
+  InjectionConsumerList:
+    type: object
+    description: list of consumer ids.
+    properties:
+      consumer_ids:
+        type: array
+        items:
+          type: string
+          format: uuid
+          description: The ID of a service injection consumer.
+          readOnly: true
+      project_ids:
+        type: array
+        items:
+          type: string
+          format: uuid
+          description: The ID of a project.
+          readOnly: true
   Injection:
     type: object
     properties:
@@ -447,13 +628,16 @@ definitions:
         type: string
         format: uuid
         description: Injection port target. One of `target_network`, `target_subnet` or `target_port` must be specified.
+      proxy_protocol:
+        type: boolean
+        description: Proxy protocol enabled for this injection endpoint.
       status:
         type: string
         description: Status of the injection.
         enum:
         - READY
         - PENDING
-        - FAILURE
+        - DISABLED
         readOnly: true
   RBACPolicy:
     required:
@@ -465,10 +649,15 @@ definitions:
         format: uuid
         description: The ID of the resource.
         readOnly: true
-      target_project:
+      target_type:
+        type: string
+        enum:
+        - project_id
+        - domain_id
+      target:
         description: The ID of the project to which the RBAC policy will be enforced.
         type: string
-        example: "*"
+        example: 666da95112694b37b3efb0913de3f499
   RBACPolicyServiceID:
     required:
     - service_id
