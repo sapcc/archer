@@ -17,19 +17,19 @@ info:
     
     Archer implements an *OpenStack* like API and integrates with *OpenStack Keystone* and *OpenStack Neutron*.
     
-    ## Features
+    ### Features
     * Multi-tenant capable via OpenStack Identity service
     * OpenStack `policy.json` access policy support
     * Prometheus Exporter
     * Rate limiting
     
-    ## Supported Backends
+    ### Supported Backends
     * F5 BigIP
     
-    ## Requirements
+    ### Requirements
     * PostgreSQL Database
     
-    ## API
+    ### API
     The **Archer API** uses the OpenStack Identity service as the default authentication service. When Keystone is enabled, users that submit requests to the OpenStack Networking service must provide an authentication token in `X-Auth-Token` request header. 
     You obtain the token by authenticating to the Keystone endpoint.
 
@@ -43,14 +43,22 @@ consumes:
 produces:
 - application/json
 tags:
-- name: service
-  description: Operations about services
-- name: inject
-  description: Operation about injection of services
-- name: rbac
-  description: RBAC Policies
-- name: quota
-  description: Quota operations
+- name: Service
+  description: |
+    ### Services
+    Services are for publishing TCP/UDP services using internal IP addresses in your private network.
+- name: Inject
+  description: |
+    ### Injections
+    Injections are for accessing existing Services using internal IP addresses in your private network.
+- name: RBAC
+  description: |
+    ### RBAC Policies
+    RBAC Policies are used to provide service visibility to specific project or domains.
+- name: Quota
+  description: |
+    ### Quota Operations
+    Administrative API for listing and setting quotas for services and injections.
 schemes:
 - "https"
 - "http"
@@ -68,7 +76,7 @@ paths:
   /service:
     get:
       tags:
-      - service
+      - Service
       summary: List services
       responses:
         200:
@@ -81,7 +89,7 @@ paths:
               - $ref: "#/definitions/Project"
     post:
       tags:
-      - service
+      - Service
       summary: Add a new service to the catalog
       parameters:
       - in: body
@@ -111,7 +119,7 @@ paths:
       description: The UUID of the service
     get:
       tags:
-      - service
+      - Service
       summary: Show details of an service
       responses:
         200:
@@ -126,7 +134,7 @@ paths:
           description: Not Found
     put:
       tags:
-      - service
+      - Service
       summary: Update an existing service
       parameters:
       - in: body
@@ -144,7 +152,7 @@ paths:
           description: Not Found
     delete:
       tags:
-      - service
+      - Service
       summary: Remove service from catalog
       description: |
         Deletes this service. There **must** be no active injections for the service for successfully deleting the service. 
@@ -166,7 +174,7 @@ paths:
       description: The UUID of the service
     get:
       tags:
-      - service
+      - Service
       summary: List service injections consumers
       description: |
         Provides a list of service consumers (injections).
@@ -195,13 +203,14 @@ paths:
       format: uuid
       description: The UUID of the service
     put:
+      summary: Accept consumer injections
       description: |
         Specify a list of consumers (`consumer_ids` and/or `project_ids`) whose injections should be accepted.
         Existing active injections will be untouched.
         Rejected injection will be accepted.
         Pending injections will be accepted.
       tags:
-      - service
+      - Service
       parameters:
       - in: body
         name: body
@@ -223,13 +232,14 @@ paths:
       format: uuid
       description: The UUID of the service
     put:
+      summary: Reject consumer injections
       description: |
         Specify a list of consumers (`consumer_ids` and/or `project_ids`) whose injections should be rejected.
         Existing active injections will be closed/disabled.
         Rejected injections will be untouched.
         Pending injections will be declined.
       tags:
-      - service
+      - Service
       parameters:
       - in: body
         name: body
@@ -246,7 +256,7 @@ paths:
   /inject:
     get:
       tags:
-      - inject
+      - Inject
       summary: List existing service injections
       responses:
         200:
@@ -259,7 +269,7 @@ paths:
               - $ref: "#/definitions/Project"
     post:
       tags:
-      - inject
+      - Inject
       summary: Inject a service into a target network.
       parameters:
       - in: body
@@ -289,7 +299,7 @@ paths:
       description: The UUID of the injection
     get:
       tags:
-      - inject
+      - Inject
       summary: Show existing service injection.
       responses:
         200:
@@ -302,7 +312,7 @@ paths:
           description: Not Found
     delete:
       tags:
-      - inject
+      - Inject
       summary: Remove injected service
       responses:
         204:
@@ -312,7 +322,7 @@ paths:
   /rbac-policies:
     get:
       tags:
-        - rbac
+        - RBAC
       summary: List RBAC policies.
       responses:
         200:
@@ -328,7 +338,7 @@ paths:
           description: Unexpected Error
     post:
       tags:
-      - rbac
+      - RBAC
       summary: Create RBAC policy.
       parameters:
       - in: body
@@ -360,7 +370,7 @@ paths:
       description: The UUID of the RBAC policy.
     get:
       tags:
-      - rbac
+      - RBAC
       summary: Show details of an RBAC policy.
       responses:
         200:
@@ -376,7 +386,7 @@ paths:
           description: Not Found
     put:
       tags:
-      - rbac
+      - RBAC
       summary: Update an existing RBAC policy.
       parameters:
       - in: body
@@ -398,7 +408,7 @@ paths:
           description: Not Found
     delete:
       tags:
-      - rbac
+      - RBAC
       summary: Delete RBAC policy.
       responses:
         204:
@@ -415,7 +425,7 @@ paths:
         maxLength: 32
     get:
       tags:
-        - quota
+        - Quota
       summary: List Quotas
       responses:
         200:
@@ -435,7 +445,7 @@ paths:
   /quotas/defaults:
     get:
       tags:
-        - quota
+        - Quota
       summary: Show Quota Defaults
       responses:
         200:
@@ -456,7 +466,7 @@ paths:
         description: The ID of the project to query.
     get:
       tags:
-        - quota
+        - Quota
       summary: Show Quota detail
       responses:
         200:
@@ -472,7 +482,7 @@ paths:
           description: Not Found
     put:
       tags:
-        - quota
+        - Quota
       summary: Update Quota
       parameters:
         - in: body
@@ -495,7 +505,7 @@ paths:
                 $ref: '#/definitions/Quota'
     delete:
       tags:
-        - quota
+        - Quota
       summary: Reset all Quota of a project
       responses:
         204:
