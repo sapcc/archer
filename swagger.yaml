@@ -146,6 +146,12 @@ paths:
           - $ref: "#/definitions/Service"
           - $ref: "#/definitions/Project"
       responses:
+        200:
+          description: Service
+          schema:
+            allOf:
+            - $ref: "#/definitions/Service"
+            - $ref: "#/definitions/Project"
         400:
           description: Validation Error
         404:
@@ -194,6 +200,8 @@ paths:
               allOf:
               - $ref: "#/definitions/InjectionConsumer"
               - $ref: "#/definitions/Project"
+        404:
+          description: Not Found
   /service/{service_id}/accept_consumers:
     parameters:
     - in: path
@@ -219,6 +227,8 @@ paths:
         schema:
           $ref: "#/definitions/InjectionConsumerList"
       responses:
+        204:
+          description: Ok
         400:
           description: Validation Error
         404:
@@ -248,6 +258,8 @@ paths:
         schema:
           $ref: "#/definitions/InjectionConsumerList"
       responses:
+        204:
+          description: Ok
         400:
           description: Validation Error
         404:
@@ -360,6 +372,8 @@ paths:
             - $ref: "#/definitions/Project"
         400:
           description: Validation Error
+        409:
+          description: Exists
   /rbac-policies/{rbac_policy_id}:
     parameters:
     - in: path
@@ -380,8 +394,6 @@ paths:
             - $ref: '#/definitions/RBACPolicy'
             - $ref: '#/definitions/RBACPolicyServiceID'
             - $ref: "#/definitions/Project"
-        400:
-          description: Validation Error
         404:
           description: Not Found
     put:
@@ -440,8 +452,8 @@ paths:
                     - $ref: '#/definitions/Quota'
                     - $ref: '#/definitions/QuotaUsage'
                     - $ref: '#/definitions/Project'
-        default:
-          description: Unexpected Error
+        404:
+          description: Not Found
   /quotas/defaults:
     get:
       tags:
@@ -455,8 +467,6 @@ paths:
             properties:
               quota:
                 $ref: '#/definitions/Quota'
-        default:
-          description: Unexpected Error
   /quotas/{project_id}:
     parameters:
       - in: path
@@ -503,13 +513,17 @@ paths:
             properties:
               quota:
                 $ref: '#/definitions/Quota'
+        400:
+          description: Validation Error
+        404:
+          description: Not found
     delete:
       tags:
         - Quota
       summary: Reset all Quota of a project
       responses:
         204:
-          description: Resource successfully reseted.
+          description: Resource successfully reseted
         404:
           description: Not Found
 definitions:
