@@ -1,6 +1,6 @@
 swagger: "2.0"
 info:
-  version: "1.2.0"
+  version: "1.3.0"
   title: "🏹 Archer"
   contact:
     name: SAP SE / Converged Cloud
@@ -13,9 +13,15 @@ info:
     backgroundColor: "#FFFFFF"
     altText: "Archer logo"
   description: |
-    Archer is an API service that can privatly connect services from one private [OpenStack Network](https://docs.openstack.org/neutron/latest/admin/intro-os-networking.html) to another. Consumers can select a *service* from a service catalog and **inject** it, which means making this *service* available via a private ip address.
+    Archer is an API service that can privatly connect services from one private [OpenStack Network](https://docs.openstack.org/neutron/latest/admin/intro-os-networking.html) to another. Consumers can select a *service* from a service catalog and **inject** it to their network, which means making this *service* available via a private ip address.
     
     Archer implements an *OpenStack* like API and integrates with *OpenStack Keystone* and *OpenStack Neutron*.
+    
+    ### Architecture
+    There are two types of resources: **services** and **endpoints**
+    
+    * **Services** are private or public services that are manually configured in *Archer*. They can be accessed by creating an endpoint.
+    * **Service endpoints**, or short **endpoints**, are IP endpoints in a local network used to transparently access services residing in different private networks.
     
     ### Features
     * Multi-tenant capable via OpenStack Identity service
@@ -37,20 +43,23 @@ info:
 externalDocs:
   description: GitHub
   url: https://github.com/sapcc/archer
-basePath: "/v1"
 consumes:
 - application/json
 produces:
 - application/json
 tags:
+- name: Version
+  description: |
+    ### Version API
+    Lists information of enabled Archer capabilities.
 - name: Service
   description: |
     ### Services
     Services are for publishing TCP/UDP services using internal IP addresses in your private network.
-- name: Inject
+- name: Endpoint
   description: |
-    ### Injections
-    Injections are for accessing existing Services using internal IP addresses in your private network.
+    ### Endpoints
+    Endpoints are for accessing existing Services using internal IP addresses in your private network.
 - name: RBAC
   description: |
     ### RBAC Policies
@@ -58,7 +67,7 @@ tags:
 - name: Quota
   description: |
     ### Quota Operations
-    Administrative API for listing and setting quotas for services and injections.
+    Administrative API for listing and setting quotas for services and endpoints.
 schemes:
 - "https"
 - "http"
@@ -73,6 +82,17 @@ securityDefinitions:
     name: "X-Auth-Token"
     in: "header"
 paths:
+  /:
+    get:
+      security: []
+      tags:
+      - Version
+      summary: Shows details for Archer API
+      responses:
+        200:
+          description: Version
+          schema:
+            $ref: "#/definitions/Version"
   /service:
     get:
       tags:
@@ -161,8 +181,8 @@ paths:
       - Service
       summary: Remove service from catalog
       description: |
-        Deletes this service. There **must** be no active injections for the service for successfully deleting the service. 
-        Active injections can be rejected by the service owner via the `/service/{service_id}/reject_consumers` API.
+        Deletes this service. There **must** be no active associated endpoint for successfully deleting the service. 
+        Active endpoints can be rejected by the service owner via the `/service/{service_id}/reject_endpoints` API.
       responses:
         204:
           description: Resource successfully deleted.
@@ -170,7 +190,7 @@ paths:
           description: Not Found
         409:
           description: In use.
-  /service/{service_id}/consumers:
+  /service/{service_id}/endpoints:
     parameters:
     - in: path
       name: service_id
@@ -181,28 +201,24 @@ paths:
     get:
       tags:
       - Service
-      summary: List service injections consumers
+      summary: List service endpoints consumers
       description: |
-        Provides a list of service consumers (injections).
-        Status can be one of
-        * `ACTIVE`
-        * `PENDING`
-        * `REJECTED`
+        Provides a list of service consumers (endpoints).
         
-        This list can be used to accept or reject requests, or disable active injections. 
-        Rejected injections will be cleaned up after a specific time.
+        This list can be used to accept or reject requests, or disable active endpoints. 
+        Rejected endpoints will be cleaned up after a specific time.
       responses:
         200:
-          description: An array of service injections consumers.
+          description: An array of service endpoint consumers.
           schema:
             type: array
             items:
               allOf:
-              - $ref: "#/definitions/InjectionConsumer"
+              - $ref: "#/definitions/EndpointConsumer"
               - $ref: "#/definitions/Project"
         404:
           description: Not Found
-  /service/{service_id}/accept_consumers:
+  /service/{service_id}/accept_endpoints:
     parameters:
     - in: path
       name: service_id
@@ -211,12 +227,12 @@ paths:
       format: uuid
       description: The UUID of the service
     put:
-      summary: Accept consumer injections
+      summary: Accept endpoints
       description: |
-        Specify a list of consumers (`consumer_ids` and/or `project_ids`) whose injections should be accepted.
-        Existing active injections will be untouched.
-        Rejected injection will be accepted.
-        Pending injections will be accepted.
+        Specify a list of endpoint consumers (`endpoint_ids` and/or `project_ids`) whose endpoints should be accepted.
+        * Existing active endpoints will be untouched.
+        * Rejected endpoints will be accepted.
+        * Pending endpoints will be accepted.
       tags:
       - Service
       parameters:
@@ -225,15 +241,21 @@ paths:
         description: Service object that needs to be updated
         required: true
         schema:
-          $ref: "#/definitions/InjectionConsumerList"
+          $ref: "#/definitions/EndpointConsumerList"
       responses:
-        204:
+        200:
           description: Ok
+          schema:
+            type: array
+            items:
+              allOf:
+              - $ref: "#/definitions/EndpointConsumer"
+              - $ref: "#/definitions/Project"
         400:
           description: Validation Error
         404:
           description: Not Found
-  /service/{service_id}/reject_consumers:
+  /service/{service_id}/reject_endpoints:
     parameters:
     - in: path
       name: service_id
@@ -242,12 +264,12 @@ paths:
       format: uuid
       description: The UUID of the service
     put:
-      summary: Reject consumer injections
+      summary: Reject endpoints
       description: |
-        Specify a list of consumers (`consumer_ids` and/or `project_ids`) whose injections should be rejected.
-        Existing active injections will be closed/disabled.
-        Rejected injections will be untouched.
-        Pending injections will be declined.
+        Specify a list of consumers (`endpoint_ids` and/or `project_ids`) whose endpoints should be rejected.
+        * Existing active endpoints will be rejected.
+        * Rejected endpoints will be untouched.
+        * Pending endpoints will be rejected.
       tags:
       - Service
       parameters:
@@ -256,33 +278,39 @@ paths:
         description: Service object that needs to be updated
         required: true
         schema:
-          $ref: "#/definitions/InjectionConsumerList"
+          $ref: "#/definitions/EndpointConsumerList"
       responses:
-        204:
+        200:
           description: Ok
+          schema:
+            type: array
+            items:
+              allOf:
+              - $ref: "#/definitions/EndpointConsumer"
+              - $ref: "#/definitions/Project"
         400:
           description: Validation Error
         404:
           description: Not Found
 
-  /inject:
+  /endpoint:
     get:
       tags:
-      - Inject
-      summary: List existing service injections
+      - Endpoint
+      summary: List existing service endpoints
       responses:
         200:
-          description: An array of injections.
+          description: An array of endpoints.
           schema:
             type: array
             items:
               allOf:
-              - $ref: "#/definitions/Injection"
+              - $ref: "#/definitions/Endpoint"
               - $ref: "#/definitions/Project"
     post:
       tags:
-      - Inject
-      summary: Inject a service into a target network.
+      - Endpoint
+      summary: Create endpoint for accessing a service
       parameters:
       - in: body
         name: body
@@ -290,42 +318,42 @@ paths:
         required: true
         schema:
           allOf:
-          - $ref: "#/definitions/Injection"
+          - $ref: "#/definitions/Endpoint"
           - $ref: "#/definitions/Project"
       responses:
         200:
-          description: Injection
+          description: Endpoint
           schema:
             allOf:
-            - $ref: "#/definitions/Injection"
+            - $ref: "#/definitions/Endpoint"
             - $ref: "#/definitions/Project"
         400:
           description: Validation Error
-  /inject/{injection_id}:
+  /endpoint/{endpoint_id}:
     parameters:
     - in: path
-      name: injection_id
+      name: endpoint_id
       required: true
       type: string
       format: uuid
-      description: The UUID of the injection
+      description: The UUID of the endpoint
     get:
       tags:
-      - Inject
-      summary: Show existing service injection.
+      - Endpoint
+      summary: Show existing service endpoint
       responses:
         200:
-          description: An injection detail.
+          description: An endpoint detail.
           schema:
             allOf:
-            - $ref: "#/definitions/Injection"
+            - $ref: "#/definitions/Endpoint"
             - $ref: "#/definitions/Project"
         404:
           description: Not Found
     delete:
       tags:
-      - Inject
-      summary: Remove injected service
+      - Endpoint
+      summary: Remove an existing endpoint
       responses:
         204:
           description: Resource successfully deleted.
@@ -335,7 +363,7 @@ paths:
     get:
       tags:
         - RBAC
-      summary: List RBAC policies.
+      summary: List RBAC policies
       responses:
         200:
           description: A JSON array of rbac policies
@@ -351,11 +379,11 @@ paths:
     post:
       tags:
       - RBAC
-      summary: Create RBAC policy.
+      summary: Create RBAC policy
       parameters:
       - in: body
         name: body
-        description: Service and target network to inject.
+        description: RBAC Policy
         required: true
         schema:
           allOf:
@@ -385,7 +413,7 @@ paths:
     get:
       tags:
       - RBAC
-      summary: Show details of an RBAC policy.
+      summary: Show details of an RBAC policy
       responses:
         200:
           description: RBAC Policy
@@ -399,7 +427,7 @@ paths:
     put:
       tags:
       - RBAC
-      summary: Update an existing RBAC policy.
+      summary: Update an existing RBAC policy
       parameters:
       - in: body
         name: body
@@ -421,7 +449,7 @@ paths:
     delete:
       tags:
       - RBAC
-      summary: Delete RBAC policy.
+      summary: Delete RBAC policy
       responses:
         204:
           description: Resource successfully deleted.
@@ -533,11 +561,11 @@ definitions:
       id:
         type: string
         format: uuid
-        description: The id of the resource.
+        description: The ID of the resource.
         readOnly: true
       enabled:
         type: boolean
-        description: Enable/Disable this service. Existing injections are not touched by this.
+        description: Enable/disable this service. Existing endpoints are not touched by this.
       name:
         type: string
         description: Name of the service.
@@ -564,9 +592,22 @@ definitions:
         example: 1.2.3.4
       status:
         type: string
-        description: Status of the service.
+        description: | 
+          Status of the service.
+          
+          ### Status can be one of
+          | Status           | Description                           |
+          | ---------------- | ------------------------------------- |
+          | AVAILABLE        | Service is ready for consumption.     |
+          | PENDING_CREATE   | Service is being set up               |
+          | PENDING_UPDATE   | Service is being updated              |
+          | PENDING_DELETE   | Service is being deleted              |
+          | UNAVAILABLE      | Service is unavailble (e.g. disabled) |
         enum:
         - AVAILABLE
+        - PENDING_CREATE
+        - PENDING_UPDATE
+        - PENDING_DELETE
         - UNAVAILABLE
         readOnly: true
       require_approval:
@@ -585,7 +626,7 @@ definitions:
         description: Availability zone of this service.
         x-nullable: true
         example: AZ-A
-  InjectionConsumer:
+  EndpointConsumer:
     type: object
     properties:
       id:
@@ -594,27 +635,17 @@ definitions:
         description: The ID of the resource.
         readOnly: true
       status:
-        type: string
-        description: Status of the injection consumer.
-        enum:
-        - ACTIVE
-        - PENDING
-        - REJECTED
-        readOnly: true
-      proxy_protocol:
-        type: boolean
-        description: Proxy protocol enabled.
-        readOnly: true
-  InjectionConsumerList:
+        $ref: "#/definitions/EndpointStatus"
+  EndpointConsumerList:
     type: object
     description: list of consumer ids.
     properties:
-      consumer_ids:
+      endpoint_ids:
         type: array
         items:
           type: string
           format: uuid
-          description: The ID of a service injection consumer.
+          description: The ID of a service endpoint consumer.
           readOnly: true
       project_ids:
         type: array
@@ -623,7 +654,7 @@ definitions:
           format: uuid
           description: The ID of a project.
           readOnly: true
-  Injection:
+  Endpoint:
     type: object
     properties:
       id:
@@ -643,26 +674,45 @@ definitions:
       target_network:
         type: string
         format: uuid
-        description: Injection network target. One of `target_network`, `target_subnet` or `target_port` must be specified.
+        description: Endpoint network target. One of `target_network`, `target_subnet` or `target_port` must be specified.
+        example: null
       target_subnet:
         type: string
         format: uuid
-        description: Injection subnet target. One of `target_network`, `target_subnet` or `target_port` must be specified.
+        description: Endpoint subnet target. One of `target_network`, `target_subnet` or `target_port` must be specified.
+        example: null
       target_port:
         type: string
         format: uuid
-        description: Injection port target. One of `target_network`, `target_subnet` or `target_port` must be specified.
+        description: Endpoint port target. One of `target_network`, `target_subnet` or `target_port` must be specified.
+        example: b2accf1a-1c99-4b54-9eeb-22be53f177f5
       proxy_protocol:
         type: boolean
-        description: Proxy protocol enabled for this injection endpoint.
+        description: Proxy protocol enabled for this endpoint.
       status:
-        type: string
-        description: Status of the injection.
-        enum:
-        - READY
-        - PENDING
-        - DISABLED
-        readOnly: true
+        $ref: "#/definitions/EndpointStatus"
+  EndpointStatus:
+    type: string
+    description: | 
+      Status of the endpoint
+      
+      ### Status can be one of
+      | Status             | Description                           |
+      | ------------------ | ------------------------------------- |
+      | AVAILABLE          | Endpoint is active for consumption    |
+      | PENDING_APPROVAL   | Endpoint is waiting for approval      |
+      | PENDING_CREATE     | Endpoint is being set up              |
+      | PENDING_DELETE     | Endpoint is being deleted             |
+      | REJECTED           | Endpoint was rejected                 |
+      | FAILED             | Endpoint setup failed                 |
+    enum:
+    - ACTIVE
+    - PENDING_APPROVAL
+    - PENDING_CREATE
+    - PENDING_DELETE
+    - REJECTED
+    - FAILED
+    readOnly: true
   RBACPolicy:
     required:
       - target_project
@@ -699,9 +749,9 @@ definitions:
         description: The configured service quota limit. A setting of null means it is using the deployment default quota. A setting of -1 means unlimited.
         example: 5
         x-nullable: true
-      inject:
+      endpoint:
         type: integer
-        description: The configured inject quota limit. A setting of null means it is using the deployment default quota. A setting of -1 means unlimited.
+        description: The configured endpoint quota limit. A setting of null means it is using the deployment default quota. A setting of -1 means unlimited.
         example: 5
         x-nullable: true
   Project:
@@ -718,11 +768,42 @@ definitions:
     properties:
       in_use_service:
         type: integer
-        description: The current quota usage of service.
+        description: The current quota usage of services.
         example: 5
         x-omitempty: false
-      in_use_inject:
+      in_use_endpoint:
         type: integer
-        description: The current quota usage of inject.
+        description: The current quota usage of endpoints.
         example: 5
         x-omitempty: false
+  Version:
+    type: object
+    properties:
+      updated:
+        type: string
+        description: Last update of the running version
+        example: "2018-09-30T00:00:00Z"
+      version:
+        type: string
+        description: Version of Archer
+        example: 1.3.0
+      links:
+        type: array
+        items:
+          type: object
+          properties:
+            href:
+              type: string
+              example: https://example.com
+            type:
+              type: string
+              example: application/json
+            rel:
+              type: string
+              example: self
+      capabilities:
+        type: array
+        example: ["pagination", "sort"]
+        items:
+          type: string
+      
