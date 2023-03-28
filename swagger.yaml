@@ -715,7 +715,7 @@ definitions:
     readOnly: true
   RBACPolicy:
     required:
-      - target_project
+      - target
     type: object
     properties:
       id:
