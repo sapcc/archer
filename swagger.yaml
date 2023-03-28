@@ -7,13 +7,13 @@ info:
     url: https://sap.com
   license:
     name: "Apache 2.0"
-    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
+    url: "https://www.apache.org/licenses/LICENSE-2.0.html"
   x-logo:
     url: "https://avatars.githubusercontent.com/u/4242847"
     backgroundColor: "#FFFFFF"
     altText: "Archer logo"
   description: |
-    Archer is an API service that can privatly connect services from one private [OpenStack Network](https://docs.openstack.org/neutron/latest/admin/intro-os-networking.html) to another. Consumers can select a *service* from a service catalog and **inject** it to their network, which means making this *service* available via a private ip address.
+    Archer is an API service that can privately connect services from one private [OpenStack Network](https://docs.openstack.org/neutron/latest/admin/intro-os-networking.html) to another. Consumers can select a *service* from a service catalog and **inject** it to their network, which means making this *service* available via a private ip address.
     
     Archer implements an *OpenStack* like API and integrates with *OpenStack Keystone* and *OpenStack Neutron*.
     
@@ -514,7 +514,7 @@ paths:
       summary: Reset all Quota of a project
       responses:
         204:
-          description: Resource successfully reseted
+          description: Resource successfully reset
         404:
           description: Not Found
 definitions:
@@ -559,13 +559,13 @@ definitions:
           Status of the service.
           
           ### Status can be one of
-          | Status           | Description                           |
-          | ---------------- | ------------------------------------- |
-          | AVAILABLE        | Service is ready for consumption.     |
-          | PENDING_CREATE   | Service is being set up               |
-          | PENDING_UPDATE   | Service is being updated              |
-          | PENDING_DELETE   | Service is being deleted              |
-          | UNAVAILABLE      | Service is unavailble (e.g. disabled) |
+          | Status           | Description                            |
+          | ---------------- | -------------------------------------- |
+          | AVAILABLE        | Service is ready for consumption.      |
+          | PENDING_CREATE   | Service is being set up                |
+          | PENDING_UPDATE   | Service is being updated               |
+          | PENDING_DELETE   | Service is being deleted               |
+          | UNAVAILABLE      | Service is unavailable (e.g. disabled) |
         enum:
           - AVAILABLE
           - PENDING_CREATE
