@@ -44,35 +44,35 @@ externalDocs:
   description: GitHub
   url: https://github.com/sapcc/archer
 consumes:
-- application/json
+  - application/json
 produces:
-- application/json
+  - application/json
 tags:
-- name: Version
-  description: |
-    ### Version API
-    Lists information of enabled Archer capabilities.
-- name: Service
-  description: |
-    ### Services
-    Services are for publishing TCP/UDP services using internal IP addresses in your private network.
-- name: Endpoint
-  description: |
-    ### Endpoints
-    Endpoints are for accessing existing Services using internal IP addresses in your private network.
-- name: RBAC
-  description: |
-    ### RBAC Policies
-    RBAC Policies are used to provide service visibility to specific project or domains.
-- name: Quota
-  description: |
-    ### Quota Operations
-    Administrative API for listing and setting quotas for services and endpoints.
+  - name: Version
+    description: |
+      ### Version API
+      Lists information of enabled Archer capabilities.
+  - name: Service
+    description: |
+      ### Services
+      Services are for publishing TCP/UDP services using internal IP addresses in your private network.
+  - name: Endpoint
+    description: |
+      ### Endpoints
+      Endpoints are for accessing existing Services using internal IP addresses in your private network.
+  - name: RBAC
+    description: |
+      ### RBAC Policies
+      RBAC Policies are used to provide service visibility to specific project or domains.
+  - name: Quota
+    description: |
+      ### Quota Operations
+      Administrative API for listing and setting quotas for services and endpoints.
 schemes:
-- "https"
-- "http"
+  - "https"
+  - "http"
 security:
-- "X-Auth-Token": []
+  - "X-Auth-Token": []
 securityDefinitions:
   "X-Auth-Token":
     type: "apiKey"
@@ -86,7 +86,7 @@ paths:
     get:
       security: []
       tags:
-      - Version
+        - Version
       summary: Shows details for Archer API
       responses:
         200:
@@ -96,7 +96,7 @@ paths:
   /service:
     get:
       tags:
-      - Service
+        - Service
       summary: List services
       responses:
         200:
@@ -104,81 +104,69 @@ paths:
           schema:
             type: array
             items:
-              allOf:
-              - $ref: "#/definitions/Service"
-              - $ref: "#/definitions/Project"
+              $ref: "#/definitions/Service"
     post:
       tags:
-      - Service
+        - Service
       summary: Add a new service to the catalog
       parameters:
-      - in: body
-        name: body
-        description: Service object that needs to be added to the catalog
-        required: true
-        schema:
-          allOf:
-          - $ref: "#/definitions/Service"
-          - $ref: "#/definitions/Project"
+        - in: body
+          name: body
+          description: Service object that needs to be added to the catalog
+          required: true
+          schema:
+            $ref: "#/definitions/Service"
       responses:
         200:
           description: Service
           schema:
-            allOf:
-            - $ref: "#/definitions/Service"
-            - $ref: "#/definitions/Project"
+            $ref: "#/definitions/Service"
         400:
           description: Validation Error
   /service/{service_id}:
     parameters:
-    - in: path
-      name: service_id
-      required: true
-      type: string
-      format: uuid
-      description: The UUID of the service
+      - in: path
+        name: service_id
+        required: true
+        type: string
+        format: uuid
+        description: The UUID of the service
     get:
       tags:
-      - Service
+        - Service
       summary: Show details of an service
       responses:
         200:
           description: Service
           schema:
-            allOf:
-            - $ref: "#/definitions/Service"
-            - $ref: "#/definitions/Project"
+            $ref: "#/definitions/Service"
         400:
           description: Validation Error
         404:
           description: Not Found
     put:
       tags:
-      - Service
+        - Service
       summary: Update an existing service
       parameters:
-      - in: body
-        name: body
-        description: Service object that needs to be updated
-        required: true
-        schema:
-          allOf:
-          - $ref: "#/definitions/Service"
-          - $ref: "#/definitions/Project"
+        - in: body
+          name: body
+          description: Service object that needs to be updated
+          required: true
+          schema:
+            $ref: "#/definitions/Service"
       responses:
         200:
           description: Service
           schema:
-            allOf:
-            - $ref: "#/definitions/Service"
-            - $ref: "#/definitions/Project"
+            $ref: "#/definitions/Service"
         400:
           description: Validation Error
         404:
           description: Not Found
     delete:
       tags:
-      - Service
+        - Service
       summary: Remove service from catalog
       description: |
         Deletes this service. There **must** be no active associated endpoint for successfully deleting the service. 
@@ -192,15 +180,15 @@ paths:
           description: In use.
   /service/{service_id}/endpoints:
     parameters:
-    - in: path
-      name: service_id
-      required: true
-      type: string
-      format: uuid
-      description: The UUID of the service
+      - in: path
+        name: service_id
+        required: true
+        type: string
+        format: uuid
+        description: The UUID of the service
     get:
       tags:
-      - Service
+        - Service
       summary: List service endpoints consumers
       description: |
         Provides a list of service consumers (endpoints).
@@ -213,19 +201,17 @@ paths:
           schema:
             type: array
             items:
-              allOf:
-              - $ref: "#/definitions/EndpointConsumer"
-              - $ref: "#/definitions/Project"
+              $ref: "#/definitions/EndpointConsumer"
         404:
           description: Not Found
   /service/{service_id}/accept_endpoints:
     parameters:
-    - in: path
-      name: service_id
-      required: true
-      type: string
-      format: uuid
-      description: The UUID of the service
+      - in: path
+        name: service_id
+        required: true
+        type: string
+        format: uuid
+        description: The UUID of the service
     put:
       summary: Accept endpoints
       description: |
@@ -234,35 +220,33 @@ paths:
         * Rejected endpoints will be accepted.
         * Pending endpoints will be accepted.
       tags:
-      - Service
+        - Service
       parameters:
-      - in: body
-        name: body
-        description: Service object that needs to be updated
-        required: true
-        schema:
-          $ref: "#/definitions/EndpointConsumerList"
+        - in: body
+          name: body
+          description: Service object that needs to be updated
+          required: true
+          schema:
+            $ref: "#/definitions/EndpointConsumerList"
       responses:
         200:
           description: Ok
           schema:
             type: array
             items:
-              allOf:
-              - $ref: "#/definitions/EndpointConsumer"
-              - $ref: "#/definitions/Project"
+              $ref: "#/definitions/EndpointConsumer"
         400:
           description: Validation Error
         404:
           description: Not Found
   /service/{service_id}/reject_endpoints:
     parameters:
-    - in: path
-      name: service_id
-      required: true
-      type: string
-      format: uuid
-      description: The UUID of the service
+      - in: path
+        name: service_id
+        required: true
+        type: string
+        format: uuid
+        description: The UUID of the service
     put:
       summary: Reject endpoints
       description: |
@@ -271,23 +255,21 @@ paths:
         * Rejected endpoints will be untouched.
         * Pending endpoints will be rejected.
       tags:
-      - Service
+        - Service
       parameters:
-      - in: body
-        name: body
-        description: Service object that needs to be updated
-        required: true
-        schema:
-          $ref: "#/definitions/EndpointConsumerList"
+        - in: body
+          name: body
+          description: Service object that needs to be updated
+          required: true
+          schema:
+            $ref: "#/definitions/EndpointConsumerList"
       responses:
         200:
           description: Ok
           schema:
             type: array
             items:
-              allOf:
-              - $ref: "#/definitions/EndpointConsumer"
-              - $ref: "#/definitions/Project"
+              $ref: "#/definitions/EndpointConsumer"
         400:
           description: Validation Error
         404:
@@ -296,7 +278,7 @@ paths:
   /endpoint:
     get:
       tags:
-      - Endpoint
+        - Endpoint
       summary: List existing service endpoints
       responses:
         200:
@@ -304,55 +286,47 @@ paths:
           schema:
             type: array
             items:
-              allOf:
-              - $ref: "#/definitions/Endpoint"
-              - $ref: "#/definitions/Project"
+              $ref: "#/definitions/Endpoint"
     post:
       tags:
-      - Endpoint
+        - Endpoint
       summary: Create endpoint for accessing a service
       parameters:
-      - in: body
-        name: body
-        description: Service and target network to inject. Only one of `target_network`, `target_subnet` or `target_port` must be specified.
-        required: true
-        schema:
-          allOf:
-          - $ref: "#/definitions/Endpoint"
-          - $ref: "#/definitions/Project"
+        - in: body
+          name: body
+          description: Service and target network to inject. Only one of `target_network`, `target_subnet` or `target_port` must be specified.
+          required: true
+          schema:
+            $ref: "#/definitions/Endpoint"
       responses:
         200:
           description: Endpoint
           schema:
-            allOf:
-            - $ref: "#/definitions/Endpoint"
-            - $ref: "#/definitions/Project"
+            $ref: "#/definitions/Endpoint"
         400:
           description: Validation Error
   /endpoint/{endpoint_id}:
     parameters:
-    - in: path
-      name: endpoint_id
-      required: true
-      type: string
-      format: uuid
-      description: The UUID of the endpoint
+      - in: path
+        name: endpoint_id
+        required: true
+        type: string
+        format: uuid
+        description: The UUID of the endpoint
     get:
       tags:
-      - Endpoint
+        - Endpoint
       summary: Show existing service endpoint
       responses:
         200:
           description: An endpoint detail.
           schema:
-            allOf:
-            - $ref: "#/definitions/Endpoint"
-            - $ref: "#/definitions/Project"
+            $ref: "#/definitions/Endpoint"
         404:
           description: Not Found
     delete:
       tags:
-      - Endpoint
+        - Endpoint
       summary: Remove an existing endpoint
       responses:
         204:
@@ -370,85 +344,71 @@ paths:
           schema:
             type: array
             items:
-              allOf:
-              - $ref: "#/definitions/RBACPolicy"
-              - $ref: '#/definitions/RBACPolicyServiceID'
-              - $ref: "#/definitions/Project"
+              $ref: "#/definitions/RBACPolicy"
         default:
           description: Unexpected Error
     post:
       tags:
-      - RBAC
+        - RBAC
       summary: Create RBAC policy
       parameters:
-      - in: body
-        name: body
-        description: RBAC Policy
-        required: true
-        schema:
-          allOf:
-          - $ref: "#/definitions/RBACPolicy"
-          - $ref: '#/definitions/RBACPolicyServiceID'
-          - $ref: "#/definitions/Project"
+        - in: body
+          name: body
+          description: RBAC Policy
+          required: true
+          schema:
+            $ref: "#/definitions/RBACPolicy"
       responses:
         200:
           description: RBAC policy
           schema:
-            allOf:
-            - $ref: '#/definitions/RBACPolicy'
-            - $ref: '#/definitions/RBACPolicyServiceID'
-            - $ref: "#/definitions/Project"
+            $ref: '#/definitions/RBACPolicy'
         400:
           description: Validation Error
         409:
           description: Exists
   /rbac-policies/{rbac_policy_id}:
     parameters:
-    - in: path
-      name: rbac_policy_id
-      required: true
-      type: string
-      format: uuid
-      description: The UUID of the RBAC policy.
+      - in: path
+        name: rbac_policy_id
+        required: true
+        type: string
+        format: uuid
+        description: The UUID of the RBAC policy.
     get:
       tags:
-      - RBAC
+        - RBAC
       summary: Show details of an RBAC policy
       responses:
         200:
           description: RBAC Policy
           schema:
-            allOf:
-            - $ref: '#/definitions/RBACPolicy'
-            - $ref: '#/definitions/RBACPolicyServiceID'
-            - $ref: "#/definitions/Project"
+            $ref: '#/definitions/RBACPolicy'
         404:
           description: Not Found
     put:
       tags:
-      - RBAC
+        - RBAC
       summary: Update an existing RBAC policy
       parameters:
-      - in: body
-        name: body
-        description: RBAC policy resource that needs to be updated
-        required: true
-        schema:
-          $ref: "#/definitions/RBACPolicy"
+        - in: body
+          name: body
+          description: RBAC policy resource that needs to be updated
+          required: true
+          schema:
+            $ref: "#/definitions/RBACPolicyCommon"
       responses:
         200:
           description: RBAC Policy
           schema:
-            allOf:
-            - $ref: '#/definitions/RBACPolicy'
-            - $ref: "#/definitions/Project"
+            $ref: "#/definitions/RBACPolicyCommon"
         400:
           description: Validation Error
         404:
           description: Not Found
     delete:
       tags:
-      - RBAC
+        - RBAC
       summary: Delete RBAC policy
       responses:
         204:
@@ -479,7 +439,10 @@ paths:
                   allOf:
                     - $ref: '#/definitions/Quota'
                     - $ref: '#/definitions/QuotaUsage'
-                    - $ref: '#/definitions/Project'
+                    - type: object
+                      properties:
+                        project_id:
+                          $ref: "#/definitions/Project"
         404:
           description: Not Found
   /quotas/defaults:
@@ -592,7 +555,7 @@ definitions:
         example: 1.2.3.4
       status:
         type: string
-        description: | 
+        description: |
           Status of the service.
           
           ### Status can be one of
@@ -604,11 +567,11 @@ definitions:
           | PENDING_DELETE   | Service is being deleted              |
           | UNAVAILABLE      | Service is unavailble (e.g. disabled) |
         enum:
-        - AVAILABLE
-        - PENDING_CREATE
-        - PENDING_UPDATE
-        - PENDING_DELETE
-        - UNAVAILABLE
+          - AVAILABLE
+          - PENDING_CREATE
+          - PENDING_UPDATE
+          - PENDING_DELETE
+          - UNAVAILABLE
         readOnly: true
       require_approval:
         type: boolean
@@ -619,13 +582,15 @@ definitions:
         description: Set global visibility of the service. For `private` visibility, RBAC policies can extend the visibility to specific projects.
         default: private
         enum:
-        - private
-        - public
+          - private
+          - public
       availability_zone:
         type: string
         description: Availability zone of this service.
         x-nullable: true
         example: AZ-A
+      project_id:
+        $ref: "#/definitions/Project"
   EndpointConsumer:
     type: object
     properties:
@@ -691,9 +656,11 @@ definitions:
         description: Proxy protocol enabled for this endpoint.
       status:
         $ref: "#/definitions/EndpointStatus"
+      project_id:
+        $ref: "#/definitions/Project"
   EndpointStatus:
     type: string
-    description: | 
+    description: |
       Status of the endpoint
       
       ### Status can be one of
@@ -706,14 +673,14 @@ definitions:
       | REJECTED           | Endpoint was rejected                 |
       | FAILED             | Endpoint setup failed                 |
     enum:
-    - ACTIVE
-    - PENDING_APPROVAL
-    - PENDING_CREATE
-    - PENDING_DELETE
-    - REJECTED
-    - FAILED
+      - ACTIVE
+      - PENDING_APPROVAL
+      - PENDING_CREATE
+      - PENDING_DELETE
+      - REJECTED
+      - FAILED
     readOnly: true
-  RBACPolicy:
+  RBACPolicyCommon:
     required:
       - target
     type: object
@@ -726,21 +693,25 @@ definitions:
       target_type:
         type: string
         enum:
-        - project_id
-        - domain_id
+          - project_id
+          - domain_id
       target:
         description: The ID of the project to which the RBAC policy will be enforced.
         type: string
         example: 666da95112694b37b3efb0913de3f499
-  RBACPolicyServiceID:
+      project_id:
+        $ref: "#/definitions/Project"
+  RBACPolicy:
     required:
-    - service_id
-    type: object
-    properties:
-      service_id:
-        type: string
-        format: uuid
-        description: The ID of the service resource.
+      - service_id
+    allOf:
+      - $ref: "#/definitions/RBACPolicyCommon"
+      - type: object
+        properties:
+          service_id:
+            type: string
+            format: uuid
+            description: The ID of the service resource.
   Quota:
     type: object
     properties:
@@ -755,14 +726,11 @@ definitions:
         example: 5
         x-nullable: true
   Project:
-    type: object
-    properties:
-      project_id:
-        type: string
-        description: The ID of the project owning this resource.
-        example: fa84c217f361441986a220edf9b1e337
-        minLength: 32
-        maxLength: 32
+    type: string
+    description: The ID of the project owning this resource.
+    example: fa84c217f361441986a220edf9b1e337
+    minLength: 32
+    maxLength: 32
   QuotaUsage:
     type: object
     properties:
@@ -806,4 +774,3 @@ definitions:
         example: ["pagination", "sort"]
         items:
           type: string
-      
