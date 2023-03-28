@@ -704,14 +704,28 @@ definitions:
   RBACPolicy:
     required:
       - service_id
-    allOf:
-      - $ref: "#/definitions/RBACPolicyCommon"
-      - type: object
-        properties:
-          service_id:
-            type: string
-            format: uuid
-            description: The ID of the service resource.
+    type: object
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: The ID of the resource.
+        readOnly: true
+      target_type:
+        type: string
+        enum:
+          - project_id
+          - domain_id
+      target:
+        description: The ID of the project to which the RBAC policy will be enforced.
+        type: string
+        example: 666da95112694b37b3efb0913de3f499
+      service_id:
+        type: string
+        format: uuid
+        description: The ID of the service resource.
+      project_id:
+        $ref: "#/definitions/Project"
   Quota:
     type: object
     properties:
