@@ -61,6 +61,7 @@ tags:
       ### Endpoints
       Endpoints are for accessing existing Services using internal IP addresses in your private network.
   - name: RBAC
+    x-go-name: rbac
     description: |
       ### RBAC Policies
       RBAC Policies are used to provide service visibility to specific project or domains.
