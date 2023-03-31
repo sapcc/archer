@@ -569,7 +569,7 @@ Status: OK
    
   
 
-[][RBACPolicy](#r-b-a-c-policy)
+[][Rbacpolicy](#rbacpolicy)
 
 ##### <span id="get-rbac-policies-default"></span> Default Response
 Unexpected Error
@@ -605,7 +605,7 @@ Status: OK
    
   
 
-[RBACPolicy](#r-b-a-c-policy)
+[Rbacpolicy](#rbacpolicy)
 
 ##### <span id="get-rbac-policies-rbac-policy-id-404"></span> 404 - Not Found
 Status: Not Found
@@ -762,7 +762,7 @@ POST /rbac-policies
 
 | Name | Source | Type | Go type | Separator | Required | Default | Description |
 |------|--------|------|---------|-----------| :------: |---------|-------------|
-| body | `body` | [RBACPolicy](#r-b-a-c-policy) | `models.RBACPolicy` | | ✓ | | RBAC Policy |
+| body | `body` | [Rbacpolicy](#rbacpolicy) | `models.Rbacpolicy` | | ✓ | | RBAC Policy |
 
 #### All responses
 | Code | Status | Description | Has headers | Schema |
@@ -781,7 +781,7 @@ Status: OK
    
   
 
-[RBACPolicy](#r-b-a-c-policy)
+[Rbacpolicy](#rbacpolicy)
 
 ##### <span id="post-rbac-policies-400"></span> 400 - Validation Error
 Status: Bad Request
@@ -913,7 +913,7 @@ PUT /rbac-policies/{rbac_policy_id}
 | Name | Source | Type | Go type | Separator | Required | Default | Description |
 |------|--------|------|---------|-----------| :------: |---------|-------------|
 | rbac_policy_id | `path` | uuid (formatted string) | `strfmt.UUID` |  | ✓ |  | The UUID of the RBAC policy. |
-| body | `body` | [RBACPolicyCommon](#r-b-a-c-policy-common) | `models.RBACPolicyCommon` | | ✓ | | RBAC policy resource that needs to be updated |
+| body | `body` | [Rbacpolicycommon](#rbacpolicycommon) | `models.Rbacpolicycommon` | | ✓ | | RBAC policy resource that needs to be updated |
 
 #### All responses
 | Code | Status | Description | Has headers | Schema |
@@ -932,7 +932,7 @@ Status: OK
    
   
 
-[RBACPolicyCommon](#r-b-a-c-policy-common)
+[Rbacpolicycommon](#rbacpolicycommon)
 
 ##### <span id="put-rbac-policies-rbac-policy-id-400"></span> 400 - Validation Error
 Status: Bad Request
@@ -1223,43 +1223,6 @@ Status: Not Found
 
 
 
-### <span id="r-b-a-c-policy"></span> RBACPolicy
-
-
-  
-
-
-
-**Properties**
-
-| Name | Type | Go type | Required | Default | Description | Example |
-|------|------|---------|:--------:| ------- |-------------|---------|
-| id | uuid (formatted string)| `strfmt.UUID` |  | | The ID of the resource. |  |
-| project_id | [Project](#project)| `Project` |  | |  |  |
-| service_id | uuid (formatted string)| `strfmt.UUID` | ✓ | | The ID of the service resource. |  |
-| target | string| `string` |  | | The ID of the project to which the RBAC policy will be enforced. | `666da95112694b37b3efb0913de3f499` |
-| target_type | string| `string` |  | |  |  |
-
-
-
-### <span id="r-b-a-c-policy-common"></span> RBACPolicyCommon
-
-
-  
-
-
-
-**Properties**
-
-| Name | Type | Go type | Required | Default | Description | Example |
-|------|------|---------|:--------:| ------- |-------------|---------|
-| id | uuid (formatted string)| `strfmt.UUID` |  | | The ID of the resource. |  |
-| project_id | [Project](#project)| `Project` |  | |  |  |
-| target | string| `string` | ✓ | | The ID of the project to which the RBAC policy will be enforced. | `666da95112694b37b3efb0913de3f499` |
-| target_type | string| `string` |  | |  |  |
-
-
-
 ### <span id="service"></span> Service
 
 
@@ -1329,5 +1292,42 @@ Status: Not Found
 | href | string| `string` |  | |  | `https://example.com` |
 | rel | string| `string` |  | |  | `self` |
 | type | string| `string` |  | |  | `application/json` |
+
+
+
+### <span id="rbacpolicy"></span> rbacpolicy
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| id | uuid (formatted string)| `strfmt.UUID` |  | | The ID of the resource. |  |
+| project_id | [Project](#project)| `Project` |  | |  |  |
+| service_id | uuid (formatted string)| `strfmt.UUID` | ✓ | | The ID of the service resource. |  |
+| target | string| `string` |  | | The ID of the project to which the RBAC policy will be enforced. | `666da95112694b37b3efb0913de3f499` |
+| target_type | string| `string` |  | |  |  |
+
+
+
+### <span id="rbacpolicycommon"></span> rbacpolicycommon
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| id | uuid (formatted string)| `strfmt.UUID` |  | | The ID of the resource. |  |
+| project_id | [Project](#project)| `Project` |  | |  |  |
+| target | string| `string` | ✓ | | The ID of the project to which the RBAC policy will be enforced. | `666da95112694b37b3efb0913de3f499` |
+| target_type | string| `string` |  | |  |  |
 
 
