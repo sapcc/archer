@@ -29,10 +29,10 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// RBACPolicyCommon r b a c policy common
+// Rbacpolicy rbacpolicy
 //
-// swagger:model RBACPolicyCommon
-type RBACPolicyCommon struct {
+// swagger:model rbacpolicy
+type Rbacpolicy struct {
 
 	// The ID of the resource.
 	// Read Only: true
@@ -42,18 +42,22 @@ type RBACPolicyCommon struct {
 	// project id
 	ProjectID Project `json:"project_id,omitempty"`
 
+	// The ID of the service resource.
+	// Required: true
+	// Format: uuid
+	ServiceID *strfmt.UUID `json:"service_id"`
+
 	// The ID of the project to which the RBAC policy will be enforced.
 	// Example: 666da95112694b37b3efb0913de3f499
-	// Required: true
-	Target *string `json:"target"`
+	Target string `json:"target,omitempty"`
 
 	// target type
 	// Enum: [project_id domain_id]
 	TargetType string `json:"target_type,omitempty"`
 }
 
-// Validate validates this r b a c policy common
-func (m *RBACPolicyCommon) Validate(formats strfmt.Registry) error {
+// Validate validates this rbacpolicy
+func (m *Rbacpolicy) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateID(formats); err != nil {
@@ -64,7 +68,7 @@ func (m *RBACPolicyCommon) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateTarget(formats); err != nil {
+	if err := m.validateServiceID(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -78,7 +82,7 @@ func (m *RBACPolicyCommon) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *RBACPolicyCommon) validateID(formats strfmt.Registry) error {
+func (m *Rbacpolicy) validateID(formats strfmt.Registry) error {
 	if swag.IsZero(m.ID) { // not required
 		return nil
 	}
@@ -90,7 +94,7 @@ func (m *RBACPolicyCommon) validateID(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *RBACPolicyCommon) validateProjectID(formats strfmt.Registry) error {
+func (m *Rbacpolicy) validateProjectID(formats strfmt.Registry) error {
 	if swag.IsZero(m.ProjectID) { // not required
 		return nil
 	}
@@ -107,16 +111,20 @@ func (m *RBACPolicyCommon) validateProjectID(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *RBACPolicyCommon) validateTarget(formats strfmt.Registry) error {
+func (m *Rbacpolicy) validateServiceID(formats strfmt.Registry) error {
 
-	if err := validate.Required("target", "body", m.Target); err != nil {
+	if err := validate.Required("service_id", "body", m.ServiceID); err != nil {
+		return err
+	}
+
+	if err := validate.FormatOf("service_id", "body", "uuid", m.ServiceID.String(), formats); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-var rBACPolicyCommonTypeTargetTypePropEnum []interface{}
+var rbacpolicyTypeTargetTypePropEnum []interface{}
 
 func init() {
 	var res []string
@@ -124,28 +132,28 @@ func init() {
 		panic(err)
 	}
 	for _, v := range res {
-		rBACPolicyCommonTypeTargetTypePropEnum = append(rBACPolicyCommonTypeTargetTypePropEnum, v)
+		rbacpolicyTypeTargetTypePropEnum = append(rbacpolicyTypeTargetTypePropEnum, v)
 	}
 }
 
 const (
 
-	// RBACPolicyCommonTargetTypeProjectID captures enum value "project_id"
-	RBACPolicyCommonTargetTypeProjectID string = "project_id"
+	// RbacpolicyTargetTypeProjectID captures enum value "project_id"
+	RbacpolicyTargetTypeProjectID string = "project_id"
 
-	// RBACPolicyCommonTargetTypeDomainID captures enum value "domain_id"
-	RBACPolicyCommonTargetTypeDomainID string = "domain_id"
+	// RbacpolicyTargetTypeDomainID captures enum value "domain_id"
+	RbacpolicyTargetTypeDomainID string = "domain_id"
 )
 
 // prop value enum
-func (m *RBACPolicyCommon) validateTargetTypeEnum(path, location string, value string) error {
-	if err := validate.EnumCase(path, location, value, rBACPolicyCommonTypeTargetTypePropEnum, true); err != nil {
+func (m *Rbacpolicy) validateTargetTypeEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, rbacpolicyTypeTargetTypePropEnum, true); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (m *RBACPolicyCommon) validateTargetType(formats strfmt.Registry) error {
+func (m *Rbacpolicy) validateTargetType(formats strfmt.Registry) error {
 	if swag.IsZero(m.TargetType) { // not required
 		return nil
 	}
@@ -158,8 +166,8 @@ func (m *RBACPolicyCommon) validateTargetType(formats strfmt.Registry) error {
 	return nil
 }
 
-// ContextValidate validate this r b a c policy common based on the context it is used
-func (m *RBACPolicyCommon) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+// ContextValidate validate this rbacpolicy based on the context it is used
+func (m *Rbacpolicy) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.contextValidateID(ctx, formats); err != nil {
@@ -176,7 +184,7 @@ func (m *RBACPolicyCommon) ContextValidate(ctx context.Context, formats strfmt.R
 	return nil
 }
 
-func (m *RBACPolicyCommon) contextValidateID(ctx context.Context, formats strfmt.Registry) error {
+func (m *Rbacpolicy) contextValidateID(ctx context.Context, formats strfmt.Registry) error {
 
 	if err := validate.ReadOnly(ctx, "id", "body", strfmt.UUID(m.ID)); err != nil {
 		return err
@@ -185,7 +193,7 @@ func (m *RBACPolicyCommon) contextValidateID(ctx context.Context, formats strfmt
 	return nil
 }
 
-func (m *RBACPolicyCommon) contextValidateProjectID(ctx context.Context, formats strfmt.Registry) error {
+func (m *Rbacpolicy) contextValidateProjectID(ctx context.Context, formats strfmt.Registry) error {
 
 	if err := m.ProjectID.ContextValidate(ctx, formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
@@ -200,7 +208,7 @@ func (m *RBACPolicyCommon) contextValidateProjectID(ctx context.Context, formats
 }
 
 // MarshalBinary interface implementation
-func (m *RBACPolicyCommon) MarshalBinary() ([]byte, error) {
+func (m *Rbacpolicy) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -208,8 +216,8 @@ func (m *RBACPolicyCommon) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *RBACPolicyCommon) UnmarshalBinary(b []byte) error {
-	var res RBACPolicyCommon
+func (m *Rbacpolicy) UnmarshalBinary(b []byte) error {
+	var res Rbacpolicy
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

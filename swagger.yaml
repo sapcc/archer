@@ -682,6 +682,7 @@ definitions:
       - FAILED
     readOnly: true
   RBACPolicyCommon:
+    x-go-name: rbacpolicycommon
     required:
       - target
     type: object
@@ -703,6 +704,7 @@ definitions:
       project_id:
         $ref: "#/definitions/Project"
   RBACPolicy:
+    x-go-name: rbacpolicy
     required:
       - service_id
     type: object
