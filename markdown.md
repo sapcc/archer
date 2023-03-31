@@ -131,7 +131,7 @@ You obtain the token by authenticating to the Keystone endpoint.
   
 
 
-###  r_b_a_c
+###  rbac
 
 | Method  | URI     | Name   | Summary |
 |---------|---------|--------|---------|
