@@ -37,12 +37,11 @@ import (
 //go:generate swagger generate server --target ../../archer --name Archer --spec ../swagger.yaml --principal interface{}
 
 func configureFlags(api *operations.ArcherAPI) {
-	configFlags := config.Archer{}
 	api.CommandLineOptionsGroups = []swag.CommandLineOptionsGroup{
 		{
 			ShortDescription: "Archer Flags",
 			LongDescription:  "Archer specific flags",
-			Options:          &configFlags,
+			Options:          &config.Global,
 		},
 	}
 }
