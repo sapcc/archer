@@ -23,7 +23,9 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/swag"
 
+	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/restapi/operations"
 	"github.com/sapcc/archer/restapi/operations/endpoint"
 	"github.com/sapcc/archer/restapi/operations/quota"
@@ -35,7 +37,14 @@ import (
 //go:generate swagger generate server --target ../../archer --name Archer --spec ../swagger.yaml --principal interface{}
 
 func configureFlags(api *operations.ArcherAPI) {
-	// api.CommandLineOptionsGroups = []swag.CommandLineOptionsGroup{ ... }
+	configFlags := config.Archer{}
+	api.CommandLineOptionsGroups = []swag.CommandLineOptionsGroup{
+		{
+			ShortDescription: "Archer Flags",
+			LongDescription:  "Archer specific flags",
+			Options:          &configFlags,
+		},
+	}
 }
 
 func configureAPI(api *operations.ArcherAPI) http.Handler {
