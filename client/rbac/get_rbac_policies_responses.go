@@ -66,7 +66,7 @@ GetRbacPoliciesOK describes a response with status code 200, with default header
 A JSON array of rbac policies
 */
 type GetRbacPoliciesOK struct {
-	Payload []*models.RBACPolicy
+	Payload []*models.Rbacpolicy
 }
 
 // IsSuccess returns true when this get rbac policies o k response has a 2xx status code
@@ -107,7 +107,7 @@ func (o *GetRbacPoliciesOK) String() string {
 	return fmt.Sprintf("[GET /rbac-policies][%d] getRbacPoliciesOK  %+v", 200, o.Payload)
 }
 
-func (o *GetRbacPoliciesOK) GetPayload() []*models.RBACPolicy {
+func (o *GetRbacPoliciesOK) GetPayload() []*models.Rbacpolicy {
 	return o.Payload
 }
 

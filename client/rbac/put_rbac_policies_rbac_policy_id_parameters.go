@@ -81,7 +81,7 @@ type PutRbacPoliciesRbacPolicyIDParams struct {
 
 	   RBAC policy resource that needs to be updated
 	*/
-	Body *models.RBACPolicyCommon
+	Body *models.Rbacpolicycommon
 
 	/* RbacPolicyID.
 
@@ -145,13 +145,13 @@ func (o *PutRbacPoliciesRbacPolicyIDParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithBody adds the body to the put rbac policies rbac policy ID params
-func (o *PutRbacPoliciesRbacPolicyIDParams) WithBody(body *models.RBACPolicyCommon) *PutRbacPoliciesRbacPolicyIDParams {
+func (o *PutRbacPoliciesRbacPolicyIDParams) WithBody(body *models.Rbacpolicycommon) *PutRbacPoliciesRbacPolicyIDParams {
 	o.SetBody(body)
 	return o
 }
 
 // SetBody adds the body to the put rbac policies rbac policy ID params
-func (o *PutRbacPoliciesRbacPolicyIDParams) SetBody(body *models.RBACPolicyCommon) {
+func (o *PutRbacPoliciesRbacPolicyIDParams) SetBody(body *models.Rbacpolicycommon) {
 	o.Body = body
 }
 

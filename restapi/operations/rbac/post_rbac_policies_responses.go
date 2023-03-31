@@ -40,7 +40,7 @@ type PostRbacPoliciesOK struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.RBACPolicy `json:"body,omitempty"`
+	Payload *models.Rbacpolicy `json:"body,omitempty"`
 }
 
 // NewPostRbacPoliciesOK creates PostRbacPoliciesOK with default headers values
@@ -50,13 +50,13 @@ func NewPostRbacPoliciesOK() *PostRbacPoliciesOK {
 }
 
 // WithPayload adds the payload to the post rbac policies o k response
-func (o *PostRbacPoliciesOK) WithPayload(payload *models.RBACPolicy) *PostRbacPoliciesOK {
+func (o *PostRbacPoliciesOK) WithPayload(payload *models.Rbacpolicy) *PostRbacPoliciesOK {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the post rbac policies o k response
-func (o *PostRbacPoliciesOK) SetPayload(payload *models.RBACPolicy) {
+func (o *PostRbacPoliciesOK) SetPayload(payload *models.Rbacpolicy) {
 	o.Payload = payload
 }
 

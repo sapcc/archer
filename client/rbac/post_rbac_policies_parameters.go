@@ -81,7 +81,7 @@ type PostRbacPoliciesParams struct {
 
 	   RBAC Policy
 	*/
-	Body *models.RBACPolicy
+	Body *models.Rbacpolicy
 
 	timeout    time.Duration
 	Context    context.Context
@@ -137,13 +137,13 @@ func (o *PostRbacPoliciesParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithBody adds the body to the post rbac policies params
-func (o *PostRbacPoliciesParams) WithBody(body *models.RBACPolicy) *PostRbacPoliciesParams {
+func (o *PostRbacPoliciesParams) WithBody(body *models.Rbacpolicy) *PostRbacPoliciesParams {
 	o.SetBody(body)
 	return o
 }
 
 // SetBody adds the body to the post rbac policies params
-func (o *PostRbacPoliciesParams) SetBody(body *models.RBACPolicy) {
+func (o *PostRbacPoliciesParams) SetBody(body *models.Rbacpolicy) {
 	o.Body = body
 }
 

@@ -895,7 +895,8 @@ func init() {
             "domain_id"
           ]
         }
-      }
+      },
+      "x-go-name": "rbacpolicy"
     },
     "RBACPolicyCommon": {
       "type": "object",
@@ -924,7 +925,8 @@ func init() {
             "domain_id"
           ]
         }
-      }
+      },
+      "x-go-name": "rbacpolicycommon"
     },
     "Service": {
       "type": "object",
@@ -1963,7 +1965,8 @@ func init() {
             "domain_id"
           ]
         }
-      }
+      },
+      "x-go-name": "rbacpolicy"
     },
     "RBACPolicyCommon": {
       "type": "object",
@@ -1992,7 +1995,8 @@ func init() {
             "domain_id"
           ]
         }
-      }
+      },
+      "x-go-name": "rbacpolicycommon"
     },
     "Service": {
       "type": "object",

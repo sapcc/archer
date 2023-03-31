@@ -53,7 +53,7 @@ type PutRbacPoliciesRbacPolicyIDParams struct {
 	  Required: true
 	  In: body
 	*/
-	Body *models.RBACPolicyCommon
+	Body *models.Rbacpolicycommon
 	/*The UUID of the RBAC policy.
 	  Required: true
 	  In: path
@@ -72,7 +72,7 @@ func (o *PutRbacPoliciesRbacPolicyIDParams) BindRequest(r *http.Request, route *
 
 	if runtime.HasBody(r) {
 		defer r.Body.Close()
-		var body models.RBACPolicyCommon
+		var body models.Rbacpolicycommon
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
 			if err == io.EOF {
 				res = append(res, errors.Required("body", "body", ""))

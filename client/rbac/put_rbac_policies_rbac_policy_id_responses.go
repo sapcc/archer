@@ -71,7 +71,7 @@ PutRbacPoliciesRbacPolicyIDOK describes a response with status code 200, with de
 RBAC Policy
 */
 type PutRbacPoliciesRbacPolicyIDOK struct {
-	Payload *models.RBACPolicyCommon
+	Payload *models.Rbacpolicycommon
 }
 
 // IsSuccess returns true when this put rbac policies rbac policy Id o k response has a 2xx status code
@@ -112,13 +112,13 @@ func (o *PutRbacPoliciesRbacPolicyIDOK) String() string {
 	return fmt.Sprintf("[PUT /rbac-policies/{rbac_policy_id}][%d] putRbacPoliciesRbacPolicyIdOK  %+v", 200, o.Payload)
 }
 
-func (o *PutRbacPoliciesRbacPolicyIDOK) GetPayload() *models.RBACPolicyCommon {
+func (o *PutRbacPoliciesRbacPolicyIDOK) GetPayload() *models.Rbacpolicycommon {
 	return o.Payload
 }
 
 func (o *PutRbacPoliciesRbacPolicyIDOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.RBACPolicyCommon)
+	o.Payload = new(models.Rbacpolicycommon)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

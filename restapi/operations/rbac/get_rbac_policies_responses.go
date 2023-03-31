@@ -40,7 +40,7 @@ type GetRbacPoliciesOK struct {
 	/*
 	  In: Body
 	*/
-	Payload []*models.RBACPolicy `json:"body,omitempty"`
+	Payload []*models.Rbacpolicy `json:"body,omitempty"`
 }
 
 // NewGetRbacPoliciesOK creates GetRbacPoliciesOK with default headers values
@@ -50,13 +50,13 @@ func NewGetRbacPoliciesOK() *GetRbacPoliciesOK {
 }
 
 // WithPayload adds the payload to the get rbac policies o k response
-func (o *GetRbacPoliciesOK) WithPayload(payload []*models.RBACPolicy) *GetRbacPoliciesOK {
+func (o *GetRbacPoliciesOK) WithPayload(payload []*models.Rbacpolicy) *GetRbacPoliciesOK {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the get rbac policies o k response
-func (o *GetRbacPoliciesOK) SetPayload(payload []*models.RBACPolicy) {
+func (o *GetRbacPoliciesOK) SetPayload(payload []*models.Rbacpolicy) {
 	o.Payload = payload
 }
 
@@ -67,7 +67,7 @@ func (o *GetRbacPoliciesOK) WriteResponse(rw http.ResponseWriter, producer runti
 	payload := o.Payload
 	if payload == nil {
 		// return empty array
-		payload = make([]*models.RBACPolicy, 0, 50)
+		payload = make([]*models.Rbacpolicy, 0, 50)
 	}
 
 	if err := producer.Produce(rw, payload); err != nil {

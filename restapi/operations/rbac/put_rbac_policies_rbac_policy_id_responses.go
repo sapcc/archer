@@ -40,7 +40,7 @@ type PutRbacPoliciesRbacPolicyIDOK struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.RBACPolicyCommon `json:"body,omitempty"`
+	Payload *models.Rbacpolicycommon `json:"body,omitempty"`
 }
 
 // NewPutRbacPoliciesRbacPolicyIDOK creates PutRbacPoliciesRbacPolicyIDOK with default headers values
@@ -50,13 +50,13 @@ func NewPutRbacPoliciesRbacPolicyIDOK() *PutRbacPoliciesRbacPolicyIDOK {
 }
 
 // WithPayload adds the payload to the put rbac policies rbac policy Id o k response
-func (o *PutRbacPoliciesRbacPolicyIDOK) WithPayload(payload *models.RBACPolicyCommon) *PutRbacPoliciesRbacPolicyIDOK {
+func (o *PutRbacPoliciesRbacPolicyIDOK) WithPayload(payload *models.Rbacpolicycommon) *PutRbacPoliciesRbacPolicyIDOK {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the put rbac policies rbac policy Id o k response
-func (o *PutRbacPoliciesRbacPolicyIDOK) SetPayload(payload *models.RBACPolicyCommon) {
+func (o *PutRbacPoliciesRbacPolicyIDOK) SetPayload(payload *models.Rbacpolicycommon) {
 	o.Payload = payload
 }
 

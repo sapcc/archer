@@ -65,7 +65,7 @@ GetRbacPoliciesRbacPolicyIDOK describes a response with status code 200, with de
 RBAC Policy
 */
 type GetRbacPoliciesRbacPolicyIDOK struct {
-	Payload *models.RBACPolicy
+	Payload *models.Rbacpolicy
 }
 
 // IsSuccess returns true when this get rbac policies rbac policy Id o k response has a 2xx status code
@@ -106,13 +106,13 @@ func (o *GetRbacPoliciesRbacPolicyIDOK) String() string {
 	return fmt.Sprintf("[GET /rbac-policies/{rbac_policy_id}][%d] getRbacPoliciesRbacPolicyIdOK  %+v", 200, o.Payload)
 }
 
-func (o *GetRbacPoliciesRbacPolicyIDOK) GetPayload() *models.RBACPolicy {
+func (o *GetRbacPoliciesRbacPolicyIDOK) GetPayload() *models.Rbacpolicy {
 	return o.Payload
 }
 
 func (o *GetRbacPoliciesRbacPolicyIDOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.RBACPolicy)
+	o.Payload = new(models.Rbacpolicy)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
