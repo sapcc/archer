@@ -21,6 +21,7 @@ package models
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -33,16 +34,16 @@ import (
 // swagger:model Endpoint
 type Endpoint struct {
 
+	// created at
+	CreatedAt time.Time `json:"created_at,omitempty"`
+
 	// The ID of the resource.
 	// Read Only: true
 	// Format: uuid
 	ID strfmt.UUID `json:"id,omitempty"`
 
 	// project id
-	ProjectID Project `json:"project_id,omitempty"`
-
-	// Proxy protocol enabled for this endpoint.
-	ProxyProtocol bool `json:"proxy_protocol,omitempty"`
+	ProjectID Project `json:"project_id"`
 
 	// The ID of the service.
 	// Format: uuid
@@ -68,11 +69,18 @@ type Endpoint struct {
 	// Endpoint subnet target. One of `target_network`, `target_subnet` or `target_port` must be specified.
 	// Format: uuid
 	TargetSubnet strfmt.UUID `json:"target_subnet,omitempty"`
+
+	// updated at
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
 }
 
 // Validate validates this endpoint
 func (m *Endpoint) Validate(formats strfmt.Registry) error {
 	var res []error
+
+	if err := m.validateCreatedAt(formats); err != nil {
+		res = append(res, err)
+	}
 
 	if err := m.validateID(formats); err != nil {
 		res = append(res, err)
@@ -102,9 +110,21 @@ func (m *Endpoint) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateUpdatedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *Endpoint) validateCreatedAt(formats strfmt.Registry) error {
+	if swag.IsZero(m.CreatedAt) { // not required
+		return nil
+	}
+
 	return nil
 }
 
@@ -197,6 +217,14 @@ func (m *Endpoint) validateTargetSubnet(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("target_subnet", "body", "uuid", m.TargetSubnet.String(), formats); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *Endpoint) validateUpdatedAt(formats strfmt.Registry) error {
+	if swag.IsZero(m.UpdatedAt) { // not required
+		return nil
 	}
 
 	return nil

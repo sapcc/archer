@@ -22,6 +22,8 @@ package models
 import (
 	"context"
 	"encoding/json"
+	"strconv"
+	"time"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -36,11 +38,15 @@ type Service struct {
 
 	// Availability zone of this service.
 	// Example: AZ-A
-	AvailabilityZone *string `json:"availability_zone,omitempty"`
+	AvailabilityZone *string `json:"availability_zone"`
+
+	// created at
+	CreatedAt time.Time `json:"created_at,omitempty"`
 
 	// Description of the service.
 	// Example: An example of an Service.
-	Description string `json:"description,omitempty"`
+	// Max Length: 255
+	Description string `json:"description"`
 
 	// Enable/disable this service. Existing endpoints are not touched by this.
 	Enabled bool `json:"enabled,omitempty"`
@@ -52,23 +58,31 @@ type Service struct {
 
 	// IP Address of the providing service.
 	// Example: 1.2.3.4
+	// Required: true
 	// Format: ipv4
-	IPAddress strfmt.IPv4 `json:"ip_address,omitempty"`
+	IPAddress *strfmt.IPv4 `json:"ip_address"`
 
 	// Name of the service.
 	// Example: ExampleService
-	Name string `json:"name,omitempty"`
+	// Max Length: 64
+	Name string `json:"name"`
 
 	// Network ID of the network that provides this service.
+	// Required: true
 	// Format: uuid
-	NetworkID strfmt.UUID `json:"network_id,omitempty"`
+	NetworkID *strfmt.UUID `json:"network_id"`
 
 	// Ports exposed by the service.
 	// Example: [80,443]
+	// Required: true
+	// Min Items: 1
 	Ports []int64 `json:"ports"`
 
 	// project id
-	ProjectID Project `json:"project_id,omitempty"`
+	ProjectID Project `json:"project_id"`
+
+	// Proxy protocol v2 enabled for this endpoint.
+	ProxyProtocol *bool `json:"proxy_protocol,omitempty"`
 
 	// Require explicit project approval for the service owner.
 	RequireApproval *bool `json:"require_approval,omitempty"`
@@ -88,6 +102,9 @@ type Service struct {
 	// Enum: [AVAILABLE PENDING_CREATE PENDING_UPDATE PENDING_DELETE UNAVAILABLE]
 	Status string `json:"status,omitempty"`
 
+	// updated at
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+
 	// Set global visibility of the service. For `private` visibility, RBAC policies can extend the visibility to specific projects.
 	// Enum: [private public]
 	Visibility *string `json:"visibility,omitempty"`
@@ -97,6 +114,14 @@ type Service struct {
 func (m *Service) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateCreatedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateDescription(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateID(formats); err != nil {
 		res = append(res, err)
 	}
@@ -105,7 +130,15 @@ func (m *Service) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateName(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateNetworkID(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validatePorts(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -117,6 +150,10 @@ func (m *Service) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateUpdatedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateVisibility(formats); err != nil {
 		res = append(res, err)
 	}
@@ -124,6 +161,26 @@ func (m *Service) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *Service) validateCreatedAt(formats strfmt.Registry) error {
+	if swag.IsZero(m.CreatedAt) { // not required
+		return nil
+	}
+
+	return nil
+}
+
+func (m *Service) validateDescription(formats strfmt.Registry) error {
+	if swag.IsZero(m.Description) { // not required
+		return nil
+	}
+
+	if err := validate.MaxLength("description", "body", m.Description, 255); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -140,8 +197,9 @@ func (m *Service) validateID(formats strfmt.Registry) error {
 }
 
 func (m *Service) validateIPAddress(formats strfmt.Registry) error {
-	if swag.IsZero(m.IPAddress) { // not required
-		return nil
+
+	if err := validate.Required("ip_address", "body", m.IPAddress); err != nil {
+		return err
 	}
 
 	if err := validate.FormatOf("ip_address", "body", "ipv4", m.IPAddress.String(), formats); err != nil {
@@ -151,13 +209,53 @@ func (m *Service) validateIPAddress(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Service) validateNetworkID(formats strfmt.Registry) error {
-	if swag.IsZero(m.NetworkID) { // not required
+func (m *Service) validateName(formats strfmt.Registry) error {
+	if swag.IsZero(m.Name) { // not required
 		return nil
+	}
+
+	if err := validate.MaxLength("name", "body", m.Name, 64); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Service) validateNetworkID(formats strfmt.Registry) error {
+
+	if err := validate.Required("network_id", "body", m.NetworkID); err != nil {
+		return err
 	}
 
 	if err := validate.FormatOf("network_id", "body", "uuid", m.NetworkID.String(), formats); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *Service) validatePorts(formats strfmt.Registry) error {
+
+	if err := validate.Required("ports", "body", m.Ports); err != nil {
+		return err
+	}
+
+	iPortsSize := int64(len(m.Ports))
+
+	if err := validate.MinItems("ports", "body", iPortsSize, 1); err != nil {
+		return err
+	}
+
+	for i := 0; i < len(m.Ports); i++ {
+
+		if err := validate.MinimumInt("ports"+"."+strconv.Itoa(i), "body", m.Ports[i], 1, false); err != nil {
+			return err
+		}
+
+		if err := validate.MaximumInt("ports"+"."+strconv.Itoa(i), "body", m.Ports[i], 65535, false); err != nil {
+			return err
+		}
+
 	}
 
 	return nil
@@ -226,6 +324,14 @@ func (m *Service) validateStatus(formats strfmt.Registry) error {
 	// value enum
 	if err := m.validateStatusEnum("status", "body", m.Status); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *Service) validateUpdatedAt(formats strfmt.Registry) error {
+	if swag.IsZero(m.UpdatedAt) { // not required
+		return nil
 	}
 
 	return nil

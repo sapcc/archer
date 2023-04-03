@@ -26,36 +26,38 @@ var (
 
 type Archer struct {
 	Verbose     bool                  `short:"v" long:"verbose" description:"Show verbose debug information"`
-	Database    Database              `json:"database" group:"Database Options"`
-	ApiSettings ApiSettings           `json:"api_settings" group:"API Settings"`
-	ServiceAuth clientconfig.AuthInfo `json:"service_auth" group:"Service Authentication"`
-	Quota       Quota                 `json:"quota" group:"Quota Options"`
-	Audit       Audit                 `json:"audit_middleware_notifications" group:"Audit Middleware Options"`
+	ConfigFile  string                `long:"config-file" description:"Use config file"`
+	Database    Database              `group:"database"`
+	ApiSettings ApiSettings           `group:"api_settings"`
+	ServiceAuth clientconfig.AuthInfo `group:"service_auth"`
+	Quota       Quota                 `group:"quota"`
+	Audit       Audit                 `group:"audit_middleware_notifications"`
 }
 
 type ApiSettings struct {
-	PolicyFile         string  `long:"policy-file" json:"policy-file" description:"Use policy file" default:"policy.json"`
-	AuthStrategy       string  `long:"auth-strategy" json:"auth_strategy" description:"The auth strategy for API requests, currently supported: [keystone, none]"`
-	PolicyEngine       string  `long:"policy-engine" json:"policy_engine" description:"Policy engine to use, currently supported: [goslo, noop]"`
-	DisablePagination  bool    `long:"disable-pagination" json:"disable_pagination" description:"Disable the usage of pagination"`
-	DisableSorting     bool    `long:"disable-sorting" json:"disable_sorting" description:"Disable the usage of sorting"`
-	PaginationMaxLimit int64   `long:"pagination-max-limit" json:"pagination_max_limit" default:"1000" description:"The maximum number of items returned in a single response."`
-	RateLimit          float64 `long:"rate-limit" json:"rate_limit" default:"100" description:"Maximum number of requests to limit per second."`
-	DisableCors        bool    `long:"disable-cors" json:"disable_cors" description:"Stops sending Access-Control-Allow-Origin Header to allow cross-origin requests."`
+	ApiBaseURL         string  `long:"api_base_uri" description:"Base URI for the API for use in pagination links. This will be autodetected from the request if not overridden here."`
+	PolicyFile         string  `long:"policy-file" ini-name:"policy-file" description:"Use policy file" default:"policy.ini"`
+	AuthStrategy       string  `long:"auth-strategy" ini-name:"auth_strategy" description:"The auth strategy for API requests, currently supported: [keystone, none]" default:"none"`
+	PolicyEngine       string  `long:"policy-engine" ini-name:"policy_engine" description:"Policy engine to use, currently supported: [goslo, noop]"`
+	DisablePagination  bool    `long:"disable-pagination" ini-name:"disable_pagination" description:"Disable the usage of pagination"`
+	DisableSorting     bool    `long:"disable-sorting" ini-name:"disable_sorting" description:"Disable the usage of sorting"`
+	PaginationMaxLimit int64   `long:"pagination-max-limit" ini-name:"pagination_max_limit" default:"1000" description:"The maximum number of items returned in a single response."`
+	RateLimit          float64 `long:"rate-limit" ini-name:"rate_limit" default:"100" description:"Maximum number of requests to limit per second."`
+	DisableCors        bool    `long:"disable-cors" ini-name:"disable_cors" description:"Stops sending Access-Control-Allow-Origin Header to allow cross-origin requests."`
 }
 
 type Quota struct {
-	Enabled              bool  `long:"enable-quota" json:"enabled" description:"Enable quotas."`
-	DefaultQuotaService  int64 `long:"default-quota-service" json:"service" default:"0" description:"Default quota of services per project."`
-	DefaultQuotaEndpoint int64 `long:"default-quota-endpoint" json:"endpoint" default:"0" description:"Default quota of endpoints per project."`
+	Enabled              bool  `long:"enable-quota" ini-name:"enabled" description:"Enable quotas."`
+	DefaultQuotaService  int64 `long:"default-quota-service" ini-name:"service" default:"0" description:"Default quota of services per project."`
+	DefaultQuotaEndpoint int64 `long:"default-quota-endpoint" ini-name:"endpoint" default:"0" description:"Default quota of endpoints per project."`
 }
 
 type Database struct {
-	Connection string `long:"database-connection" json:"connection" description:"Connection string to use to connect to the database."`
+	Connection string `long:"database-connection" ini-name:"connection" description:"Connection string to use to connect to the database."`
 }
 
 type Audit struct {
-	Enabled      bool   `long:"enable-audit" json:"enabled" description:"Enables message notification bus."`
-	TransportURL string `long:"transport-url" json:"transport_url" description:"The network address and optional user credentials for connecting to the messaging backend."`
-	QueueName    string `long:"queue-name" json:"queue_name" description:"RabbitMQ queue name"`
+	Enabled      bool   `long:"enable-audit" ini-name:"enabled" description:"Enables message notification bus."`
+	TransportURL string `long:"transport-url" ini-name:"transport_url" description:"The network address and optional user credentials for connecting to the messaging backend."`
+	QueueName    string `long:"queue-name" ini-name:"queue_name" description:"RabbitMQ queue name"`
 }

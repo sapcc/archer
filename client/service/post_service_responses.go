@@ -49,6 +49,12 @@ func (o *PostServiceReader) ReadResponse(response runtime.ClientResponse, consum
 			return nil, err
 		}
 		return nil, result
+	case 409:
+		result := NewPostServiceConflict()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -174,6 +180,74 @@ func (o *PostServiceBadRequest) String() string {
 }
 
 func (o *PostServiceBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewPostServiceConflict creates a PostServiceConflict with default headers values
+func NewPostServiceConflict() *PostServiceConflict {
+	return &PostServiceConflict{}
+}
+
+/*
+PostServiceConflict describes a response with status code 409, with default header values.
+
+Duplicate entry
+*/
+type PostServiceConflict struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this post service conflict response has a 2xx status code
+func (o *PostServiceConflict) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this post service conflict response has a 3xx status code
+func (o *PostServiceConflict) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this post service conflict response has a 4xx status code
+func (o *PostServiceConflict) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this post service conflict response has a 5xx status code
+func (o *PostServiceConflict) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this post service conflict response a status code equal to that given
+func (o *PostServiceConflict) IsCode(code int) bool {
+	return code == 409
+}
+
+// Code gets the status code for the post service conflict response
+func (o *PostServiceConflict) Code() int {
+	return 409
+}
+
+func (o *PostServiceConflict) Error() string {
+	return fmt.Sprintf("[POST /service][%d] postServiceConflict  %+v", 409, o.Payload)
+}
+
+func (o *PostServiceConflict) String() string {
+	return fmt.Sprintf("[POST /service][%d] postServiceConflict  %+v", 409, o.Payload)
+}
+
+func (o *PostServiceConflict) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *PostServiceConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

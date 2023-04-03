@@ -7,7 +7,7 @@ bin/%: cmd/%/main.go
 	go build -o $@ $<
 
 swagger:
-	swagger generate server --copyright-file COPYRIGHT.txt
+	swagger generate server --exclude-main --copyright-file COPYRIGHT.txt
 	swagger generate model --copyright-file COPYRIGHT.txt
 	swagger generate client --copyright-file COPYRIGHT.txt
 

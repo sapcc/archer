@@ -509,6 +509,12 @@ func init() {
           },
           "400": {
             "description": "Validation Error"
+          },
+          "409": {
+            "description": "Duplicate entry",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       }
@@ -726,6 +732,9 @@ func init() {
     "Endpoint": {
       "type": "object",
       "properties": {
+        "created_at": {
+          "$ref": "#/definitions/Timestamp"
+        },
         "id": {
           "description": "The ID of the resource.",
           "type": "string",
@@ -734,10 +743,6 @@ func init() {
         },
         "project_id": {
           "$ref": "#/definitions/Project"
-        },
-        "proxy_protocol": {
-          "description": "Proxy protocol enabled for this endpoint.",
-          "type": "boolean"
         },
         "service_id": {
           "description": "The ID of the service.",
@@ -768,6 +773,9 @@ func init() {
           "description": "Endpoint subnet target. One of ` + "`" + `target_network` + "`" + `, ` + "`" + `target_subnet` + "`" + ` or ` + "`" + `target_port` + "`" + ` must be specified.",
           "type": "string",
           "format": "uuid"
+        },
+        "updated_at": {
+          "$ref": "#/definitions/Timestamp"
         }
       }
     },
@@ -822,11 +830,25 @@ func init() {
       ],
       "readOnly": true
     },
+    "Error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "x-nullable": false
+        },
+        "message": {
+          "type": "string",
+          "x-nullable": false
+        }
+      }
+    },
     "Project": {
       "description": "The ID of the project owning this resource.",
       "type": "string",
       "maxLength": 32,
       "minLength": 32,
+      "x-omitempty": false,
       "example": "fa84c217f361441986a220edf9b1e337"
     },
     "Quota": {
@@ -930,16 +952,27 @@ func init() {
     },
     "Service": {
       "type": "object",
+      "required": [
+        "ports",
+        "network_id",
+        "ip_address"
+      ],
       "properties": {
         "availability_zone": {
           "description": "Availability zone of this service.",
           "type": "string",
           "x-nullable": true,
+          "x-omitempty": false,
           "example": "AZ-A"
+        },
+        "created_at": {
+          "$ref": "#/definitions/Timestamp"
         },
         "description": {
           "description": "Description of the service.",
           "type": "string",
+          "maxLength": 255,
+          "x-omitempty": false,
           "example": "An example of an Service."
         },
         "enabled": {
@@ -961,6 +994,8 @@ func init() {
         "name": {
           "description": "Name of the service.",
           "type": "string",
+          "maxLength": 64,
+          "x-omitempty": false,
           "example": "ExampleService"
         },
         "network_id": {
@@ -971,9 +1006,12 @@ func init() {
         "ports": {
           "description": "Ports exposed by the service.",
           "type": "array",
+          "minItems": 1,
           "items": {
             "description": "Port of the service.",
-            "type": "integer"
+            "type": "integer",
+            "maximum": 65535,
+            "minimum": 1
           },
           "example": [
             80,
@@ -982,6 +1020,11 @@ func init() {
         },
         "project_id": {
           "$ref": "#/definitions/Project"
+        },
+        "proxy_protocol": {
+          "description": "Proxy protocol v2 enabled for this endpoint.",
+          "type": "boolean",
+          "default": true
         },
         "require_approval": {
           "description": "Require explicit project approval for the service owner.",
@@ -1000,6 +1043,9 @@ func init() {
           ],
           "readOnly": true
         },
+        "updated_at": {
+          "$ref": "#/definitions/Timestamp"
+        },
         "visibility": {
           "description": "Set global visibility of the service. For ` + "`" + `private` + "`" + ` visibility, RBAC policies can extend the visibility to specific projects.",
           "type": "string",
@@ -1010,6 +1056,19 @@ func init() {
           ]
         }
       }
+    },
+    "Timestamp": {
+      "description": "The UTC date and timestamp.",
+      "type": "object",
+      "format": "dateTime",
+      "x-go-type": {
+        "hints": {
+          "noValidation": true
+        },
+        "type": "time.Time"
+      },
+      "readOnly": true,
+      "example": "2023-03-31T18:37:54.581099Z"
     },
     "Version": {
       "type": "object",
@@ -1068,7 +1127,8 @@ func init() {
   "security": [
     {
       "X-Auth-Token": []
-    }
+    },
+    {}
   ],
   "tags": [
     {
@@ -1561,6 +1621,12 @@ func init() {
           },
           "400": {
             "description": "Validation Error"
+          },
+          "409": {
+            "description": "Duplicate entry",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       }
@@ -1778,6 +1844,9 @@ func init() {
     "Endpoint": {
       "type": "object",
       "properties": {
+        "created_at": {
+          "$ref": "#/definitions/Timestamp"
+        },
         "id": {
           "description": "The ID of the resource.",
           "type": "string",
@@ -1786,10 +1855,6 @@ func init() {
         },
         "project_id": {
           "$ref": "#/definitions/Project"
-        },
-        "proxy_protocol": {
-          "description": "Proxy protocol enabled for this endpoint.",
-          "type": "boolean"
         },
         "service_id": {
           "description": "The ID of the service.",
@@ -1820,6 +1885,9 @@ func init() {
           "description": "Endpoint subnet target. One of ` + "`" + `target_network` + "`" + `, ` + "`" + `target_subnet` + "`" + ` or ` + "`" + `target_port` + "`" + ` must be specified.",
           "type": "string",
           "format": "uuid"
+        },
+        "updated_at": {
+          "$ref": "#/definitions/Timestamp"
         }
       }
     },
@@ -1874,11 +1942,25 @@ func init() {
       ],
       "readOnly": true
     },
+    "Error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "x-nullable": false
+        },
+        "message": {
+          "type": "string",
+          "x-nullable": false
+        }
+      }
+    },
     "Project": {
       "description": "The ID of the project owning this resource.",
       "type": "string",
       "maxLength": 32,
       "minLength": 32,
+      "x-omitempty": false,
       "example": "fa84c217f361441986a220edf9b1e337"
     },
     "Quota": {
@@ -2000,16 +2082,27 @@ func init() {
     },
     "Service": {
       "type": "object",
+      "required": [
+        "ports",
+        "network_id",
+        "ip_address"
+      ],
       "properties": {
         "availability_zone": {
           "description": "Availability zone of this service.",
           "type": "string",
           "x-nullable": true,
+          "x-omitempty": false,
           "example": "AZ-A"
+        },
+        "created_at": {
+          "$ref": "#/definitions/Timestamp"
         },
         "description": {
           "description": "Description of the service.",
           "type": "string",
+          "maxLength": 255,
+          "x-omitempty": false,
           "example": "An example of an Service."
         },
         "enabled": {
@@ -2031,6 +2124,8 @@ func init() {
         "name": {
           "description": "Name of the service.",
           "type": "string",
+          "maxLength": 64,
+          "x-omitempty": false,
           "example": "ExampleService"
         },
         "network_id": {
@@ -2041,9 +2136,12 @@ func init() {
         "ports": {
           "description": "Ports exposed by the service.",
           "type": "array",
+          "minItems": 1,
           "items": {
             "description": "Port of the service.",
-            "type": "integer"
+            "type": "integer",
+            "maximum": 65535,
+            "minimum": 1
           },
           "example": [
             80,
@@ -2052,6 +2150,11 @@ func init() {
         },
         "project_id": {
           "$ref": "#/definitions/Project"
+        },
+        "proxy_protocol": {
+          "description": "Proxy protocol v2 enabled for this endpoint.",
+          "type": "boolean",
+          "default": true
         },
         "require_approval": {
           "description": "Require explicit project approval for the service owner.",
@@ -2070,6 +2173,9 @@ func init() {
           ],
           "readOnly": true
         },
+        "updated_at": {
+          "$ref": "#/definitions/Timestamp"
+        },
         "visibility": {
           "description": "Set global visibility of the service. For ` + "`" + `private` + "`" + ` visibility, RBAC policies can extend the visibility to specific projects.",
           "type": "string",
@@ -2080,6 +2186,19 @@ func init() {
           ]
         }
       }
+    },
+    "Timestamp": {
+      "description": "The UTC date and timestamp.",
+      "type": "object",
+      "format": "dateTime",
+      "x-go-type": {
+        "hints": {
+          "noValidation": true
+        },
+        "type": "time.Time"
+      },
+      "readOnly": true,
+      "example": "2023-03-31T18:37:54.581099Z"
     },
     "Version": {
       "type": "object",
@@ -2141,7 +2260,8 @@ func init() {
   "security": [
     {
       "X-Auth-Token": []
-    }
+    },
+    {}
   ],
   "tags": [
     {

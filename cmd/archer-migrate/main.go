@@ -15,39 +15,18 @@
 package main
 
 import (
-	"log"
 	"os"
 
-	"github.com/go-openapi/loads"
 	"github.com/jessevdk/go-flags"
 	"github.com/sapcc/go-bits/logg"
 
 	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/restapi"
-	"github.com/sapcc/archer/restapi/operations"
+	"github.com/sapcc/archer/internal/db/migrations"
 )
 
 func main() {
-	var err error
-	restapi.SwaggerSpec, err = loads.Embedded(restapi.SwaggerJSON, restapi.FlatSwaggerJSON)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	api := operations.NewArcherAPI(restapi.SwaggerSpec)
-	server := restapi.NewServer(api)
-	defer server.Shutdown()
-
-	parser := flags.NewParser(server, flags.Default)
-	parser.ShortDescription = "🏹 Archer"
-	parser.LongDescription = "Archer is an API service that can privately connect services from one to another."
-	server.ConfigureFlags()
-	for _, optsGroup := range api.CommandLineOptionsGroups {
-		_, err := parser.AddGroup(optsGroup.ShortDescription, optsGroup.LongDescription, optsGroup.Options)
-		if err != nil {
-			logg.Fatal(err.Error())
-		}
-	}
+	parser := flags.NewParser(&config.Global, flags.Default)
+	parser.ShortDescription = "Archer Migration"
 
 	if _, err := parser.Parse(); err != nil {
 		code := 1
@@ -67,10 +46,5 @@ func main() {
 		}
 	}
 
-	server.ConfigureAPI()
-
-	if err := server.Serve(); err != nil {
-		logg.Fatal(err.Error())
-	}
-
+	migrations.Migrate()
 }

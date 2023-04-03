@@ -17,15 +17,31 @@
 package restapi
 
 import (
+	"context"
 	"crypto/tls"
+	goerrors "errors"
+	"fmt"
 	"net/http"
+	"os"
 
+	"github.com/didip/tollbooth"
+	"github.com/dre1080/recovr"
+	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/loads"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/swag"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/rs/cors"
+	"github.com/sapcc/go-bits/logg"
 
+	"github.com/sapcc/archer/internal/auth"
 	"github.com/sapcc/archer/internal/config"
+	"github.com/sapcc/archer/internal/middlewares"
+	"github.com/sapcc/archer/models"
 	"github.com/sapcc/archer/restapi/operations"
 	"github.com/sapcc/archer/restapi/operations/endpoint"
 	"github.com/sapcc/archer/restapi/operations/quota"
@@ -35,6 +51,11 @@ import (
 )
 
 //go:generate swagger generate server --target ../../archer --name Archer --spec ../swagger.yaml --principal interface{}
+
+var (
+	// SwaggerSpec make parsed swaggerspec available globally
+	SwaggerSpec *loads.Document
+)
 
 func configureFlags(api *operations.ArcherAPI) {
 	api.CommandLineOptionsGroups = []swag.CommandLineOptionsGroup{
@@ -49,26 +70,39 @@ func configureFlags(api *operations.ArcherAPI) {
 func configureAPI(api *operations.ArcherAPI) http.Handler {
 	// configure the api here
 	api.ServeError = errors.ServeError
-
-	// Set your custom logger if needed. Default one is log.Printf
-	// Expected interface func(string, ...interface{})
-	//
-	// Example:
-	// api.Logger = log.Printf
-
-	api.UseSwaggerUI()
-	// To continue using redoc as your UI, uncomment the following line
-	// api.UseRedoc()
-
+	api.Logger = logg.Info
+	api.UseRedoc()
 	api.JSONConsumer = runtime.JSONConsumer()
-
 	api.JSONProducer = runtime.JSONProducer()
 
-	// Applies when the "X-Auth-Token" header is set
-	if api.XAuthTokenAuth == nil {
-		api.XAuthTokenAuth = func(token string) (interface{}, error) {
-			return nil, errors.NotImplemented("api key auth (X-Auth-Token) X-Auth-Token from header param [X-Auth-Token] has not yet been implemented")
+	if config.Global.Verbose {
+		logg.ShowDebug = true
+	}
+	if config.Global.ApiSettings.ApiBaseURL == "" {
+		if hostname, err := os.Hostname(); err != nil {
+			logg.Fatal(err.Error())
+		} else {
+			config.Global.ApiSettings.ApiBaseURL = hostname
 		}
+	}
+
+	conn, err := pgx.Connect(context.Background(), config.Global.Database.Connection)
+	if err != nil {
+		logg.Fatal(err.Error())
+	}
+
+	keystone, err := auth.InitializeKeystone()
+	if err != nil {
+		logg.Info("Keystone disabled: %s", err.Error())
+	}
+
+	// Applies when the "X-Auth-Token" header is set
+	api.XAuthTokenAuth = func(token string) (interface{}, error) {
+		if keystone != nil {
+			return keystone.AuthenticateToken(token)
+		}
+
+		return "", nil
 	}
 
 	// Set your custom authorizer if needed. Default one is security.Authorized()
@@ -76,6 +110,107 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 	//
 	// Example:
 	// api.APIAuthorizer = security.Authorized()
+
+	// Example of the version get handler
+	api.VersionGetHandler = version.GetHandlerFunc(func(params version.GetParams) middleware.Responder {
+		var capabilities []string
+		if !config.Global.ApiSettings.DisablePagination {
+			capabilities = append(capabilities, "pagination")
+		}
+		if !config.Global.ApiSettings.DisableSorting {
+			capabilities = append(capabilities, "sorting")
+		}
+		if !config.Global.ApiSettings.DisableCors {
+			capabilities = append(capabilities, "cors")
+		}
+		if config.Global.ApiSettings.AuthStrategy != "none" {
+			capabilities = append(capabilities, config.Global.ApiSettings.AuthStrategy)
+		}
+		if config.Global.ApiSettings.RateLimit > 0 {
+			capabilities = append(capabilities, fmt.Sprintf("ratelimit=%.2f",
+				config.Global.ApiSettings.RateLimit))
+		}
+		if config.Global.ApiSettings.PaginationMaxLimit > 0 {
+			capabilities = append(capabilities, fmt.Sprintf("pagination_max=%d",
+				config.Global.ApiSettings.PaginationMaxLimit))
+		}
+		return version.NewGetOK().WithPayload(&models.Version{
+			Capabilities: capabilities,
+			Links: []*models.VersionLinksItems0{{
+				Href: config.Global.ApiSettings.ApiBaseURL,
+				Rel:  "self",
+				Type: "application/json",
+			}},
+			Updated: "now", // TODO: build time
+			Version: SwaggerSpec.Spec().Info.Version,
+		})
+	})
+
+	api.ServiceGetServiceHandler = service.GetServiceHandlerFunc(func(params service.GetServiceParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		var services []*models.Service
+		if err := pgxscan.Select(ctx, conn, &services, `SELECT * FROM service`); err != nil {
+			panic(err)
+		}
+
+		return service.NewGetServiceOK().WithPayload(services)
+	})
+
+	api.ServicePostServiceHandler = service.PostServiceHandlerFunc(func(params service.PostServiceParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		var serviceResponse models.Service
+
+		// Set default values
+		if err := SetModelDefaults(params.Body); err != nil {
+			panic(err)
+		}
+
+		sql := `
+			INSERT INTO service (enabled, 
+			                     name, 
+			                     description, 
+			                     network_id, 
+			                     ip_address, 
+			                     require_approval, 
+			                     visibility, 
+			                     availability_zone, 
+			                     proxy_protocol, 
+			                     project_id, 
+			                     ports)
+			VALUES
+				($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+			RETURNING *
+		`
+
+		var rows pgx.Rows
+		rows, err = conn.Query(ctx, sql,
+			params.Body.Enabled,
+			params.Body.Name,
+			params.Body.Description,
+			params.Body.NetworkID,
+			params.Body.IPAddress,
+			params.Body.RequireApproval,
+			params.Body.Visibility,
+			params.Body.AvailabilityZone,
+			params.Body.ProxyProtocol,
+			params.Body.ProjectID,
+			params.Body.Ports)
+		if err != nil {
+			panic(err)
+		}
+		if err := pgxscan.ScanOne(&serviceResponse, rows); err != nil {
+			var pe *pgconn.PgError
+			if goerrors.As(err, &pe) && pgerrcode.IsIntegrityConstraintViolation(pe.Code) {
+				return service.NewPostServiceConflict().WithPayload(&models.Error{
+					Code:    409,
+					Message: "Entry for network_id, ip_address and availability_zone already exists.",
+				})
+			}
+			panic(err)
+		}
+
+		return service.NewPostServiceOK().WithPayload(&serviceResponse)
+	})
 
 	if api.EndpointDeleteEndpointEndpointIDHandler == nil {
 		api.EndpointDeleteEndpointEndpointIDHandler = endpoint.DeleteEndpointEndpointIDHandlerFunc(func(params endpoint.DeleteEndpointEndpointIDParams, principal interface{}) middleware.Responder {
@@ -195,7 +330,11 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 
 	api.PreServerShutdown = func() {}
 
-	api.ServerShutdown = func() {}
+	api.ServerShutdown = func() {
+		if err := conn.Close(context.Background()); err != nil {
+			logg.Fatal(err.Error())
+		}
+	}
 
 	return setupGlobalMiddleware(api.Serve(setupMiddlewares))
 }
@@ -215,11 +354,30 @@ func configureServer(s *http.Server, scheme, addr string) {
 // The middleware configuration is for the handler executors. These do not apply to the swagger.json document.
 // The middleware executes after routing but before authentication, binding and validation.
 func setupMiddlewares(handler http.Handler) http.Handler {
+	if !config.Global.ApiSettings.DisableCors {
+		handler = cors.New(cors.Options{
+			AllowedOrigins: []string{"*"},
+			AllowedMethods: []string{"HEAD", "GET", "POST", "PUT", "DELETE"},
+			AllowedHeaders: []string{"Content-Type", "User-Agent", "X-Auth-Token"},
+		}).Handler(handler)
+	}
+
+	if rl := config.Global.ApiSettings.RateLimit; rl > .0 {
+		limiter := tollbooth.NewLimiter(rl, nil)
+		handler = tollbooth.LimitHandler(limiter, handler)
+	}
+
+	if config.Global.Audit.Enabled {
+		auditMiddleware := middlewares.NewAuditController()
+		handler = auditMiddleware.AuditHandler(handler)
+	}
+
 	return handler
 }
 
 // The middleware configuration happens before anything, this middleware also applies to serving the swagger.json document.
 // So this is a good place to plug in a panic handling middleware, logging and metrics.
 func setupGlobalMiddleware(handler http.Handler) http.Handler {
-	return handler
+	handler = middlewares.HealthCheckMiddleware(handler)
+	return recovr.New()(handler)
 }

@@ -74,6 +74,7 @@ schemes:
   - "http"
 security:
   - "X-Auth-Token": []
+  - {}
 securityDefinitions:
   "X-Auth-Token":
     type: "apiKey"
@@ -124,6 +125,10 @@ paths:
             $ref: "#/definitions/Service"
         400:
           description: Validation Error
+        409:
+          description: Duplicate entry
+          schema:
+            $ref: "#/definitions/Error"
   /service/{service_id}:
     parameters:
       - in: path
@@ -520,6 +525,10 @@ paths:
           description: Not Found
 definitions:
   Service:
+    required:
+      - ports
+      - network_id
+      - ip_address
     type: object
     properties:
       id:
@@ -534,16 +543,23 @@ definitions:
         type: string
         description: Name of the service.
         example: ExampleService
+        maxLength: 64
+        x-omitempty: false
       description:
         type: string
         description: Description of the service.
         example: An example of an Service.
+        maxLength: 255
+        x-omitempty: false
       ports:
         type: array
         description: Ports exposed by the service.
         example: [80, 443]
+        minItems: 1
         items:
           type: integer
+          minimum: 1
+          maximum: 65535
           description: Port of the service.
       network_id:
         type: string
@@ -588,8 +604,17 @@ definitions:
       availability_zone:
         type: string
         description: Availability zone of this service.
-        x-nullable: true
         example: AZ-A
+        x-nullable: true
+        x-omitempty: false
+      proxy_protocol:
+        type: boolean
+        default: true
+        description: Proxy protocol v2 enabled for this endpoint.
+      created_at:
+        $ref: "#/definitions/Timestamp"
+      updated_at:
+        $ref: "#/definitions/Timestamp"
       project_id:
         $ref: "#/definitions/Project"
   EndpointConsumer:
@@ -652,11 +677,12 @@ definitions:
         format: uuid
         description: Endpoint port target. One of `target_network`, `target_subnet` or `target_port` must be specified.
         example: b2accf1a-1c99-4b54-9eeb-22be53f177f5
-      proxy_protocol:
-        type: boolean
-        description: Proxy protocol enabled for this endpoint.
       status:
         $ref: "#/definitions/EndpointStatus"
+      created_at:
+        $ref: "#/definitions/Timestamp"
+      updated_at:
+        $ref: "#/definitions/Timestamp"
       project_id:
         $ref: "#/definitions/Project"
   EndpointStatus:
@@ -748,6 +774,7 @@ definitions:
     example: fa84c217f361441986a220edf9b1e337
     minLength: 32
     maxLength: 32
+    x-omitempty: false
   QuotaUsage:
     type: object
     properties:
@@ -791,3 +818,22 @@ definitions:
         example: ["pagination", "sort"]
         items:
           type: string
+  Timestamp:
+    type: object
+    x-go-type:
+      type: time.Time
+      hints:
+        noValidation: true
+    format: dateTime
+    description: The UTC date and timestamp.
+    readOnly: true
+    example: 2023-03-31T18:37:54.581099Z
+  Error:
+    type: object
+    properties:
+      code:
+        type: integer
+        x-nullable: false
+      message:
+        type: string
+        x-nullable: false

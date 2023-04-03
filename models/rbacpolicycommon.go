@@ -40,7 +40,7 @@ type Rbacpolicycommon struct {
 	ID strfmt.UUID `json:"id,omitempty"`
 
 	// project id
-	ProjectID Project `json:"project_id,omitempty"`
+	ProjectID Project `json:"project_id"`
 
 	// The ID of the project to which the RBAC policy will be enforced.
 	// Example: 666da95112694b37b3efb0913de3f499

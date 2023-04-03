@@ -17,16 +17,14 @@
 package server
 
 import (
-	"log"
-	"os"
-	"time"
-
 	"github.com/go-openapi/loads"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/iancoleman/strcase"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
+	"github.com/sapcc/archer/internal/policy"
 	"github.com/xo/dburl"
+	"log"
 
 	"github.com/sapcc/archer/internal/config"
 	//"github.com/sapcc/archer/internal/controller"
@@ -36,10 +34,6 @@ import (
 	//"github.com/sapcc/archer/middlewares"
 	"github.com/sapcc/archer/restapi"
 	"github.com/sapcc/archer/restapi/operations"
-	"github.com/sapcc/archer/restapi/operations/endpoint"
-	"github.com/sapcc/archer/restapi/operations/quota"
-	"github.com/sapcc/archer/restapi/operations/r_b_a_c"
-	"github.com/sapcc/archer/restapi/operations/service"
 )
 
 func ExecuteServer(server *restapi.Server) error {
@@ -66,10 +60,10 @@ func ExecuteServer(server *restapi.Server) error {
 	// Policy Engine
 	policy.SetPolicyEngine(config.Global.ApiSettings.PolicyEngine)
 
-/* TODO
+	/* TODO
 	// Controller
 	c := controller.New(db)
-*/
+	*/
 
 	// Initialize API
 	api := operations.NewArcherAPI(swaggerSpec)

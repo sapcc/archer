@@ -96,3 +96,48 @@ func (o *PostServiceBadRequest) WriteResponse(rw http.ResponseWriter, producer r
 
 	rw.WriteHeader(400)
 }
+
+// PostServiceConflictCode is the HTTP code returned for type PostServiceConflict
+const PostServiceConflictCode int = 409
+
+/*
+PostServiceConflict Duplicate entry
+
+swagger:response postServiceConflict
+*/
+type PostServiceConflict struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewPostServiceConflict creates PostServiceConflict with default headers values
+func NewPostServiceConflict() *PostServiceConflict {
+
+	return &PostServiceConflict{}
+}
+
+// WithPayload adds the payload to the post service conflict response
+func (o *PostServiceConflict) WithPayload(payload *models.Error) *PostServiceConflict {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the post service conflict response
+func (o *PostServiceConflict) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *PostServiceConflict) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(409)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}

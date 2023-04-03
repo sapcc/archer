@@ -294,7 +294,7 @@ type GetQuotasOKBodyQuotasItems0 struct {
 	models.QuotaUsage
 
 	// project id
-	ProjectID models.Project `json:"project_id,omitempty"`
+	ProjectID models.Project `json:"project_id"`
 }
 
 // UnmarshalJSON unmarshals this object from a JSON structure
@@ -315,7 +315,7 @@ func (o *GetQuotasOKBodyQuotasItems0) UnmarshalJSON(raw []byte) error {
 
 	// AO2
 	var dataAO2 struct {
-		ProjectID models.Project `json:"project_id,omitempty"`
+		ProjectID models.Project `json:"project_id"`
 	}
 	if err := swag.ReadJSON(raw, &dataAO2); err != nil {
 		return err
@@ -342,7 +342,7 @@ func (o GetQuotasOKBodyQuotasItems0) MarshalJSON() ([]byte, error) {
 	}
 	_parts = append(_parts, aO1)
 	var dataAO2 struct {
-		ProjectID models.Project `json:"project_id,omitempty"`
+		ProjectID models.Project `json:"project_id"`
 	}
 
 	dataAO2.ProjectID = o.ProjectID

@@ -40,7 +40,7 @@ type Rbacpolicy struct {
 	ID strfmt.UUID `json:"id,omitempty"`
 
 	// project id
-	ProjectID Project `json:"project_id,omitempty"`
+	ProjectID Project `json:"project_id"`
 
 	// The ID of the service resource.
 	// Required: true
