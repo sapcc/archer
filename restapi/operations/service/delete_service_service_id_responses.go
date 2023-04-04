@@ -23,6 +23,8 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime"
+
+	"github.com/sapcc/archer/models"
 )
 
 // DeleteServiceServiceIDNoContentCode is the HTTP code returned for type DeleteServiceServiceIDNoContent
@@ -50,6 +52,31 @@ func (o *DeleteServiceServiceIDNoContent) WriteResponse(rw http.ResponseWriter, 
 	rw.WriteHeader(204)
 }
 
+// DeleteServiceServiceIDBadRequestCode is the HTTP code returned for type DeleteServiceServiceIDBadRequest
+const DeleteServiceServiceIDBadRequestCode int = 400
+
+/*
+DeleteServiceServiceIDBadRequest Validation Error
+
+swagger:response deleteServiceServiceIdBadRequest
+*/
+type DeleteServiceServiceIDBadRequest struct {
+}
+
+// NewDeleteServiceServiceIDBadRequest creates DeleteServiceServiceIDBadRequest with default headers values
+func NewDeleteServiceServiceIDBadRequest() *DeleteServiceServiceIDBadRequest {
+
+	return &DeleteServiceServiceIDBadRequest{}
+}
+
+// WriteResponse to the client
+func (o *DeleteServiceServiceIDBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(400)
+}
+
 // DeleteServiceServiceIDNotFoundCode is the HTTP code returned for type DeleteServiceServiceIDNotFound
 const DeleteServiceServiceIDNotFoundCode int = 404
 
@@ -59,6 +86,11 @@ DeleteServiceServiceIDNotFound Not Found
 swagger:response deleteServiceServiceIdNotFound
 */
 type DeleteServiceServiceIDNotFound struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
 }
 
 // NewDeleteServiceServiceIDNotFound creates DeleteServiceServiceIDNotFound with default headers values
@@ -67,12 +99,27 @@ func NewDeleteServiceServiceIDNotFound() *DeleteServiceServiceIDNotFound {
 	return &DeleteServiceServiceIDNotFound{}
 }
 
+// WithPayload adds the payload to the delete service service Id not found response
+func (o *DeleteServiceServiceIDNotFound) WithPayload(payload *models.Error) *DeleteServiceServiceIDNotFound {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the delete service service Id not found response
+func (o *DeleteServiceServiceIDNotFound) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
 // WriteResponse to the client
 func (o *DeleteServiceServiceIDNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
 }
 
 // DeleteServiceServiceIDConflictCode is the HTTP code returned for type DeleteServiceServiceIDConflict
@@ -84,6 +131,11 @@ DeleteServiceServiceIDConflict In use.
 swagger:response deleteServiceServiceIdConflict
 */
 type DeleteServiceServiceIDConflict struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
 }
 
 // NewDeleteServiceServiceIDConflict creates DeleteServiceServiceIDConflict with default headers values
@@ -92,10 +144,25 @@ func NewDeleteServiceServiceIDConflict() *DeleteServiceServiceIDConflict {
 	return &DeleteServiceServiceIDConflict{}
 }
 
+// WithPayload adds the payload to the delete service service Id conflict response
+func (o *DeleteServiceServiceIDConflict) WithPayload(payload *models.Error) *DeleteServiceServiceIDConflict {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the delete service service Id conflict response
+func (o *DeleteServiceServiceIDConflict) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
 // WriteResponse to the client
 func (o *DeleteServiceServiceIDConflict) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
 	rw.WriteHeader(409)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
 }

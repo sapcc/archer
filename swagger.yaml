@@ -150,6 +150,8 @@ paths:
           description: Validation Error
         404:
           description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
     put:
       tags:
         - Service
@@ -170,6 +172,8 @@ paths:
           description: Validation Error
         404:
           description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
     delete:
       tags:
         - Service
@@ -180,10 +184,16 @@ paths:
       responses:
         204:
           description: Resource successfully deleted.
+        400:
+          description: Validation Error
         404:
           description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
         409:
           description: In use.
+          schema:
+            $ref: "#/definitions/Error"
   /service/{service_id}/endpoints:
     parameters:
       - in: path
@@ -210,6 +220,8 @@ paths:
               $ref: "#/definitions/EndpointConsumer"
         404:
           description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
   /service/{service_id}/accept_endpoints:
     parameters:
       - in: path
@@ -245,6 +257,8 @@ paths:
           description: Validation Error
         404:
           description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
   /service/{service_id}/reject_endpoints:
     parameters:
       - in: path
@@ -280,6 +294,8 @@ paths:
           description: Validation Error
         404:
           description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
 
   /endpoint:
     get:
@@ -330,6 +346,8 @@ paths:
             $ref: "#/definitions/Endpoint"
         404:
           description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
     delete:
       tags:
         - Endpoint
@@ -339,6 +357,9 @@ paths:
           description: Resource successfully deleted.
         404:
           description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+
   /rbac-policies:
     get:
       tags:
@@ -351,8 +372,6 @@ paths:
             type: array
             items:
               $ref: "#/definitions/RBACPolicy"
-        default:
-          description: Unexpected Error
     post:
       tags:
         - RBAC
@@ -373,6 +392,8 @@ paths:
           description: Validation Error
         409:
           description: Exists
+          schema:
+            $ref: "#/definitions/Error"
   /rbac-policies/{rbac_policy_id}:
     parameters:
       - in: path
@@ -392,6 +413,8 @@ paths:
             $ref: '#/definitions/RBACPolicy'
         404:
           description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
     put:
       tags:
         - RBAC
@@ -412,6 +435,8 @@ paths:
           description: Validation Error
         404:
           description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
     delete:
       tags:
         - RBAC
@@ -421,6 +446,9 @@ paths:
           description: Resource successfully deleted.
         404:
           description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+
   /quotas:
     parameters:
       - in: query
@@ -451,6 +479,8 @@ paths:
                           $ref: "#/definitions/Project"
         404:
           description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
   /quotas/defaults:
     get:
       tags:
@@ -487,6 +517,8 @@ paths:
                   - $ref: '#/definitions/QuotaUsage'
         404:
           description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
     put:
       tags:
         - Quota
@@ -514,6 +546,8 @@ paths:
           description: Validation Error
         404:
           description: Not found
+          schema:
+            $ref: "#/definitions/Error"
     delete:
       tags:
         - Quota
@@ -523,6 +557,9 @@ paths:
           description: Resource successfully reset
         404:
           description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+
 definitions:
   Service:
     required:

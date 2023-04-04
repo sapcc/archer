@@ -109,6 +109,11 @@ PutServiceServiceIDRejectEndpointsNotFound Not Found
 swagger:response putServiceServiceIdRejectEndpointsNotFound
 */
 type PutServiceServiceIDRejectEndpointsNotFound struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
 }
 
 // NewPutServiceServiceIDRejectEndpointsNotFound creates PutServiceServiceIDRejectEndpointsNotFound with default headers values
@@ -117,10 +122,25 @@ func NewPutServiceServiceIDRejectEndpointsNotFound() *PutServiceServiceIDRejectE
 	return &PutServiceServiceIDRejectEndpointsNotFound{}
 }
 
+// WithPayload adds the payload to the put service service Id reject endpoints not found response
+func (o *PutServiceServiceIDRejectEndpointsNotFound) WithPayload(payload *models.Error) *PutServiceServiceIDRejectEndpointsNotFound {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the put service service Id reject endpoints not found response
+func (o *PutServiceServiceIDRejectEndpointsNotFound) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
 // WriteResponse to the client
 func (o *PutServiceServiceIDRejectEndpointsNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
 }

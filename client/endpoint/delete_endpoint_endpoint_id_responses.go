@@ -21,9 +21,12 @@ package endpoint
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
+
+	"github.com/sapcc/archer/models"
 )
 
 // DeleteEndpointEndpointIDReader is a Reader for the DeleteEndpointEndpointID structure.
@@ -118,6 +121,7 @@ DeleteEndpointEndpointIDNotFound describes a response with status code 404, with
 Not Found
 */
 type DeleteEndpointEndpointIDNotFound struct {
+	Payload *models.Error
 }
 
 // IsSuccess returns true when this delete endpoint endpoint Id not found response has a 2xx status code
@@ -151,14 +155,25 @@ func (o *DeleteEndpointEndpointIDNotFound) Code() int {
 }
 
 func (o *DeleteEndpointEndpointIDNotFound) Error() string {
-	return fmt.Sprintf("[DELETE /endpoint/{endpoint_id}][%d] deleteEndpointEndpointIdNotFound ", 404)
+	return fmt.Sprintf("[DELETE /endpoint/{endpoint_id}][%d] deleteEndpointEndpointIdNotFound  %+v", 404, o.Payload)
 }
 
 func (o *DeleteEndpointEndpointIDNotFound) String() string {
-	return fmt.Sprintf("[DELETE /endpoint/{endpoint_id}][%d] deleteEndpointEndpointIdNotFound ", 404)
+	return fmt.Sprintf("[DELETE /endpoint/{endpoint_id}][%d] deleteEndpointEndpointIdNotFound  %+v", 404, o.Payload)
+}
+
+func (o *DeleteEndpointEndpointIDNotFound) GetPayload() *models.Error {
+	return o.Payload
 }
 
 func (o *DeleteEndpointEndpointIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

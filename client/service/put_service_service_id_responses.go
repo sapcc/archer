@@ -195,6 +195,7 @@ PutServiceServiceIDNotFound describes a response with status code 404, with defa
 Not Found
 */
 type PutServiceServiceIDNotFound struct {
+	Payload *models.Error
 }
 
 // IsSuccess returns true when this put service service Id not found response has a 2xx status code
@@ -228,14 +229,25 @@ func (o *PutServiceServiceIDNotFound) Code() int {
 }
 
 func (o *PutServiceServiceIDNotFound) Error() string {
-	return fmt.Sprintf("[PUT /service/{service_id}][%d] putServiceServiceIdNotFound ", 404)
+	return fmt.Sprintf("[PUT /service/{service_id}][%d] putServiceServiceIdNotFound  %+v", 404, o.Payload)
 }
 
 func (o *PutServiceServiceIDNotFound) String() string {
-	return fmt.Sprintf("[PUT /service/{service_id}][%d] putServiceServiceIdNotFound ", 404)
+	return fmt.Sprintf("[PUT /service/{service_id}][%d] putServiceServiceIdNotFound  %+v", 404, o.Payload)
+}
+
+func (o *PutServiceServiceIDNotFound) GetPayload() *models.Error {
+	return o.Payload
 }
 
 func (o *PutServiceServiceIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

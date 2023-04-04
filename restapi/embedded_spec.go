@@ -140,7 +140,10 @@ func init() {
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -154,7 +157,10 @@ func init() {
             "description": "Resource successfully deleted."
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -206,7 +212,10 @@ func init() {
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -268,7 +277,10 @@ func init() {
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -311,7 +323,10 @@ func init() {
             "description": "Validation Error"
           },
           "404": {
-            "description": "Not found"
+            "description": "Not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -325,7 +340,10 @@ func init() {
             "description": "Resource successfully reset"
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -354,9 +372,6 @@ func init() {
                 "$ref": "#/definitions/RBACPolicy"
               }
             }
-          },
-          "default": {
-            "description": "Unexpected Error"
           }
         }
       },
@@ -387,7 +402,10 @@ func init() {
             "description": "Validation Error"
           },
           "409": {
-            "description": "Exists"
+            "description": "Exists",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       }
@@ -406,7 +424,10 @@ func init() {
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -437,7 +458,10 @@ func init() {
             "description": "Validation Error"
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -451,7 +475,10 @@ func init() {
             "description": "Resource successfully deleted."
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -536,7 +563,10 @@ func init() {
             "description": "Validation Error"
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -567,7 +597,10 @@ func init() {
             "description": "Validation Error"
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -581,11 +614,20 @@ func init() {
           "204": {
             "description": "Resource successfully deleted."
           },
+          "400": {
+            "description": "Validation Error"
+          },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           },
           "409": {
-            "description": "In use."
+            "description": "In use.",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -632,7 +674,10 @@ func init() {
             "description": "Validation Error"
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -665,7 +710,10 @@ func init() {
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -712,7 +760,10 @@ func init() {
             "description": "Validation Error"
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -1267,7 +1318,10 @@ func init() {
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -1281,7 +1335,10 @@ func init() {
             "description": "Resource successfully deleted."
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -1318,7 +1375,10 @@ func init() {
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -1380,7 +1440,10 @@ func init() {
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -1423,7 +1486,10 @@ func init() {
             "description": "Validation Error"
           },
           "404": {
-            "description": "Not found"
+            "description": "Not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -1437,7 +1503,10 @@ func init() {
             "description": "Resource successfully reset"
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -1466,9 +1535,6 @@ func init() {
                 "$ref": "#/definitions/RBACPolicy"
               }
             }
-          },
-          "default": {
-            "description": "Unexpected Error"
           }
         }
       },
@@ -1499,7 +1565,10 @@ func init() {
             "description": "Validation Error"
           },
           "409": {
-            "description": "Exists"
+            "description": "Exists",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       }
@@ -1518,7 +1587,10 @@ func init() {
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -1549,7 +1621,10 @@ func init() {
             "description": "Validation Error"
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -1563,7 +1638,10 @@ func init() {
             "description": "Resource successfully deleted."
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -1648,7 +1726,10 @@ func init() {
             "description": "Validation Error"
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -1679,7 +1760,10 @@ func init() {
             "description": "Validation Error"
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -1693,11 +1777,20 @@ func init() {
           "204": {
             "description": "Resource successfully deleted."
           },
+          "400": {
+            "description": "Validation Error"
+          },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           },
           "409": {
-            "description": "In use."
+            "description": "In use.",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -1744,7 +1837,10 @@ func init() {
             "description": "Validation Error"
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -1777,7 +1873,10 @@ func init() {
             }
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },
@@ -1824,7 +1923,10 @@ func init() {
             "description": "Validation Error"
           },
           "404": {
-            "description": "Not Found"
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         }
       },

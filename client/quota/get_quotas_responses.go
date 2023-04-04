@@ -137,6 +137,7 @@ GetQuotasNotFound describes a response with status code 404, with default header
 Not Found
 */
 type GetQuotasNotFound struct {
+	Payload *models.Error
 }
 
 // IsSuccess returns true when this get quotas not found response has a 2xx status code
@@ -170,14 +171,25 @@ func (o *GetQuotasNotFound) Code() int {
 }
 
 func (o *GetQuotasNotFound) Error() string {
-	return fmt.Sprintf("[GET /quotas][%d] getQuotasNotFound ", 404)
+	return fmt.Sprintf("[GET /quotas][%d] getQuotasNotFound  %+v", 404, o.Payload)
 }
 
 func (o *GetQuotasNotFound) String() string {
-	return fmt.Sprintf("[GET /quotas][%d] getQuotasNotFound ", 404)
+	return fmt.Sprintf("[GET /quotas][%d] getQuotasNotFound  %+v", 404, o.Payload)
+}
+
+func (o *GetQuotasNotFound) GetPayload() *models.Error {
+	return o.Payload
 }
 
 func (o *GetQuotasNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

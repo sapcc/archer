@@ -193,6 +193,7 @@ PutServiceServiceIDRejectEndpointsNotFound describes a response with status code
 Not Found
 */
 type PutServiceServiceIDRejectEndpointsNotFound struct {
+	Payload *models.Error
 }
 
 // IsSuccess returns true when this put service service Id reject endpoints not found response has a 2xx status code
@@ -226,14 +227,25 @@ func (o *PutServiceServiceIDRejectEndpointsNotFound) Code() int {
 }
 
 func (o *PutServiceServiceIDRejectEndpointsNotFound) Error() string {
-	return fmt.Sprintf("[PUT /service/{service_id}/reject_endpoints][%d] putServiceServiceIdRejectEndpointsNotFound ", 404)
+	return fmt.Sprintf("[PUT /service/{service_id}/reject_endpoints][%d] putServiceServiceIdRejectEndpointsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *PutServiceServiceIDRejectEndpointsNotFound) String() string {
-	return fmt.Sprintf("[PUT /service/{service_id}/reject_endpoints][%d] putServiceServiceIdRejectEndpointsNotFound ", 404)
+	return fmt.Sprintf("[PUT /service/{service_id}/reject_endpoints][%d] putServiceServiceIdRejectEndpointsNotFound  %+v", 404, o.Payload)
+}
+
+func (o *PutServiceServiceIDRejectEndpointsNotFound) GetPayload() *models.Error {
+	return o.Payload
 }
 
 func (o *PutServiceServiceIDRejectEndpointsNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

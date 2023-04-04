@@ -23,6 +23,8 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime"
+
+	"github.com/sapcc/archer/models"
 )
 
 // PutQuotasProjectIDAcceptedCode is the HTTP code returned for type PutQuotasProjectIDAccepted
@@ -104,6 +106,11 @@ PutQuotasProjectIDNotFound Not found
 swagger:response putQuotasProjectIdNotFound
 */
 type PutQuotasProjectIDNotFound struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
 }
 
 // NewPutQuotasProjectIDNotFound creates PutQuotasProjectIDNotFound with default headers values
@@ -112,10 +119,25 @@ func NewPutQuotasProjectIDNotFound() *PutQuotasProjectIDNotFound {
 	return &PutQuotasProjectIDNotFound{}
 }
 
+// WithPayload adds the payload to the put quotas project Id not found response
+func (o *PutQuotasProjectIDNotFound) WithPayload(payload *models.Error) *PutQuotasProjectIDNotFound {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the put quotas project Id not found response
+func (o *PutQuotasProjectIDNotFound) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
 // WriteResponse to the client
 func (o *PutQuotasProjectIDNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
 }

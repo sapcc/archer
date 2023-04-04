@@ -133,6 +133,7 @@ GetRbacPoliciesRbacPolicyIDNotFound describes a response with status code 404, w
 Not Found
 */
 type GetRbacPoliciesRbacPolicyIDNotFound struct {
+	Payload *models.Error
 }
 
 // IsSuccess returns true when this get rbac policies rbac policy Id not found response has a 2xx status code
@@ -166,14 +167,25 @@ func (o *GetRbacPoliciesRbacPolicyIDNotFound) Code() int {
 }
 
 func (o *GetRbacPoliciesRbacPolicyIDNotFound) Error() string {
-	return fmt.Sprintf("[GET /rbac-policies/{rbac_policy_id}][%d] getRbacPoliciesRbacPolicyIdNotFound ", 404)
+	return fmt.Sprintf("[GET /rbac-policies/{rbac_policy_id}][%d] getRbacPoliciesRbacPolicyIdNotFound  %+v", 404, o.Payload)
 }
 
 func (o *GetRbacPoliciesRbacPolicyIDNotFound) String() string {
-	return fmt.Sprintf("[GET /rbac-policies/{rbac_policy_id}][%d] getRbacPoliciesRbacPolicyIdNotFound ", 404)
+	return fmt.Sprintf("[GET /rbac-policies/{rbac_policy_id}][%d] getRbacPoliciesRbacPolicyIdNotFound  %+v", 404, o.Payload)
+}
+
+func (o *GetRbacPoliciesRbacPolicyIDNotFound) GetPayload() *models.Error {
+	return o.Payload
 }
 
 func (o *GetRbacPoliciesRbacPolicyIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

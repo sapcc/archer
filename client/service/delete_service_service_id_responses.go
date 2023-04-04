@@ -21,9 +21,12 @@ package service
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
+
+	"github.com/sapcc/archer/models"
 )
 
 // DeleteServiceServiceIDReader is a Reader for the DeleteServiceServiceID structure.
@@ -40,6 +43,12 @@ func (o *DeleteServiceServiceIDReader) ReadResponse(response runtime.ClientRespo
 			return nil, err
 		}
 		return result, nil
+	case 400:
+		result := NewDeleteServiceServiceIDBadRequest()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewDeleteServiceServiceIDNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -113,6 +122,62 @@ func (o *DeleteServiceServiceIDNoContent) readResponse(response runtime.ClientRe
 	return nil
 }
 
+// NewDeleteServiceServiceIDBadRequest creates a DeleteServiceServiceIDBadRequest with default headers values
+func NewDeleteServiceServiceIDBadRequest() *DeleteServiceServiceIDBadRequest {
+	return &DeleteServiceServiceIDBadRequest{}
+}
+
+/*
+DeleteServiceServiceIDBadRequest describes a response with status code 400, with default header values.
+
+Validation Error
+*/
+type DeleteServiceServiceIDBadRequest struct {
+}
+
+// IsSuccess returns true when this delete service service Id bad request response has a 2xx status code
+func (o *DeleteServiceServiceIDBadRequest) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this delete service service Id bad request response has a 3xx status code
+func (o *DeleteServiceServiceIDBadRequest) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this delete service service Id bad request response has a 4xx status code
+func (o *DeleteServiceServiceIDBadRequest) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this delete service service Id bad request response has a 5xx status code
+func (o *DeleteServiceServiceIDBadRequest) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this delete service service Id bad request response a status code equal to that given
+func (o *DeleteServiceServiceIDBadRequest) IsCode(code int) bool {
+	return code == 400
+}
+
+// Code gets the status code for the delete service service Id bad request response
+func (o *DeleteServiceServiceIDBadRequest) Code() int {
+	return 400
+}
+
+func (o *DeleteServiceServiceIDBadRequest) Error() string {
+	return fmt.Sprintf("[DELETE /service/{service_id}][%d] deleteServiceServiceIdBadRequest ", 400)
+}
+
+func (o *DeleteServiceServiceIDBadRequest) String() string {
+	return fmt.Sprintf("[DELETE /service/{service_id}][%d] deleteServiceServiceIdBadRequest ", 400)
+}
+
+func (o *DeleteServiceServiceIDBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
 // NewDeleteServiceServiceIDNotFound creates a DeleteServiceServiceIDNotFound with default headers values
 func NewDeleteServiceServiceIDNotFound() *DeleteServiceServiceIDNotFound {
 	return &DeleteServiceServiceIDNotFound{}
@@ -124,6 +189,7 @@ DeleteServiceServiceIDNotFound describes a response with status code 404, with d
 Not Found
 */
 type DeleteServiceServiceIDNotFound struct {
+	Payload *models.Error
 }
 
 // IsSuccess returns true when this delete service service Id not found response has a 2xx status code
@@ -157,14 +223,25 @@ func (o *DeleteServiceServiceIDNotFound) Code() int {
 }
 
 func (o *DeleteServiceServiceIDNotFound) Error() string {
-	return fmt.Sprintf("[DELETE /service/{service_id}][%d] deleteServiceServiceIdNotFound ", 404)
+	return fmt.Sprintf("[DELETE /service/{service_id}][%d] deleteServiceServiceIdNotFound  %+v", 404, o.Payload)
 }
 
 func (o *DeleteServiceServiceIDNotFound) String() string {
-	return fmt.Sprintf("[DELETE /service/{service_id}][%d] deleteServiceServiceIdNotFound ", 404)
+	return fmt.Sprintf("[DELETE /service/{service_id}][%d] deleteServiceServiceIdNotFound  %+v", 404, o.Payload)
+}
+
+func (o *DeleteServiceServiceIDNotFound) GetPayload() *models.Error {
+	return o.Payload
 }
 
 func (o *DeleteServiceServiceIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }
@@ -180,6 +257,7 @@ DeleteServiceServiceIDConflict describes a response with status code 409, with d
 In use.
 */
 type DeleteServiceServiceIDConflict struct {
+	Payload *models.Error
 }
 
 // IsSuccess returns true when this delete service service Id conflict response has a 2xx status code
@@ -213,14 +291,25 @@ func (o *DeleteServiceServiceIDConflict) Code() int {
 }
 
 func (o *DeleteServiceServiceIDConflict) Error() string {
-	return fmt.Sprintf("[DELETE /service/{service_id}][%d] deleteServiceServiceIdConflict ", 409)
+	return fmt.Sprintf("[DELETE /service/{service_id}][%d] deleteServiceServiceIdConflict  %+v", 409, o.Payload)
 }
 
 func (o *DeleteServiceServiceIDConflict) String() string {
-	return fmt.Sprintf("[DELETE /service/{service_id}][%d] deleteServiceServiceIdConflict ", 409)
+	return fmt.Sprintf("[DELETE /service/{service_id}][%d] deleteServiceServiceIdConflict  %+v", 409, o.Payload)
+}
+
+func (o *DeleteServiceServiceIDConflict) GetPayload() *models.Error {
+	return o.Payload
 }
 
 func (o *DeleteServiceServiceIDConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

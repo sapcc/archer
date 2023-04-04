@@ -21,9 +21,12 @@ package rbac
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
+
+	"github.com/sapcc/archer/models"
 )
 
 // DeleteRbacPoliciesRbacPolicyIDReader is a Reader for the DeleteRbacPoliciesRbacPolicyID structure.
@@ -118,6 +121,7 @@ DeleteRbacPoliciesRbacPolicyIDNotFound describes a response with status code 404
 Not Found
 */
 type DeleteRbacPoliciesRbacPolicyIDNotFound struct {
+	Payload *models.Error
 }
 
 // IsSuccess returns true when this delete rbac policies rbac policy Id not found response has a 2xx status code
@@ -151,14 +155,25 @@ func (o *DeleteRbacPoliciesRbacPolicyIDNotFound) Code() int {
 }
 
 func (o *DeleteRbacPoliciesRbacPolicyIDNotFound) Error() string {
-	return fmt.Sprintf("[DELETE /rbac-policies/{rbac_policy_id}][%d] deleteRbacPoliciesRbacPolicyIdNotFound ", 404)
+	return fmt.Sprintf("[DELETE /rbac-policies/{rbac_policy_id}][%d] deleteRbacPoliciesRbacPolicyIdNotFound  %+v", 404, o.Payload)
 }
 
 func (o *DeleteRbacPoliciesRbacPolicyIDNotFound) String() string {
-	return fmt.Sprintf("[DELETE /rbac-policies/{rbac_policy_id}][%d] deleteRbacPoliciesRbacPolicyIdNotFound ", 404)
+	return fmt.Sprintf("[DELETE /rbac-policies/{rbac_policy_id}][%d] deleteRbacPoliciesRbacPolicyIdNotFound  %+v", 404, o.Payload)
+}
+
+func (o *DeleteRbacPoliciesRbacPolicyIDNotFound) GetPayload() *models.Error {
+	return o.Payload
 }
 
 func (o *DeleteRbacPoliciesRbacPolicyIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

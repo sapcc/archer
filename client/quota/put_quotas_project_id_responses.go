@@ -199,6 +199,7 @@ PutQuotasProjectIDNotFound describes a response with status code 404, with defau
 Not found
 */
 type PutQuotasProjectIDNotFound struct {
+	Payload *models.Error
 }
 
 // IsSuccess returns true when this put quotas project Id not found response has a 2xx status code
@@ -232,14 +233,25 @@ func (o *PutQuotasProjectIDNotFound) Code() int {
 }
 
 func (o *PutQuotasProjectIDNotFound) Error() string {
-	return fmt.Sprintf("[PUT /quotas/{project_id}][%d] putQuotasProjectIdNotFound ", 404)
+	return fmt.Sprintf("[PUT /quotas/{project_id}][%d] putQuotasProjectIdNotFound  %+v", 404, o.Payload)
 }
 
 func (o *PutQuotasProjectIDNotFound) String() string {
-	return fmt.Sprintf("[PUT /quotas/{project_id}][%d] putQuotasProjectIdNotFound ", 404)
+	return fmt.Sprintf("[PUT /quotas/{project_id}][%d] putQuotasProjectIdNotFound  %+v", 404, o.Payload)
+}
+
+func (o *PutQuotasProjectIDNotFound) GetPayload() *models.Error {
+	return o.Payload
 }
 
 func (o *PutQuotasProjectIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

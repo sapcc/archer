@@ -21,9 +21,12 @@ package quota
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
+
+	"github.com/sapcc/archer/models"
 )
 
 // DeleteQuotasProjectIDReader is a Reader for the DeleteQuotasProjectID structure.
@@ -118,6 +121,7 @@ DeleteQuotasProjectIDNotFound describes a response with status code 404, with de
 Not Found
 */
 type DeleteQuotasProjectIDNotFound struct {
+	Payload *models.Error
 }
 
 // IsSuccess returns true when this delete quotas project Id not found response has a 2xx status code
@@ -151,14 +155,25 @@ func (o *DeleteQuotasProjectIDNotFound) Code() int {
 }
 
 func (o *DeleteQuotasProjectIDNotFound) Error() string {
-	return fmt.Sprintf("[DELETE /quotas/{project_id}][%d] deleteQuotasProjectIdNotFound ", 404)
+	return fmt.Sprintf("[DELETE /quotas/{project_id}][%d] deleteQuotasProjectIdNotFound  %+v", 404, o.Payload)
 }
 
 func (o *DeleteQuotasProjectIDNotFound) String() string {
-	return fmt.Sprintf("[DELETE /quotas/{project_id}][%d] deleteQuotasProjectIdNotFound ", 404)
+	return fmt.Sprintf("[DELETE /quotas/{project_id}][%d] deleteQuotasProjectIdNotFound  %+v", 404, o.Payload)
+}
+
+func (o *DeleteQuotasProjectIDNotFound) GetPayload() *models.Error {
+	return o.Payload
 }
 
 func (o *DeleteQuotasProjectIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

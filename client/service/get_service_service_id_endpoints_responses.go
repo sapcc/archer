@@ -131,6 +131,7 @@ GetServiceServiceIDEndpointsNotFound describes a response with status code 404, 
 Not Found
 */
 type GetServiceServiceIDEndpointsNotFound struct {
+	Payload *models.Error
 }
 
 // IsSuccess returns true when this get service service Id endpoints not found response has a 2xx status code
@@ -164,14 +165,25 @@ func (o *GetServiceServiceIDEndpointsNotFound) Code() int {
 }
 
 func (o *GetServiceServiceIDEndpointsNotFound) Error() string {
-	return fmt.Sprintf("[GET /service/{service_id}/endpoints][%d] getServiceServiceIdEndpointsNotFound ", 404)
+	return fmt.Sprintf("[GET /service/{service_id}/endpoints][%d] getServiceServiceIdEndpointsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *GetServiceServiceIDEndpointsNotFound) String() string {
-	return fmt.Sprintf("[GET /service/{service_id}/endpoints][%d] getServiceServiceIdEndpointsNotFound ", 404)
+	return fmt.Sprintf("[GET /service/{service_id}/endpoints][%d] getServiceServiceIdEndpointsNotFound  %+v", 404, o.Payload)
+}
+
+func (o *GetServiceServiceIDEndpointsNotFound) GetPayload() *models.Error {
+	return o.Payload
 }
 
 func (o *GetServiceServiceIDEndpointsNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

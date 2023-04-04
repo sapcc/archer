@@ -23,6 +23,8 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime"
+
+	"github.com/sapcc/archer/models"
 )
 
 // GetQuotasOKCode is the HTTP code returned for type GetQuotasOK
@@ -79,6 +81,11 @@ GetQuotasNotFound Not Found
 swagger:response getQuotasNotFound
 */
 type GetQuotasNotFound struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
 }
 
 // NewGetQuotasNotFound creates GetQuotasNotFound with default headers values
@@ -87,10 +94,25 @@ func NewGetQuotasNotFound() *GetQuotasNotFound {
 	return &GetQuotasNotFound{}
 }
 
+// WithPayload adds the payload to the get quotas not found response
+func (o *GetQuotasNotFound) WithPayload(payload *models.Error) *GetQuotasNotFound {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get quotas not found response
+func (o *GetQuotasNotFound) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
 // WriteResponse to the client
 func (o *GetQuotasNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
 }

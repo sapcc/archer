@@ -106,6 +106,11 @@ PostRbacPoliciesConflict Exists
 swagger:response postRbacPoliciesConflict
 */
 type PostRbacPoliciesConflict struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
 }
 
 // NewPostRbacPoliciesConflict creates PostRbacPoliciesConflict with default headers values
@@ -114,10 +119,25 @@ func NewPostRbacPoliciesConflict() *PostRbacPoliciesConflict {
 	return &PostRbacPoliciesConflict{}
 }
 
+// WithPayload adds the payload to the post rbac policies conflict response
+func (o *PostRbacPoliciesConflict) WithPayload(payload *models.Error) *PostRbacPoliciesConflict {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the post rbac policies conflict response
+func (o *PostRbacPoliciesConflict) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
 // WriteResponse to the client
 func (o *PostRbacPoliciesConflict) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
 	rw.WriteHeader(409)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
 }

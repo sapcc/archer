@@ -81,6 +81,11 @@ GetRbacPoliciesRbacPolicyIDNotFound Not Found
 swagger:response getRbacPoliciesRbacPolicyIdNotFound
 */
 type GetRbacPoliciesRbacPolicyIDNotFound struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
 }
 
 // NewGetRbacPoliciesRbacPolicyIDNotFound creates GetRbacPoliciesRbacPolicyIDNotFound with default headers values
@@ -89,10 +94,25 @@ func NewGetRbacPoliciesRbacPolicyIDNotFound() *GetRbacPoliciesRbacPolicyIDNotFou
 	return &GetRbacPoliciesRbacPolicyIDNotFound{}
 }
 
+// WithPayload adds the payload to the get rbac policies rbac policy Id not found response
+func (o *GetRbacPoliciesRbacPolicyIDNotFound) WithPayload(payload *models.Error) *GetRbacPoliciesRbacPolicyIDNotFound {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get rbac policies rbac policy Id not found response
+func (o *GetRbacPoliciesRbacPolicyIDNotFound) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
 // WriteResponse to the client
 func (o *GetRbacPoliciesRbacPolicyIDNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
 }

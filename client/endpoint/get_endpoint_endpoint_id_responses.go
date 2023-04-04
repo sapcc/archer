@@ -133,6 +133,7 @@ GetEndpointEndpointIDNotFound describes a response with status code 404, with de
 Not Found
 */
 type GetEndpointEndpointIDNotFound struct {
+	Payload *models.Error
 }
 
 // IsSuccess returns true when this get endpoint endpoint Id not found response has a 2xx status code
@@ -166,14 +167,25 @@ func (o *GetEndpointEndpointIDNotFound) Code() int {
 }
 
 func (o *GetEndpointEndpointIDNotFound) Error() string {
-	return fmt.Sprintf("[GET /endpoint/{endpoint_id}][%d] getEndpointEndpointIdNotFound ", 404)
+	return fmt.Sprintf("[GET /endpoint/{endpoint_id}][%d] getEndpointEndpointIdNotFound  %+v", 404, o.Payload)
 }
 
 func (o *GetEndpointEndpointIDNotFound) String() string {
-	return fmt.Sprintf("[GET /endpoint/{endpoint_id}][%d] getEndpointEndpointIdNotFound ", 404)
+	return fmt.Sprintf("[GET /endpoint/{endpoint_id}][%d] getEndpointEndpointIdNotFound  %+v", 404, o.Payload)
+}
+
+func (o *GetEndpointEndpointIDNotFound) GetPayload() *models.Error {
+	return o.Payload
 }
 
 func (o *GetEndpointEndpointIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

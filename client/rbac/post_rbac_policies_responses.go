@@ -195,6 +195,7 @@ PostRbacPoliciesConflict describes a response with status code 409, with default
 Exists
 */
 type PostRbacPoliciesConflict struct {
+	Payload *models.Error
 }
 
 // IsSuccess returns true when this post rbac policies conflict response has a 2xx status code
@@ -228,14 +229,25 @@ func (o *PostRbacPoliciesConflict) Code() int {
 }
 
 func (o *PostRbacPoliciesConflict) Error() string {
-	return fmt.Sprintf("[POST /rbac-policies][%d] postRbacPoliciesConflict ", 409)
+	return fmt.Sprintf("[POST /rbac-policies][%d] postRbacPoliciesConflict  %+v", 409, o.Payload)
 }
 
 func (o *PostRbacPoliciesConflict) String() string {
-	return fmt.Sprintf("[POST /rbac-policies][%d] postRbacPoliciesConflict ", 409)
+	return fmt.Sprintf("[POST /rbac-policies][%d] postRbacPoliciesConflict  %+v", 409, o.Payload)
+}
+
+func (o *PostRbacPoliciesConflict) GetPayload() *models.Error {
+	return o.Payload
 }
 
 func (o *PostRbacPoliciesConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

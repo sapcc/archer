@@ -23,6 +23,8 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime"
+
+	"github.com/sapcc/archer/models"
 )
 
 // DeleteRbacPoliciesRbacPolicyIDNoContentCode is the HTTP code returned for type DeleteRbacPoliciesRbacPolicyIDNoContent
@@ -59,6 +61,11 @@ DeleteRbacPoliciesRbacPolicyIDNotFound Not Found
 swagger:response deleteRbacPoliciesRbacPolicyIdNotFound
 */
 type DeleteRbacPoliciesRbacPolicyIDNotFound struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
 }
 
 // NewDeleteRbacPoliciesRbacPolicyIDNotFound creates DeleteRbacPoliciesRbacPolicyIDNotFound with default headers values
@@ -67,10 +74,25 @@ func NewDeleteRbacPoliciesRbacPolicyIDNotFound() *DeleteRbacPoliciesRbacPolicyID
 	return &DeleteRbacPoliciesRbacPolicyIDNotFound{}
 }
 
+// WithPayload adds the payload to the delete rbac policies rbac policy Id not found response
+func (o *DeleteRbacPoliciesRbacPolicyIDNotFound) WithPayload(payload *models.Error) *DeleteRbacPoliciesRbacPolicyIDNotFound {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the delete rbac policies rbac policy Id not found response
+func (o *DeleteRbacPoliciesRbacPolicyIDNotFound) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
 // WriteResponse to the client
 func (o *DeleteRbacPoliciesRbacPolicyIDNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
 }
