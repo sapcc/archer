@@ -27,7 +27,7 @@ require (
 	github.com/sapcc/go-bits v0.0.0-20230330081034-6c004b82649f
 	github.com/xo/dburl v0.13.1
 	github.com/z0ne-dev/mgx v1.0.0
-	golang.org/x/net v0.8.0
+	golang.org/x/net v0.9.0
 )
 
 require (
@@ -71,9 +71,9 @@ require (
 	go.opentelemetry.io/otel/trace v1.11.1 // indirect
 	golang.org/x/crypto v0.7.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.6.0 // indirect
-	golang.org/x/term v0.6.0 // indirect
-	golang.org/x/text v0.8.0 // indirect
+	golang.org/x/sys v0.7.0 // indirect
+	golang.org/x/term v0.7.0 // indirect
+	golang.org/x/text v0.9.0 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
