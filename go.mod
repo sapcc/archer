@@ -24,7 +24,7 @@ require (
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/rs/cors v1.8.3
 	github.com/sapcc/go-api-declarations v1.5.0
-	github.com/sapcc/go-bits v0.0.0-20230330081034-6c004b82649f
+	github.com/sapcc/go-bits v0.0.0-20230404144215-11076993c8aa
 	github.com/xo/dburl v0.13.1
 	github.com/z0ne-dev/mgx v1.0.0
 	github.com/z0ne-dev/mgx/v2 v2.0.1
