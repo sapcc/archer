@@ -27,6 +27,7 @@ require (
 	github.com/sapcc/go-bits v0.0.0-20230330081034-6c004b82649f
 	github.com/xo/dburl v0.13.1
 	github.com/z0ne-dev/mgx v1.0.0
+	github.com/z0ne-dev/mgx/v2 v2.0.1
 	golang.org/x/net v0.9.0
 )
 
