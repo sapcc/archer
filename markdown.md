@@ -198,6 +198,10 @@ Status: No Content
 Status: Not Found
 
 ###### <span id="delete-endpoint-endpoint-id-404-schema"></span> Schema
+   
+  
+
+[Error](#error)
 
 ### <span id="delete-quotas-project-id"></span> Reset all Quota of a project (*DeleteQuotasProjectID*)
 
@@ -229,6 +233,10 @@ Status: No Content
 Status: Not Found
 
 ###### <span id="delete-quotas-project-id-404-schema"></span> Schema
+   
+  
+
+[Error](#error)
 
 ### <span id="delete-rbac-policies-rbac-policy-id"></span> Delete RBAC policy (*DeleteRbacPoliciesRbacPolicyID*)
 
@@ -260,6 +268,10 @@ Status: No Content
 Status: Not Found
 
 ###### <span id="delete-rbac-policies-rbac-policy-id-404-schema"></span> Schema
+   
+  
+
+[Error](#error)
 
 ### <span id="delete-service-service-id"></span> Remove service from catalog (*DeleteServiceServiceID*)
 
@@ -281,6 +293,7 @@ Active endpoints can be rejected by the service owner via the `/service/{service
 | Code | Status | Description | Has headers | Schema |
 |------|--------|-------------|:-----------:|--------|
 | [204](#delete-service-service-id-204) | No Content | Resource successfully deleted. |  | [schema](#delete-service-service-id-204-schema) |
+| [400](#delete-service-service-id-400) | Bad Request | Validation Error |  | [schema](#delete-service-service-id-400-schema) |
 | [404](#delete-service-service-id-404) | Not Found | Not Found |  | [schema](#delete-service-service-id-404-schema) |
 | [409](#delete-service-service-id-409) | Conflict | In use. |  | [schema](#delete-service-service-id-409-schema) |
 
@@ -292,15 +305,28 @@ Status: No Content
 
 ###### <span id="delete-service-service-id-204-schema"></span> Schema
 
+##### <span id="delete-service-service-id-400"></span> 400 - Validation Error
+Status: Bad Request
+
+###### <span id="delete-service-service-id-400-schema"></span> Schema
+
 ##### <span id="delete-service-service-id-404"></span> 404 - Not Found
 Status: Not Found
 
 ###### <span id="delete-service-service-id-404-schema"></span> Schema
+   
+  
+
+[Error](#error)
 
 ##### <span id="delete-service-service-id-409"></span> 409 - In use.
 Status: Conflict
 
 ###### <span id="delete-service-service-id-409-schema"></span> Schema
+   
+  
+
+[Error](#error)
 
 ### <span id="get"></span> Shows details for Archer API (*Get*)
 
@@ -382,6 +408,10 @@ Status: OK
 Status: Not Found
 
 ###### <span id="get-endpoint-endpoint-id-404-schema"></span> Schema
+   
+  
+
+[Error](#error)
 
 ### <span id="get-quotas"></span> List Quotas (*GetQuotas*)
 
@@ -417,6 +447,10 @@ Status: OK
 Status: Not Found
 
 ###### <span id="get-quotas-404-schema"></span> Schema
+   
+  
+
+[Error](#error)
 
 ###### Inlined models
 
@@ -529,6 +563,10 @@ Status: OK
 Status: Not Found
 
 ###### <span id="get-quotas-project-id-404-schema"></span> Schema
+   
+  
+
+[Error](#error)
 
 ###### Inlined models
 
@@ -557,7 +595,6 @@ GET /rbac-policies
 | Code | Status | Description | Has headers | Schema |
 |------|--------|-------------|:-----------:|--------|
 | [200](#get-rbac-policies-200) | OK | A JSON array of rbac policies |  | [schema](#get-rbac-policies-200-schema) |
-| [default](#get-rbac-policies-default) | | Unexpected Error |  | [schema](#get-rbac-policies-default-schema) |
 
 #### Responses
 
@@ -570,12 +607,6 @@ Status: OK
   
 
 [][Rbacpolicy](#rbacpolicy)
-
-##### <span id="get-rbac-policies-default"></span> Default Response
-Unexpected Error
-
-###### <span id="get-rbac-policies-default-schema"></span> Schema
-empty schema
 
 ### <span id="get-rbac-policies-rbac-policy-id"></span> Show details of an RBAC policy (*GetRbacPoliciesRbacPolicyID*)
 
@@ -611,6 +642,10 @@ Status: OK
 Status: Not Found
 
 ###### <span id="get-rbac-policies-rbac-policy-id-404-schema"></span> Schema
+   
+  
+
+[Error](#error)
 
 ### <span id="get-service"></span> List services (*GetService*)
 
@@ -675,6 +710,10 @@ Status: Bad Request
 Status: Not Found
 
 ###### <span id="get-service-service-id-404-schema"></span> Schema
+   
+  
+
+[Error](#error)
 
 ### <span id="get-service-service-id-endpoints"></span> List service endpoints consumers (*GetServiceServiceIDEndpoints*)
 
@@ -716,6 +755,10 @@ Status: OK
 Status: Not Found
 
 ###### <span id="get-service-service-id-endpoints-404-schema"></span> Schema
+   
+  
+
+[Error](#error)
 
 ### <span id="post-endpoint"></span> Create endpoint for accessing a service (*PostEndpoint*)
 
@@ -792,6 +835,10 @@ Status: Bad Request
 Status: Conflict
 
 ###### <span id="post-rbac-policies-409-schema"></span> Schema
+   
+  
+
+[Error](#error)
 
 ### <span id="post-service"></span> Add a new service to the catalog (*PostService*)
 
@@ -810,6 +857,7 @@ POST /service
 |------|--------|-------------|:-----------:|--------|
 | [200](#post-service-200) | OK | Service |  | [schema](#post-service-200-schema) |
 | [400](#post-service-400) | Bad Request | Validation Error |  | [schema](#post-service-400-schema) |
+| [409](#post-service-409) | Conflict | Duplicate entry |  | [schema](#post-service-409-schema) |
 
 #### Responses
 
@@ -827,6 +875,15 @@ Status: OK
 Status: Bad Request
 
 ###### <span id="post-service-400-schema"></span> Schema
+
+##### <span id="post-service-409"></span> 409 - Duplicate entry
+Status: Conflict
+
+###### <span id="post-service-409-schema"></span> Schema
+   
+  
+
+[Error](#error)
 
 ### <span id="put-quotas-project-id"></span> Update Quota (*PutQuotasProjectID*)
 
@@ -869,6 +926,10 @@ Status: Bad Request
 Status: Not Found
 
 ###### <span id="put-quotas-project-id-404-schema"></span> Schema
+   
+  
+
+[Error](#error)
 
 ###### Inlined models
 
@@ -943,6 +1004,10 @@ Status: Bad Request
 Status: Not Found
 
 ###### <span id="put-rbac-policies-rbac-policy-id-404-schema"></span> Schema
+   
+  
+
+[Error](#error)
 
 ### <span id="put-service-service-id"></span> Update an existing service (*PutServiceServiceID*)
 
@@ -985,6 +1050,10 @@ Status: Bad Request
 Status: Not Found
 
 ###### <span id="put-service-service-id-404-schema"></span> Schema
+   
+  
+
+[Error](#error)
 
 ### <span id="put-service-service-id-accept-endpoints"></span> Accept endpoints (*PutServiceServiceIDAcceptEndpoints*)
 
@@ -1033,6 +1102,10 @@ Status: Bad Request
 Status: Not Found
 
 ###### <span id="put-service-service-id-accept-endpoints-404-schema"></span> Schema
+   
+  
+
+[Error](#error)
 
 ### <span id="put-service-service-id-reject-endpoints"></span> Reject endpoints (*PutServiceServiceIDRejectEndpoints*)
 
@@ -1081,6 +1154,10 @@ Status: Bad Request
 Status: Not Found
 
 ###### <span id="put-service-service-id-reject-endpoints-404-schema"></span> Schema
+   
+  
+
+[Error](#error)
 
 ## Models
 
@@ -1095,15 +1172,36 @@ Status: Not Found
 
 | Name | Type | Go type | Required | Default | Description | Example |
 |------|------|---------|:--------:| ------- |-------------|---------|
+| created_at | [Time](#time)| `time.Time` |  | |  |  |
 | id | uuid (formatted string)| `strfmt.UUID` |  | | The ID of the resource. |  |
 | project_id | [Project](#project)| `Project` |  | |  |  |
-| proxy_protocol | boolean| `bool` |  | | Proxy protocol enabled for this endpoint. |  |
 | service_id | uuid (formatted string)| `strfmt.UUID` |  | | The ID of the service. |  |
 | service_name | string| `string` |  | | The name of the service. | `Example Service` |
 | status | [EndpointStatus](#endpoint-status)| `EndpointStatus` |  | |  |  |
-| target_network | uuid (formatted string)| `strfmt.UUID` |  | | Endpoint network target. One of `target_network`, `target_subnet` or `target_port` must be specified. |  |
-| target_port | uuid (formatted string)| `strfmt.UUID` |  | | Endpoint port target. One of `target_network`, `target_subnet` or `target_port` must be specified. | `b2accf1a-1c99-4b54-9eeb-22be53f177f5` |
-| target_subnet | uuid (formatted string)| `strfmt.UUID` |  | | Endpoint subnet target. One of `target_network`, `target_subnet` or `target_port` must be specified. |  |
+| target | [EndpointTarget](#endpoint-target)| `EndpointTarget` |  | |  |  |
+| updated_at | [Time](#time)| `time.Time` |  | |  |  |
+
+
+
+#### Inlined models
+
+**<span id="endpoint-target"></span> EndpointTarget**
+
+
+> Endpoint target
+  
+
+
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| network | uuid (formatted string)| `strfmt.UUID` |  | | Endpoint network target. One of `target_network`, `target_subnet` or `target_port` must be specified. | `49b6480b-24d3-4376-a4c9-aecbb89e16d9` |
+| port | uuid (formatted string)| `strfmt.UUID` |  | | Endpoint port target. One of `target_network`, `target_subnet` or `target_port` must be specified. | `b2accf1a-1c99-4b54-9eeb-22be53f177f5` |
+| subnet | uuid (formatted string)| `strfmt.UUID` |  | | Endpoint subnet target. One of `target_network`, `target_subnet` or `target_port` must be specified. | `1fb12a1a-a1a5-4732-9a2e-635ba6ec8d3b` |
 
 
 
@@ -1177,6 +1275,22 @@ Status: Not Found
 
 
 
+### <span id="error"></span> Error
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| code | integer| `int64` |  | |  |  |
+| message | string| `string` |  | |  |  |
+
+
+
 ### <span id="project"></span> Project
 
 
@@ -1235,14 +1349,17 @@ Status: Not Found
 | Name | Type | Go type | Required | Default | Description | Example |
 |------|------|---------|:--------:| ------- |-------------|---------|
 | availability_zone | string| `string` |  | | Availability zone of this service. | `AZ-A` |
+| created_at | [Time](#time)| `time.Time` |  | |  |  |
 | description | string| `string` |  | | Description of the service. | `An example of an Service.` |
 | enabled | boolean| `bool` |  | | Enable/disable this service. Existing endpoints are not touched by this. |  |
+| host | string| `string` |  | | Device host. |  |
 | id | uuid (formatted string)| `strfmt.UUID` |  | | The ID of the resource. |  |
-| ip_address | ipv4 (formatted string)| `strfmt.IPv4` |  | | IP Address of the providing service. | `1.2.3.4` |
+| ip_addresses | []ipv4 (formatted string)| `[]strfmt.IPv4` | ✓ | | IP Addresses of the providing service, multiple addresses will be round robin load balanced. |  |
 | name | string| `string` |  | | Name of the service. | `ExampleService` |
-| network_id | uuid (formatted string)| `strfmt.UUID` |  | | Network ID of the network that provides this service. |  |
-| ports | []integer| `[]int64` |  | | Ports exposed by the service. | `[80,443]` |
+| network_id | uuid (formatted string)| `strfmt.UUID` | ✓ | | Network ID of the network that provides this service. |  |
+| port | int32 (formatted integer)| `int32` | ✓ | | Port exposed by the service. | `80` |
 | project_id | [Project](#project)| `Project` |  | |  |  |
+| proxy_protocol | boolean| `bool` |  | `true`| Proxy protocol v2 enabled for this endpoint. |  |
 | require_approval | boolean| `bool` |  | `true`| Require explicit project approval for the service owner. |  |
 | status | string| `string` |  | | Status of the service.
 
@@ -1254,6 +1371,7 @@ Status: Not Found
 | PENDING_UPDATE   | Service is being updated               |
 | PENDING_DELETE   | Service is being deleted               |
 | UNAVAILABLE      | Service is unavailable (e.g. disabled) | |  |
+| updated_at | [Time](#time)| `time.Time` |  | |  |  |
 | visibility | string| `string` |  | `"private"`| Set global visibility of the service. For `private` visibility, RBAC policies can extend the visibility to specific projects. |  |
 
 
