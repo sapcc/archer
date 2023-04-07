@@ -57,18 +57,8 @@ type Endpoint struct {
 	// status
 	Status EndpointStatus `json:"status,omitempty"`
 
-	// Endpoint network target. One of `target_network`, `target_subnet` or `target_port` must be specified.
-	// Format: uuid
-	TargetNetwork strfmt.UUID `json:"target_network,omitempty"`
-
-	// Endpoint port target. One of `target_network`, `target_subnet` or `target_port` must be specified.
-	// Example: b2accf1a-1c99-4b54-9eeb-22be53f177f5
-	// Format: uuid
-	TargetPort strfmt.UUID `json:"target_port,omitempty"`
-
-	// Endpoint subnet target. One of `target_network`, `target_subnet` or `target_port` must be specified.
-	// Format: uuid
-	TargetSubnet strfmt.UUID `json:"target_subnet,omitempty"`
+	// target
+	Target *EndpointTarget `json:"target,omitempty"`
 
 	// updated at
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
@@ -98,15 +88,7 @@ func (m *Endpoint) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateTargetNetwork(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateTargetPort(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateTargetSubnet(formats); err != nil {
+	if err := m.validateTarget(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -186,37 +168,20 @@ func (m *Endpoint) validateStatus(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Endpoint) validateTargetNetwork(formats strfmt.Registry) error {
-	if swag.IsZero(m.TargetNetwork) { // not required
+func (m *Endpoint) validateTarget(formats strfmt.Registry) error {
+	if swag.IsZero(m.Target) { // not required
 		return nil
 	}
 
-	if err := validate.FormatOf("target_network", "body", "uuid", m.TargetNetwork.String(), formats); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *Endpoint) validateTargetPort(formats strfmt.Registry) error {
-	if swag.IsZero(m.TargetPort) { // not required
-		return nil
-	}
-
-	if err := validate.FormatOf("target_port", "body", "uuid", m.TargetPort.String(), formats); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *Endpoint) validateTargetSubnet(formats strfmt.Registry) error {
-	if swag.IsZero(m.TargetSubnet) { // not required
-		return nil
-	}
-
-	if err := validate.FormatOf("target_subnet", "body", "uuid", m.TargetSubnet.String(), formats); err != nil {
-		return err
+	if m.Target != nil {
+		if err := m.Target.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("target")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("target")
+			}
+			return err
+		}
 	}
 
 	return nil
@@ -247,6 +212,10 @@ func (m *Endpoint) ContextValidate(ctx context.Context, formats strfmt.Registry)
 	}
 
 	if err := m.contextValidateStatus(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateTarget(ctx, formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -302,6 +271,22 @@ func (m *Endpoint) contextValidateStatus(ctx context.Context, formats strfmt.Reg
 	return nil
 }
 
+func (m *Endpoint) contextValidateTarget(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Target != nil {
+		if err := m.Target.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("target")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("target")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
 // MarshalBinary interface implementation
 func (m *Endpoint) MarshalBinary() ([]byte, error) {
 	if m == nil {
@@ -313,6 +298,108 @@ func (m *Endpoint) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary interface implementation
 func (m *Endpoint) UnmarshalBinary(b []byte) error {
 	var res Endpoint
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*m = res
+	return nil
+}
+
+// EndpointTarget Endpoint target
+//
+// swagger:model EndpointTarget
+type EndpointTarget struct {
+
+	// Endpoint network target. One of `target_network`, `target_subnet` or `target_port` must be specified.
+	// Example: 49b6480b-24d3-4376-a4c9-aecbb89e16d9
+	// Format: uuid
+	Network *strfmt.UUID `json:"network,omitempty"`
+
+	// Endpoint port target. One of `target_network`, `target_subnet` or `target_port` must be specified.
+	// Example: b2accf1a-1c99-4b54-9eeb-22be53f177f5
+	// Format: uuid
+	Port *strfmt.UUID `json:"port,omitempty"`
+
+	// Endpoint subnet target. One of `target_network`, `target_subnet` or `target_port` must be specified.
+	// Example: 1fb12a1a-a1a5-4732-9a2e-635ba6ec8d3b
+	// Format: uuid
+	Subnet *strfmt.UUID `json:"subnet,omitempty"`
+}
+
+// Validate validates this endpoint target
+func (m *EndpointTarget) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateNetwork(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validatePort(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateSubnet(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *EndpointTarget) validateNetwork(formats strfmt.Registry) error {
+	if swag.IsZero(m.Network) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("target"+"."+"network", "body", "uuid", m.Network.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *EndpointTarget) validatePort(formats strfmt.Registry) error {
+	if swag.IsZero(m.Port) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("target"+"."+"port", "body", "uuid", m.Port.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *EndpointTarget) validateSubnet(formats strfmt.Registry) error {
+	if swag.IsZero(m.Subnet) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("target"+"."+"subnet", "body", "uuid", m.Subnet.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validates this endpoint target based on context it is used
+func (m *EndpointTarget) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (m *EndpointTarget) MarshalBinary() ([]byte, error) {
+	if m == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(m)
+}
+
+// UnmarshalBinary interface implementation
+func (m *EndpointTarget) UnmarshalBinary(b []byte) error {
+	var res EndpointTarget
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

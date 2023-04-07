@@ -29,16 +29,12 @@ import (
 	"github.com/sapcc/archer/internal/config"
 )
 
-type contextKey struct {
-	name string
-}
-
 type Keystone struct {
 	tv gopherpolicy.TokenValidator
 }
 
 func InitializeKeystone() (*Keystone, error) {
-	authInfo := config.Global.ServiceAuth
+	authInfo := clientconfig.AuthInfo(config.Global.ServiceAuth)
 	providerClient, err := clientconfig.AuthenticatedClient(&clientconfig.ClientOpts{
 		AuthInfo: &authInfo})
 	if err != nil {

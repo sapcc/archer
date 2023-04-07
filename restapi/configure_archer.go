@@ -21,6 +21,8 @@ import (
 	"crypto/tls"
 	goerrors "errors"
 	"fmt"
+	"github.com/jackc/pgx/v5/tracelog"
+	"github.com/sapcc/archer/internal/db"
 	"net/http"
 	"os"
 
@@ -75,9 +77,6 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 	api.JSONConsumer = runtime.JSONConsumer()
 	api.JSONProducer = runtime.JSONProducer()
 
-	if config.Global.Verbose {
-		logg.ShowDebug = true
-	}
 	if config.Global.ApiSettings.ApiBaseURL == "" {
 		if hostname, err := os.Hostname(); err != nil {
 			logg.Fatal(err.Error())
@@ -86,7 +85,16 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 		}
 	}
 
-	conn, err := pgx.Connect(context.Background(), config.Global.Database.Connection)
+	connConfig, err := pgx.ParseConfig(config.Global.Database.Connection)
+	if err != nil {
+		logg.Fatal(err.Error())
+	}
+	logger := tracelog.TraceLog{
+		Logger:   db.NewLogger(),
+		LogLevel: tracelog.LogLevelError,
+	}
+	connConfig.Tracer = &logger
+	conn, err := pgx.ConnectConfig(context.Background(), connConfig)
 	if err != nil {
 		logg.Fatal(err.Error())
 	}
@@ -148,12 +156,12 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 
 	api.ServiceGetServiceHandler = service.GetServiceHandlerFunc(func(params service.GetServiceParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
-		var services []*models.Service
-		if err := pgxscan.Select(ctx, conn, &services, `SELECT * FROM service`); err != nil {
+		var servicesResponse []*models.Service
+		if err := pgxscan.Select(ctx, conn, &servicesResponse, `SELECT * FROM service`); err != nil {
 			panic(err)
 		}
 
-		return service.NewGetServiceOK().WithPayload(services)
+		return service.NewGetServiceOK().WithPayload(servicesResponse)
 	})
 
 	api.ServicePostServiceHandler = service.PostServiceHandlerFunc(func(params service.PostServiceParams, principal interface{}) middleware.Responder {
@@ -170,13 +178,13 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 			                     name, 
 			                     description, 
 			                     network_id, 
-			                     ip_address, 
+			                     ip_addresses, 
 			                     require_approval, 
 			                     visibility, 
 			                     availability_zone, 
 			                     proxy_protocol, 
 			                     project_id, 
-			                     ports)
+			                     port)
 			VALUES
 				($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 			RETURNING *
@@ -188,13 +196,13 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 			params.Body.Name,
 			params.Body.Description,
 			params.Body.NetworkID,
-			params.Body.IPAddress,
+			params.Body.IPAddresses,
 			params.Body.RequireApproval,
 			params.Body.Visibility,
 			params.Body.AvailabilityZone,
 			params.Body.ProxyProtocol,
 			params.Body.ProjectID,
-			params.Body.Ports)
+			params.Body.Port)
 		if err != nil {
 			panic(err)
 		}
@@ -210,6 +218,16 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 		}
 
 		return service.NewPostServiceOK().WithPayload(&serviceResponse)
+	})
+
+	api.EndpointGetEndpointHandler = endpoint.GetEndpointHandlerFunc(func(params endpoint.GetEndpointParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		var endpointsResponse []*models.Endpoint
+		if err := pgxscan.Select(ctx, conn, &endpointsResponse, `SELECT * FROM endpoint`); err != nil {
+			panic(err)
+		}
+
+		return endpoint.NewGetEndpointOK().WithPayload(endpointsResponse)
 	})
 
 	if api.EndpointDeleteEndpointEndpointIDHandler == nil {

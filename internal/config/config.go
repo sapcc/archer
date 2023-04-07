@@ -17,7 +17,8 @@
 package config
 
 import (
-	"github.com/gophercloud/utils/openstack/clientconfig"
+	"github.com/sapcc/go-bits/logg"
+	"os"
 )
 
 var (
@@ -25,13 +26,22 @@ var (
 )
 
 type Archer struct {
-	Verbose     bool                  `short:"v" long:"verbose" description:"Show verbose debug information"`
-	ConfigFile  string                `long:"config-file" description:"Use config file"`
-	Database    Database              `group:"database"`
-	ApiSettings ApiSettings           `group:"api_settings"`
-	ServiceAuth clientconfig.AuthInfo `group:"service_auth"`
-	Quota       Quota                 `group:"quota"`
-	Audit       Audit                 `group:"audit_middleware_notifications"`
+	ConfigFile  string      `long:"config-file" description:"Use config file"`
+	Default     Default     `group:"DEFAULT"`
+	Database    Database    `group:"database"`
+	ApiSettings ApiSettings `group:"api_settings"`
+	ServiceAuth AuthInfo    `group:"service_auth"`
+	Quota       Quota       `group:"quota"`
+	Audit       Audit       `group:"audit_middleware_notifications"`
+	F5Config    F5Config    `group:"f5"`
+}
+
+type Default struct {
+	Debug            bool   `short:"d" long:"debug" description:"Show debug information"`
+	AvailabilityZone string `long:"availability-zone" ini-name:"availability_zone" description:"Availability zone of this node."`
+	Host             string `long:"hostname" ini-name:"host" description:"Hostname used by the server/agent. Defaults to auto-discovery."`
+	Prometheus       bool   `long:"prometheus" description:"Enable prometheus exporter."`
+	PrometheusListen string `long:"prometheus-listen" ini-name:"prometheus_listen" default:"127.0.0.1:9090" description:"Prometheus listen TCP network address."`
 }
 
 type ApiSettings struct {
@@ -60,4 +70,48 @@ type Audit struct {
 	Enabled      bool   `long:"enable-audit" ini-name:"enabled" description:"Enables message notification bus."`
 	TransportURL string `long:"transport-url" ini-name:"transport_url" description:"The network address and optional user credentials for connecting to the messaging backend."`
 	QueueName    string `long:"queue-name" ini-name:"queue_name" description:"RabbitMQ queue name"`
+}
+
+type F5Config struct {
+	Host            string `long:"bigip-host" ini-name:"host" description:"F5 BigIP Hostname"`
+	ValidateCert    bool   `long:"validate-certificates" ini-name:"validate_certificates" description:"Validate HTTPS Certificate"`
+	PhysicalNetwork string `long:"physical-network" ini-name:"physical_network" description:"Physical Network"`
+}
+
+type AuthInfo struct {
+	AuthURL                     string `ini-name:"auth_url"`
+	Token                       string `ini-name:"token"`
+	Username                    string `ini-name:"username"`
+	UserID                      string `ini-name:"user_id" `
+	Password                    string `ini-name:"password" `
+	ApplicationCredentialID     string `ini-name:"application_credential_id"`
+	ApplicationCredentialName   string `ini-name:"application_credential_name" `
+	ApplicationCredentialSecret string `ini-name:"application_credential_secret" `
+	SystemScope                 string `ini-name:"system_scope" `
+	ProjectName                 string `ini-name:"project_name"`
+	ProjectID                   string `ini-name:"project_id" `
+	UserDomainName              string `ini-name:"user_domain_name"`
+	UserDomainID                string `ini-name:"user_domain_id"`
+	ProjectDomainName           string `ini-name:"project_domain_name" `
+	ProjectDomainID             string `ini-name:"project_domain_id" `
+	DomainName                  string `ini-name:"domain_name"`
+	DomainID                    string `ini-name:"domain_id"`
+	DefaultDomain               string `ini-name:"default_domain"`
+	AllowReauth                 bool   `ini-name:"allow_reauth"`
+}
+
+func IsDebug() bool {
+	return Global.Default.Debug
+}
+
+func HostName() string {
+	if Global.Default.Host == "" {
+		host, err := os.Hostname()
+		if err != nil {
+			logg.Fatal(err.Error())
+		}
+		return host
+	}
+
+	return Global.Default.Host
 }

@@ -46,5 +46,6 @@ func main() {
 		}
 	}
 
+	logg.ShowDebug = config.Global.Default.Debug
 	migrations.Migrate()
 }

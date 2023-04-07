@@ -809,21 +809,32 @@ func init() {
         "status": {
           "$ref": "#/definitions/EndpointStatus"
         },
-        "target_network": {
-          "description": "Endpoint network target. One of ` + "`" + `target_network` + "`" + `, ` + "`" + `target_subnet` + "`" + ` or ` + "`" + `target_port` + "`" + ` must be specified.",
-          "type": "string",
-          "format": "uuid"
-        },
-        "target_port": {
-          "description": "Endpoint port target. One of ` + "`" + `target_network` + "`" + `, ` + "`" + `target_subnet` + "`" + ` or ` + "`" + `target_port` + "`" + ` must be specified.",
-          "type": "string",
-          "format": "uuid",
-          "example": "b2accf1a-1c99-4b54-9eeb-22be53f177f5"
-        },
-        "target_subnet": {
-          "description": "Endpoint subnet target. One of ` + "`" + `target_network` + "`" + `, ` + "`" + `target_subnet` + "`" + ` or ` + "`" + `target_port` + "`" + ` must be specified.",
-          "type": "string",
-          "format": "uuid"
+        "target": {
+          "description": "Endpoint target",
+          "type": "object",
+          "properties": {
+            "network": {
+              "description": "Endpoint network target. One of ` + "`" + `target_network` + "`" + `, ` + "`" + `target_subnet` + "`" + ` or ` + "`" + `target_port` + "`" + ` must be specified.",
+              "type": "string",
+              "format": "uuid",
+              "x-nullable": true,
+              "example": "49b6480b-24d3-4376-a4c9-aecbb89e16d9"
+            },
+            "port": {
+              "description": "Endpoint port target. One of ` + "`" + `target_network` + "`" + `, ` + "`" + `target_subnet` + "`" + ` or ` + "`" + `target_port` + "`" + ` must be specified.",
+              "type": "string",
+              "format": "uuid",
+              "x-nullable": true,
+              "example": "b2accf1a-1c99-4b54-9eeb-22be53f177f5"
+            },
+            "subnet": {
+              "description": "Endpoint subnet target. One of ` + "`" + `target_network` + "`" + `, ` + "`" + `target_subnet` + "`" + ` or ` + "`" + `target_port` + "`" + ` must be specified.",
+              "type": "string",
+              "format": "uuid",
+              "x-nullable": true,
+              "example": "1fb12a1a-a1a5-4732-9a2e-635ba6ec8d3b"
+            }
+          }
         },
         "updated_at": {
           "$ref": "#/definitions/Timestamp"
@@ -1004,9 +1015,9 @@ func init() {
     "Service": {
       "type": "object",
       "required": [
-        "ports",
+        "port",
         "network_id",
-        "ip_address"
+        "ip_addresses"
       ],
       "properties": {
         "availability_zone": {
@@ -1030,17 +1041,27 @@ func init() {
           "description": "Enable/disable this service. Existing endpoints are not touched by this.",
           "type": "boolean"
         },
+        "host": {
+          "description": "Device host.",
+          "type": "string",
+          "readOnly": true
+        },
         "id": {
           "description": "The ID of the resource.",
           "type": "string",
           "format": "uuid",
           "readOnly": true
         },
-        "ip_address": {
-          "description": "IP Address of the providing service.",
-          "type": "string",
-          "format": "ipv4",
-          "example": "1.2.3.4"
+        "ip_addresses": {
+          "description": "IP Addresses of the providing service, multiple addresses will be round robin load balanced.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "description": "IP Address of the providing service.",
+            "type": "string",
+            "format": "ipv4",
+            "example": "1.2.3.4"
+          }
         },
         "name": {
           "description": "Name of the service.",
@@ -1054,20 +1075,14 @@ func init() {
           "type": "string",
           "format": "uuid"
         },
-        "ports": {
-          "description": "Ports exposed by the service.",
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "description": "Port of the service.",
-            "type": "integer",
-            "maximum": 65535,
-            "minimum": 1
-          },
-          "example": [
-            80,
-            443
-          ]
+        "port": {
+          "description": "Port exposed by the service.",
+          "type": "integer",
+          "format": "int32",
+          "maximum": 65535,
+          "minimum": 1,
+          "x-nullable": false,
+          "example": 80
         },
         "project_id": {
           "$ref": "#/definitions/Project"
@@ -1972,21 +1987,32 @@ func init() {
         "status": {
           "$ref": "#/definitions/EndpointStatus"
         },
-        "target_network": {
-          "description": "Endpoint network target. One of ` + "`" + `target_network` + "`" + `, ` + "`" + `target_subnet` + "`" + ` or ` + "`" + `target_port` + "`" + ` must be specified.",
-          "type": "string",
-          "format": "uuid"
-        },
-        "target_port": {
-          "description": "Endpoint port target. One of ` + "`" + `target_network` + "`" + `, ` + "`" + `target_subnet` + "`" + ` or ` + "`" + `target_port` + "`" + ` must be specified.",
-          "type": "string",
-          "format": "uuid",
-          "example": "b2accf1a-1c99-4b54-9eeb-22be53f177f5"
-        },
-        "target_subnet": {
-          "description": "Endpoint subnet target. One of ` + "`" + `target_network` + "`" + `, ` + "`" + `target_subnet` + "`" + ` or ` + "`" + `target_port` + "`" + ` must be specified.",
-          "type": "string",
-          "format": "uuid"
+        "target": {
+          "description": "Endpoint target",
+          "type": "object",
+          "properties": {
+            "network": {
+              "description": "Endpoint network target. One of ` + "`" + `target_network` + "`" + `, ` + "`" + `target_subnet` + "`" + ` or ` + "`" + `target_port` + "`" + ` must be specified.",
+              "type": "string",
+              "format": "uuid",
+              "x-nullable": true,
+              "example": "49b6480b-24d3-4376-a4c9-aecbb89e16d9"
+            },
+            "port": {
+              "description": "Endpoint port target. One of ` + "`" + `target_network` + "`" + `, ` + "`" + `target_subnet` + "`" + ` or ` + "`" + `target_port` + "`" + ` must be specified.",
+              "type": "string",
+              "format": "uuid",
+              "x-nullable": true,
+              "example": "b2accf1a-1c99-4b54-9eeb-22be53f177f5"
+            },
+            "subnet": {
+              "description": "Endpoint subnet target. One of ` + "`" + `target_network` + "`" + `, ` + "`" + `target_subnet` + "`" + ` or ` + "`" + `target_port` + "`" + ` must be specified.",
+              "type": "string",
+              "format": "uuid",
+              "x-nullable": true,
+              "example": "1fb12a1a-a1a5-4732-9a2e-635ba6ec8d3b"
+            }
+          }
         },
         "updated_at": {
           "$ref": "#/definitions/Timestamp"
@@ -2043,6 +2069,33 @@ func init() {
         "FAILED"
       ],
       "readOnly": true
+    },
+    "EndpointTarget": {
+      "description": "Endpoint target",
+      "type": "object",
+      "properties": {
+        "network": {
+          "description": "Endpoint network target. One of ` + "`" + `target_network` + "`" + `, ` + "`" + `target_subnet` + "`" + ` or ` + "`" + `target_port` + "`" + ` must be specified.",
+          "type": "string",
+          "format": "uuid",
+          "x-nullable": true,
+          "example": "49b6480b-24d3-4376-a4c9-aecbb89e16d9"
+        },
+        "port": {
+          "description": "Endpoint port target. One of ` + "`" + `target_network` + "`" + `, ` + "`" + `target_subnet` + "`" + ` or ` + "`" + `target_port` + "`" + ` must be specified.",
+          "type": "string",
+          "format": "uuid",
+          "x-nullable": true,
+          "example": "b2accf1a-1c99-4b54-9eeb-22be53f177f5"
+        },
+        "subnet": {
+          "description": "Endpoint subnet target. One of ` + "`" + `target_network` + "`" + `, ` + "`" + `target_subnet` + "`" + ` or ` + "`" + `target_port` + "`" + ` must be specified.",
+          "type": "string",
+          "format": "uuid",
+          "x-nullable": true,
+          "example": "1fb12a1a-a1a5-4732-9a2e-635ba6ec8d3b"
+        }
+      }
     },
     "Error": {
       "type": "object",
@@ -2185,9 +2238,9 @@ func init() {
     "Service": {
       "type": "object",
       "required": [
-        "ports",
+        "port",
         "network_id",
-        "ip_address"
+        "ip_addresses"
       ],
       "properties": {
         "availability_zone": {
@@ -2211,17 +2264,27 @@ func init() {
           "description": "Enable/disable this service. Existing endpoints are not touched by this.",
           "type": "boolean"
         },
+        "host": {
+          "description": "Device host.",
+          "type": "string",
+          "readOnly": true
+        },
         "id": {
           "description": "The ID of the resource.",
           "type": "string",
           "format": "uuid",
           "readOnly": true
         },
-        "ip_address": {
-          "description": "IP Address of the providing service.",
-          "type": "string",
-          "format": "ipv4",
-          "example": "1.2.3.4"
+        "ip_addresses": {
+          "description": "IP Addresses of the providing service, multiple addresses will be round robin load balanced.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "description": "IP Address of the providing service.",
+            "type": "string",
+            "format": "ipv4",
+            "example": "1.2.3.4"
+          }
         },
         "name": {
           "description": "Name of the service.",
@@ -2235,20 +2298,14 @@ func init() {
           "type": "string",
           "format": "uuid"
         },
-        "ports": {
-          "description": "Ports exposed by the service.",
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "description": "Port of the service.",
-            "type": "integer",
-            "maximum": 65535,
-            "minimum": 1
-          },
-          "example": [
-            80,
-            443
-          ]
+        "port": {
+          "description": "Port exposed by the service.",
+          "type": "integer",
+          "format": "int32",
+          "maximum": 65535,
+          "minimum": 1,
+          "x-nullable": false,
+          "example": 80
         },
         "project_id": {
           "$ref": "#/definitions/Project"

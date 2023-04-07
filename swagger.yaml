@@ -563,9 +563,9 @@ paths:
 definitions:
   Service:
     required:
-      - ports
+      - port
       - network_id
-      - ip_address
+      - ip_addresses
     type: object
     properties:
       id:
@@ -588,25 +588,27 @@ definitions:
         example: An example of an Service.
         maxLength: 255
         x-omitempty: false
-      ports:
-        type: array
-        description: Ports exposed by the service.
-        example: [80, 443]
-        minItems: 1
-        items:
-          type: integer
-          minimum: 1
-          maximum: 65535
-          description: Port of the service.
+      port:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 65535
+        example: 80
+        description: Port exposed by the service.
+        x-nullable: false
       network_id:
         type: string
         format: uuid
         description: Network ID of the network that provides this service.
-      ip_address:
-        type: string
-        format: ipv4
-        description: IP Address of the providing service.
-        example: 1.2.3.4
+      ip_addresses:
+        type: array
+        description: IP Addresses of the providing service, multiple addresses will be round robin load balanced.
+        minItems: 1
+        items:
+          type: string
+          format: ipv4
+          description: IP Address of the providing service.
+          example: 1.2.3.4
       status:
         type: string
         description: |
@@ -644,6 +646,10 @@ definitions:
         example: AZ-A
         x-nullable: true
         x-omitempty: false
+      host:
+        type: string
+        description: Device host.
+        readOnly: true
       proxy_protocol:
         type: boolean
         default: true
@@ -699,21 +705,28 @@ definitions:
         example: Example Service
         description: The name of the service.
         readOnly: true
-      target_network:
-        type: string
-        format: uuid
-        description: Endpoint network target. One of `target_network`, `target_subnet` or `target_port` must be specified.
-        example: null
-      target_subnet:
-        type: string
-        format: uuid
-        description: Endpoint subnet target. One of `target_network`, `target_subnet` or `target_port` must be specified.
-        example: null
-      target_port:
-        type: string
-        format: uuid
-        description: Endpoint port target. One of `target_network`, `target_subnet` or `target_port` must be specified.
-        example: b2accf1a-1c99-4b54-9eeb-22be53f177f5
+      target:
+        type: object
+        description: Endpoint target
+        properties:
+          network:
+            type: string
+            format: uuid
+            description: Endpoint network target. One of `target_network`, `target_subnet` or `target_port` must be specified.
+            example: 49b6480b-24d3-4376-a4c9-aecbb89e16d9
+            x-nullable: true
+          subnet:
+            type: string
+            format: uuid
+            description: Endpoint subnet target. One of `target_network`, `target_subnet` or `target_port` must be specified.
+            example: 1fb12a1a-a1a5-4732-9a2e-635ba6ec8d3b
+            x-nullable: true
+          port:
+            type: string
+            format: uuid
+            description: Endpoint port target. One of `target_network`, `target_subnet` or `target_port` must be specified.
+            example: b2accf1a-1c99-4b54-9eeb-22be53f177f5
+            x-nullable: true
       status:
         $ref: "#/definitions/EndpointStatus"
       created_at:

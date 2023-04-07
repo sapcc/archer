@@ -51,16 +51,19 @@ type Service struct {
 	// Enable/disable this service. Existing endpoints are not touched by this.
 	Enabled bool `json:"enabled,omitempty"`
 
+	// Device host.
+	// Read Only: true
+	Host string `json:"host,omitempty"`
+
 	// The ID of the resource.
 	// Read Only: true
 	// Format: uuid
 	ID strfmt.UUID `json:"id,omitempty"`
 
-	// IP Address of the providing service.
-	// Example: 1.2.3.4
+	// IP Addresses of the providing service, multiple addresses will be round robin load balanced.
 	// Required: true
-	// Format: ipv4
-	IPAddress *strfmt.IPv4 `json:"ip_address"`
+	// Min Items: 1
+	IPAddresses []strfmt.IPv4 `json:"ip_addresses"`
 
 	// Name of the service.
 	// Example: ExampleService
@@ -72,11 +75,12 @@ type Service struct {
 	// Format: uuid
 	NetworkID *strfmt.UUID `json:"network_id"`
 
-	// Ports exposed by the service.
-	// Example: [80,443]
+	// Port exposed by the service.
+	// Example: 80
 	// Required: true
-	// Min Items: 1
-	Ports []int64 `json:"ports"`
+	// Maximum: 65535
+	// Minimum: 1
+	Port int32 `json:"port"`
 
 	// project id
 	ProjectID Project `json:"project_id"`
@@ -126,7 +130,7 @@ func (m *Service) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateIPAddress(formats); err != nil {
+	if err := m.validateIPAddresses(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -138,7 +142,7 @@ func (m *Service) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validatePorts(formats); err != nil {
+	if err := m.validatePort(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -196,14 +200,24 @@ func (m *Service) validateID(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Service) validateIPAddress(formats strfmt.Registry) error {
+func (m *Service) validateIPAddresses(formats strfmt.Registry) error {
 
-	if err := validate.Required("ip_address", "body", m.IPAddress); err != nil {
+	if err := validate.Required("ip_addresses", "body", m.IPAddresses); err != nil {
 		return err
 	}
 
-	if err := validate.FormatOf("ip_address", "body", "ipv4", m.IPAddress.String(), formats); err != nil {
+	iIPAddressesSize := int64(len(m.IPAddresses))
+
+	if err := validate.MinItems("ip_addresses", "body", iIPAddressesSize, 1); err != nil {
 		return err
+	}
+
+	for i := 0; i < len(m.IPAddresses); i++ {
+
+		if err := validate.FormatOf("ip_addresses"+"."+strconv.Itoa(i), "body", "ipv4", m.IPAddresses[i].String(), formats); err != nil {
+			return err
+		}
+
 	}
 
 	return nil
@@ -234,28 +248,18 @@ func (m *Service) validateNetworkID(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Service) validatePorts(formats strfmt.Registry) error {
+func (m *Service) validatePort(formats strfmt.Registry) error {
 
-	if err := validate.Required("ports", "body", m.Ports); err != nil {
+	if err := validate.Required("port", "body", int32(m.Port)); err != nil {
 		return err
 	}
 
-	iPortsSize := int64(len(m.Ports))
-
-	if err := validate.MinItems("ports", "body", iPortsSize, 1); err != nil {
+	if err := validate.MinimumInt("port", "body", int64(m.Port), 1, false); err != nil {
 		return err
 	}
 
-	for i := 0; i < len(m.Ports); i++ {
-
-		if err := validate.MinimumInt("ports"+"."+strconv.Itoa(i), "body", m.Ports[i], 1, false); err != nil {
-			return err
-		}
-
-		if err := validate.MaximumInt("ports"+"."+strconv.Itoa(i), "body", m.Ports[i], 65535, false); err != nil {
-			return err
-		}
-
+	if err := validate.MaximumInt("port", "body", int64(m.Port), 65535, false); err != nil {
+		return err
 	}
 
 	return nil
@@ -383,6 +387,10 @@ func (m *Service) validateVisibility(formats strfmt.Registry) error {
 func (m *Service) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.contextValidateHost(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.contextValidateID(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -398,6 +406,15 @@ func (m *Service) ContextValidate(ctx context.Context, formats strfmt.Registry) 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *Service) contextValidateHost(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := validate.ReadOnly(ctx, "host", "body", string(m.Host)); err != nil {
+		return err
+	}
+
 	return nil
 }
 
