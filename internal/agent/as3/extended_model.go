@@ -14,11 +14,12 @@
  *
  */
 
-package agent
+package as3
 
 import (
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
+
 	"github.com/sapcc/archer/models"
 )
 

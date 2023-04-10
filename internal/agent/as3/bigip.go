@@ -12,22 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package agent
+package as3
 
 import (
+	"encoding/json"
 	"fmt"
-	"github.com/go-openapi/strfmt"
+	"github.com/sapcc/archer/models"
 	"net"
 	"net/url"
 
 	"github.com/f5devcentral/go-bigip"
+	"github.com/go-openapi/strfmt"
 
-	"github.com/sapcc/archer/internal/agent/as3"
 	"github.com/sapcc/archer/internal/config"
 )
 
 func GetBigIPSession() (*bigip.BigIP, error) {
-	parsedURL, err := url.Parse(config.Global.F5Config.Host)
+	parsedURL, err := url.Parse(config.Global.Agent.Host)
 	if err != nil {
 		return nil, err
 	}
@@ -43,12 +44,30 @@ func GetBigIPSession() (*bigip.BigIP, error) {
 		Username:          parsedURL.User.Username(),
 		Password:          pw,
 		LoginReference:    "tmos",
-		CertVerifyDisable: !config.Global.F5Config.ValidateCert,
+		CertVerifyDisable: !config.Global.Agent.ValidateCert,
 	})
 	if err != nil {
 		return nil, err
 	}
 	return session, nil
+}
+
+func PostBigIP(bigip *bigip.BigIP, as3 *AS3, tenant string) error {
+	data, err := json.MarshalIndent(as3, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	if config.IsDebug() {
+		fmt.Printf("-------------------> %s\n%s\n-------------------\n", bigip.Host, data)
+	}
+
+	err, _, _ = bigip.PostAs3Bigip(string(data), tenant)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func GetServiceSnatPoolName(Id strfmt.UUID) string {
@@ -67,12 +86,12 @@ func GetEndpointTenantName(networkId strfmt.UUID) string {
 	return fmt.Sprintf("net-%s", networkId)
 }
 
-func GetAS3Declaration(tenants map[string]as3.Tenant) as3.AS3 {
-	return as3.AS3{
+func GetAS3Declaration(tenants map[string]Tenant) AS3 {
+	return AS3{
 		Class:   "AS3",
 		Action:  "deploy",
 		Persist: false,
-		Declaration: as3.ADC{
+		Declaration: ADC{
 			Class:         "ADC",
 			SchemaVersion: "3.36.0",
 			UpdateMode:    "selective",
@@ -82,17 +101,22 @@ func GetAS3Declaration(tenants map[string]as3.Tenant) as3.AS3 {
 	}
 }
 
-func GetServiceTenants(endpointServices []*ExtendedService) as3.Tenant {
+func GetServiceTenants(endpointServices []*ExtendedService) Tenant {
 	services := make(map[string]any, len(endpointServices)*2)
 
 	for _, service := range endpointServices {
+		if service.Status == "PENDING_DELETE" {
+			// Skip services in pending deletion
+			continue
+		}
+
 		var snatAddresses []string
 		for _, fixedIP := range service.SnatPort.FixedIPs {
 			snatAddresses = append(snatAddresses,
 				fmt.Sprintf("%s%%%d", fixedIP.IPAddress, service.SegmentId))
 		}
 
-		services[GetServiceSnatPoolName(service.ID)] = as3.SnatPool{
+		services[GetServiceSnatPoolName(service.ID)] = SnatPool{
 			Class:         "SNAT_Pool",
 			Label:         GetServiceName(service.ID),
 			SnatAddresses: snatAddresses,
@@ -104,23 +128,25 @@ func GetServiceTenants(endpointServices []*ExtendedService) as3.Tenant {
 			serverAddresses = append(serverAddresses, ip.String())
 		}
 
-		services[GetServicePoolName(service.ID)] = as3.Pool{
+		services[GetServicePoolName(service.ID)] = Pool{
 			Class: "Pool",
 			Label: GetServiceName(service.ID),
-			Members: []as3.PoolMember{{
+			Members: []PoolMember{{
+				Enable:          service.Enabled,
 				RouteDomain:     service.SegmentId,
 				ServicePort:     service.Port,
 				ServerAddresses: serverAddresses,
+				Remark:          GetServiceName(service.ID),
 			}},
-			Monitors: []as3.Pointer{
+			Monitors: []Pointer{
 				{BigIP: "/Common/cc_gwicmp_monitor"},
 			},
 		}
 	}
 
-	return as3.Tenant{
+	return Tenant{
 		Class: "Tenant",
-		Applications: map[string]as3.Application{
+		Applications: map[string]Application{
 			"Shared": {
 				Class:    "Application",
 				Template: "shared",
@@ -130,10 +156,15 @@ func GetServiceTenants(endpointServices []*ExtendedService) as3.Tenant {
 	}
 }
 
-func GetEndpointTenants(endpoints []*ExtendedEndpoint) as3.Tenant {
+func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 	services := make(map[string]any, len(endpoints))
 
 	for _, endpoint := range endpoints {
+		// Skip pending delete endpoints
+		if endpoint.Status == models.EndpointStatusPENDINGDELETE {
+			continue
+		}
+
 		endpointName := fmt.Sprintf("endpoint-%s", endpoint.ID)
 		pool := fmt.Sprintf("/Common/Shared/%s", GetServicePoolName(endpoint.ServiceID))
 		snat := fmt.Sprintf("/Common/Shared/%s", GetServiceSnatPoolName(endpoint.ServiceID))
@@ -144,14 +175,14 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) as3.Tenant {
 			)
 		}
 
-		services[endpointName] = as3.ServiceL4{
+		services[endpointName] = ServiceL4{
 			Label:               endpointName,
 			Class:               "Service_L4",
 			Mirroring:           "L4",
 			PersistanceMethods:  []string{},
-			Pool:                as3.Pointer{BigIP: pool},
-			ProfileL4:           as3.Pointer{BigIP: "/Common/cc_fastL4_profile"},
-			Snat:                as3.Pointer{BigIP: snat},
+			Pool:                Pointer{BigIP: pool},
+			ProfileL4:           Pointer{BigIP: "/Common/cc_fastL4_profile"},
+			Snat:                Pointer{BigIP: snat},
 			TranslateServerPort: false,
 			VirtualPort:         endpoint.ServicePortNr,
 			AllowVlans: []string{
@@ -161,9 +192,9 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) as3.Tenant {
 		}
 	}
 
-	return as3.Tenant{
+	return Tenant{
 		Class: "Tenant",
-		Applications: map[string]as3.Application{
+		Applications: map[string]Application{
 			"si-endpoints": {
 				Class:    "Application",
 				Template: "generic",
@@ -173,8 +204,8 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) as3.Tenant {
 	}
 }
 
-func (a *Agent) EnsureRouteDomain(segmentId int) error {
-	routeDomains, err := a.bigip.RouteDomains()
+func EnsureRouteDomain(big *bigip.BigIP, segmentId int) error {
+	routeDomains, err := big.RouteDomains()
 	if err != nil {
 		return err
 	}
@@ -192,7 +223,7 @@ func (a *Agent) EnsureRouteDomain(segmentId int) error {
 	}
 
 	// Create route domain
-	if err := a.bigip.CreateRouteDomain(
+	if err := big.CreateRouteDomain(
 		fmt.Sprintf("vlan-%d", segmentId), segmentId,
 		true, "/Common/vlan-%d"); err != nil {
 		return err
@@ -201,8 +232,8 @@ func (a *Agent) EnsureRouteDomain(segmentId int) error {
 	return nil
 }
 
-func (a *Agent) EnsureVLAN(segmentId int) error {
-	vlans, err := a.bigip.Vlans()
+func EnsureVLAN(big *bigip.BigIP, segmentId int) error {
+	vlans, err := big.Vlans()
 	if err != nil {
 		return err
 	}
@@ -224,7 +255,7 @@ func (a *Agent) EnsureVLAN(segmentId int) error {
 		Name: fmt.Sprintf("vlan-%d", segmentId),
 		Tag:  segmentId,
 	}
-	if err := a.bigip.CreateVlan(&vlan); err != nil {
+	if err := big.CreateVlan(&vlan); err != nil {
 		return err
 	}
 

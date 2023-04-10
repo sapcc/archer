@@ -12,73 +12,80 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package agent
+package neutron
 
 import (
 	"fmt"
-	"github.com/go-openapi/strfmt"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/provider"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
-	"github.com/sapcc/go-bits/logg"
+	"github.com/sapcc/archer/internal/agent/as3"
 	"net/url"
 	"time"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/dns"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/portsbinding"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/provider"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/gophercloud/utils/openstack/clientconfig"
+	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/sapcc/go-bits/logg"
 
 	"github.com/sapcc/archer/internal/config"
 )
 
-func (a *Agent) ConnectToNeutron() error {
+func ConnectToNeutron() (*gophercloud.ServiceClient, error) {
+	var serviceClient *gophercloud.ServiceClient
+
 	authInfo := clientconfig.AuthInfo(config.Global.ServiceAuth)
 	providerClient, err := clientconfig.AuthenticatedClient(&clientconfig.ClientOpts{
 		AuthInfo: &authInfo})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if a.neutron, err = openstack.NewNetworkV2(providerClient, gophercloud.EndpointOpts{}); err != nil {
-		return err
+	if serviceClient, err = openstack.NewNetworkV2(providerClient, gophercloud.EndpointOpts{}); err != nil {
+		return nil, err
 	}
 
 	// Set timeout to 30 secs
-	a.neutron.HTTPClient.Timeout = time.Second * 30
-	return nil
+	serviceClient.HTTPClient.Timeout = time.Second * 30
+	return serviceClient, nil
 }
 
-func (a *Agent) GetNetworkSegment(networkId string) (int, error) {
-	if segment, ok := a.cache.Get(networkId); ok {
+func GetNetworkSegment(cache *lru.Cache[string, int], c *gophercloud.ServiceClient, networkId string) (int, error) {
+	if segment, ok := cache.Get(networkId); ok {
 		return segment, nil
 	}
 
 	var network provider.NetworkProviderExt
-	r := networks.Get(a.neutron, networkId)
+	r := networks.Get(c, networkId)
 	if err := r.ExtractInto(&network); err != nil {
 		return 0, err
 	}
 
 	for _, segment := range network.Segments {
-		if segment.PhysicalNetwork == config.Global.F5Config.PhysicalNetwork {
-			a.cache.Add(networkId, segment.SegmentationID)
+		if segment.PhysicalNetwork == config.Global.Agent.PhysicalNetwork {
+			cache.Add(networkId, segment.SegmentationID)
 			return segment.SegmentationID, nil
 		}
 	}
 
 	return 0, fmt.Errorf("Could not find physical-network %s for network '%s'",
-		config.Global.F5Config.PhysicalNetwork,
+		config.Global.Agent.PhysicalNetwork,
 		networkId)
 }
 
-func (a *Agent) GetSNATPort(portId *strfmt.UUID) (*ports.Port, error) {
-	portResult := ports.Get(a.neutron, portId.String())
+func GetSNATPort(c *gophercloud.ServiceClient, portId *strfmt.UUID) (*ports.Port, error) {
+	if portId == nil {
+		return nil, nil
+	}
+	portResult := ports.Get(c, portId.String())
 	return portResult.Extract()
 }
 
-func (a *Agent) AllocateSNATPort(service *ExtendedService) (*ports.Port, error) {
+func AllocateSNATPort(c *gophercloud.ServiceClient, service *as3.ExtendedService) (*ports.Port, error) {
 	logg.Debug("Creating SNATPool Neutron port for service '%s' in network '%s'",
 		service.ID, service.NetworkID)
 	port := dns.PortCreateOptsExt{
@@ -94,12 +101,12 @@ func (a *Agent) AllocateSNATPort(service *ExtendedService) (*ports.Port, error) 
 		},
 		DNSName: "TODO",
 	}
-	r := ports.Create(a.neutron, port)
+	r := ports.Create(c, port)
 	return r.Extract()
 }
 
-func (a *Agent) DeleteSNATPort(service *ExtendedService) error {
-	return ports.Delete(a.neutron, service.SnatPortId.String()).Err
+func DeleteSNATPort(c *gophercloud.ServiceClient, portId *strfmt.UUID) error {
+	return ports.Delete(c, portId.String()).Err
 }
 
 type PortListOpts struct {

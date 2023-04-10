@@ -19,6 +19,7 @@ package config
 import (
 	"github.com/sapcc/go-bits/logg"
 	"os"
+	"time"
 )
 
 var (
@@ -33,7 +34,7 @@ type Archer struct {
 	ServiceAuth AuthInfo    `group:"service_auth"`
 	Quota       Quota       `group:"quota"`
 	Audit       Audit       `group:"audit_middleware_notifications"`
-	F5Config    F5Config    `group:"f5"`
+	Agent       Agent       `group:"agent"`
 }
 
 type Default struct {
@@ -64,6 +65,7 @@ type Quota struct {
 
 type Database struct {
 	Connection string `long:"database-connection" ini-name:"connection" description:"Connection string to use to connect to the database."`
+	Trace      bool   `long:"database-trace" description:"Enable tracing of SQL queries"`
 }
 
 type Audit struct {
@@ -72,10 +74,11 @@ type Audit struct {
 	QueueName    string `long:"queue-name" ini-name:"queue_name" description:"RabbitMQ queue name"`
 }
 
-type F5Config struct {
-	Host            string `long:"bigip-host" ini-name:"host" description:"F5 BigIP Hostname"`
-	ValidateCert    bool   `long:"validate-certificates" ini-name:"validate_certificates" description:"Validate HTTPS Certificate"`
-	PhysicalNetwork string `long:"physical-network" ini-name:"physical_network" description:"Physical Network"`
+type Agent struct {
+	Host                string        `long:"bigip-host" ini-name:"host" description:"F5 BigIP Hostname"`
+	ValidateCert        bool          `long:"validate-certificates" ini-name:"validate_certificates" description:"Validate HTTPS Certificate."`
+	PhysicalNetwork     string        `long:"physical-network" ini-name:"physical_network" description:"Physical Network"`
+	PendingSyncInterval time.Duration `long:"pending-sync-interval" ini-name:"sync-interval" default:"120s" description:"Interval for pending sync scans, supports suffix (e.g. 10s)."`
 }
 
 type AuthInfo struct {

@@ -89,11 +89,13 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 	if err != nil {
 		logg.Fatal(err.Error())
 	}
-	logger := tracelog.TraceLog{
-		Logger:   db.NewLogger(),
-		LogLevel: tracelog.LogLevelError,
+	if config.Global.Database.Trace {
+		logger := tracelog.TraceLog{
+			Logger:   db.NewLogger(),
+			LogLevel: tracelog.LogLevelDebug,
+		}
+		connConfig.Tracer = &logger
 	}
-	connConfig.Tracer = &logger
 	conn, err := pgx.ConnectConfig(context.Background(), connConfig)
 	if err != nil {
 		logg.Fatal(err.Error())
