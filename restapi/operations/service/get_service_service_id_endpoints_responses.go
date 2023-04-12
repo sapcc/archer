@@ -40,7 +40,7 @@ type GetServiceServiceIDEndpointsOK struct {
 	/*
 	  In: Body
 	*/
-	Payload []*models.EndpointConsumer `json:"body,omitempty"`
+	Payload *GetServiceServiceIDEndpointsOKBody `json:"body,omitempty"`
 }
 
 // NewGetServiceServiceIDEndpointsOK creates GetServiceServiceIDEndpointsOK with default headers values
@@ -50,13 +50,13 @@ func NewGetServiceServiceIDEndpointsOK() *GetServiceServiceIDEndpointsOK {
 }
 
 // WithPayload adds the payload to the get service service Id endpoints o k response
-func (o *GetServiceServiceIDEndpointsOK) WithPayload(payload []*models.EndpointConsumer) *GetServiceServiceIDEndpointsOK {
+func (o *GetServiceServiceIDEndpointsOK) WithPayload(payload *GetServiceServiceIDEndpointsOKBody) *GetServiceServiceIDEndpointsOK {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the get service service Id endpoints o k response
-func (o *GetServiceServiceIDEndpointsOK) SetPayload(payload []*models.EndpointConsumer) {
+func (o *GetServiceServiceIDEndpointsOK) SetPayload(payload *GetServiceServiceIDEndpointsOKBody) {
 	o.Payload = payload
 }
 
@@ -64,14 +64,11 @@ func (o *GetServiceServiceIDEndpointsOK) SetPayload(payload []*models.EndpointCo
 func (o *GetServiceServiceIDEndpointsOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(200)
-	payload := o.Payload
-	if payload == nil {
-		// return empty array
-		payload = make([]*models.EndpointConsumer, 0, 50)
-	}
-
-	if err := producer.Produce(rw, payload); err != nil {
-		panic(err) // let the recovery middleware deal with this
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
 	}
 }
 

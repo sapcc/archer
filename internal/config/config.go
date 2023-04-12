@@ -65,7 +65,7 @@ type Quota struct {
 
 type Database struct {
 	Connection string `long:"database-connection" ini-name:"connection" description:"Connection string to use to connect to the database."`
-	Trace      bool   `long:"database-trace" description:"Enable tracing of SQL queries"`
+	Trace      bool   `long:"database-trace" ini-name:"trace" description:"Enable tracing of SQL queries"`
 }
 
 type Audit struct {

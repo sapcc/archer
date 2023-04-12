@@ -23,8 +23,6 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime"
-
-	"github.com/sapcc/archer/models"
 )
 
 // GetRbacPoliciesOKCode is the HTTP code returned for type GetRbacPoliciesOK
@@ -40,7 +38,7 @@ type GetRbacPoliciesOK struct {
 	/*
 	  In: Body
 	*/
-	Payload []*models.Rbacpolicy `json:"body,omitempty"`
+	Payload *GetRbacPoliciesOKBody `json:"body,omitempty"`
 }
 
 // NewGetRbacPoliciesOK creates GetRbacPoliciesOK with default headers values
@@ -50,13 +48,13 @@ func NewGetRbacPoliciesOK() *GetRbacPoliciesOK {
 }
 
 // WithPayload adds the payload to the get rbac policies o k response
-func (o *GetRbacPoliciesOK) WithPayload(payload []*models.Rbacpolicy) *GetRbacPoliciesOK {
+func (o *GetRbacPoliciesOK) WithPayload(payload *GetRbacPoliciesOKBody) *GetRbacPoliciesOK {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the get rbac policies o k response
-func (o *GetRbacPoliciesOK) SetPayload(payload []*models.Rbacpolicy) {
+func (o *GetRbacPoliciesOK) SetPayload(payload *GetRbacPoliciesOKBody) {
 	o.Payload = payload
 }
 
@@ -64,13 +62,10 @@ func (o *GetRbacPoliciesOK) SetPayload(payload []*models.Rbacpolicy) {
 func (o *GetRbacPoliciesOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(200)
-	payload := o.Payload
-	if payload == nil {
-		// return empty array
-		payload = make([]*models.Rbacpolicy, 0, 50)
-	}
-
-	if err := producer.Produce(rw, payload); err != nil {
-		panic(err) // let the recovery middleware deal with this
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
 	}
 }

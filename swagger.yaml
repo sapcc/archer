@@ -100,13 +100,26 @@ paths:
       tags:
         - Service
       summary: List services
+      parameters:
+        - $ref: '#/parameters/marker'
+        - $ref: '#/parameters/limit'
+        - $ref: '#/parameters/sort'
+        - $ref: '#/parameters/page_reverse'
       responses:
         200:
           description: An array of services.
           schema:
-            type: array
-            items:
-              $ref: "#/definitions/Service"
+            type: object
+            properties:
+              links:
+                x-omitempty: true
+                type: array
+                items:
+                  $ref: '#/definitions/Link'
+              items:
+                type: array
+                items:
+                  $ref: "#/definitions/Service"
     post:
       tags:
         - Service
@@ -211,13 +224,26 @@ paths:
         
         This list can be used to accept or reject requests, or disable active endpoints. 
         Rejected endpoints will be cleaned up after a specific time.
+      parameters:
+        - $ref: '#/parameters/marker'
+        - $ref: '#/parameters/limit'
+        - $ref: '#/parameters/sort'
+        - $ref: '#/parameters/page_reverse'
       responses:
         200:
           description: An array of service endpoint consumers.
           schema:
-            type: array
-            items:
-              $ref: "#/definitions/EndpointConsumer"
+            type: object
+            properties:
+              links:
+                x-omitempty: true
+                type: array
+                items:
+                  $ref: '#/definitions/Link'
+              items:
+                type: array
+                items:
+                  $ref: "#/definitions/EndpointConsumer"
         404:
           description: Not Found
           schema:
@@ -302,13 +328,26 @@ paths:
       tags:
         - Endpoint
       summary: List existing service endpoints
+      parameters:
+        - $ref: '#/parameters/marker'
+        - $ref: '#/parameters/limit'
+        - $ref: '#/parameters/sort'
+        - $ref: '#/parameters/page_reverse'
       responses:
         200:
           description: An array of endpoints.
           schema:
-            type: array
-            items:
-              $ref: "#/definitions/Endpoint"
+            type: object
+            properties:
+              links:
+                x-omitempty: true
+                type: array
+                items:
+                  $ref: '#/definitions/Link'
+              items:
+                type: array
+                items:
+                  $ref: "#/definitions/Endpoint"
     post:
       tags:
         - Endpoint
@@ -365,13 +404,26 @@ paths:
       tags:
         - RBAC
       summary: List RBAC policies
+      parameters:
+        - $ref: '#/parameters/marker'
+        - $ref: '#/parameters/limit'
+        - $ref: '#/parameters/sort'
+        - $ref: '#/parameters/page_reverse'
       responses:
         200:
           description: A JSON array of rbac policies
           schema:
-            type: array
-            items:
-              $ref: "#/definitions/RBACPolicy"
+            type: object
+            properties:
+              links:
+                x-omitempty: true
+                type: array
+                items:
+                  $ref: '#/definitions/Link'
+              items:
+                type: array
+                items:
+                  $ref: "#/definitions/RBACPolicy"
     post:
       tags:
         - RBAC
@@ -461,6 +513,11 @@ paths:
       tags:
         - Quota
       summary: List Quotas
+      parameters:
+        - $ref: '#/parameters/marker'
+        - $ref: '#/parameters/limit'
+        - $ref: '#/parameters/sort'
+        - $ref: '#/parameters/page_reverse'
       responses:
         200:
           description: A JSON array of quotas
@@ -477,6 +534,11 @@ paths:
                       properties:
                         project_id:
                           $ref: "#/definitions/Project"
+              links:
+                x-omitempty: true
+                type: array
+                items:
+                  $ref: '#/definitions/Link'
         404:
           description: Not Found
           schema:
@@ -559,6 +621,29 @@ paths:
           description: Not Found
           schema:
             $ref: "#/definitions/Error"
+
+parameters:
+  marker:
+    name: marker
+    in: query
+    type: string
+    format: uuid
+    description: Pagination ID of the last item in the previous list.
+  limit:
+    name: limit
+    in: query
+    type: integer
+    description: Sets the page size.
+  sort:
+    name: sort
+    in: query
+    type: string
+    description: Comma-separated list of sort keys, optinally prefix with - to reverse sort order.
+  page_reverse:
+    name: page_reverse
+    in: query
+    type: boolean
+    description: Sets the page direction.
 
 definitions:
   Service:
@@ -852,17 +937,7 @@ definitions:
       links:
         type: array
         items:
-          type: object
-          properties:
-            href:
-              type: string
-              example: https://example.com
-            type:
-              type: string
-              example: application/json
-            rel:
-              type: string
-              example: self
+          $ref: "#/definitions/Link"
       capabilities:
         type: array
         example: ["pagination", "sort"]
@@ -887,3 +962,12 @@ definitions:
       message:
         type: string
         x-nullable: false
+  Link:
+    type: object
+    properties:
+      href:
+        type: string
+        example: /
+      rel:
+        type: string
+        example: self

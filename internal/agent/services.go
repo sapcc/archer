@@ -107,7 +107,7 @@ func doProcessing(a *Agent, ctx context.Context, tx pgx.Tx, services []*as3.Exte
 				return err
 			}
 		} else {
-			if _, err := tx.Exec(ctx, `UPDATE service SET status = 'AVAILABLE' WHERE id = $1;`,
+			if _, err := tx.Exec(ctx, `UPDATE service SET status = 'AVAILABLE', updated_at = NOW() WHERE id = $1;`,
 				service.ID); err != nil {
 				return err
 			}

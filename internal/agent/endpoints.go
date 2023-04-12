@@ -16,6 +16,7 @@ package agent
 
 import (
 	"context"
+
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
@@ -121,7 +122,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, networkId strfmt.UUID) erro
 				return err
 			}
 		} else {
-			if _, err := tx.Exec(ctx, `UPDATE endpoint SET status = 'AVAILABLE' WHERE id = $1;`,
+			if _, err := tx.Exec(ctx, `UPDATE endpoint SET status = 'AVAILABLE', updated_at = NOW() WHERE id = $1;`,
 				endpoint.ID); err != nil {
 				return err
 			}

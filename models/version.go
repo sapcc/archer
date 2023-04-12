@@ -38,7 +38,7 @@ type Version struct {
 	Capabilities []string `json:"capabilities"`
 
 	// links
-	Links []*VersionLinksItems0 `json:"links"`
+	Links []*Link `json:"links"`
 
 	// Last update of the running version
 	// Example: 2018-09-30T00:00:00Z
@@ -134,52 +134,6 @@ func (m *Version) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary interface implementation
 func (m *Version) UnmarshalBinary(b []byte) error {
 	var res Version
-	if err := swag.ReadJSON(b, &res); err != nil {
-		return err
-	}
-	*m = res
-	return nil
-}
-
-// VersionLinksItems0 version links items0
-//
-// swagger:model VersionLinksItems0
-type VersionLinksItems0 struct {
-
-	// href
-	// Example: https://example.com
-	Href string `json:"href,omitempty"`
-
-	// rel
-	// Example: self
-	Rel string `json:"rel,omitempty"`
-
-	// type
-	// Example: application/json
-	Type string `json:"type,omitempty"`
-}
-
-// Validate validates this version links items0
-func (m *VersionLinksItems0) Validate(formats strfmt.Registry) error {
-	return nil
-}
-
-// ContextValidate validates this version links items0 based on context it is used
-func (m *VersionLinksItems0) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
-	return nil
-}
-
-// MarshalBinary interface implementation
-func (m *VersionLinksItems0) MarshalBinary() ([]byte, error) {
-	if m == nil {
-		return nil, nil
-	}
-	return swag.WriteJSON(m)
-}
-
-// UnmarshalBinary interface implementation
-func (m *VersionLinksItems0) UnmarshalBinary(b []byte) error {
-	var res VersionLinksItems0
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

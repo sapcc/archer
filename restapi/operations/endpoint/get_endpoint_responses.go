@@ -23,8 +23,6 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime"
-
-	"github.com/sapcc/archer/models"
 )
 
 // GetEndpointOKCode is the HTTP code returned for type GetEndpointOK
@@ -40,7 +38,7 @@ type GetEndpointOK struct {
 	/*
 	  In: Body
 	*/
-	Payload []*models.Endpoint `json:"body,omitempty"`
+	Payload *GetEndpointOKBody `json:"body,omitempty"`
 }
 
 // NewGetEndpointOK creates GetEndpointOK with default headers values
@@ -50,13 +48,13 @@ func NewGetEndpointOK() *GetEndpointOK {
 }
 
 // WithPayload adds the payload to the get endpoint o k response
-func (o *GetEndpointOK) WithPayload(payload []*models.Endpoint) *GetEndpointOK {
+func (o *GetEndpointOK) WithPayload(payload *GetEndpointOKBody) *GetEndpointOK {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the get endpoint o k response
-func (o *GetEndpointOK) SetPayload(payload []*models.Endpoint) {
+func (o *GetEndpointOK) SetPayload(payload *GetEndpointOKBody) {
 	o.Payload = payload
 }
 
@@ -64,13 +62,10 @@ func (o *GetEndpointOK) SetPayload(payload []*models.Endpoint) {
 func (o *GetEndpointOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(200)
-	payload := o.Payload
-	if payload == nil {
-		// return empty array
-		payload = make([]*models.Endpoint, 0, 50)
-	}
-
-	if err := producer.Produce(rw, payload); err != nil {
-		panic(err) // let the recovery middleware deal with this
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
 	}
 }

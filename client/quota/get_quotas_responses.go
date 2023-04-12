@@ -200,6 +200,9 @@ swagger:model GetQuotasOKBody
 */
 type GetQuotasOKBody struct {
 
+	// links
+	Links []*models.Link `json:"links,omitempty"`
+
 	// quotas
 	Quotas []*GetQuotasOKBodyQuotasItems0 `json:"quotas"`
 }
@@ -208,6 +211,10 @@ type GetQuotasOKBody struct {
 func (o *GetQuotasOKBody) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := o.validateLinks(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := o.validateQuotas(formats); err != nil {
 		res = append(res, err)
 	}
@@ -215,6 +222,32 @@ func (o *GetQuotasOKBody) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (o *GetQuotasOKBody) validateLinks(formats strfmt.Registry) error {
+	if swag.IsZero(o.Links) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(o.Links); i++ {
+		if swag.IsZero(o.Links[i]) { // not required
+			continue
+		}
+
+		if o.Links[i] != nil {
+			if err := o.Links[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("getQuotasOK" + "." + "links" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("getQuotasOK" + "." + "links" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }
 
@@ -248,6 +281,10 @@ func (o *GetQuotasOKBody) validateQuotas(formats strfmt.Registry) error {
 func (o *GetQuotasOKBody) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
+	if err := o.contextValidateLinks(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := o.contextValidateQuotas(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -255,6 +292,26 @@ func (o *GetQuotasOKBody) ContextValidate(ctx context.Context, formats strfmt.Re
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (o *GetQuotasOKBody) contextValidateLinks(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(o.Links); i++ {
+
+		if o.Links[i] != nil {
+			if err := o.Links[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("getQuotasOK" + "." + "links" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("getQuotasOK" + "." + "links" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }
 

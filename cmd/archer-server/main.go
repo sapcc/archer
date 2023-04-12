@@ -15,7 +15,6 @@
 package main
 
 import (
-	"log"
 	"os"
 
 	"github.com/go-openapi/loads"
@@ -31,7 +30,7 @@ func main() {
 	var err error
 	restapi.SwaggerSpec, err = loads.Embedded(restapi.SwaggerJSON, restapi.FlatSwaggerJSON)
 	if err != nil {
-		log.Fatalln(err)
+		logg.Fatal(err.Error())
 	}
 
 	api := operations.NewArcherAPI(restapi.SwaggerSpec)

@@ -20,9 +20,16 @@ package endpoint
 // Editing this file might prove futile when you re-run the generate command
 
 import (
+	"context"
 	"net/http"
+	"strconv"
 
+	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
+
+	"github.com/sapcc/archer/models"
 )
 
 // GetEndpointHandlerFunc turns a function with the right signature into a get endpoint handler
@@ -80,4 +87,162 @@ func (o *GetEndpoint) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	res := o.Handler.Handle(Params, principal) // actually handle the request
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
+}
+
+// GetEndpointOKBody get endpoint o k body
+//
+// swagger:model GetEndpointOKBody
+type GetEndpointOKBody struct {
+
+	// items
+	Items []*models.Endpoint `json:"items"`
+
+	// links
+	Links []*models.Link `json:"links,omitempty"`
+}
+
+// Validate validates this get endpoint o k body
+func (o *GetEndpointOKBody) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := o.validateItems(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := o.validateLinks(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (o *GetEndpointOKBody) validateItems(formats strfmt.Registry) error {
+	if swag.IsZero(o.Items) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(o.Items); i++ {
+		if swag.IsZero(o.Items[i]) { // not required
+			continue
+		}
+
+		if o.Items[i] != nil {
+			if err := o.Items[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("getEndpointOK" + "." + "items" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("getEndpointOK" + "." + "items" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (o *GetEndpointOKBody) validateLinks(formats strfmt.Registry) error {
+	if swag.IsZero(o.Links) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(o.Links); i++ {
+		if swag.IsZero(o.Links[i]) { // not required
+			continue
+		}
+
+		if o.Links[i] != nil {
+			if err := o.Links[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("getEndpointOK" + "." + "links" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("getEndpointOK" + "." + "links" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// ContextValidate validate this get endpoint o k body based on the context it is used
+func (o *GetEndpointOKBody) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := o.contextValidateItems(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := o.contextValidateLinks(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (o *GetEndpointOKBody) contextValidateItems(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(o.Items); i++ {
+
+		if o.Items[i] != nil {
+			if err := o.Items[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("getEndpointOK" + "." + "items" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("getEndpointOK" + "." + "items" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (o *GetEndpointOKBody) contextValidateLinks(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(o.Links); i++ {
+
+		if o.Links[i] != nil {
+			if err := o.Links[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("getEndpointOK" + "." + "links" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("getEndpointOK" + "." + "links" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (o *GetEndpointOKBody) MarshalBinary() ([]byte, error) {
+	if o == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(o)
+}
+
+// UnmarshalBinary interface implementation
+func (o *GetEndpointOKBody) UnmarshalBinary(b []byte) error {
+	var res GetEndpointOKBody
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*o = res
+	return nil
 }

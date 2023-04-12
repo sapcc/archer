@@ -57,9 +57,9 @@ func Migrate() {
 					enabled           BOOLEAN      DEFAULT true NOT NULL,
 					name              VARCHAR(64)  NOT NULL,
 					description       VARCHAR(255) NOT NULL,
-					port              INTEGER      NOT NULL,
 					network_id        UUID         NOT NULL,
-					ip_address        INET         NOT NULL,
+					ip_addresses      INET[]       NOT NULL,
+                    port              INTEGER      NOT NULL,
 					status            VARCHAR(14)  DEFAULT 'PENDING_CREATE' NOT NULL,
 					require_approval  BOOLEAN      NOT NULL,
 					visibility        VARCHAR(7)   NOT NULL,
@@ -69,9 +69,9 @@ func Migrate() {
 					created_at        TIMESTAMP    NOT NULL DEFAULT now(),
 					updated_at        TIMESTAMP    NOT NULL DEFAULT now(),
 					project_id        VARCHAR(36)  NOT NULL,
-					CONSTRAINT visibility CHECK ( visibility IN ('private', 'public')),
+					CONSTRAINT visibility CHECK (visibility IN ('private', 'public')),
 					CONSTRAINT status FOREIGN KEY (status) REFERENCES service_status(name),
-					UNIQUE (network_id, ip_address, availability_zone)
+					UNIQUE (network_id, ip_addresses, availability_zone)
 				);`,
 			); err != nil {
 				return err
@@ -106,8 +106,9 @@ func Migrate() {
 				(
 					id                UUID         DEFAULT gen_random_uuid() PRIMARY KEY,
 					service_id        UUID         NOT NULL,
-					target_port       UUID         NOT NULL,
-					network_id        UUID         NOT NULL,
+					"target.port"     UUID         NULL,
+					"target.network"  UUID         NULL,
+					"target.subnet"   UUID         NULL,
 					status            VARCHAR(14)  NOT NULL DEFAULT 'PENDING_CREATE',
 					created_at        TIMESTAMP    NOT NULL DEFAULT now(),
 					updated_at        TIMESTAMP    NOT NULL DEFAULT now(),
@@ -126,6 +127,17 @@ func Migrate() {
 					port_id    UUID NOT NULL,
 					UNIQUE(port_id),
 					CONSTRAINT fk_service FOREIGN KEY(service_id) REFERENCES service(id)
+				);`,
+			); err != nil {
+				return err
+			}
+
+			if _, err := commands.Exec(ctx, `
+				CREATE TABLE agents
+				(
+					host                 UUID NOT NULL,
+					availability_zone    VARCHAR(64),
+					UNIQUE(host)
 				);`,
 			); err != nil {
 				return err

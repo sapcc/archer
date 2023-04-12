@@ -21,8 +21,6 @@ import (
 	"crypto/tls"
 	goerrors "errors"
 	"fmt"
-	"github.com/jackc/pgx/v5/tracelog"
-	"github.com/sapcc/archer/internal/db"
 	"net/http"
 	"os"
 
@@ -37,11 +35,14 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/tracelog"
 	"github.com/rs/cors"
 	"github.com/sapcc/go-bits/logg"
 
 	"github.com/sapcc/archer/internal/auth"
 	"github.com/sapcc/archer/internal/config"
+	"github.com/sapcc/archer/internal/db"
 	"github.com/sapcc/archer/internal/middlewares"
 	"github.com/sapcc/archer/models"
 	"github.com/sapcc/archer/restapi/operations"
@@ -85,7 +86,7 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 		}
 	}
 
-	connConfig, err := pgx.ParseConfig(config.Global.Database.Connection)
+	connConfig, err := pgxpool.ParseConfig(config.Global.Database.Connection)
 	if err != nil {
 		logg.Fatal(err.Error())
 	}
@@ -94,9 +95,9 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 			Logger:   db.NewLogger(),
 			LogLevel: tracelog.LogLevelDebug,
 		}
-		connConfig.Tracer = &logger
+		connConfig.ConnConfig.Tracer = &logger
 	}
-	conn, err := pgx.ConnectConfig(context.Background(), connConfig)
+	pool, err := pgxpool.NewWithConfig(context.Background(), connConfig)
 	if err != nil {
 		logg.Fatal(err.Error())
 	}
@@ -146,10 +147,9 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 		}
 		return version.NewGetOK().WithPayload(&models.Version{
 			Capabilities: capabilities,
-			Links: []*models.VersionLinksItems0{{
+			Links: []*models.Link{{
 				Href: config.Global.ApiSettings.ApiBaseURL,
 				Rel:  "self",
-				Type: "application/json",
 			}},
 			Updated: "now", // TODO: build time
 			Version: SwaggerSpec.Spec().Info.Version,
@@ -157,13 +157,19 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 	})
 
 	api.ServiceGetServiceHandler = service.GetServiceHandlerFunc(func(params service.GetServiceParams, principal interface{}) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		var servicesResponse []*models.Service
-		if err := pgxscan.Select(ctx, conn, &servicesResponse, `SELECT * FROM service`); err != nil {
+		pagination := db.NewPagination("service", params.Limit, params.Marker, params.Sort, params.PageReverse)
+		rows, err := pagination.Query(pool, nil)
+		if err != nil {
 			panic(err)
 		}
 
-		return service.NewGetServiceOK().WithPayload(servicesResponse)
+		var servicesResponse = make([]*models.Service, 0)
+		if err := pgxscan.ScanAll(&servicesResponse, rows); err != nil {
+			panic(err)
+		}
+
+		links := pagination.GetLinks(servicesResponse, params.HTTPRequest)
+		return service.NewGetServiceOK().WithPayload(&service.GetServiceOKBody{Items: servicesResponse, Links: links})
 	})
 
 	api.ServicePostServiceHandler = service.PostServiceHandlerFunc(func(params service.PostServiceParams, principal interface{}) middleware.Responder {
@@ -193,7 +199,7 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 		`
 
 		var rows pgx.Rows
-		rows, err = conn.Query(ctx, sql,
+		rows, err = pool.Query(ctx, sql,
 			params.Body.Enabled,
 			params.Body.Name,
 			params.Body.Description,
@@ -225,11 +231,11 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 	api.EndpointGetEndpointHandler = endpoint.GetEndpointHandlerFunc(func(params endpoint.GetEndpointParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		var endpointsResponse []*models.Endpoint
-		if err := pgxscan.Select(ctx, conn, &endpointsResponse, `SELECT * FROM endpoint`); err != nil {
+		if err := pgxscan.Select(ctx, pool, &endpointsResponse, `SELECT * FROM endpoint`); err != nil {
 			panic(err)
 		}
 
-		return endpoint.NewGetEndpointOK().WithPayload(endpointsResponse)
+		return endpoint.NewGetEndpointOK().WithPayload(&endpoint.GetEndpointOKBody{Items: endpointsResponse})
 	})
 
 	if api.EndpointDeleteEndpointEndpointIDHandler == nil {
@@ -351,9 +357,7 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 	api.PreServerShutdown = func() {}
 
 	api.ServerShutdown = func() {
-		if err := conn.Close(context.Background()); err != nil {
-			logg.Fatal(err.Error())
-		}
+		pool.Close()
 	}
 
 	return setupGlobalMiddleware(api.Serve(setupMiddlewares))

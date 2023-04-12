@@ -23,11 +23,21 @@ import (
 	"errors"
 	"net/url"
 	golangswaggerpaths "path"
+
+	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
 // GetEndpointURL generates an URL for the get endpoint operation
 type GetEndpointURL struct {
+	Limit       *int64
+	Marker      *strfmt.UUID
+	PageReverse *bool
+	Sort        *string
+
 	_basePath string
+	// avoid unkeyed usage
+	_ struct{}
 }
 
 // WithBasePath sets the base path for this url builder, only required when it's different from the
@@ -53,6 +63,42 @@ func (o *GetEndpointURL) Build() (*url.URL, error) {
 
 	_basePath := o._basePath
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
+
+	qs := make(url.Values)
+
+	var limitQ string
+	if o.Limit != nil {
+		limitQ = swag.FormatInt64(*o.Limit)
+	}
+	if limitQ != "" {
+		qs.Set("limit", limitQ)
+	}
+
+	var markerQ string
+	if o.Marker != nil {
+		markerQ = o.Marker.String()
+	}
+	if markerQ != "" {
+		qs.Set("marker", markerQ)
+	}
+
+	var pageReverseQ string
+	if o.PageReverse != nil {
+		pageReverseQ = swag.FormatBool(*o.PageReverse)
+	}
+	if pageReverseQ != "" {
+		qs.Set("page_reverse", pageReverseQ)
+	}
+
+	var sortQ string
+	if o.Sort != nil {
+		sortQ = *o.Sort
+	}
+	if sortQ != "" {
+		qs.Set("sort", sortQ)
+	}
+
+	_result.RawQuery = qs.Encode()
 
 	return &_result, nil
 }

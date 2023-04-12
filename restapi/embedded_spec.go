@@ -85,13 +85,39 @@ func init() {
           "Endpoint"
         ],
         "summary": "List existing service endpoints",
+        "parameters": [
+          {
+            "$ref": "#/parameters/marker"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/sort"
+          },
+          {
+            "$ref": "#/parameters/page_reverse"
+          }
+        ],
         "responses": {
           "200": {
             "description": "An array of endpoints.",
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Endpoint"
+              "type": "object",
+              "properties": {
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Endpoint"
+                  }
+                },
+                "links": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Link"
+                  },
+                  "x-omitempty": true
+                }
               }
             }
           }
@@ -181,12 +207,33 @@ func init() {
           "Quota"
         ],
         "summary": "List Quotas",
+        "parameters": [
+          {
+            "$ref": "#/parameters/marker"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/sort"
+          },
+          {
+            "$ref": "#/parameters/page_reverse"
+          }
+        ],
         "responses": {
           "200": {
             "description": "A JSON array of quotas",
             "schema": {
               "type": "object",
               "properties": {
+                "links": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Link"
+                  },
+                  "x-omitempty": true
+                },
                 "quotas": {
                   "type": "array",
                   "items": {
@@ -363,13 +410,39 @@ func init() {
           "RBAC"
         ],
         "summary": "List RBAC policies",
+        "parameters": [
+          {
+            "$ref": "#/parameters/marker"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/sort"
+          },
+          {
+            "$ref": "#/parameters/page_reverse"
+          }
+        ],
         "responses": {
           "200": {
             "description": "A JSON array of rbac policies",
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/RBACPolicy"
+              "type": "object",
+              "properties": {
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/RBACPolicy"
+                  }
+                },
+                "links": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Link"
+                  },
+                  "x-omitempty": true
+                }
               }
             }
           }
@@ -499,13 +572,39 @@ func init() {
           "Service"
         ],
         "summary": "List services",
+        "parameters": [
+          {
+            "$ref": "#/parameters/marker"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/sort"
+          },
+          {
+            "$ref": "#/parameters/page_reverse"
+          }
+        ],
         "responses": {
           "200": {
             "description": "An array of services.",
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Service"
+              "type": "object",
+              "properties": {
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Service"
+                  }
+                },
+                "links": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Link"
+                  },
+                  "x-omitempty": true
+                }
               }
             }
           }
@@ -699,13 +798,39 @@ func init() {
           "Service"
         ],
         "summary": "List service endpoints consumers",
+        "parameters": [
+          {
+            "$ref": "#/parameters/marker"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/sort"
+          },
+          {
+            "$ref": "#/parameters/page_reverse"
+          }
+        ],
         "responses": {
           "200": {
             "description": "An array of service endpoint consumers.",
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/EndpointConsumer"
+              "type": "object",
+              "properties": {
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/EndpointConsumer"
+                  }
+                },
+                "links": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Link"
+                  },
+                  "x-omitempty": true
+                }
               }
             }
           },
@@ -902,6 +1027,19 @@ func init() {
         "message": {
           "type": "string",
           "x-nullable": false
+        }
+      }
+    },
+    "Link": {
+      "type": "object",
+      "properties": {
+        "href": {
+          "type": "string",
+          "example": "/"
+        },
+        "rel": {
+          "type": "string",
+          "example": "self"
         }
       }
     },
@@ -1152,21 +1290,7 @@ func init() {
         "links": {
           "type": "array",
           "items": {
-            "type": "object",
-            "properties": {
-              "href": {
-                "type": "string",
-                "example": "https://example.com"
-              },
-              "rel": {
-                "type": "string",
-                "example": "self"
-              },
-              "type": {
-                "type": "string",
-                "example": "application/json"
-              }
-            }
+            "$ref": "#/definitions/Link"
           }
         },
         "updated": {
@@ -1180,6 +1304,33 @@ func init() {
           "example": "1.3.0"
         }
       }
+    }
+  },
+  "parameters": {
+    "limit": {
+      "type": "integer",
+      "description": "Sets the page size.",
+      "name": "limit",
+      "in": "query"
+    },
+    "marker": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Pagination ID of the last item in the previous list.",
+      "name": "marker",
+      "in": "query"
+    },
+    "page_reverse": {
+      "type": "boolean",
+      "description": "Sets the page direction.",
+      "name": "page_reverse",
+      "in": "query"
+    },
+    "sort": {
+      "type": "string",
+      "description": "Comma-separated list of sort keys, optinally prefix with - to reverse sort order.",
+      "name": "sort",
+      "in": "query"
     }
   },
   "securityDefinitions": {
@@ -1278,13 +1429,52 @@ func init() {
           "Endpoint"
         ],
         "summary": "List existing service endpoints",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "Pagination ID of the last item in the previous list.",
+            "name": "marker",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "Sets the page size.",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Comma-separated list of sort keys, optinally prefix with - to reverse sort order.",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "Sets the page direction.",
+            "name": "page_reverse",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "description": "An array of endpoints.",
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Endpoint"
+              "type": "object",
+              "properties": {
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Endpoint"
+                  }
+                },
+                "links": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Link"
+                  },
+                  "x-omitempty": true
+                }
               }
             }
           }
@@ -1374,12 +1564,46 @@ func init() {
           "Quota"
         ],
         "summary": "List Quotas",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "Pagination ID of the last item in the previous list.",
+            "name": "marker",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "Sets the page size.",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Comma-separated list of sort keys, optinally prefix with - to reverse sort order.",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "Sets the page direction.",
+            "name": "page_reverse",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "description": "A JSON array of quotas",
             "schema": {
               "type": "object",
               "properties": {
+                "links": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Link"
+                  },
+                  "x-omitempty": true
+                },
                 "quotas": {
                   "type": "array",
                   "items": {
@@ -1541,13 +1765,52 @@ func init() {
           "RBAC"
         ],
         "summary": "List RBAC policies",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "Pagination ID of the last item in the previous list.",
+            "name": "marker",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "Sets the page size.",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Comma-separated list of sort keys, optinally prefix with - to reverse sort order.",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "Sets the page direction.",
+            "name": "page_reverse",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "description": "A JSON array of rbac policies",
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/RBACPolicy"
+              "type": "object",
+              "properties": {
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/RBACPolicy"
+                  }
+                },
+                "links": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Link"
+                  },
+                  "x-omitempty": true
+                }
               }
             }
           }
@@ -1677,13 +1940,52 @@ func init() {
           "Service"
         ],
         "summary": "List services",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "Pagination ID of the last item in the previous list.",
+            "name": "marker",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "Sets the page size.",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Comma-separated list of sort keys, optinally prefix with - to reverse sort order.",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "Sets the page direction.",
+            "name": "page_reverse",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "description": "An array of services.",
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Service"
+              "type": "object",
+              "properties": {
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Service"
+                  }
+                },
+                "links": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Link"
+                  },
+                  "x-omitempty": true
+                }
               }
             }
           }
@@ -1877,13 +2179,52 @@ func init() {
           "Service"
         ],
         "summary": "List service endpoints consumers",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "Pagination ID of the last item in the previous list.",
+            "name": "marker",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "Sets the page size.",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Comma-separated list of sort keys, optinally prefix with - to reverse sort order.",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "Sets the page direction.",
+            "name": "page_reverse",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "description": "An array of service endpoint consumers.",
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/EndpointConsumer"
+              "type": "object",
+              "properties": {
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/EndpointConsumer"
+                  }
+                },
+                "links": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Link"
+                  },
+                  "x-omitempty": true
+                }
               }
             }
           },
@@ -2107,6 +2448,19 @@ func init() {
         "message": {
           "type": "string",
           "x-nullable": false
+        }
+      }
+    },
+    "Link": {
+      "type": "object",
+      "properties": {
+        "href": {
+          "type": "string",
+          "example": "/"
+        },
+        "rel": {
+          "type": "string",
+          "example": "self"
         }
       }
     },
@@ -2375,7 +2729,7 @@ func init() {
         "links": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/VersionLinksItems0"
+            "$ref": "#/definitions/Link"
           }
         },
         "updated": {
@@ -2389,23 +2743,33 @@ func init() {
           "example": "1.3.0"
         }
       }
+    }
+  },
+  "parameters": {
+    "limit": {
+      "type": "integer",
+      "description": "Sets the page size.",
+      "name": "limit",
+      "in": "query"
     },
-    "VersionLinksItems0": {
-      "type": "object",
-      "properties": {
-        "href": {
-          "type": "string",
-          "example": "https://example.com"
-        },
-        "rel": {
-          "type": "string",
-          "example": "self"
-        },
-        "type": {
-          "type": "string",
-          "example": "application/json"
-        }
-      }
+    "marker": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Pagination ID of the last item in the previous list.",
+      "name": "marker",
+      "in": "query"
+    },
+    "page_reverse": {
+      "type": "boolean",
+      "description": "Sets the page direction.",
+      "name": "page_reverse",
+      "in": "query"
+    },
+    "sort": {
+      "type": "string",
+      "description": "Comma-separated list of sort keys, optinally prefix with - to reverse sort order.",
+      "name": "sort",
+      "in": "query"
     }
   },
   "securityDefinitions": {

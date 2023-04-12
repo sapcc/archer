@@ -28,6 +28,7 @@ import (
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
 // NewGetServiceServiceIDEndpointsParams creates a new GetServiceServiceIDEndpointsParams object,
@@ -75,6 +76,26 @@ GetServiceServiceIDEndpointsParams contains all the parameters to send to the AP
 */
 type GetServiceServiceIDEndpointsParams struct {
 
+	/* Limit.
+
+	   Sets the page size.
+	*/
+	Limit *int64
+
+	/* Marker.
+
+	   Pagination ID of the last item in the previous list.
+
+	   Format: uuid
+	*/
+	Marker *strfmt.UUID
+
+	/* PageReverse.
+
+	   Sets the page direction.
+	*/
+	PageReverse *bool
+
 	/* ServiceID.
 
 	   The UUID of the service
@@ -82,6 +103,12 @@ type GetServiceServiceIDEndpointsParams struct {
 	   Format: uuid
 	*/
 	ServiceID strfmt.UUID
+
+	/* Sort.
+
+	   Comma-separated list of sort keys, optinally prefix with - to reverse sort order.
+	*/
+	Sort *string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -136,6 +163,39 @@ func (o *GetServiceServiceIDEndpointsParams) SetHTTPClient(client *http.Client) 
 	o.HTTPClient = client
 }
 
+// WithLimit adds the limit to the get service service ID endpoints params
+func (o *GetServiceServiceIDEndpointsParams) WithLimit(limit *int64) *GetServiceServiceIDEndpointsParams {
+	o.SetLimit(limit)
+	return o
+}
+
+// SetLimit adds the limit to the get service service ID endpoints params
+func (o *GetServiceServiceIDEndpointsParams) SetLimit(limit *int64) {
+	o.Limit = limit
+}
+
+// WithMarker adds the marker to the get service service ID endpoints params
+func (o *GetServiceServiceIDEndpointsParams) WithMarker(marker *strfmt.UUID) *GetServiceServiceIDEndpointsParams {
+	o.SetMarker(marker)
+	return o
+}
+
+// SetMarker adds the marker to the get service service ID endpoints params
+func (o *GetServiceServiceIDEndpointsParams) SetMarker(marker *strfmt.UUID) {
+	o.Marker = marker
+}
+
+// WithPageReverse adds the pageReverse to the get service service ID endpoints params
+func (o *GetServiceServiceIDEndpointsParams) WithPageReverse(pageReverse *bool) *GetServiceServiceIDEndpointsParams {
+	o.SetPageReverse(pageReverse)
+	return o
+}
+
+// SetPageReverse adds the pageReverse to the get service service ID endpoints params
+func (o *GetServiceServiceIDEndpointsParams) SetPageReverse(pageReverse *bool) {
+	o.PageReverse = pageReverse
+}
+
 // WithServiceID adds the serviceID to the get service service ID endpoints params
 func (o *GetServiceServiceIDEndpointsParams) WithServiceID(serviceID strfmt.UUID) *GetServiceServiceIDEndpointsParams {
 	o.SetServiceID(serviceID)
@@ -147,6 +207,17 @@ func (o *GetServiceServiceIDEndpointsParams) SetServiceID(serviceID strfmt.UUID)
 	o.ServiceID = serviceID
 }
 
+// WithSort adds the sort to the get service service ID endpoints params
+func (o *GetServiceServiceIDEndpointsParams) WithSort(sort *string) *GetServiceServiceIDEndpointsParams {
+	o.SetSort(sort)
+	return o
+}
+
+// SetSort adds the sort to the get service service ID endpoints params
+func (o *GetServiceServiceIDEndpointsParams) SetSort(sort *string) {
+	o.Sort = sort
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *GetServiceServiceIDEndpointsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -155,9 +226,77 @@ func (o *GetServiceServiceIDEndpointsParams) WriteToRequest(r runtime.ClientRequ
 	}
 	var res []error
 
+	if o.Limit != nil {
+
+		// query param limit
+		var qrLimit int64
+
+		if o.Limit != nil {
+			qrLimit = *o.Limit
+		}
+		qLimit := swag.FormatInt64(qrLimit)
+		if qLimit != "" {
+
+			if err := r.SetQueryParam("limit", qLimit); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.Marker != nil {
+
+		// query param marker
+		var qrMarker strfmt.UUID
+
+		if o.Marker != nil {
+			qrMarker = *o.Marker
+		}
+		qMarker := qrMarker.String()
+		if qMarker != "" {
+
+			if err := r.SetQueryParam("marker", qMarker); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.PageReverse != nil {
+
+		// query param page_reverse
+		var qrPageReverse bool
+
+		if o.PageReverse != nil {
+			qrPageReverse = *o.PageReverse
+		}
+		qPageReverse := swag.FormatBool(qrPageReverse)
+		if qPageReverse != "" {
+
+			if err := r.SetQueryParam("page_reverse", qPageReverse); err != nil {
+				return err
+			}
+		}
+	}
+
 	// path param service_id
 	if err := r.SetPathParam("service_id", o.ServiceID.String()); err != nil {
 		return err
+	}
+
+	if o.Sort != nil {
+
+		// query param sort
+		var qrSort string
+
+		if o.Sort != nil {
+			qrSort = *o.Sort
+		}
+		qSort := qrSort
+		if qSort != "" {
+
+			if err := r.SetQueryParam("sort", qSort); err != nil {
+				return err
+			}
+		}
 	}
 
 	if len(res) > 0 {
