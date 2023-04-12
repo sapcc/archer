@@ -43,6 +43,7 @@ type Default struct {
 	Host             string `long:"hostname" ini-name:"host" description:"Hostname used by the server/agent. Defaults to auto-discovery."`
 	Prometheus       bool   `long:"prometheus" description:"Enable prometheus exporter."`
 	PrometheusListen string `long:"prometheus-listen" ini-name:"prometheus_listen" default:"127.0.0.1:9090" description:"Prometheus listen TCP network address."`
+	SentryDSN        string `long:"sentry-dsn" ini-name:"sentry_dsn" description:"Sentry Data Source Name."`
 }
 
 type ApiSettings struct {

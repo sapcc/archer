@@ -23,10 +23,13 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/didip/tollbooth"
 	"github.com/dre1080/recovr"
 	"github.com/georgysavva/scany/v2/pgxscan"
+	"github.com/getsentry/sentry-go"
+	sentryhttp "github.com/getsentry/sentry-go/http"
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/runtime"
@@ -84,6 +87,18 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 		} else {
 			config.Global.ApiSettings.ApiBaseURL = hostname
 		}
+	}
+
+	if config.Global.Default.SentryDSN != "" {
+		if err := sentry.Init(sentry.ClientOptions{
+			Dsn:              config.Global.Default.SentryDSN,
+			AttachStacktrace: true,
+			Release:          "TODO Version",
+		}); err != nil {
+			logg.Fatal("Sentry initialization failed: %v", err)
+		}
+
+		logg.Info("Sentry is enabled")
 	}
 
 	connConfig, err := pgxpool.ParseConfig(config.Global.Database.Connection)
@@ -358,6 +373,7 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 
 	api.ServerShutdown = func() {
 		pool.Close()
+		sentry.Flush(5 * time.Second)
 	}
 
 	return setupGlobalMiddleware(api.Serve(setupMiddlewares))
@@ -403,5 +419,10 @@ func setupMiddlewares(handler http.Handler) http.Handler {
 // So this is a good place to plug in a panic handling middleware, logging and metrics.
 func setupGlobalMiddleware(handler http.Handler) http.Handler {
 	handler = middlewares.HealthCheckMiddleware(handler)
+	// Pass via sentry handler
+	handler = sentryhttp.New(sentryhttp.Options{
+		Repanic: true,
+	}).Handle(handler)
+	// recover with recovr
 	return recovr.New()(handler)
 }
