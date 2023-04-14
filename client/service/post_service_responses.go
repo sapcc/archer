@@ -49,6 +49,12 @@ func (o *PostServiceReader) ReadResponse(response runtime.ClientResponse, consum
 			return nil, err
 		}
 		return nil, result
+	case 403:
+		result := NewPostServiceForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 409:
 		result := NewPostServiceConflict()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -180,6 +186,62 @@ func (o *PostServiceBadRequest) String() string {
 }
 
 func (o *PostServiceBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewPostServiceForbidden creates a PostServiceForbidden with default headers values
+func NewPostServiceForbidden() *PostServiceForbidden {
+	return &PostServiceForbidden{}
+}
+
+/*
+PostServiceForbidden describes a response with status code 403, with default header values.
+
+Forbidden
+*/
+type PostServiceForbidden struct {
+}
+
+// IsSuccess returns true when this post service forbidden response has a 2xx status code
+func (o *PostServiceForbidden) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this post service forbidden response has a 3xx status code
+func (o *PostServiceForbidden) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this post service forbidden response has a 4xx status code
+func (o *PostServiceForbidden) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this post service forbidden response has a 5xx status code
+func (o *PostServiceForbidden) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this post service forbidden response a status code equal to that given
+func (o *PostServiceForbidden) IsCode(code int) bool {
+	return code == 403
+}
+
+// Code gets the status code for the post service forbidden response
+func (o *PostServiceForbidden) Code() int {
+	return 403
+}
+
+func (o *PostServiceForbidden) Error() string {
+	return fmt.Sprintf("[POST /service][%d] postServiceForbidden ", 403)
+}
+
+func (o *PostServiceForbidden) String() string {
+	return fmt.Sprintf("[POST /service][%d] postServiceForbidden ", 403)
+}
+
+func (o *PostServiceForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

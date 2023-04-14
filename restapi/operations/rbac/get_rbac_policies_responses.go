@@ -69,3 +69,28 @@ func (o *GetRbacPoliciesOK) WriteResponse(rw http.ResponseWriter, producer runti
 		}
 	}
 }
+
+// GetRbacPoliciesForbiddenCode is the HTTP code returned for type GetRbacPoliciesForbidden
+const GetRbacPoliciesForbiddenCode int = 403
+
+/*
+GetRbacPoliciesForbidden Forbidden
+
+swagger:response getRbacPoliciesForbidden
+*/
+type GetRbacPoliciesForbidden struct {
+}
+
+// NewGetRbacPoliciesForbidden creates GetRbacPoliciesForbidden with default headers values
+func NewGetRbacPoliciesForbidden() *GetRbacPoliciesForbidden {
+
+	return &GetRbacPoliciesForbidden{}
+}
+
+// WriteResponse to the client
+func (o *GetRbacPoliciesForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(403)
+}

@@ -72,6 +72,31 @@ func (o *GetQuotasOK) WriteResponse(rw http.ResponseWriter, producer runtime.Pro
 	}
 }
 
+// GetQuotasForbiddenCode is the HTTP code returned for type GetQuotasForbidden
+const GetQuotasForbiddenCode int = 403
+
+/*
+GetQuotasForbidden Forbidden
+
+swagger:response getQuotasForbidden
+*/
+type GetQuotasForbidden struct {
+}
+
+// NewGetQuotasForbidden creates GetQuotasForbidden with default headers values
+func NewGetQuotasForbidden() *GetQuotasForbidden {
+
+	return &GetQuotasForbidden{}
+}
+
+// WriteResponse to the client
+func (o *GetQuotasForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(403)
+}
+
 // GetQuotasNotFoundCode is the HTTP code returned for type GetQuotasNotFound
 const GetQuotasNotFoundCode int = 404
 

@@ -96,3 +96,28 @@ func (o *PostEndpointBadRequest) WriteResponse(rw http.ResponseWriter, producer 
 
 	rw.WriteHeader(400)
 }
+
+// PostEndpointForbiddenCode is the HTTP code returned for type PostEndpointForbidden
+const PostEndpointForbiddenCode int = 403
+
+/*
+PostEndpointForbidden Forbidden
+
+swagger:response postEndpointForbidden
+*/
+type PostEndpointForbidden struct {
+}
+
+// NewPostEndpointForbidden creates PostEndpointForbidden with default headers values
+func NewPostEndpointForbidden() *PostEndpointForbidden {
+
+	return &PostEndpointForbidden{}
+}
+
+// WriteResponse to the client
+func (o *PostEndpointForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(403)
+}

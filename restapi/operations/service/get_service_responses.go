@@ -69,3 +69,28 @@ func (o *GetServiceOK) WriteResponse(rw http.ResponseWriter, producer runtime.Pr
 		}
 	}
 }
+
+// GetServiceForbiddenCode is the HTTP code returned for type GetServiceForbidden
+const GetServiceForbiddenCode int = 403
+
+/*
+GetServiceForbidden Forbidden
+
+swagger:response getServiceForbidden
+*/
+type GetServiceForbidden struct {
+}
+
+// NewGetServiceForbidden creates GetServiceForbidden with default headers values
+func NewGetServiceForbidden() *GetServiceForbidden {
+
+	return &GetServiceForbidden{}
+}
+
+// WriteResponse to the client
+func (o *GetServiceForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(403)
+}

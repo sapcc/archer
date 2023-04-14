@@ -100,6 +100,7 @@ paths:
       tags:
         - Service
       summary: List services
+      x-policy: service:read
       parameters:
         - $ref: '#/parameters/marker'
         - $ref: '#/parameters/limit'
@@ -120,10 +121,13 @@ paths:
                 type: array
                 items:
                   $ref: "#/definitions/Service"
+        403:
+          description: Forbidden
     post:
       tags:
         - Service
       summary: Add a new service to the catalog
+      x-policy: service:create
       parameters:
         - in: body
           name: body
@@ -138,6 +142,8 @@ paths:
             $ref: "#/definitions/Service"
         400:
           description: Validation Error
+        403:
+          description: Forbidden
         409:
           description: Duplicate entry
           schema:
@@ -154,6 +160,7 @@ paths:
       tags:
         - Service
       summary: Show details of an service
+      x-policy: service:read
       responses:
         200:
           description: Service
@@ -161,6 +168,8 @@ paths:
             $ref: "#/definitions/Service"
         400:
           description: Validation Error
+        403:
+          description: Forbidden
         404:
           description: Not Found
           schema:
@@ -169,6 +178,7 @@ paths:
       tags:
         - Service
       summary: Update an existing service
+      x-policy: service:update
       parameters:
         - in: body
           name: body
@@ -183,6 +193,8 @@ paths:
             $ref: "#/definitions/Service"
         400:
           description: Validation Error
+        403:
+          description: Forbidden
         404:
           description: Not Found
           schema:
@@ -191,6 +203,7 @@ paths:
       tags:
         - Service
       summary: Remove service from catalog
+      x-policy: service:delete
       description: |
         Deletes this service. There **must** be no active associated endpoint for successfully deleting the service. 
         Active endpoints can be rejected by the service owner via the `/service/{service_id}/reject_endpoints` API.
@@ -203,6 +216,8 @@ paths:
           description: Not Found
           schema:
             $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
         409:
           description: In use.
           schema:
@@ -219,6 +234,7 @@ paths:
       tags:
         - Service
       summary: List service endpoints consumers
+      x-policy: service-endpoint:read
       description: |
         Provides a list of service consumers (endpoints).
         
@@ -244,6 +260,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/definitions/EndpointConsumer"
+        403:
+          description: Forbidden
         404:
           description: Not Found
           schema:
@@ -258,6 +276,7 @@ paths:
         description: The UUID of the service
     put:
       summary: Accept endpoints
+      x-policy: service-endpoint:accept
       description: |
         Specify a list of endpoint consumers (`endpoint_ids` and/or `project_ids`) whose endpoints should be accepted.
         * Existing active endpoints will be untouched.
@@ -281,6 +300,8 @@ paths:
               $ref: "#/definitions/EndpointConsumer"
         400:
           description: Validation Error
+        403:
+          description: Forbidden
         404:
           description: Not Found
           schema:
@@ -295,6 +316,7 @@ paths:
         description: The UUID of the service
     put:
       summary: Reject endpoints
+      x-policy: service-endpoint:reject
       description: |
         Specify a list of consumers (`endpoint_ids` and/or `project_ids`) whose endpoints should be rejected.
         * Existing active endpoints will be rejected.
@@ -318,16 +340,19 @@ paths:
               $ref: "#/definitions/EndpointConsumer"
         400:
           description: Validation Error
-        404:
-          description: Not Found
+        403:
+          description: Forbidden
           schema:
             $ref: "#/definitions/Error"
+        404:
+          description: Not Found
 
   /endpoint:
     get:
       tags:
         - Endpoint
       summary: List existing service endpoints
+      x-policy: endpoint:read
       parameters:
         - $ref: '#/parameters/marker'
         - $ref: '#/parameters/limit'
@@ -348,10 +373,13 @@ paths:
                 type: array
                 items:
                   $ref: "#/definitions/Endpoint"
+        403:
+          description: Forbidden
     post:
       tags:
         - Endpoint
       summary: Create endpoint for accessing a service
+      x-policy: endpoint:create
       parameters:
         - in: body
           name: body
@@ -366,6 +394,8 @@ paths:
             $ref: "#/definitions/Endpoint"
         400:
           description: Validation Error
+        403:
+          description: Forbidden
   /endpoint/{endpoint_id}:
     parameters:
       - in: path
@@ -378,32 +408,39 @@ paths:
       tags:
         - Endpoint
       summary: Show existing service endpoint
+      x-policy: endpoint:read
       responses:
         200:
           description: An endpoint detail.
           schema:
             $ref: "#/definitions/Endpoint"
-        404:
-          description: Not Found
+        403:
+          description: Forbidden
           schema:
             $ref: "#/definitions/Error"
+        404:
+          description: Not Found
     delete:
       tags:
         - Endpoint
       summary: Remove an existing endpoint
+      x-policy: endpoint:delete
       responses:
         204:
           description: Resource successfully deleted.
-        404:
-          description: Not Found
+        403:
+          description: Forbidden
           schema:
             $ref: "#/definitions/Error"
+        404:
+          description: Not Found
 
   /rbac-policies:
     get:
       tags:
         - RBAC
       summary: List RBAC policies
+      x-policy: rbac-policy:read
       parameters:
         - $ref: '#/parameters/marker'
         - $ref: '#/parameters/limit'
@@ -424,10 +461,13 @@ paths:
                 type: array
                 items:
                   $ref: "#/definitions/RBACPolicy"
+        403:
+          description: Forbidden
     post:
       tags:
         - RBAC
       summary: Create RBAC policy
+      x-policy: rbac-policy:create
       parameters:
         - in: body
           name: body
@@ -442,6 +482,8 @@ paths:
             $ref: '#/definitions/RBACPolicy'
         400:
           description: Validation Error
+        403:
+          description: Forbidden
         409:
           description: Exists
           schema:
@@ -458,11 +500,14 @@ paths:
       tags:
         - RBAC
       summary: Show details of an RBAC policy
+      x-policy: rbac-policy:read
       responses:
         200:
           description: RBAC Policy
           schema:
             $ref: '#/definitions/RBACPolicy'
+        403:
+          description: Forbidden
         404:
           description: Not Found
           schema:
@@ -471,6 +516,7 @@ paths:
       tags:
         - RBAC
       summary: Update an existing RBAC policy
+      x-policy: rbac-policy:update
       parameters:
         - in: body
           name: body
@@ -485,6 +531,8 @@ paths:
             $ref: "#/definitions/RBACPolicyCommon"
         400:
           description: Validation Error
+        403:
+          description: Forbidden
         404:
           description: Not Found
           schema:
@@ -493,9 +541,12 @@ paths:
       tags:
         - RBAC
       summary: Delete RBAC policy
+      x-policy: rbac-policy:delete
       responses:
         204:
           description: Resource successfully deleted.
+        403:
+          description: Forbidden
         404:
           description: Not Found
           schema:
@@ -513,6 +564,7 @@ paths:
       tags:
         - Quota
       summary: List Quotas
+      x-policy: quota:read
       parameters:
         - $ref: '#/parameters/marker'
         - $ref: '#/parameters/limit'
@@ -539,6 +591,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/definitions/Link'
+        403:
+          description: Forbidden
         404:
           description: Not Found
           schema:
@@ -548,6 +602,7 @@ paths:
       tags:
         - Quota
       summary: Show Quota Defaults
+      x-policy: quota:read-defaults
       responses:
         200:
           description: Show the quota defaults configured for new projects.
@@ -556,6 +611,8 @@ paths:
             properties:
               quota:
                 $ref: '#/definitions/Quota'
+        403:
+          description: Forbidden
   /quotas/{project_id}:
     parameters:
       - in: path
@@ -567,6 +624,7 @@ paths:
       tags:
         - Quota
       summary: Show Quota detail
+      x-policy: quota:read
       responses:
         200:
           description: Shows the details of a specific monitor.
@@ -577,6 +635,8 @@ paths:
                 allOf:
                   - $ref: '#/definitions/Quota'
                   - $ref: '#/definitions/QuotaUsage'
+        403:
+          description: Forbidden
         404:
           description: Not Found
           schema:
@@ -585,6 +645,7 @@ paths:
       tags:
         - Quota
       summary: Update Quota
+      x-policy: quota:update
       parameters:
         - in: body
           name: quota
@@ -606,6 +667,8 @@ paths:
                 $ref: '#/definitions/Quota'
         400:
           description: Validation Error
+        403:
+          description: Forbidden
         404:
           description: Not found
           schema:
@@ -614,9 +677,12 @@ paths:
       tags:
         - Quota
       summary: Reset all Quota of a project
+      x-policy: quota:delete
       responses:
         204:
           description: Resource successfully reset
+        403:
+          description: Forbidden
         404:
           description: Not Found
           schema:

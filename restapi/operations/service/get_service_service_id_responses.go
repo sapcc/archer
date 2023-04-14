@@ -97,6 +97,31 @@ func (o *GetServiceServiceIDBadRequest) WriteResponse(rw http.ResponseWriter, pr
 	rw.WriteHeader(400)
 }
 
+// GetServiceServiceIDForbiddenCode is the HTTP code returned for type GetServiceServiceIDForbidden
+const GetServiceServiceIDForbiddenCode int = 403
+
+/*
+GetServiceServiceIDForbidden Forbidden
+
+swagger:response getServiceServiceIdForbidden
+*/
+type GetServiceServiceIDForbidden struct {
+}
+
+// NewGetServiceServiceIDForbidden creates GetServiceServiceIDForbidden with default headers values
+func NewGetServiceServiceIDForbidden() *GetServiceServiceIDForbidden {
+
+	return &GetServiceServiceIDForbidden{}
+}
+
+// WriteResponse to the client
+func (o *GetServiceServiceIDForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(403)
+}
+
 // GetServiceServiceIDNotFoundCode is the HTTP code returned for type GetServiceServiceIDNotFound
 const GetServiceServiceIDNotFoundCode int = 404
 

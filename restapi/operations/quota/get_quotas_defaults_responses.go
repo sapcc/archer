@@ -69,3 +69,28 @@ func (o *GetQuotasDefaultsOK) WriteResponse(rw http.ResponseWriter, producer run
 		}
 	}
 }
+
+// GetQuotasDefaultsForbiddenCode is the HTTP code returned for type GetQuotasDefaultsForbidden
+const GetQuotasDefaultsForbiddenCode int = 403
+
+/*
+GetQuotasDefaultsForbidden Forbidden
+
+swagger:response getQuotasDefaultsForbidden
+*/
+type GetQuotasDefaultsForbidden struct {
+}
+
+// NewGetQuotasDefaultsForbidden creates GetQuotasDefaultsForbidden with default headers values
+func NewGetQuotasDefaultsForbidden() *GetQuotasDefaultsForbidden {
+
+	return &GetQuotasDefaultsForbidden{}
+}
+
+// WriteResponse to the client
+func (o *GetQuotasDefaultsForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(403)
+}

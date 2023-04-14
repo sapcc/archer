@@ -43,6 +43,12 @@ func (o *DeleteRbacPoliciesRbacPolicyIDReader) ReadResponse(response runtime.Cli
 			return nil, err
 		}
 		return result, nil
+	case 403:
+		result := NewDeleteRbacPoliciesRbacPolicyIDForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewDeleteRbacPoliciesRbacPolicyIDNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -106,6 +112,62 @@ func (o *DeleteRbacPoliciesRbacPolicyIDNoContent) String() string {
 }
 
 func (o *DeleteRbacPoliciesRbacPolicyIDNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewDeleteRbacPoliciesRbacPolicyIDForbidden creates a DeleteRbacPoliciesRbacPolicyIDForbidden with default headers values
+func NewDeleteRbacPoliciesRbacPolicyIDForbidden() *DeleteRbacPoliciesRbacPolicyIDForbidden {
+	return &DeleteRbacPoliciesRbacPolicyIDForbidden{}
+}
+
+/*
+DeleteRbacPoliciesRbacPolicyIDForbidden describes a response with status code 403, with default header values.
+
+Forbidden
+*/
+type DeleteRbacPoliciesRbacPolicyIDForbidden struct {
+}
+
+// IsSuccess returns true when this delete rbac policies rbac policy Id forbidden response has a 2xx status code
+func (o *DeleteRbacPoliciesRbacPolicyIDForbidden) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this delete rbac policies rbac policy Id forbidden response has a 3xx status code
+func (o *DeleteRbacPoliciesRbacPolicyIDForbidden) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this delete rbac policies rbac policy Id forbidden response has a 4xx status code
+func (o *DeleteRbacPoliciesRbacPolicyIDForbidden) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this delete rbac policies rbac policy Id forbidden response has a 5xx status code
+func (o *DeleteRbacPoliciesRbacPolicyIDForbidden) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this delete rbac policies rbac policy Id forbidden response a status code equal to that given
+func (o *DeleteRbacPoliciesRbacPolicyIDForbidden) IsCode(code int) bool {
+	return code == 403
+}
+
+// Code gets the status code for the delete rbac policies rbac policy Id forbidden response
+func (o *DeleteRbacPoliciesRbacPolicyIDForbidden) Code() int {
+	return 403
+}
+
+func (o *DeleteRbacPoliciesRbacPolicyIDForbidden) Error() string {
+	return fmt.Sprintf("[DELETE /rbac-policies/{rbac_policy_id}][%d] deleteRbacPoliciesRbacPolicyIdForbidden ", 403)
+}
+
+func (o *DeleteRbacPoliciesRbacPolicyIDForbidden) String() string {
+	return fmt.Sprintf("[DELETE /rbac-policies/{rbac_policy_id}][%d] deleteRbacPoliciesRbacPolicyIdForbidden ", 403)
+}
+
+func (o *DeleteRbacPoliciesRbacPolicyIDForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

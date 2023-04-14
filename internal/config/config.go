@@ -1,25 +1,26 @@
-/*
- *   Copyright 2020 SAP SE
- *
- *   Licensed under the Apache License, Version 2.0 (the "License");
- *   you may not use this file except in compliance with the License.
- *   You may obtain a copy of the License at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- *   Unless required by applicable law or agreed to in writing, software
- *   distributed under the License is distributed on an "AS IS" BASIS,
- *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   See the License for the specific language governing permissions and
- *   limitations under the License.
- */
+// This file is safe to edit. Once it exists it will not be overwritten
+
+// Copyright 2023 SAP SE
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package config
 
 import (
-	"github.com/sapcc/go-bits/logg"
 	"os"
 	"time"
+
+	"github.com/sapcc/go-bits/logg"
 )
 
 var (
@@ -48,7 +49,7 @@ type Default struct {
 
 type ApiSettings struct {
 	ApiBaseURL         string  `long:"api_base_uri" description:"Base URI for the API for use in pagination links. This will be autodetected from the request if not overridden here."`
-	PolicyFile         string  `long:"policy-file" ini-name:"policy-file" description:"Use policy file" default:"policy.ini"`
+	PolicyFile         string  `long:"policy-file" ini-name:"policy_file" description:"Use policy file" default:"policy.ini"`
 	AuthStrategy       string  `long:"auth-strategy" ini-name:"auth_strategy" description:"The auth strategy for API requests, currently supported: [keystone, none]" default:"none"`
 	PolicyEngine       string  `long:"policy-engine" ini-name:"policy_engine" description:"Policy engine to use, currently supported: [goslo, noop]"`
 	DisablePagination  bool    `long:"disable-pagination" ini-name:"disable_pagination" description:"Disable the usage of pagination"`

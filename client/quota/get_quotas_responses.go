@@ -47,6 +47,12 @@ func (o *GetQuotasReader) ReadResponse(response runtime.ClientResponse, consumer
 			return nil, err
 		}
 		return result, nil
+	case 403:
+		result := NewGetQuotasForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewGetQuotasNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -122,6 +128,62 @@ func (o *GetQuotasOK) readResponse(response runtime.ClientResponse, consumer run
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
+
+	return nil
+}
+
+// NewGetQuotasForbidden creates a GetQuotasForbidden with default headers values
+func NewGetQuotasForbidden() *GetQuotasForbidden {
+	return &GetQuotasForbidden{}
+}
+
+/*
+GetQuotasForbidden describes a response with status code 403, with default header values.
+
+Forbidden
+*/
+type GetQuotasForbidden struct {
+}
+
+// IsSuccess returns true when this get quotas forbidden response has a 2xx status code
+func (o *GetQuotasForbidden) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this get quotas forbidden response has a 3xx status code
+func (o *GetQuotasForbidden) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this get quotas forbidden response has a 4xx status code
+func (o *GetQuotasForbidden) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this get quotas forbidden response has a 5xx status code
+func (o *GetQuotasForbidden) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this get quotas forbidden response a status code equal to that given
+func (o *GetQuotasForbidden) IsCode(code int) bool {
+	return code == 403
+}
+
+// Code gets the status code for the get quotas forbidden response
+func (o *GetQuotasForbidden) Code() int {
+	return 403
+}
+
+func (o *GetQuotasForbidden) Error() string {
+	return fmt.Sprintf("[GET /quotas][%d] getQuotasForbidden ", 403)
+}
+
+func (o *GetQuotasForbidden) String() string {
+	return fmt.Sprintf("[GET /quotas][%d] getQuotasForbidden ", 403)
+}
+
+func (o *GetQuotasForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

@@ -72,6 +72,31 @@ func (o *GetServiceServiceIDEndpointsOK) WriteResponse(rw http.ResponseWriter, p
 	}
 }
 
+// GetServiceServiceIDEndpointsForbiddenCode is the HTTP code returned for type GetServiceServiceIDEndpointsForbidden
+const GetServiceServiceIDEndpointsForbiddenCode int = 403
+
+/*
+GetServiceServiceIDEndpointsForbidden Forbidden
+
+swagger:response getServiceServiceIdEndpointsForbidden
+*/
+type GetServiceServiceIDEndpointsForbidden struct {
+}
+
+// NewGetServiceServiceIDEndpointsForbidden creates GetServiceServiceIDEndpointsForbidden with default headers values
+func NewGetServiceServiceIDEndpointsForbidden() *GetServiceServiceIDEndpointsForbidden {
+
+	return &GetServiceServiceIDEndpointsForbidden{}
+}
+
+// WriteResponse to the client
+func (o *GetServiceServiceIDEndpointsForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(403)
+}
+
 // GetServiceServiceIDEndpointsNotFoundCode is the HTTP code returned for type GetServiceServiceIDEndpointsNotFound
 const GetServiceServiceIDEndpointsNotFoundCode int = 404
 

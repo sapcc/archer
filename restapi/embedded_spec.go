@@ -120,8 +120,12 @@ func init() {
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden"
           }
-        }
+        },
+        "x-policy": "endpoint:read"
       },
       "post": {
         "tags": [
@@ -148,8 +152,12 @@ func init() {
           },
           "400": {
             "description": "Validation Error"
+          },
+          "403": {
+            "description": "Forbidden"
           }
-        }
+        },
+        "x-policy": "endpoint:create"
       }
     },
     "/endpoint/{endpoint_id}": {
@@ -165,13 +173,17 @@ func init() {
               "$ref": "#/definitions/Endpoint"
             }
           },
-          "404": {
-            "description": "Not Found",
+          "403": {
+            "description": "Forbidden",
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "404": {
+            "description": "Not Found"
           }
-        }
+        },
+        "x-policy": "endpoint:read"
       },
       "delete": {
         "tags": [
@@ -182,13 +194,17 @@ func init() {
           "204": {
             "description": "Resource successfully deleted."
           },
-          "404": {
-            "description": "Not Found",
+          "403": {
+            "description": "Forbidden",
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "404": {
+            "description": "Not Found"
           }
-        }
+        },
+        "x-policy": "endpoint:delete"
       },
       "parameters": [
         {
@@ -258,13 +274,17 @@ func init() {
               }
             }
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "quota:read"
       },
       "parameters": [
         {
@@ -294,8 +314,12 @@ func init() {
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden"
           }
-        }
+        },
+        "x-policy": "quota:read-defaults"
       }
     },
     "/quotas/{project_id}": {
@@ -323,13 +347,17 @@ func init() {
               }
             }
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "quota:read"
       },
       "put": {
         "tags": [
@@ -369,13 +397,17 @@ func init() {
           "400": {
             "description": "Validation Error"
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not found",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "quota:update"
       },
       "delete": {
         "tags": [
@@ -386,13 +418,17 @@ func init() {
           "204": {
             "description": "Resource successfully reset"
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "quota:delete"
       },
       "parameters": [
         {
@@ -445,8 +481,12 @@ func init() {
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden"
           }
-        }
+        },
+        "x-policy": "rbac-policy:read"
       },
       "post": {
         "tags": [
@@ -474,13 +514,17 @@ func init() {
           "400": {
             "description": "Validation Error"
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "409": {
             "description": "Exists",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "rbac-policy:create"
       }
     },
     "/rbac-policies/{rbac_policy_id}": {
@@ -496,13 +540,17 @@ func init() {
               "$ref": "#/definitions/RBACPolicy"
             }
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "rbac-policy:read"
       },
       "put": {
         "tags": [
@@ -530,13 +578,17 @@ func init() {
           "400": {
             "description": "Validation Error"
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "rbac-policy:update"
       },
       "delete": {
         "tags": [
@@ -547,13 +599,17 @@ func init() {
           "204": {
             "description": "Resource successfully deleted."
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "rbac-policy:delete"
       },
       "parameters": [
         {
@@ -607,8 +663,12 @@ func init() {
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden"
           }
-        }
+        },
+        "x-policy": "service:read"
       },
       "post": {
         "tags": [
@@ -636,13 +696,17 @@ func init() {
           "400": {
             "description": "Validation Error"
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "409": {
             "description": "Duplicate entry",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "service:create"
       }
     },
     "/service/{service_id}": {
@@ -661,13 +725,17 @@ func init() {
           "400": {
             "description": "Validation Error"
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "service:read"
       },
       "put": {
         "tags": [
@@ -695,13 +763,17 @@ func init() {
           "400": {
             "description": "Validation Error"
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "service:update"
       },
       "delete": {
         "description": "Deletes this service. There **must** be no active associated endpoint for successfully deleting the service. \nActive endpoints can be rejected by the service owner via the ` + "`" + `/service/{service_id}/reject_endpoints` + "`" + ` API.\n",
@@ -716,6 +788,9 @@ func init() {
           "400": {
             "description": "Validation Error"
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "schema": {
@@ -728,7 +803,8 @@ func init() {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "service:delete"
       },
       "parameters": [
         {
@@ -772,13 +848,17 @@ func init() {
           "400": {
             "description": "Validation Error"
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "service-endpoint:accept"
       },
       "parameters": [
         {
@@ -834,13 +914,17 @@ func init() {
               }
             }
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "service-endpoint:read"
       },
       "parameters": [
         {
@@ -884,13 +968,17 @@ func init() {
           "400": {
             "description": "Validation Error"
           },
-          "404": {
-            "description": "Not Found",
+          "403": {
+            "description": "Forbidden",
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "404": {
+            "description": "Not Found"
           }
-        }
+        },
+        "x-policy": "service-endpoint:reject"
       },
       "parameters": [
         {
@@ -1477,8 +1565,12 @@ func init() {
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden"
           }
-        }
+        },
+        "x-policy": "endpoint:read"
       },
       "post": {
         "tags": [
@@ -1505,8 +1597,12 @@ func init() {
           },
           "400": {
             "description": "Validation Error"
+          },
+          "403": {
+            "description": "Forbidden"
           }
-        }
+        },
+        "x-policy": "endpoint:create"
       }
     },
     "/endpoint/{endpoint_id}": {
@@ -1522,13 +1618,17 @@ func init() {
               "$ref": "#/definitions/Endpoint"
             }
           },
-          "404": {
-            "description": "Not Found",
+          "403": {
+            "description": "Forbidden",
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "404": {
+            "description": "Not Found"
           }
-        }
+        },
+        "x-policy": "endpoint:read"
       },
       "delete": {
         "tags": [
@@ -1539,13 +1639,17 @@ func init() {
           "204": {
             "description": "Resource successfully deleted."
           },
-          "404": {
-            "description": "Not Found",
+          "403": {
+            "description": "Forbidden",
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "404": {
+            "description": "Not Found"
           }
-        }
+        },
+        "x-policy": "endpoint:delete"
       },
       "parameters": [
         {
@@ -1613,13 +1717,17 @@ func init() {
               }
             }
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "quota:read"
       },
       "parameters": [
         {
@@ -1649,8 +1757,12 @@ func init() {
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden"
           }
-        }
+        },
+        "x-policy": "quota:read-defaults"
       }
     },
     "/quotas/{project_id}": {
@@ -1678,13 +1790,17 @@ func init() {
               }
             }
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "quota:read"
       },
       "put": {
         "tags": [
@@ -1724,13 +1840,17 @@ func init() {
           "400": {
             "description": "Validation Error"
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not found",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "quota:update"
       },
       "delete": {
         "tags": [
@@ -1741,13 +1861,17 @@ func init() {
           "204": {
             "description": "Resource successfully reset"
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "quota:delete"
       },
       "parameters": [
         {
@@ -1813,8 +1937,12 @@ func init() {
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden"
           }
-        }
+        },
+        "x-policy": "rbac-policy:read"
       },
       "post": {
         "tags": [
@@ -1842,13 +1970,17 @@ func init() {
           "400": {
             "description": "Validation Error"
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "409": {
             "description": "Exists",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "rbac-policy:create"
       }
     },
     "/rbac-policies/{rbac_policy_id}": {
@@ -1864,13 +1996,17 @@ func init() {
               "$ref": "#/definitions/RBACPolicy"
             }
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "rbac-policy:read"
       },
       "put": {
         "tags": [
@@ -1898,13 +2034,17 @@ func init() {
           "400": {
             "description": "Validation Error"
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "rbac-policy:update"
       },
       "delete": {
         "tags": [
@@ -1915,13 +2055,17 @@ func init() {
           "204": {
             "description": "Resource successfully deleted."
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "rbac-policy:delete"
       },
       "parameters": [
         {
@@ -1988,8 +2132,12 @@ func init() {
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden"
           }
-        }
+        },
+        "x-policy": "service:read"
       },
       "post": {
         "tags": [
@@ -2017,13 +2165,17 @@ func init() {
           "400": {
             "description": "Validation Error"
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "409": {
             "description": "Duplicate entry",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "service:create"
       }
     },
     "/service/{service_id}": {
@@ -2042,13 +2194,17 @@ func init() {
           "400": {
             "description": "Validation Error"
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "service:read"
       },
       "put": {
         "tags": [
@@ -2076,13 +2232,17 @@ func init() {
           "400": {
             "description": "Validation Error"
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "service:update"
       },
       "delete": {
         "description": "Deletes this service. There **must** be no active associated endpoint for successfully deleting the service. \nActive endpoints can be rejected by the service owner via the ` + "`" + `/service/{service_id}/reject_endpoints` + "`" + ` API.\n",
@@ -2097,6 +2257,9 @@ func init() {
           "400": {
             "description": "Validation Error"
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "schema": {
@@ -2109,7 +2272,8 @@ func init() {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "service:delete"
       },
       "parameters": [
         {
@@ -2153,13 +2317,17 @@ func init() {
           "400": {
             "description": "Validation Error"
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "service-endpoint:accept"
       },
       "parameters": [
         {
@@ -2228,13 +2396,17 @@ func init() {
               }
             }
           },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found",
             "schema": {
               "$ref": "#/definitions/Error"
             }
           }
-        }
+        },
+        "x-policy": "service-endpoint:read"
       },
       "parameters": [
         {
@@ -2278,13 +2450,17 @@ func init() {
           "400": {
             "description": "Validation Error"
           },
-          "404": {
-            "description": "Not Found",
+          "403": {
+            "description": "Forbidden",
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "404": {
+            "description": "Not Found"
           }
-        }
+        },
+        "x-policy": "service-endpoint:reject"
       },
       "parameters": [
         {

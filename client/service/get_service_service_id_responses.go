@@ -49,6 +49,12 @@ func (o *GetServiceServiceIDReader) ReadResponse(response runtime.ClientResponse
 			return nil, err
 		}
 		return nil, result
+	case 403:
+		result := NewGetServiceServiceIDForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewGetServiceServiceIDNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -180,6 +186,62 @@ func (o *GetServiceServiceIDBadRequest) String() string {
 }
 
 func (o *GetServiceServiceIDBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewGetServiceServiceIDForbidden creates a GetServiceServiceIDForbidden with default headers values
+func NewGetServiceServiceIDForbidden() *GetServiceServiceIDForbidden {
+	return &GetServiceServiceIDForbidden{}
+}
+
+/*
+GetServiceServiceIDForbidden describes a response with status code 403, with default header values.
+
+Forbidden
+*/
+type GetServiceServiceIDForbidden struct {
+}
+
+// IsSuccess returns true when this get service service Id forbidden response has a 2xx status code
+func (o *GetServiceServiceIDForbidden) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this get service service Id forbidden response has a 3xx status code
+func (o *GetServiceServiceIDForbidden) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this get service service Id forbidden response has a 4xx status code
+func (o *GetServiceServiceIDForbidden) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this get service service Id forbidden response has a 5xx status code
+func (o *GetServiceServiceIDForbidden) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this get service service Id forbidden response a status code equal to that given
+func (o *GetServiceServiceIDForbidden) IsCode(code int) bool {
+	return code == 403
+}
+
+// Code gets the status code for the get service service Id forbidden response
+func (o *GetServiceServiceIDForbidden) Code() int {
+	return 403
+}
+
+func (o *GetServiceServiceIDForbidden) Error() string {
+	return fmt.Sprintf("[GET /service/{service_id}][%d] getServiceServiceIdForbidden ", 403)
+}
+
+func (o *GetServiceServiceIDForbidden) String() string {
+	return fmt.Sprintf("[GET /service/{service_id}][%d] getServiceServiceIdForbidden ", 403)
+}
+
+func (o *GetServiceServiceIDForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

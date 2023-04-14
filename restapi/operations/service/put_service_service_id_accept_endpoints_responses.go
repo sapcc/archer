@@ -100,6 +100,31 @@ func (o *PutServiceServiceIDAcceptEndpointsBadRequest) WriteResponse(rw http.Res
 	rw.WriteHeader(400)
 }
 
+// PutServiceServiceIDAcceptEndpointsForbiddenCode is the HTTP code returned for type PutServiceServiceIDAcceptEndpointsForbidden
+const PutServiceServiceIDAcceptEndpointsForbiddenCode int = 403
+
+/*
+PutServiceServiceIDAcceptEndpointsForbidden Forbidden
+
+swagger:response putServiceServiceIdAcceptEndpointsForbidden
+*/
+type PutServiceServiceIDAcceptEndpointsForbidden struct {
+}
+
+// NewPutServiceServiceIDAcceptEndpointsForbidden creates PutServiceServiceIDAcceptEndpointsForbidden with default headers values
+func NewPutServiceServiceIDAcceptEndpointsForbidden() *PutServiceServiceIDAcceptEndpointsForbidden {
+
+	return &PutServiceServiceIDAcceptEndpointsForbidden{}
+}
+
+// WriteResponse to the client
+func (o *PutServiceServiceIDAcceptEndpointsForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(403)
+}
+
 // PutServiceServiceIDAcceptEndpointsNotFoundCode is the HTTP code returned for type PutServiceServiceIDAcceptEndpointsNotFound
 const PutServiceServiceIDAcceptEndpointsNotFoundCode int = 404
 

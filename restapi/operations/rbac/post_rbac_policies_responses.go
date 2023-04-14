@@ -97,6 +97,31 @@ func (o *PostRbacPoliciesBadRequest) WriteResponse(rw http.ResponseWriter, produ
 	rw.WriteHeader(400)
 }
 
+// PostRbacPoliciesForbiddenCode is the HTTP code returned for type PostRbacPoliciesForbidden
+const PostRbacPoliciesForbiddenCode int = 403
+
+/*
+PostRbacPoliciesForbidden Forbidden
+
+swagger:response postRbacPoliciesForbidden
+*/
+type PostRbacPoliciesForbidden struct {
+}
+
+// NewPostRbacPoliciesForbidden creates PostRbacPoliciesForbidden with default headers values
+func NewPostRbacPoliciesForbidden() *PostRbacPoliciesForbidden {
+
+	return &PostRbacPoliciesForbidden{}
+}
+
+// WriteResponse to the client
+func (o *PostRbacPoliciesForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(403)
+}
+
 // PostRbacPoliciesConflictCode is the HTTP code returned for type PostRbacPoliciesConflict
 const PostRbacPoliciesConflictCode int = 409
 

@@ -72,6 +72,31 @@ func (o *GetQuotasProjectIDOK) WriteResponse(rw http.ResponseWriter, producer ru
 	}
 }
 
+// GetQuotasProjectIDForbiddenCode is the HTTP code returned for type GetQuotasProjectIDForbidden
+const GetQuotasProjectIDForbiddenCode int = 403
+
+/*
+GetQuotasProjectIDForbidden Forbidden
+
+swagger:response getQuotasProjectIdForbidden
+*/
+type GetQuotasProjectIDForbidden struct {
+}
+
+// NewGetQuotasProjectIDForbidden creates GetQuotasProjectIDForbidden with default headers values
+func NewGetQuotasProjectIDForbidden() *GetQuotasProjectIDForbidden {
+
+	return &GetQuotasProjectIDForbidden{}
+}
+
+// WriteResponse to the client
+func (o *GetQuotasProjectIDForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(403)
+}
+
 // GetQuotasProjectIDNotFoundCode is the HTTP code returned for type GetQuotasProjectIDNotFound
 const GetQuotasProjectIDNotFoundCode int = 404
 

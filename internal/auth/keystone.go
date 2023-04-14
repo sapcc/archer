@@ -18,6 +18,8 @@ package auth
 
 import (
 	"errors"
+	"github.com/sapcc/archer/internal/policy"
+	"net/http"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
@@ -27,6 +29,10 @@ import (
 	"github.com/sapcc/go-bits/logg"
 
 	"github.com/sapcc/archer/internal/config"
+)
+
+var (
+	ErrForbidden = errors.New("forbidden")
 )
 
 type Keystone struct {
@@ -57,7 +63,7 @@ func InitializeKeystone() (*Keystone, error) {
 	return &Keystone{tv}, nil
 }
 
-func (k *Keystone) AuthenticateToken(tokenStr string) (interface{}, error) {
+func (k *Keystone) AuthenticateToken(tokenStr string) (any, error) {
 	token := k.tv.CheckCredentials(tokenStr, func() gopherpolicy.TokenResult {
 		return tokens.Get(k.tv.IdentityV3, tokenStr)
 	})
@@ -66,8 +72,23 @@ func (k *Keystone) AuthenticateToken(tokenStr string) (interface{}, error) {
 	logg.Debug("token has roles = %v", token.Context.Roles)
 
 	if token.Err != nil {
-		return nil, errors.New("unauthorized")
+		return nil, ErrForbidden
 	}
 
 	return token, nil
+}
+
+func AuthenticatePrincipal(r *http.Request, principal any) (string, error) {
+	if t, ok := principal.(*gopherpolicy.Token); ok {
+		rule := policy.RuleFromHTTPRequest(r)
+		if t.Check(rule + "-global") {
+			return "%", nil
+		} else if t.Check(rule) {
+			return t.ProjectScopeUUID(), nil
+		} else {
+			return "", ErrForbidden
+		}
+	}
+
+	return "%", nil
 }

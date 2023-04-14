@@ -43,6 +43,12 @@ func (o *GetRbacPoliciesRbacPolicyIDReader) ReadResponse(response runtime.Client
 			return nil, err
 		}
 		return result, nil
+	case 403:
+		result := NewGetRbacPoliciesRbacPolicyIDForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewGetRbacPoliciesRbacPolicyIDNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -118,6 +124,62 @@ func (o *GetRbacPoliciesRbacPolicyIDOK) readResponse(response runtime.ClientResp
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
+
+	return nil
+}
+
+// NewGetRbacPoliciesRbacPolicyIDForbidden creates a GetRbacPoliciesRbacPolicyIDForbidden with default headers values
+func NewGetRbacPoliciesRbacPolicyIDForbidden() *GetRbacPoliciesRbacPolicyIDForbidden {
+	return &GetRbacPoliciesRbacPolicyIDForbidden{}
+}
+
+/*
+GetRbacPoliciesRbacPolicyIDForbidden describes a response with status code 403, with default header values.
+
+Forbidden
+*/
+type GetRbacPoliciesRbacPolicyIDForbidden struct {
+}
+
+// IsSuccess returns true when this get rbac policies rbac policy Id forbidden response has a 2xx status code
+func (o *GetRbacPoliciesRbacPolicyIDForbidden) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this get rbac policies rbac policy Id forbidden response has a 3xx status code
+func (o *GetRbacPoliciesRbacPolicyIDForbidden) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this get rbac policies rbac policy Id forbidden response has a 4xx status code
+func (o *GetRbacPoliciesRbacPolicyIDForbidden) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this get rbac policies rbac policy Id forbidden response has a 5xx status code
+func (o *GetRbacPoliciesRbacPolicyIDForbidden) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this get rbac policies rbac policy Id forbidden response a status code equal to that given
+func (o *GetRbacPoliciesRbacPolicyIDForbidden) IsCode(code int) bool {
+	return code == 403
+}
+
+// Code gets the status code for the get rbac policies rbac policy Id forbidden response
+func (o *GetRbacPoliciesRbacPolicyIDForbidden) Code() int {
+	return 403
+}
+
+func (o *GetRbacPoliciesRbacPolicyIDForbidden) Error() string {
+	return fmt.Sprintf("[GET /rbac-policies/{rbac_policy_id}][%d] getRbacPoliciesRbacPolicyIdForbidden ", 403)
+}
+
+func (o *GetRbacPoliciesRbacPolicyIDForbidden) String() string {
+	return fmt.Sprintf("[GET /rbac-policies/{rbac_policy_id}][%d] getRbacPoliciesRbacPolicyIdForbidden ", 403)
+}
+
+func (o *GetRbacPoliciesRbacPolicyIDForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

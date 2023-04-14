@@ -19,25 +19,18 @@ package restapi
 import (
 	"context"
 	"crypto/tls"
-	goerrors "errors"
-	"fmt"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/didip/tollbooth"
 	"github.com/dre1080/recovr"
-	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/getsentry/sentry-go"
 	sentryhttp "github.com/getsentry/sentry-go/http"
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/swag"
-	"github.com/jackc/pgerrcode"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/tracelog"
 	"github.com/rs/cors"
@@ -45,9 +38,9 @@ import (
 
 	"github.com/sapcc/archer/internal/auth"
 	"github.com/sapcc/archer/internal/config"
+	"github.com/sapcc/archer/internal/controller"
 	"github.com/sapcc/archer/internal/db"
 	"github.com/sapcc/archer/internal/middlewares"
-	"github.com/sapcc/archer/models"
 	"github.com/sapcc/archer/restapi/operations"
 	"github.com/sapcc/archer/restapi/operations/endpoint"
 	"github.com/sapcc/archer/restapi/operations/quota"
@@ -117,9 +110,12 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 		logg.Fatal(err.Error())
 	}
 
-	keystone, err := auth.InitializeKeystone()
-	if err != nil {
-		logg.Info("Keystone disabled: %s", err.Error())
+	var keystone *auth.Keystone
+	if config.Global.ApiSettings.AuthStrategy == "keystone" {
+		keystone, err = auth.InitializeKeystone()
+		if err != nil {
+			logg.Fatal(err.Error())
+		}
 	}
 
 	// Applies when the "X-Auth-Token" header is set
@@ -131,243 +127,35 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 		return "", nil
 	}
 
-	// Set your custom authorizer if needed. Default one is security.Authorized()
-	// Expected interface runtime.Authorizer
-	//
-	// Example:
-	// api.APIAuthorizer = security.Authorized()
+	c := controller.NewController(pool, SwaggerSpec)
 
-	// Example of the version get handler
-	api.VersionGetHandler = version.GetHandlerFunc(func(params version.GetParams) middleware.Responder {
-		var capabilities []string
-		if !config.Global.ApiSettings.DisablePagination {
-			capabilities = append(capabilities, "pagination")
-		}
-		if !config.Global.ApiSettings.DisableSorting {
-			capabilities = append(capabilities, "sorting")
-		}
-		if !config.Global.ApiSettings.DisableCors {
-			capabilities = append(capabilities, "cors")
-		}
-		if config.Global.ApiSettings.AuthStrategy != "none" {
-			capabilities = append(capabilities, config.Global.ApiSettings.AuthStrategy)
-		}
-		if config.Global.ApiSettings.RateLimit > 0 {
-			capabilities = append(capabilities, fmt.Sprintf("ratelimit=%.2f",
-				config.Global.ApiSettings.RateLimit))
-		}
-		if config.Global.ApiSettings.PaginationMaxLimit > 0 {
-			capabilities = append(capabilities, fmt.Sprintf("pagination_max=%d",
-				config.Global.ApiSettings.PaginationMaxLimit))
-		}
-		return version.NewGetOK().WithPayload(&models.Version{
-			Capabilities: capabilities,
-			Links: []*models.Link{{
-				Href: config.Global.ApiSettings.ApiBaseURL,
-				Rel:  "self",
-			}},
-			Updated: "now", // TODO: build time
-			Version: SwaggerSpec.Spec().Info.Version,
-		})
-	})
+	api.VersionGetHandler = version.GetHandlerFunc(c.GetVersionHandler)
 
-	api.ServiceGetServiceHandler = service.GetServiceHandlerFunc(func(params service.GetServiceParams, principal interface{}) middleware.Responder {
-		pagination := db.NewPagination("service", params.Limit, params.Marker, params.Sort, params.PageReverse)
-		rows, err := pagination.Query(pool, nil)
-		if err != nil {
-			panic(err)
-		}
+	api.ServiceGetServiceHandler = service.GetServiceHandlerFunc(c.GetServiceHandler)
+	api.ServicePostServiceHandler = service.PostServiceHandlerFunc(c.PostServiceHandler)
+	api.ServiceDeleteServiceServiceIDHandler = service.DeleteServiceServiceIDHandlerFunc(c.DeleteServiceServiceIDHandler)
+	api.ServiceGetServiceServiceIDHandler = service.GetServiceServiceIDHandlerFunc(c.GetServiceServiceIDHandler)
+	api.ServicePutServiceServiceIDHandler = service.PutServiceServiceIDHandlerFunc(c.PutServiceServiceIDHandler)
+	api.ServiceGetServiceServiceIDEndpointsHandler = service.GetServiceServiceIDEndpointsHandlerFunc(c.GetServiceServiceIDEndpointsHandler)
+	api.ServicePutServiceServiceIDAcceptEndpointsHandler = service.PutServiceServiceIDAcceptEndpointsHandlerFunc(c.PutServiceServiceIDAcceptEndpointsHandler)
+	api.ServicePutServiceServiceIDRejectEndpointsHandler = service.PutServiceServiceIDRejectEndpointsHandlerFunc(c.PutServiceServiceIDRejectEndpointsHandler)
 
-		var servicesResponse = make([]*models.Service, 0)
-		if err := pgxscan.ScanAll(&servicesResponse, rows); err != nil {
-			panic(err)
-		}
+	api.EndpointGetEndpointHandler = endpoint.GetEndpointHandlerFunc(c.GetEndpointHandler)
+	api.EndpointPostEndpointHandler = endpoint.PostEndpointHandlerFunc(c.PostEndpointHandler)
+	api.EndpointDeleteEndpointEndpointIDHandler = endpoint.DeleteEndpointEndpointIDHandlerFunc(c.DeleteEndpointEndpointIDHandler)
+	api.EndpointGetEndpointEndpointIDHandler = endpoint.GetEndpointEndpointIDHandlerFunc(c.GetEndpointEndpointIDHandler)
 
-		links := pagination.GetLinks(servicesResponse, params.HTTPRequest)
-		return service.NewGetServiceOK().WithPayload(&service.GetServiceOKBody{Items: servicesResponse, Links: links})
-	})
+	api.QuotaGetQuotasHandler = quota.GetQuotasHandlerFunc(c.GetQuotasHandler)
+	api.QuotaGetQuotasDefaultsHandler = quota.GetQuotasDefaultsHandlerFunc(c.GetQuotasDefaultsHandler)
+	api.QuotaGetQuotasProjectIDHandler = quota.GetQuotasProjectIDHandlerFunc(c.GetQuotasProjectIDHandler)
+	api.QuotaPutQuotasProjectIDHandler = quota.PutQuotasProjectIDHandlerFunc(c.PutQuotasProjectIDHandler)
+	api.QuotaDeleteQuotasProjectIDHandler = quota.DeleteQuotasProjectIDHandlerFunc(c.DeleteQuotasProjectIDHandler)
 
-	api.ServicePostServiceHandler = service.PostServiceHandlerFunc(func(params service.PostServiceParams, principal interface{}) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		var serviceResponse models.Service
-
-		// Set default values
-		if err := SetModelDefaults(params.Body); err != nil {
-			panic(err)
-		}
-
-		sql := `
-			INSERT INTO service (enabled, 
-			                     name, 
-			                     description, 
-			                     network_id, 
-			                     ip_addresses, 
-			                     require_approval, 
-			                     visibility, 
-			                     availability_zone, 
-			                     proxy_protocol, 
-			                     project_id, 
-			                     port)
-			VALUES
-				($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-			RETURNING *
-		`
-
-		var rows pgx.Rows
-		rows, err = pool.Query(ctx, sql,
-			params.Body.Enabled,
-			params.Body.Name,
-			params.Body.Description,
-			params.Body.NetworkID,
-			params.Body.IPAddresses,
-			params.Body.RequireApproval,
-			params.Body.Visibility,
-			params.Body.AvailabilityZone,
-			params.Body.ProxyProtocol,
-			params.Body.ProjectID,
-			params.Body.Port)
-		if err != nil {
-			panic(err)
-		}
-		if err := pgxscan.ScanOne(&serviceResponse, rows); err != nil {
-			var pe *pgconn.PgError
-			if goerrors.As(err, &pe) && pgerrcode.IsIntegrityConstraintViolation(pe.Code) {
-				return service.NewPostServiceConflict().WithPayload(&models.Error{
-					Code:    409,
-					Message: "Entry for network_id, ip_address and availability_zone already exists.",
-				})
-			}
-			panic(err)
-		}
-
-		return service.NewPostServiceOK().WithPayload(&serviceResponse)
-	})
-
-	api.EndpointGetEndpointHandler = endpoint.GetEndpointHandlerFunc(func(params endpoint.GetEndpointParams, principal interface{}) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		var endpointsResponse []*models.Endpoint
-		if err := pgxscan.Select(ctx, pool, &endpointsResponse, `SELECT * FROM endpoint`); err != nil {
-			panic(err)
-		}
-
-		return endpoint.NewGetEndpointOK().WithPayload(&endpoint.GetEndpointOKBody{Items: endpointsResponse})
-	})
-
-	if api.EndpointDeleteEndpointEndpointIDHandler == nil {
-		api.EndpointDeleteEndpointEndpointIDHandler = endpoint.DeleteEndpointEndpointIDHandlerFunc(func(params endpoint.DeleteEndpointEndpointIDParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation endpoint.DeleteEndpointEndpointID has not yet been implemented")
-		})
-	}
-	if api.QuotaDeleteQuotasProjectIDHandler == nil {
-		api.QuotaDeleteQuotasProjectIDHandler = quota.DeleteQuotasProjectIDHandlerFunc(func(params quota.DeleteQuotasProjectIDParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation quota.DeleteQuotasProjectID has not yet been implemented")
-		})
-	}
-	if api.RbacDeleteRbacPoliciesRbacPolicyIDHandler == nil {
-		api.RbacDeleteRbacPoliciesRbacPolicyIDHandler = rbac.DeleteRbacPoliciesRbacPolicyIDHandlerFunc(func(params rbac.DeleteRbacPoliciesRbacPolicyIDParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation rbac.DeleteRbacPoliciesRbacPolicyID has not yet been implemented")
-		})
-	}
-	if api.ServiceDeleteServiceServiceIDHandler == nil {
-		api.ServiceDeleteServiceServiceIDHandler = service.DeleteServiceServiceIDHandlerFunc(func(params service.DeleteServiceServiceIDParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation service.DeleteServiceServiceID has not yet been implemented")
-		})
-	}
-	if api.VersionGetHandler == nil {
-		api.VersionGetHandler = version.GetHandlerFunc(func(params version.GetParams) middleware.Responder {
-			return middleware.NotImplemented("operation version.Get has not yet been implemented")
-		})
-	}
-	if api.EndpointGetEndpointHandler == nil {
-		api.EndpointGetEndpointHandler = endpoint.GetEndpointHandlerFunc(func(params endpoint.GetEndpointParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation endpoint.GetEndpoint has not yet been implemented")
-		})
-	}
-	if api.EndpointGetEndpointEndpointIDHandler == nil {
-		api.EndpointGetEndpointEndpointIDHandler = endpoint.GetEndpointEndpointIDHandlerFunc(func(params endpoint.GetEndpointEndpointIDParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation endpoint.GetEndpointEndpointID has not yet been implemented")
-		})
-	}
-	if api.QuotaGetQuotasHandler == nil {
-		api.QuotaGetQuotasHandler = quota.GetQuotasHandlerFunc(func(params quota.GetQuotasParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation quota.GetQuotas has not yet been implemented")
-		})
-	}
-	if api.QuotaGetQuotasDefaultsHandler == nil {
-		api.QuotaGetQuotasDefaultsHandler = quota.GetQuotasDefaultsHandlerFunc(func(params quota.GetQuotasDefaultsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation quota.GetQuotasDefaults has not yet been implemented")
-		})
-	}
-	if api.QuotaGetQuotasProjectIDHandler == nil {
-		api.QuotaGetQuotasProjectIDHandler = quota.GetQuotasProjectIDHandlerFunc(func(params quota.GetQuotasProjectIDParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation quota.GetQuotasProjectID has not yet been implemented")
-		})
-	}
-	if api.RbacGetRbacPoliciesHandler == nil {
-		api.RbacGetRbacPoliciesHandler = rbac.GetRbacPoliciesHandlerFunc(func(params rbac.GetRbacPoliciesParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation rbac.GetRbacPolicies has not yet been implemented")
-		})
-	}
-	if api.RbacGetRbacPoliciesRbacPolicyIDHandler == nil {
-		api.RbacGetRbacPoliciesRbacPolicyIDHandler = rbac.GetRbacPoliciesRbacPolicyIDHandlerFunc(func(params rbac.GetRbacPoliciesRbacPolicyIDParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation rbac.GetRbacPoliciesRbacPolicyID has not yet been implemented")
-		})
-	}
-	if api.ServiceGetServiceHandler == nil {
-		api.ServiceGetServiceHandler = service.GetServiceHandlerFunc(func(params service.GetServiceParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation service.GetService has not yet been implemented")
-		})
-	}
-	if api.ServiceGetServiceServiceIDHandler == nil {
-		api.ServiceGetServiceServiceIDHandler = service.GetServiceServiceIDHandlerFunc(func(params service.GetServiceServiceIDParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation service.GetServiceServiceID has not yet been implemented")
-		})
-	}
-	if api.ServiceGetServiceServiceIDEndpointsHandler == nil {
-		api.ServiceGetServiceServiceIDEndpointsHandler = service.GetServiceServiceIDEndpointsHandlerFunc(func(params service.GetServiceServiceIDEndpointsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation service.GetServiceServiceIDEndpoints has not yet been implemented")
-		})
-	}
-	if api.EndpointPostEndpointHandler == nil {
-		api.EndpointPostEndpointHandler = endpoint.PostEndpointHandlerFunc(func(params endpoint.PostEndpointParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation endpoint.PostEndpoint has not yet been implemented")
-		})
-	}
-	if api.RbacPostRbacPoliciesHandler == nil {
-		api.RbacPostRbacPoliciesHandler = rbac.PostRbacPoliciesHandlerFunc(func(params rbac.PostRbacPoliciesParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation rbac.PostRbacPolicies has not yet been implemented")
-		})
-	}
-	if api.ServicePostServiceHandler == nil {
-		api.ServicePostServiceHandler = service.PostServiceHandlerFunc(func(params service.PostServiceParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation service.PostService has not yet been implemented")
-		})
-	}
-	if api.QuotaPutQuotasProjectIDHandler == nil {
-		api.QuotaPutQuotasProjectIDHandler = quota.PutQuotasProjectIDHandlerFunc(func(params quota.PutQuotasProjectIDParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation quota.PutQuotasProjectID has not yet been implemented")
-		})
-	}
-	if api.RbacPutRbacPoliciesRbacPolicyIDHandler == nil {
-		api.RbacPutRbacPoliciesRbacPolicyIDHandler = rbac.PutRbacPoliciesRbacPolicyIDHandlerFunc(func(params rbac.PutRbacPoliciesRbacPolicyIDParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation rbac.PutRbacPoliciesRbacPolicyID has not yet been implemented")
-		})
-	}
-	if api.ServicePutServiceServiceIDHandler == nil {
-		api.ServicePutServiceServiceIDHandler = service.PutServiceServiceIDHandlerFunc(func(params service.PutServiceServiceIDParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation service.PutServiceServiceID has not yet been implemented")
-		})
-	}
-	if api.ServicePutServiceServiceIDAcceptEndpointsHandler == nil {
-		api.ServicePutServiceServiceIDAcceptEndpointsHandler = service.PutServiceServiceIDAcceptEndpointsHandlerFunc(func(params service.PutServiceServiceIDAcceptEndpointsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation service.PutServiceServiceIDAcceptEndpoints has not yet been implemented")
-		})
-	}
-	if api.ServicePutServiceServiceIDRejectEndpointsHandler == nil {
-		api.ServicePutServiceServiceIDRejectEndpointsHandler = service.PutServiceServiceIDRejectEndpointsHandlerFunc(func(params service.PutServiceServiceIDRejectEndpointsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation service.PutServiceServiceIDRejectEndpoints has not yet been implemented")
-		})
-	}
+	api.RbacGetRbacPoliciesHandler = rbac.GetRbacPoliciesHandlerFunc(c.GetRbacPoliciesHandler)
+	api.RbacPostRbacPoliciesHandler = rbac.PostRbacPoliciesHandlerFunc(c.PostRbacPoliciesHandler)
+	api.RbacGetRbacPoliciesRbacPolicyIDHandler = rbac.GetRbacPoliciesRbacPolicyIDHandlerFunc(c.GetRbacPoliciesRbacPolicyIDHandler)
+	api.RbacPutRbacPoliciesRbacPolicyIDHandler = rbac.PutRbacPoliciesRbacPolicyIDHandlerFunc(c.PutRbacPoliciesRbacPolicyIDHandler)
+	api.RbacDeleteRbacPoliciesRbacPolicyIDHandler = rbac.DeleteRbacPoliciesRbacPolicyIDHandlerFunc(c.DeleteRbacPoliciesRbacPolicyIDHandler)
 
 	api.PreServerShutdown = func() {}
 

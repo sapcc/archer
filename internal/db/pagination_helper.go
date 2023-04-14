@@ -75,16 +75,18 @@ func stripDesc(sortDirKey string) (string, bool) {
 }
 
 // Query pagination helper that also includes policy query filter
-func (p *Pagination) Query(db *pgxpool.Pool, filter []string) (pgx.Rows, error) {
+func (p *Pagination) Query(db *pgxpool.Pool, filter map[string]string) (pgx.Rows, error) {
 	var sortDirKeys []string
 	var whereClauses []string
 	var orderBy string
-	markerObj := make(map[string]interface{})
+	markerObj := make(map[string]any)
 
 	query := fmt.Sprintf(`SELECT * FROM %s`, p.table)
 
 	//add filter
-	whereClauses = append(whereClauses, filter...)
+	for key, val := range filter {
+		whereClauses = append(whereClauses, fmt.Sprintf("%s = '%s'", key, val))
+	}
 
 	//add sorting
 	if !config.Global.ApiSettings.DisableSorting && p.sort != nil {
@@ -180,7 +182,7 @@ func (p *Pagination) Query(db *pgxpool.Pool, filter []string) (pgx.Rows, error) 
 	return db.Query(context.Background(), query, pgx.NamedArgs(markerObj))
 }
 
-func (p *Pagination) GetLinks(modelList interface{}, r *http.Request) []*models.Link {
+func (p *Pagination) GetLinks(modelList any, r *http.Request) []*models.Link {
 	var links []*models.Link
 	if reflect.TypeOf(modelList).Kind() != reflect.Slice {
 		return nil

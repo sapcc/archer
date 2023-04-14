@@ -69,3 +69,28 @@ func (o *GetEndpointOK) WriteResponse(rw http.ResponseWriter, producer runtime.P
 		}
 	}
 }
+
+// GetEndpointForbiddenCode is the HTTP code returned for type GetEndpointForbidden
+const GetEndpointForbiddenCode int = 403
+
+/*
+GetEndpointForbidden Forbidden
+
+swagger:response getEndpointForbidden
+*/
+type GetEndpointForbidden struct {
+}
+
+// NewGetEndpointForbidden creates GetEndpointForbidden with default headers values
+func NewGetEndpointForbidden() *GetEndpointForbidden {
+
+	return &GetEndpointForbidden{}
+}
+
+// WriteResponse to the client
+func (o *GetEndpointForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(403)
+}

@@ -97,6 +97,31 @@ func (o *PostServiceBadRequest) WriteResponse(rw http.ResponseWriter, producer r
 	rw.WriteHeader(400)
 }
 
+// PostServiceForbiddenCode is the HTTP code returned for type PostServiceForbidden
+const PostServiceForbiddenCode int = 403
+
+/*
+PostServiceForbidden Forbidden
+
+swagger:response postServiceForbidden
+*/
+type PostServiceForbidden struct {
+}
+
+// NewPostServiceForbidden creates PostServiceForbidden with default headers values
+func NewPostServiceForbidden() *PostServiceForbidden {
+
+	return &PostServiceForbidden{}
+}
+
+// WriteResponse to the client
+func (o *PostServiceForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(403)
+}
+
 // PostServiceConflictCode is the HTTP code returned for type PostServiceConflict
 const PostServiceConflictCode int = 409
 

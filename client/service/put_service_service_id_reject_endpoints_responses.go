@@ -49,6 +49,12 @@ func (o *PutServiceServiceIDRejectEndpointsReader) ReadResponse(response runtime
 			return nil, err
 		}
 		return nil, result
+	case 403:
+		result := NewPutServiceServiceIDRejectEndpointsForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewPutServiceServiceIDRejectEndpointsNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -182,6 +188,74 @@ func (o *PutServiceServiceIDRejectEndpointsBadRequest) readResponse(response run
 	return nil
 }
 
+// NewPutServiceServiceIDRejectEndpointsForbidden creates a PutServiceServiceIDRejectEndpointsForbidden with default headers values
+func NewPutServiceServiceIDRejectEndpointsForbidden() *PutServiceServiceIDRejectEndpointsForbidden {
+	return &PutServiceServiceIDRejectEndpointsForbidden{}
+}
+
+/*
+PutServiceServiceIDRejectEndpointsForbidden describes a response with status code 403, with default header values.
+
+Forbidden
+*/
+type PutServiceServiceIDRejectEndpointsForbidden struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this put service service Id reject endpoints forbidden response has a 2xx status code
+func (o *PutServiceServiceIDRejectEndpointsForbidden) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this put service service Id reject endpoints forbidden response has a 3xx status code
+func (o *PutServiceServiceIDRejectEndpointsForbidden) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this put service service Id reject endpoints forbidden response has a 4xx status code
+func (o *PutServiceServiceIDRejectEndpointsForbidden) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this put service service Id reject endpoints forbidden response has a 5xx status code
+func (o *PutServiceServiceIDRejectEndpointsForbidden) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this put service service Id reject endpoints forbidden response a status code equal to that given
+func (o *PutServiceServiceIDRejectEndpointsForbidden) IsCode(code int) bool {
+	return code == 403
+}
+
+// Code gets the status code for the put service service Id reject endpoints forbidden response
+func (o *PutServiceServiceIDRejectEndpointsForbidden) Code() int {
+	return 403
+}
+
+func (o *PutServiceServiceIDRejectEndpointsForbidden) Error() string {
+	return fmt.Sprintf("[PUT /service/{service_id}/reject_endpoints][%d] putServiceServiceIdRejectEndpointsForbidden  %+v", 403, o.Payload)
+}
+
+func (o *PutServiceServiceIDRejectEndpointsForbidden) String() string {
+	return fmt.Sprintf("[PUT /service/{service_id}/reject_endpoints][%d] putServiceServiceIdRejectEndpointsForbidden  %+v", 403, o.Payload)
+}
+
+func (o *PutServiceServiceIDRejectEndpointsForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *PutServiceServiceIDRejectEndpointsForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewPutServiceServiceIDRejectEndpointsNotFound creates a PutServiceServiceIDRejectEndpointsNotFound with default headers values
 func NewPutServiceServiceIDRejectEndpointsNotFound() *PutServiceServiceIDRejectEndpointsNotFound {
 	return &PutServiceServiceIDRejectEndpointsNotFound{}
@@ -193,7 +267,6 @@ PutServiceServiceIDRejectEndpointsNotFound describes a response with status code
 Not Found
 */
 type PutServiceServiceIDRejectEndpointsNotFound struct {
-	Payload *models.Error
 }
 
 // IsSuccess returns true when this put service service Id reject endpoints not found response has a 2xx status code
@@ -227,25 +300,14 @@ func (o *PutServiceServiceIDRejectEndpointsNotFound) Code() int {
 }
 
 func (o *PutServiceServiceIDRejectEndpointsNotFound) Error() string {
-	return fmt.Sprintf("[PUT /service/{service_id}/reject_endpoints][%d] putServiceServiceIdRejectEndpointsNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[PUT /service/{service_id}/reject_endpoints][%d] putServiceServiceIdRejectEndpointsNotFound ", 404)
 }
 
 func (o *PutServiceServiceIDRejectEndpointsNotFound) String() string {
-	return fmt.Sprintf("[PUT /service/{service_id}/reject_endpoints][%d] putServiceServiceIdRejectEndpointsNotFound  %+v", 404, o.Payload)
-}
-
-func (o *PutServiceServiceIDRejectEndpointsNotFound) GetPayload() *models.Error {
-	return o.Payload
+	return fmt.Sprintf("[PUT /service/{service_id}/reject_endpoints][%d] putServiceServiceIdRejectEndpointsNotFound ", 404)
 }
 
 func (o *PutServiceServiceIDRejectEndpointsNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.Error)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
 
 	return nil
 }

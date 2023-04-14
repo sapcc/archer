@@ -72,6 +72,31 @@ func (o *GetRbacPoliciesRbacPolicyIDOK) WriteResponse(rw http.ResponseWriter, pr
 	}
 }
 
+// GetRbacPoliciesRbacPolicyIDForbiddenCode is the HTTP code returned for type GetRbacPoliciesRbacPolicyIDForbidden
+const GetRbacPoliciesRbacPolicyIDForbiddenCode int = 403
+
+/*
+GetRbacPoliciesRbacPolicyIDForbidden Forbidden
+
+swagger:response getRbacPoliciesRbacPolicyIdForbidden
+*/
+type GetRbacPoliciesRbacPolicyIDForbidden struct {
+}
+
+// NewGetRbacPoliciesRbacPolicyIDForbidden creates GetRbacPoliciesRbacPolicyIDForbidden with default headers values
+func NewGetRbacPoliciesRbacPolicyIDForbidden() *GetRbacPoliciesRbacPolicyIDForbidden {
+
+	return &GetRbacPoliciesRbacPolicyIDForbidden{}
+}
+
+// WriteResponse to the client
+func (o *GetRbacPoliciesRbacPolicyIDForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(403)
+}
+
 // GetRbacPoliciesRbacPolicyIDNotFoundCode is the HTTP code returned for type GetRbacPoliciesRbacPolicyIDNotFound
 const GetRbacPoliciesRbacPolicyIDNotFoundCode int = 404
 

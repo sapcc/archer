@@ -12,32 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package db
+package controller
 
 import (
-	"context"
-	"fmt"
-
-	"github.com/jackc/pgx/v5/tracelog"
-	"github.com/sapcc/go-bits/logg"
+	"github.com/go-openapi/loads"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Logger struct{}
-
-func NewLogger() *Logger {
-	return &Logger{}
+type Controller struct {
+	spec *loads.Document
+	pool *pgxpool.Pool
 }
 
-func (l *Logger) Log(ctx context.Context, level tracelog.LogLevel, msg string, data map[string]any) {
-	message := fmt.Sprintf("%s: %v", msg, data)
-	switch level {
-	case tracelog.LogLevelDebug:
-		logg.Debug(message)
-	case tracelog.LogLevelInfo:
-		logg.Info(message)
-	case tracelog.LogLevelError:
-		logg.Error(message)
-	default:
-		logg.Other(level.String(), message)
-	}
+func NewController(pool *pgxpool.Pool, spec *loads.Document) *Controller {
+	return &Controller{pool: pool, spec: spec}
 }

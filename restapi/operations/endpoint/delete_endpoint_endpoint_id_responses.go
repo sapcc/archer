@@ -52,6 +52,51 @@ func (o *DeleteEndpointEndpointIDNoContent) WriteResponse(rw http.ResponseWriter
 	rw.WriteHeader(204)
 }
 
+// DeleteEndpointEndpointIDForbiddenCode is the HTTP code returned for type DeleteEndpointEndpointIDForbidden
+const DeleteEndpointEndpointIDForbiddenCode int = 403
+
+/*
+DeleteEndpointEndpointIDForbidden Forbidden
+
+swagger:response deleteEndpointEndpointIdForbidden
+*/
+type DeleteEndpointEndpointIDForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDeleteEndpointEndpointIDForbidden creates DeleteEndpointEndpointIDForbidden with default headers values
+func NewDeleteEndpointEndpointIDForbidden() *DeleteEndpointEndpointIDForbidden {
+
+	return &DeleteEndpointEndpointIDForbidden{}
+}
+
+// WithPayload adds the payload to the delete endpoint endpoint Id forbidden response
+func (o *DeleteEndpointEndpointIDForbidden) WithPayload(payload *models.Error) *DeleteEndpointEndpointIDForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the delete endpoint endpoint Id forbidden response
+func (o *DeleteEndpointEndpointIDForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DeleteEndpointEndpointIDForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // DeleteEndpointEndpointIDNotFoundCode is the HTTP code returned for type DeleteEndpointEndpointIDNotFound
 const DeleteEndpointEndpointIDNotFoundCode int = 404
 
@@ -61,11 +106,6 @@ DeleteEndpointEndpointIDNotFound Not Found
 swagger:response deleteEndpointEndpointIdNotFound
 */
 type DeleteEndpointEndpointIDNotFound struct {
-
-	/*
-	  In: Body
-	*/
-	Payload *models.Error `json:"body,omitempty"`
 }
 
 // NewDeleteEndpointEndpointIDNotFound creates DeleteEndpointEndpointIDNotFound with default headers values
@@ -74,25 +114,10 @@ func NewDeleteEndpointEndpointIDNotFound() *DeleteEndpointEndpointIDNotFound {
 	return &DeleteEndpointEndpointIDNotFound{}
 }
 
-// WithPayload adds the payload to the delete endpoint endpoint Id not found response
-func (o *DeleteEndpointEndpointIDNotFound) WithPayload(payload *models.Error) *DeleteEndpointEndpointIDNotFound {
-	o.Payload = payload
-	return o
-}
-
-// SetPayload sets the payload to the delete endpoint endpoint Id not found response
-func (o *DeleteEndpointEndpointIDNotFound) SetPayload(payload *models.Error) {
-	o.Payload = payload
-}
-
 // WriteResponse to the client
 func (o *DeleteEndpointEndpointIDNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
 	rw.WriteHeader(404)
-	if o.Payload != nil {
-		payload := o.Payload
-		if err := producer.Produce(rw, payload); err != nil {
-			panic(err) // let the recovery middleware deal with this
-		}
-	}
 }

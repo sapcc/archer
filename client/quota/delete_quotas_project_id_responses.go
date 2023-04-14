@@ -43,6 +43,12 @@ func (o *DeleteQuotasProjectIDReader) ReadResponse(response runtime.ClientRespon
 			return nil, err
 		}
 		return result, nil
+	case 403:
+		result := NewDeleteQuotasProjectIDForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewDeleteQuotasProjectIDNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -106,6 +112,62 @@ func (o *DeleteQuotasProjectIDNoContent) String() string {
 }
 
 func (o *DeleteQuotasProjectIDNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewDeleteQuotasProjectIDForbidden creates a DeleteQuotasProjectIDForbidden with default headers values
+func NewDeleteQuotasProjectIDForbidden() *DeleteQuotasProjectIDForbidden {
+	return &DeleteQuotasProjectIDForbidden{}
+}
+
+/*
+DeleteQuotasProjectIDForbidden describes a response with status code 403, with default header values.
+
+Forbidden
+*/
+type DeleteQuotasProjectIDForbidden struct {
+}
+
+// IsSuccess returns true when this delete quotas project Id forbidden response has a 2xx status code
+func (o *DeleteQuotasProjectIDForbidden) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this delete quotas project Id forbidden response has a 3xx status code
+func (o *DeleteQuotasProjectIDForbidden) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this delete quotas project Id forbidden response has a 4xx status code
+func (o *DeleteQuotasProjectIDForbidden) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this delete quotas project Id forbidden response has a 5xx status code
+func (o *DeleteQuotasProjectIDForbidden) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this delete quotas project Id forbidden response a status code equal to that given
+func (o *DeleteQuotasProjectIDForbidden) IsCode(code int) bool {
+	return code == 403
+}
+
+// Code gets the status code for the delete quotas project Id forbidden response
+func (o *DeleteQuotasProjectIDForbidden) Code() int {
+	return 403
+}
+
+func (o *DeleteQuotasProjectIDForbidden) Error() string {
+	return fmt.Sprintf("[DELETE /quotas/{project_id}][%d] deleteQuotasProjectIdForbidden ", 403)
+}
+
+func (o *DeleteQuotasProjectIDForbidden) String() string {
+	return fmt.Sprintf("[DELETE /quotas/{project_id}][%d] deleteQuotasProjectIdForbidden ", 403)
+}
+
+func (o *DeleteQuotasProjectIDForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

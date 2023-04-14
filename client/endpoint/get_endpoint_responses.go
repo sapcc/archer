@@ -47,6 +47,12 @@ func (o *GetEndpointReader) ReadResponse(response runtime.ClientResponse, consum
 			return nil, err
 		}
 		return result, nil
+	case 403:
+		result := NewGetEndpointForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -116,6 +122,62 @@ func (o *GetEndpointOK) readResponse(response runtime.ClientResponse, consumer r
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
+
+	return nil
+}
+
+// NewGetEndpointForbidden creates a GetEndpointForbidden with default headers values
+func NewGetEndpointForbidden() *GetEndpointForbidden {
+	return &GetEndpointForbidden{}
+}
+
+/*
+GetEndpointForbidden describes a response with status code 403, with default header values.
+
+Forbidden
+*/
+type GetEndpointForbidden struct {
+}
+
+// IsSuccess returns true when this get endpoint forbidden response has a 2xx status code
+func (o *GetEndpointForbidden) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this get endpoint forbidden response has a 3xx status code
+func (o *GetEndpointForbidden) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this get endpoint forbidden response has a 4xx status code
+func (o *GetEndpointForbidden) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this get endpoint forbidden response has a 5xx status code
+func (o *GetEndpointForbidden) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this get endpoint forbidden response a status code equal to that given
+func (o *GetEndpointForbidden) IsCode(code int) bool {
+	return code == 403
+}
+
+// Code gets the status code for the get endpoint forbidden response
+func (o *GetEndpointForbidden) Code() int {
+	return 403
+}
+
+func (o *GetEndpointForbidden) Error() string {
+	return fmt.Sprintf("[GET /endpoint][%d] getEndpointForbidden ", 403)
+}
+
+func (o *GetEndpointForbidden) String() string {
+	return fmt.Sprintf("[GET /endpoint][%d] getEndpointForbidden ", 403)
+}
+
+func (o *GetEndpointForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

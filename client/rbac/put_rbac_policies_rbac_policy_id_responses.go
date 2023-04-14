@@ -49,6 +49,12 @@ func (o *PutRbacPoliciesRbacPolicyIDReader) ReadResponse(response runtime.Client
 			return nil, err
 		}
 		return nil, result
+	case 403:
+		result := NewPutRbacPoliciesRbacPolicyIDForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewPutRbacPoliciesRbacPolicyIDNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -180,6 +186,62 @@ func (o *PutRbacPoliciesRbacPolicyIDBadRequest) String() string {
 }
 
 func (o *PutRbacPoliciesRbacPolicyIDBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewPutRbacPoliciesRbacPolicyIDForbidden creates a PutRbacPoliciesRbacPolicyIDForbidden with default headers values
+func NewPutRbacPoliciesRbacPolicyIDForbidden() *PutRbacPoliciesRbacPolicyIDForbidden {
+	return &PutRbacPoliciesRbacPolicyIDForbidden{}
+}
+
+/*
+PutRbacPoliciesRbacPolicyIDForbidden describes a response with status code 403, with default header values.
+
+Forbidden
+*/
+type PutRbacPoliciesRbacPolicyIDForbidden struct {
+}
+
+// IsSuccess returns true when this put rbac policies rbac policy Id forbidden response has a 2xx status code
+func (o *PutRbacPoliciesRbacPolicyIDForbidden) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this put rbac policies rbac policy Id forbidden response has a 3xx status code
+func (o *PutRbacPoliciesRbacPolicyIDForbidden) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this put rbac policies rbac policy Id forbidden response has a 4xx status code
+func (o *PutRbacPoliciesRbacPolicyIDForbidden) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this put rbac policies rbac policy Id forbidden response has a 5xx status code
+func (o *PutRbacPoliciesRbacPolicyIDForbidden) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this put rbac policies rbac policy Id forbidden response a status code equal to that given
+func (o *PutRbacPoliciesRbacPolicyIDForbidden) IsCode(code int) bool {
+	return code == 403
+}
+
+// Code gets the status code for the put rbac policies rbac policy Id forbidden response
+func (o *PutRbacPoliciesRbacPolicyIDForbidden) Code() int {
+	return 403
+}
+
+func (o *PutRbacPoliciesRbacPolicyIDForbidden) Error() string {
+	return fmt.Sprintf("[PUT /rbac-policies/{rbac_policy_id}][%d] putRbacPoliciesRbacPolicyIdForbidden ", 403)
+}
+
+func (o *PutRbacPoliciesRbacPolicyIDForbidden) String() string {
+	return fmt.Sprintf("[PUT /rbac-policies/{rbac_policy_id}][%d] putRbacPoliciesRbacPolicyIdForbidden ", 403)
+}
+
+func (o *PutRbacPoliciesRbacPolicyIDForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

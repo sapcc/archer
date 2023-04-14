@@ -49,6 +49,12 @@ func (o *PostRbacPoliciesReader) ReadResponse(response runtime.ClientResponse, c
 			return nil, err
 		}
 		return nil, result
+	case 403:
+		result := NewPostRbacPoliciesForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 409:
 		result := NewPostRbacPoliciesConflict()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -180,6 +186,62 @@ func (o *PostRbacPoliciesBadRequest) String() string {
 }
 
 func (o *PostRbacPoliciesBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewPostRbacPoliciesForbidden creates a PostRbacPoliciesForbidden with default headers values
+func NewPostRbacPoliciesForbidden() *PostRbacPoliciesForbidden {
+	return &PostRbacPoliciesForbidden{}
+}
+
+/*
+PostRbacPoliciesForbidden describes a response with status code 403, with default header values.
+
+Forbidden
+*/
+type PostRbacPoliciesForbidden struct {
+}
+
+// IsSuccess returns true when this post rbac policies forbidden response has a 2xx status code
+func (o *PostRbacPoliciesForbidden) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this post rbac policies forbidden response has a 3xx status code
+func (o *PostRbacPoliciesForbidden) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this post rbac policies forbidden response has a 4xx status code
+func (o *PostRbacPoliciesForbidden) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this post rbac policies forbidden response has a 5xx status code
+func (o *PostRbacPoliciesForbidden) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this post rbac policies forbidden response a status code equal to that given
+func (o *PostRbacPoliciesForbidden) IsCode(code int) bool {
+	return code == 403
+}
+
+// Code gets the status code for the post rbac policies forbidden response
+func (o *PostRbacPoliciesForbidden) Code() int {
+	return 403
+}
+
+func (o *PostRbacPoliciesForbidden) Error() string {
+	return fmt.Sprintf("[POST /rbac-policies][%d] postRbacPoliciesForbidden ", 403)
+}
+
+func (o *PostRbacPoliciesForbidden) String() string {
+	return fmt.Sprintf("[POST /rbac-policies][%d] postRbacPoliciesForbidden ", 403)
+}
+
+func (o *PostRbacPoliciesForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

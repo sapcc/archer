@@ -46,6 +46,12 @@ func (o *GetQuotasProjectIDReader) ReadResponse(response runtime.ClientResponse,
 			return nil, err
 		}
 		return result, nil
+	case 403:
+		result := NewGetQuotasProjectIDForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewGetQuotasProjectIDNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -121,6 +127,62 @@ func (o *GetQuotasProjectIDOK) readResponse(response runtime.ClientResponse, con
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
+
+	return nil
+}
+
+// NewGetQuotasProjectIDForbidden creates a GetQuotasProjectIDForbidden with default headers values
+func NewGetQuotasProjectIDForbidden() *GetQuotasProjectIDForbidden {
+	return &GetQuotasProjectIDForbidden{}
+}
+
+/*
+GetQuotasProjectIDForbidden describes a response with status code 403, with default header values.
+
+Forbidden
+*/
+type GetQuotasProjectIDForbidden struct {
+}
+
+// IsSuccess returns true when this get quotas project Id forbidden response has a 2xx status code
+func (o *GetQuotasProjectIDForbidden) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this get quotas project Id forbidden response has a 3xx status code
+func (o *GetQuotasProjectIDForbidden) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this get quotas project Id forbidden response has a 4xx status code
+func (o *GetQuotasProjectIDForbidden) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this get quotas project Id forbidden response has a 5xx status code
+func (o *GetQuotasProjectIDForbidden) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this get quotas project Id forbidden response a status code equal to that given
+func (o *GetQuotasProjectIDForbidden) IsCode(code int) bool {
+	return code == 403
+}
+
+// Code gets the status code for the get quotas project Id forbidden response
+func (o *GetQuotasProjectIDForbidden) Code() int {
+	return 403
+}
+
+func (o *GetQuotasProjectIDForbidden) Error() string {
+	return fmt.Sprintf("[GET /quotas/{project_id}][%d] getQuotasProjectIdForbidden ", 403)
+}
+
+func (o *GetQuotasProjectIDForbidden) String() string {
+	return fmt.Sprintf("[GET /quotas/{project_id}][%d] getQuotasProjectIdForbidden ", 403)
+}
+
+func (o *GetQuotasProjectIDForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

@@ -49,6 +49,12 @@ func (o *DeleteServiceServiceIDReader) ReadResponse(response runtime.ClientRespo
 			return nil, err
 		}
 		return nil, result
+	case 403:
+		result := NewDeleteServiceServiceIDForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewDeleteServiceServiceIDNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -174,6 +180,62 @@ func (o *DeleteServiceServiceIDBadRequest) String() string {
 }
 
 func (o *DeleteServiceServiceIDBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewDeleteServiceServiceIDForbidden creates a DeleteServiceServiceIDForbidden with default headers values
+func NewDeleteServiceServiceIDForbidden() *DeleteServiceServiceIDForbidden {
+	return &DeleteServiceServiceIDForbidden{}
+}
+
+/*
+DeleteServiceServiceIDForbidden describes a response with status code 403, with default header values.
+
+Forbidden
+*/
+type DeleteServiceServiceIDForbidden struct {
+}
+
+// IsSuccess returns true when this delete service service Id forbidden response has a 2xx status code
+func (o *DeleteServiceServiceIDForbidden) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this delete service service Id forbidden response has a 3xx status code
+func (o *DeleteServiceServiceIDForbidden) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this delete service service Id forbidden response has a 4xx status code
+func (o *DeleteServiceServiceIDForbidden) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this delete service service Id forbidden response has a 5xx status code
+func (o *DeleteServiceServiceIDForbidden) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this delete service service Id forbidden response a status code equal to that given
+func (o *DeleteServiceServiceIDForbidden) IsCode(code int) bool {
+	return code == 403
+}
+
+// Code gets the status code for the delete service service Id forbidden response
+func (o *DeleteServiceServiceIDForbidden) Code() int {
+	return 403
+}
+
+func (o *DeleteServiceServiceIDForbidden) Error() string {
+	return fmt.Sprintf("[DELETE /service/{service_id}][%d] deleteServiceServiceIdForbidden ", 403)
+}
+
+func (o *DeleteServiceServiceIDForbidden) String() string {
+	return fmt.Sprintf("[DELETE /service/{service_id}][%d] deleteServiceServiceIdForbidden ", 403)
+}
+
+func (o *DeleteServiceServiceIDForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

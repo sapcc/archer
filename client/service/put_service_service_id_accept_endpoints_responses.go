@@ -49,6 +49,12 @@ func (o *PutServiceServiceIDAcceptEndpointsReader) ReadResponse(response runtime
 			return nil, err
 		}
 		return nil, result
+	case 403:
+		result := NewPutServiceServiceIDAcceptEndpointsForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewPutServiceServiceIDAcceptEndpointsNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -178,6 +184,62 @@ func (o *PutServiceServiceIDAcceptEndpointsBadRequest) String() string {
 }
 
 func (o *PutServiceServiceIDAcceptEndpointsBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewPutServiceServiceIDAcceptEndpointsForbidden creates a PutServiceServiceIDAcceptEndpointsForbidden with default headers values
+func NewPutServiceServiceIDAcceptEndpointsForbidden() *PutServiceServiceIDAcceptEndpointsForbidden {
+	return &PutServiceServiceIDAcceptEndpointsForbidden{}
+}
+
+/*
+PutServiceServiceIDAcceptEndpointsForbidden describes a response with status code 403, with default header values.
+
+Forbidden
+*/
+type PutServiceServiceIDAcceptEndpointsForbidden struct {
+}
+
+// IsSuccess returns true when this put service service Id accept endpoints forbidden response has a 2xx status code
+func (o *PutServiceServiceIDAcceptEndpointsForbidden) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this put service service Id accept endpoints forbidden response has a 3xx status code
+func (o *PutServiceServiceIDAcceptEndpointsForbidden) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this put service service Id accept endpoints forbidden response has a 4xx status code
+func (o *PutServiceServiceIDAcceptEndpointsForbidden) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this put service service Id accept endpoints forbidden response has a 5xx status code
+func (o *PutServiceServiceIDAcceptEndpointsForbidden) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this put service service Id accept endpoints forbidden response a status code equal to that given
+func (o *PutServiceServiceIDAcceptEndpointsForbidden) IsCode(code int) bool {
+	return code == 403
+}
+
+// Code gets the status code for the put service service Id accept endpoints forbidden response
+func (o *PutServiceServiceIDAcceptEndpointsForbidden) Code() int {
+	return 403
+}
+
+func (o *PutServiceServiceIDAcceptEndpointsForbidden) Error() string {
+	return fmt.Sprintf("[PUT /service/{service_id}/accept_endpoints][%d] putServiceServiceIdAcceptEndpointsForbidden ", 403)
+}
+
+func (o *PutServiceServiceIDAcceptEndpointsForbidden) String() string {
+	return fmt.Sprintf("[PUT /service/{service_id}/accept_endpoints][%d] putServiceServiceIdAcceptEndpointsForbidden ", 403)
+}
+
+func (o *PutServiceServiceIDAcceptEndpointsForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

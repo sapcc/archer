@@ -43,6 +43,12 @@ func (o *DeleteEndpointEndpointIDReader) ReadResponse(response runtime.ClientRes
 			return nil, err
 		}
 		return result, nil
+	case 403:
+		result := NewDeleteEndpointEndpointIDForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewDeleteEndpointEndpointIDNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -110,6 +116,74 @@ func (o *DeleteEndpointEndpointIDNoContent) readResponse(response runtime.Client
 	return nil
 }
 
+// NewDeleteEndpointEndpointIDForbidden creates a DeleteEndpointEndpointIDForbidden with default headers values
+func NewDeleteEndpointEndpointIDForbidden() *DeleteEndpointEndpointIDForbidden {
+	return &DeleteEndpointEndpointIDForbidden{}
+}
+
+/*
+DeleteEndpointEndpointIDForbidden describes a response with status code 403, with default header values.
+
+Forbidden
+*/
+type DeleteEndpointEndpointIDForbidden struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this delete endpoint endpoint Id forbidden response has a 2xx status code
+func (o *DeleteEndpointEndpointIDForbidden) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this delete endpoint endpoint Id forbidden response has a 3xx status code
+func (o *DeleteEndpointEndpointIDForbidden) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this delete endpoint endpoint Id forbidden response has a 4xx status code
+func (o *DeleteEndpointEndpointIDForbidden) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this delete endpoint endpoint Id forbidden response has a 5xx status code
+func (o *DeleteEndpointEndpointIDForbidden) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this delete endpoint endpoint Id forbidden response a status code equal to that given
+func (o *DeleteEndpointEndpointIDForbidden) IsCode(code int) bool {
+	return code == 403
+}
+
+// Code gets the status code for the delete endpoint endpoint Id forbidden response
+func (o *DeleteEndpointEndpointIDForbidden) Code() int {
+	return 403
+}
+
+func (o *DeleteEndpointEndpointIDForbidden) Error() string {
+	return fmt.Sprintf("[DELETE /endpoint/{endpoint_id}][%d] deleteEndpointEndpointIdForbidden  %+v", 403, o.Payload)
+}
+
+func (o *DeleteEndpointEndpointIDForbidden) String() string {
+	return fmt.Sprintf("[DELETE /endpoint/{endpoint_id}][%d] deleteEndpointEndpointIdForbidden  %+v", 403, o.Payload)
+}
+
+func (o *DeleteEndpointEndpointIDForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DeleteEndpointEndpointIDForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewDeleteEndpointEndpointIDNotFound creates a DeleteEndpointEndpointIDNotFound with default headers values
 func NewDeleteEndpointEndpointIDNotFound() *DeleteEndpointEndpointIDNotFound {
 	return &DeleteEndpointEndpointIDNotFound{}
@@ -121,7 +195,6 @@ DeleteEndpointEndpointIDNotFound describes a response with status code 404, with
 Not Found
 */
 type DeleteEndpointEndpointIDNotFound struct {
-	Payload *models.Error
 }
 
 // IsSuccess returns true when this delete endpoint endpoint Id not found response has a 2xx status code
@@ -155,25 +228,14 @@ func (o *DeleteEndpointEndpointIDNotFound) Code() int {
 }
 
 func (o *DeleteEndpointEndpointIDNotFound) Error() string {
-	return fmt.Sprintf("[DELETE /endpoint/{endpoint_id}][%d] deleteEndpointEndpointIdNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[DELETE /endpoint/{endpoint_id}][%d] deleteEndpointEndpointIdNotFound ", 404)
 }
 
 func (o *DeleteEndpointEndpointIDNotFound) String() string {
-	return fmt.Sprintf("[DELETE /endpoint/{endpoint_id}][%d] deleteEndpointEndpointIdNotFound  %+v", 404, o.Payload)
-}
-
-func (o *DeleteEndpointEndpointIDNotFound) GetPayload() *models.Error {
-	return o.Payload
+	return fmt.Sprintf("[DELETE /endpoint/{endpoint_id}][%d] deleteEndpointEndpointIdNotFound ", 404)
 }
 
 func (o *DeleteEndpointEndpointIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.Error)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
 
 	return nil
 }

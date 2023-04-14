@@ -53,6 +53,12 @@ func (o *PutQuotasProjectIDReader) ReadResponse(response runtime.ClientResponse,
 			return nil, err
 		}
 		return nil, result
+	case 403:
+		result := NewPutQuotasProjectIDForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewPutQuotasProjectIDNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -184,6 +190,62 @@ func (o *PutQuotasProjectIDBadRequest) String() string {
 }
 
 func (o *PutQuotasProjectIDBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewPutQuotasProjectIDForbidden creates a PutQuotasProjectIDForbidden with default headers values
+func NewPutQuotasProjectIDForbidden() *PutQuotasProjectIDForbidden {
+	return &PutQuotasProjectIDForbidden{}
+}
+
+/*
+PutQuotasProjectIDForbidden describes a response with status code 403, with default header values.
+
+Forbidden
+*/
+type PutQuotasProjectIDForbidden struct {
+}
+
+// IsSuccess returns true when this put quotas project Id forbidden response has a 2xx status code
+func (o *PutQuotasProjectIDForbidden) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this put quotas project Id forbidden response has a 3xx status code
+func (o *PutQuotasProjectIDForbidden) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this put quotas project Id forbidden response has a 4xx status code
+func (o *PutQuotasProjectIDForbidden) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this put quotas project Id forbidden response has a 5xx status code
+func (o *PutQuotasProjectIDForbidden) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this put quotas project Id forbidden response a status code equal to that given
+func (o *PutQuotasProjectIDForbidden) IsCode(code int) bool {
+	return code == 403
+}
+
+// Code gets the status code for the put quotas project Id forbidden response
+func (o *PutQuotasProjectIDForbidden) Code() int {
+	return 403
+}
+
+func (o *PutQuotasProjectIDForbidden) Error() string {
+	return fmt.Sprintf("[PUT /quotas/{project_id}][%d] putQuotasProjectIdForbidden ", 403)
+}
+
+func (o *PutQuotasProjectIDForbidden) String() string {
+	return fmt.Sprintf("[PUT /quotas/{project_id}][%d] putQuotasProjectIdForbidden ", 403)
+}
+
+func (o *PutQuotasProjectIDForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

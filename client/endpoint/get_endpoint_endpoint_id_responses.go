@@ -43,6 +43,12 @@ func (o *GetEndpointEndpointIDReader) ReadResponse(response runtime.ClientRespon
 			return nil, err
 		}
 		return result, nil
+	case 403:
+		result := NewGetEndpointEndpointIDForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 404:
 		result := NewGetEndpointEndpointIDNotFound()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -122,6 +128,74 @@ func (o *GetEndpointEndpointIDOK) readResponse(response runtime.ClientResponse, 
 	return nil
 }
 
+// NewGetEndpointEndpointIDForbidden creates a GetEndpointEndpointIDForbidden with default headers values
+func NewGetEndpointEndpointIDForbidden() *GetEndpointEndpointIDForbidden {
+	return &GetEndpointEndpointIDForbidden{}
+}
+
+/*
+GetEndpointEndpointIDForbidden describes a response with status code 403, with default header values.
+
+Forbidden
+*/
+type GetEndpointEndpointIDForbidden struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this get endpoint endpoint Id forbidden response has a 2xx status code
+func (o *GetEndpointEndpointIDForbidden) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this get endpoint endpoint Id forbidden response has a 3xx status code
+func (o *GetEndpointEndpointIDForbidden) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this get endpoint endpoint Id forbidden response has a 4xx status code
+func (o *GetEndpointEndpointIDForbidden) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this get endpoint endpoint Id forbidden response has a 5xx status code
+func (o *GetEndpointEndpointIDForbidden) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this get endpoint endpoint Id forbidden response a status code equal to that given
+func (o *GetEndpointEndpointIDForbidden) IsCode(code int) bool {
+	return code == 403
+}
+
+// Code gets the status code for the get endpoint endpoint Id forbidden response
+func (o *GetEndpointEndpointIDForbidden) Code() int {
+	return 403
+}
+
+func (o *GetEndpointEndpointIDForbidden) Error() string {
+	return fmt.Sprintf("[GET /endpoint/{endpoint_id}][%d] getEndpointEndpointIdForbidden  %+v", 403, o.Payload)
+}
+
+func (o *GetEndpointEndpointIDForbidden) String() string {
+	return fmt.Sprintf("[GET /endpoint/{endpoint_id}][%d] getEndpointEndpointIdForbidden  %+v", 403, o.Payload)
+}
+
+func (o *GetEndpointEndpointIDForbidden) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetEndpointEndpointIDForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
 // NewGetEndpointEndpointIDNotFound creates a GetEndpointEndpointIDNotFound with default headers values
 func NewGetEndpointEndpointIDNotFound() *GetEndpointEndpointIDNotFound {
 	return &GetEndpointEndpointIDNotFound{}
@@ -133,7 +207,6 @@ GetEndpointEndpointIDNotFound describes a response with status code 404, with de
 Not Found
 */
 type GetEndpointEndpointIDNotFound struct {
-	Payload *models.Error
 }
 
 // IsSuccess returns true when this get endpoint endpoint Id not found response has a 2xx status code
@@ -167,25 +240,14 @@ func (o *GetEndpointEndpointIDNotFound) Code() int {
 }
 
 func (o *GetEndpointEndpointIDNotFound) Error() string {
-	return fmt.Sprintf("[GET /endpoint/{endpoint_id}][%d] getEndpointEndpointIdNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /endpoint/{endpoint_id}][%d] getEndpointEndpointIdNotFound ", 404)
 }
 
 func (o *GetEndpointEndpointIDNotFound) String() string {
-	return fmt.Sprintf("[GET /endpoint/{endpoint_id}][%d] getEndpointEndpointIdNotFound  %+v", 404, o.Payload)
-}
-
-func (o *GetEndpointEndpointIDNotFound) GetPayload() *models.Error {
-	return o.Payload
+	return fmt.Sprintf("[GET /endpoint/{endpoint_id}][%d] getEndpointEndpointIdNotFound ", 404)
 }
 
 func (o *GetEndpointEndpointIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.Error)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
 
 	return nil
 }

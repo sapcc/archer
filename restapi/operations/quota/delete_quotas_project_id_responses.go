@@ -52,6 +52,31 @@ func (o *DeleteQuotasProjectIDNoContent) WriteResponse(rw http.ResponseWriter, p
 	rw.WriteHeader(204)
 }
 
+// DeleteQuotasProjectIDForbiddenCode is the HTTP code returned for type DeleteQuotasProjectIDForbidden
+const DeleteQuotasProjectIDForbiddenCode int = 403
+
+/*
+DeleteQuotasProjectIDForbidden Forbidden
+
+swagger:response deleteQuotasProjectIdForbidden
+*/
+type DeleteQuotasProjectIDForbidden struct {
+}
+
+// NewDeleteQuotasProjectIDForbidden creates DeleteQuotasProjectIDForbidden with default headers values
+func NewDeleteQuotasProjectIDForbidden() *DeleteQuotasProjectIDForbidden {
+
+	return &DeleteQuotasProjectIDForbidden{}
+}
+
+// WriteResponse to the client
+func (o *DeleteQuotasProjectIDForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(403)
+}
+
 // DeleteQuotasProjectIDNotFoundCode is the HTTP code returned for type DeleteQuotasProjectIDNotFound
 const DeleteQuotasProjectIDNotFoundCode int = 404
 

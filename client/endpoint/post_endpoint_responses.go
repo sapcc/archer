@@ -49,6 +49,12 @@ func (o *PostEndpointReader) ReadResponse(response runtime.ClientResponse, consu
 			return nil, err
 		}
 		return nil, result
+	case 403:
+		result := NewPostEndpointForbidden()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -174,6 +180,62 @@ func (o *PostEndpointBadRequest) String() string {
 }
 
 func (o *PostEndpointBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewPostEndpointForbidden creates a PostEndpointForbidden with default headers values
+func NewPostEndpointForbidden() *PostEndpointForbidden {
+	return &PostEndpointForbidden{}
+}
+
+/*
+PostEndpointForbidden describes a response with status code 403, with default header values.
+
+Forbidden
+*/
+type PostEndpointForbidden struct {
+}
+
+// IsSuccess returns true when this post endpoint forbidden response has a 2xx status code
+func (o *PostEndpointForbidden) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this post endpoint forbidden response has a 3xx status code
+func (o *PostEndpointForbidden) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this post endpoint forbidden response has a 4xx status code
+func (o *PostEndpointForbidden) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this post endpoint forbidden response has a 5xx status code
+func (o *PostEndpointForbidden) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this post endpoint forbidden response a status code equal to that given
+func (o *PostEndpointForbidden) IsCode(code int) bool {
+	return code == 403
+}
+
+// Code gets the status code for the post endpoint forbidden response
+func (o *PostEndpointForbidden) Code() int {
+	return 403
+}
+
+func (o *PostEndpointForbidden) Error() string {
+	return fmt.Sprintf("[POST /endpoint][%d] postEndpointForbidden ", 403)
+}
+
+func (o *PostEndpointForbidden) String() string {
+	return fmt.Sprintf("[POST /endpoint][%d] postEndpointForbidden ", 403)
+}
+
+func (o *PostEndpointForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

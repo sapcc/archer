@@ -43,7 +43,7 @@ func getRow(row reflect.Value, iMap []int) table.Row {
 		row = row.Elem()
 	}
 
-	r := make([]interface{}, 0)
+	r := make([]any, 0)
 	for i := 0; i < len(iMap); i++ {
 		r = append(r, formatValue(row.Field(iMap[i])))
 	}
@@ -60,7 +60,7 @@ func addSortedHeader(v reflect.Value) ([]int, error) {
 		v = v.Elem()
 	}
 
-	header := make([]interface{}, 0)
+	header := make([]any, 0)
 	var indexes []int
 	if len(opts.Formatters.Columns) > 0 {
 		// Filter columns
@@ -120,7 +120,7 @@ func addSortedHeader(v reflect.Value) ([]int, error) {
 }
 
 // WriteTableFromStruct scans a struct and prints content via Table writer
-func WriteTable(data interface{}) error {
+func WriteTable(data any) error {
 	v := reflect.ValueOf(data)
 
 	if v.Kind() == reflect.Ptr {
