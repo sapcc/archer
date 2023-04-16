@@ -32,8 +32,12 @@ import (
 type GetServiceURL struct {
 	Limit       *int64
 	Marker      *strfmt.UUID
+	NotTags     []string
+	NotTagsAny  []string
 	PageReverse *bool
 	Sort        *string
+	Tags        []string
+	TagsAny     []string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -82,6 +86,40 @@ func (o *GetServiceURL) Build() (*url.URL, error) {
 		qs.Set("marker", markerQ)
 	}
 
+	var notTagsIR []string
+	for _, notTagsI := range o.NotTags {
+		notTagsIS := notTagsI
+		if notTagsIS != "" {
+			notTagsIR = append(notTagsIR, notTagsIS)
+		}
+	}
+
+	notTags := swag.JoinByFormat(notTagsIR, "")
+
+	if len(notTags) > 0 {
+		qsv := notTags[0]
+		if qsv != "" {
+			qs.Set("not-tags", qsv)
+		}
+	}
+
+	var notTagsAnyIR []string
+	for _, notTagsAnyI := range o.NotTagsAny {
+		notTagsAnyIS := notTagsAnyI
+		if notTagsAnyIS != "" {
+			notTagsAnyIR = append(notTagsAnyIR, notTagsAnyIS)
+		}
+	}
+
+	notTagsAny := swag.JoinByFormat(notTagsAnyIR, "")
+
+	if len(notTagsAny) > 0 {
+		qsv := notTagsAny[0]
+		if qsv != "" {
+			qs.Set("not-tags-any", qsv)
+		}
+	}
+
 	var pageReverseQ string
 	if o.PageReverse != nil {
 		pageReverseQ = swag.FormatBool(*o.PageReverse)
@@ -96,6 +134,40 @@ func (o *GetServiceURL) Build() (*url.URL, error) {
 	}
 	if sortQ != "" {
 		qs.Set("sort", sortQ)
+	}
+
+	var tagsIR []string
+	for _, tagsI := range o.Tags {
+		tagsIS := tagsI
+		if tagsIS != "" {
+			tagsIR = append(tagsIR, tagsIS)
+		}
+	}
+
+	tags := swag.JoinByFormat(tagsIR, "")
+
+	if len(tags) > 0 {
+		qsv := tags[0]
+		if qsv != "" {
+			qs.Set("tags", qsv)
+		}
+	}
+
+	var tagsAnyIR []string
+	for _, tagsAnyI := range o.TagsAny {
+		tagsAnyIS := tagsAnyI
+		if tagsAnyIS != "" {
+			tagsAnyIR = append(tagsAnyIR, tagsAnyIS)
+		}
+	}
+
+	tagsAny := swag.JoinByFormat(tagsAnyIR, "")
+
+	if len(tagsAny) > 0 {
+		qsv := tagsAny[0]
+		if qsv != "" {
+			qs.Set("tags-any", qsv)
+		}
 	}
 
 	_result.RawQuery = qs.Encode()

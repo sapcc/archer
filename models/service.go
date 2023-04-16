@@ -53,7 +53,7 @@ type Service struct {
 
 	// Device host.
 	// Read Only: true
-	Host string `json:"host,omitempty"`
+	Host *string `json:"host,omitempty"`
 
 	// The ID of the resource.
 	// Read Only: true
@@ -105,6 +105,9 @@ type Service struct {
 	// Read Only: true
 	// Enum: [AVAILABLE PENDING_CREATE PENDING_UPDATE PENDING_DELETE UNAVAILABLE]
 	Status string `json:"status,omitempty"`
+
+	// The list of tags on the resource.
+	Tags []string `json:"tags"`
 
 	// updated at
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
@@ -411,7 +414,7 @@ func (m *Service) ContextValidate(ctx context.Context, formats strfmt.Registry) 
 
 func (m *Service) contextValidateHost(ctx context.Context, formats strfmt.Registry) error {
 
-	if err := validate.ReadOnly(ctx, "host", "body", string(m.Host)); err != nil {
+	if err := validate.ReadOnly(ctx, "host", "body", m.Host); err != nil {
 		return err
 	}
 

@@ -82,7 +82,7 @@ func AuthenticatePrincipal(r *http.Request, principal any) (string, error) {
 	if t, ok := principal.(*gopherpolicy.Token); ok {
 		rule := policy.RuleFromHTTPRequest(r)
 		if t.Check(rule + "-global") {
-			return "%", nil
+			return "", nil
 		} else if t.Check(rule) {
 			return t.ProjectScopeUUID(), nil
 		} else {
@@ -90,5 +90,5 @@ func AuthenticatePrincipal(r *http.Request, principal any) (string, error) {
 		}
 	}
 
-	return "%", nil
+	return "", nil
 }

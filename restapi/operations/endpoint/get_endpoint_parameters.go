@@ -55,6 +55,18 @@ type GetEndpointParams struct {
 	  In: query
 	*/
 	Marker *strfmt.UUID
+	/*Filter for resources not having tags, multiple not-tags are considered as logical AND.
+	Should be provided in a comma separated list.
+
+	  In: query
+	*/
+	NotTags []string
+	/*Filter for resources not having tags, multiple tags are considered as logical OR.
+	Should be provided in a comma separated list.
+
+	  In: query
+	*/
+	NotTagsAny []string
 	/*Sets the page direction.
 	  In: query
 	*/
@@ -63,6 +75,18 @@ type GetEndpointParams struct {
 	  In: query
 	*/
 	Sort *string
+	/*Filter for tags, multiple tags are considered as logical AND.
+	Should be provided in a comma separated list.
+
+	  In: query
+	*/
+	Tags []string
+	/*Filter for tags, multiple tags are considered as logical OR.
+	Should be provided in a comma separated list.
+
+	  In: query
+	*/
+	TagsAny []string
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -86,6 +110,16 @@ func (o *GetEndpointParams) BindRequest(r *http.Request, route *middleware.Match
 		res = append(res, err)
 	}
 
+	qNotTags, qhkNotTags, _ := qs.GetOK("not-tags")
+	if err := o.bindNotTags(qNotTags, qhkNotTags, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qNotTagsAny, qhkNotTagsAny, _ := qs.GetOK("not-tags-any")
+	if err := o.bindNotTagsAny(qNotTagsAny, qhkNotTagsAny, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	qPageReverse, qhkPageReverse, _ := qs.GetOK("page_reverse")
 	if err := o.bindPageReverse(qPageReverse, qhkPageReverse, route.Formats); err != nil {
 		res = append(res, err)
@@ -93,6 +127,16 @@ func (o *GetEndpointParams) BindRequest(r *http.Request, route *middleware.Match
 
 	qSort, qhkSort, _ := qs.GetOK("sort")
 	if err := o.bindSort(qSort, qhkSort, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qTags, qhkTags, _ := qs.GetOK("tags")
+	if err := o.bindTags(qTags, qhkTags, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qTagsAny, qhkTagsAny, _ := qs.GetOK("tags-any")
+	if err := o.bindTagsAny(qTagsAny, qhkTagsAny, route.Formats); err != nil {
 		res = append(res, err)
 	}
 	if len(res) > 0 {
@@ -161,6 +205,60 @@ func (o *GetEndpointParams) validateMarker(formats strfmt.Registry) error {
 	return nil
 }
 
+// bindNotTags binds and validates array parameter NotTags from query.
+//
+// Arrays are parsed according to CollectionFormat: "" (defaults to "csv" when empty).
+func (o *GetEndpointParams) bindNotTags(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var qvNotTags string
+	if len(rawData) > 0 {
+		qvNotTags = rawData[len(rawData)-1]
+	}
+
+	// CollectionFormat:
+	notTagsIC := swag.SplitByFormat(qvNotTags, "")
+	if len(notTagsIC) == 0 {
+		return nil
+	}
+
+	var notTagsIR []string
+	for _, notTagsIV := range notTagsIC {
+		notTagsI := notTagsIV
+
+		notTagsIR = append(notTagsIR, notTagsI)
+	}
+
+	o.NotTags = notTagsIR
+
+	return nil
+}
+
+// bindNotTagsAny binds and validates array parameter NotTagsAny from query.
+//
+// Arrays are parsed according to CollectionFormat: "" (defaults to "csv" when empty).
+func (o *GetEndpointParams) bindNotTagsAny(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var qvNotTagsAny string
+	if len(rawData) > 0 {
+		qvNotTagsAny = rawData[len(rawData)-1]
+	}
+
+	// CollectionFormat:
+	notTagsAnyIC := swag.SplitByFormat(qvNotTagsAny, "")
+	if len(notTagsAnyIC) == 0 {
+		return nil
+	}
+
+	var notTagsAnyIR []string
+	for _, notTagsAnyIV := range notTagsAnyIC {
+		notTagsAnyI := notTagsAnyIV
+
+		notTagsAnyIR = append(notTagsAnyIR, notTagsAnyI)
+	}
+
+	o.NotTagsAny = notTagsAnyIR
+
+	return nil
+}
+
 // bindPageReverse binds and validates parameter PageReverse from query.
 func (o *GetEndpointParams) bindPageReverse(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
@@ -198,6 +296,60 @@ func (o *GetEndpointParams) bindSort(rawData []string, hasKey bool, formats strf
 		return nil
 	}
 	o.Sort = &raw
+
+	return nil
+}
+
+// bindTags binds and validates array parameter Tags from query.
+//
+// Arrays are parsed according to CollectionFormat: "" (defaults to "csv" when empty).
+func (o *GetEndpointParams) bindTags(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var qvTags string
+	if len(rawData) > 0 {
+		qvTags = rawData[len(rawData)-1]
+	}
+
+	// CollectionFormat:
+	tagsIC := swag.SplitByFormat(qvTags, "")
+	if len(tagsIC) == 0 {
+		return nil
+	}
+
+	var tagsIR []string
+	for _, tagsIV := range tagsIC {
+		tagsI := tagsIV
+
+		tagsIR = append(tagsIR, tagsI)
+	}
+
+	o.Tags = tagsIR
+
+	return nil
+}
+
+// bindTagsAny binds and validates array parameter TagsAny from query.
+//
+// Arrays are parsed according to CollectionFormat: "" (defaults to "csv" when empty).
+func (o *GetEndpointParams) bindTagsAny(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var qvTagsAny string
+	if len(rawData) > 0 {
+		qvTagsAny = rawData[len(rawData)-1]
+	}
+
+	// CollectionFormat:
+	tagsAnyIC := swag.SplitByFormat(qvTagsAny, "")
+	if len(tagsAnyIC) == 0 {
+		return nil
+	}
+
+	var tagsAnyIR []string
+	for _, tagsAnyIV := range tagsAnyIC {
+		tagsAnyI := tagsAnyIV
+
+		tagsAnyIR = append(tagsAnyIR, tagsAnyI)
+	}
+
+	o.TagsAny = tagsAnyIR
 
 	return nil
 }

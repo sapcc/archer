@@ -44,7 +44,7 @@ func init() {
   ],
   "swagger": "2.0",
   "info": {
-    "description": "Archer is an API service that can privately connect services from one private [OpenStack Network](https://docs.openstack.org/neutron/latest/admin/intro-os-networking.html) to another. Consumers can select a *service* from a service catalog and **inject** it to their network, which means making this *service* available via a private ip address.\n\nArcher implements an *OpenStack* like API and integrates with *OpenStack Keystone* and *OpenStack Neutron*.\n\n### Architecture\nThere are two types of resources: **services** and **endpoints**\n\n* **Services** are private or public services that are manually configured in *Archer*. They can be accessed by creating an endpoint.\n* **Service endpoints**, or short **endpoints**, are IP endpoints in a local network used to transparently access services residing in different private networks.\n\n### Features\n* Multi-tenant capable via OpenStack Identity service\n* OpenStack ` + "`" + `policy.json` + "`" + ` access policy support\n* Prometheus Exporter\n* Rate limiting\n\n### Supported Backends\n* F5 BigIP\n\n### Requirements\n* PostgreSQL Database\n\n### API\nThe **Archer API** uses the OpenStack Identity service as the default authentication service. When Keystone is enabled, users that submit requests to the OpenStack Networking service must provide an authentication token in ` + "`" + `X-Auth-Token` + "`" + ` request header. \nYou obtain the token by authenticating to the Keystone endpoint.\n\nWhen Keystone is enabled, the ` + "`" + `project_id` + "`" + ` attribute is not required in create requests because the project ID is derived from the authentication token.\n",
+    "description": "Archer is an API service that can privately connect services from one private [OpenStack Network](https://docs.openstack.org/neutron/latest/admin/intro-os-networking.html) to another. Consumers can select a *service* from a service catalog and **inject** it to their network, which means making this *service* available via a private ip address.\n    \nArcher implements an *OpenStack* like API and integrates with *OpenStack Keystone* and *OpenStack Neutron*.\n    \n### Architecture\nThere are two types of resources: **services** and **endpoints**\n    \n* **Services** are private or public services that are manually configured in *Archer*. They can be accessed by creating an endpoint.\n* **Service endpoints**, or short **endpoints**, are IP endpoints in a local network used to transparently access services residing in different private networks.\n    \n### Features\n* Multi-tenant capable via OpenStack Identity service\n* OpenStack ` + "`" + `policy.json` + "`" + ` access policy support\n* Prometheus Exporter\n* Rate limiting\n    \n### Supported Backends\n* F5 BigIP\n    \n### Requirements\n* PostgreSQL Database\n    \n### API\nThis section describes properties of the Archer API. It uses a ReSTful HTTP API.\n    \n#### Request format\nThe Archer API only accepts requests with the JSON data serialization format. The Content-Type header for POST requests is always expected to be ` + "`" + `application/json` + "`" + `.\n    \n#### Response format\nThe Archer API always response with JSON data serialization format. The Content-Type header is always ` + "`" + `Content-Type: application/json` + "`" + `.\n    \n#### Authentication and authorization\nThe **Archer API** uses the OpenStack Identity service as the default authentication service. When Keystone is enabled, users that submit requests to the OpenStack Networking service must provide an authentication token in ` + "`" + `X-Auth-Token` + "`" + ` request header. \nYou obtain the token by authenticating to the Keystone endpoint.\n\nWhen Keystone is enabled, the ` + "`" + `project_id` + "`" + ` attribute is not required in create requests because the project ID is derived from the authentication token.\n\n#### Pagination\nTo reduce load on the service, list operations will return a maximum number of items at a time. To navigate the collection, the parameters limit, marker and page_reverse can be set in the URI. For example:\n\n` + "`" + `` + "`" + `` + "`" + `\n?limit=100\u0026marker=1234\u0026page_reverse=False\n` + "`" + `` + "`" + `` + "`" + `\n    \nThe ` + "`" + `marker` + "`" + ` parameter is the ID of the last item in the previous list. The ` + "`" + `limit` + "`" + ` parameter sets the page size. The ` + "`" + `page_reverse` + "`" + ` parameter sets the page direction. \nThese parameters are optional. \nIf the client requests a limit beyond the maximum limit configured by the deployment, the server returns the maximum limit number of items.\n\nFor convenience, list responses contain atom **next** links and **previous** links. The last page in the list requested with ` + "`" + `page_reverse=False` + "`" + ` will not contain **next** link, and the last page in the list requested with ` + "`" + `page_reverse=True` + "`" + ` will not contain **previous** link. \n\nTo determine if pagination is supported, a user can check whether the ` + "`" + `pagination` + "`" + ` capability is available through the Archer API detail endpoint.\n\n#### Sorting\nYou can use the ` + "`" + `sort` + "`" + ` parameter to sort the results of list operations.\nThe sort parameter contains a comma-separated list of sort keys, in order of the sort priority. Each sort key can be optionally prepended with a minus **-** character to reverse default sort direction (ascending).\n\nFor example: \n\n` + "`" + `` + "`" + `` + "`" + `\n?sort=key1,-key2,key3\n` + "`" + `` + "`" + `` + "`" + `\n\n**key1** is the first key (ascending order), **key2** is the second key (descending order) and **key3** is the third key in ascending order.\n\n\nTo determine if sorting is supported, a user can check whether the ` + "`" + `sort` + "`" + ` capability is available through the Archer API detail endpoint.\n\n#### Filtering by tags\nMost resources (e.g. service and endpoint) support adding tags to the resource attributes. Archer supports advanced filtering using these tags for list operations. The following tag filters are supported by the Archer API:\n\n* ` + "`" + `tags` + "`" + ` - Return the list of entities that have this tag or tags.\n* ` + "`" + `tags-any` + "`" + ` - Return the list of entities that have one or more of the given tags.\n* ` + "`" + `not-tags` + "`" + ` - Return the list of entities that do not have one or more of the given tags.\n* ` + "`" + `not-tags-any` + "`" + ` - Return the list of entities that do not have at least one of the given tags.\n\nEach tag supports a maximum amount of 64 characters.\n\nFor example to get a list of resources having both, **red** and **blue** tags:\n\n` + "`" + `` + "`" + `` + "`" + `\n?tags=red,blue\n` + "`" + `` + "`" + `` + "`" + `\n\nTo get a list of resourcing having either, **red** or **blue** tags:\n\n` + "`" + `` + "`" + `` + "`" + `\n?tags-any=red,blue\n` + "`" + `` + "`" + `` + "`" + `\n\nTag filters can also be combined in the same request:\n\n` + "`" + `` + "`" + `` + "`" + `\n?tags=red,blue\u0026tags-any=green,orange\n` + "`" + `` + "`" + `` + "`" + `\n\n#### Response Codes (Faults)\n\n| Code  | Description       |\n| ----- | ----------------- |\n| 400   | Validation Error |\n| 401   | Unauthorized |\n| 403   | Policy does not allow current user to do this \u003cbr\u003e The project is over quota for the request |\n| 404   | Not Found \u003cbr\u003e Resource not found |\n| 409   | Conflict |\n| 429   | You have reached maximum request limit |\n| 500   | Internal server error |\n",
     "title": "🏹 Archer",
     "contact": {
       "name": "SAP SE / Converged Cloud",
@@ -97,6 +97,18 @@ func init() {
           },
           {
             "$ref": "#/parameters/page_reverse"
+          },
+          {
+            "$ref": "#/parameters/tags"
+          },
+          {
+            "$ref": "#/parameters/tags-any"
+          },
+          {
+            "$ref": "#/parameters/not-tags"
+          },
+          {
+            "$ref": "#/parameters/not-tags-any"
           }
         ],
         "responses": {
@@ -640,6 +652,18 @@ func init() {
           },
           {
             "$ref": "#/parameters/page_reverse"
+          },
+          {
+            "$ref": "#/parameters/tags"
+          },
+          {
+            "$ref": "#/parameters/tags-any"
+          },
+          {
+            "$ref": "#/parameters/not-tags"
+          },
+          {
+            "$ref": "#/parameters/not-tags-any"
           }
         ],
         "responses": {
@@ -1022,6 +1046,13 @@ func init() {
         "status": {
           "$ref": "#/definitions/EndpointStatus"
         },
+        "tags": {
+          "description": "The list of tags on the resource.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "target": {
           "description": "Endpoint target",
           "type": "object",
@@ -1270,6 +1301,7 @@ func init() {
         "host": {
           "description": "Device host.",
           "type": "string",
+          "x-nullable": true,
           "readOnly": true
         },
         "id": {
@@ -1334,6 +1366,13 @@ func init() {
             "UNAVAILABLE"
           ],
           "readOnly": true
+        },
+        "tags": {
+          "description": "The list of tags on the resource.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "updated_at": {
           "$ref": "#/definitions/Timestamp"
@@ -1408,6 +1447,24 @@ func init() {
       "name": "marker",
       "in": "query"
     },
+    "not-tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Filter for resources not having tags, multiple not-tags are considered as logical AND.\nShould be provided in a comma separated list.\n",
+      "name": "not-tags",
+      "in": "query"
+    },
+    "not-tags-any": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Filter for resources not having tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
+      "name": "not-tags-any",
+      "in": "query"
+    },
     "page_reverse": {
       "type": "boolean",
       "description": "Sets the page direction.",
@@ -1418,6 +1475,24 @@ func init() {
       "type": "string",
       "description": "Comma-separated list of sort keys, optinally prefix with - to reverse sort order.",
       "name": "sort",
+      "in": "query"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Filter for tags, multiple tags are considered as logical AND. \nShould be provided in a comma separated list.\n",
+      "name": "tags",
+      "in": "query"
+    },
+    "tags-any": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Filter for tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
+      "name": "tags-any",
       "in": "query"
     }
   },
@@ -1476,7 +1551,7 @@ func init() {
   ],
   "swagger": "2.0",
   "info": {
-    "description": "Archer is an API service that can privately connect services from one private [OpenStack Network](https://docs.openstack.org/neutron/latest/admin/intro-os-networking.html) to another. Consumers can select a *service* from a service catalog and **inject** it to their network, which means making this *service* available via a private ip address.\n\nArcher implements an *OpenStack* like API and integrates with *OpenStack Keystone* and *OpenStack Neutron*.\n\n### Architecture\nThere are two types of resources: **services** and **endpoints**\n\n* **Services** are private or public services that are manually configured in *Archer*. They can be accessed by creating an endpoint.\n* **Service endpoints**, or short **endpoints**, are IP endpoints in a local network used to transparently access services residing in different private networks.\n\n### Features\n* Multi-tenant capable via OpenStack Identity service\n* OpenStack ` + "`" + `policy.json` + "`" + ` access policy support\n* Prometheus Exporter\n* Rate limiting\n\n### Supported Backends\n* F5 BigIP\n\n### Requirements\n* PostgreSQL Database\n\n### API\nThe **Archer API** uses the OpenStack Identity service as the default authentication service. When Keystone is enabled, users that submit requests to the OpenStack Networking service must provide an authentication token in ` + "`" + `X-Auth-Token` + "`" + ` request header. \nYou obtain the token by authenticating to the Keystone endpoint.\n\nWhen Keystone is enabled, the ` + "`" + `project_id` + "`" + ` attribute is not required in create requests because the project ID is derived from the authentication token.\n",
+    "description": "Archer is an API service that can privately connect services from one private [OpenStack Network](https://docs.openstack.org/neutron/latest/admin/intro-os-networking.html) to another. Consumers can select a *service* from a service catalog and **inject** it to their network, which means making this *service* available via a private ip address.\n    \nArcher implements an *OpenStack* like API and integrates with *OpenStack Keystone* and *OpenStack Neutron*.\n    \n### Architecture\nThere are two types of resources: **services** and **endpoints**\n    \n* **Services** are private or public services that are manually configured in *Archer*. They can be accessed by creating an endpoint.\n* **Service endpoints**, or short **endpoints**, are IP endpoints in a local network used to transparently access services residing in different private networks.\n    \n### Features\n* Multi-tenant capable via OpenStack Identity service\n* OpenStack ` + "`" + `policy.json` + "`" + ` access policy support\n* Prometheus Exporter\n* Rate limiting\n    \n### Supported Backends\n* F5 BigIP\n    \n### Requirements\n* PostgreSQL Database\n    \n### API\nThis section describes properties of the Archer API. It uses a ReSTful HTTP API.\n    \n#### Request format\nThe Archer API only accepts requests with the JSON data serialization format. The Content-Type header for POST requests is always expected to be ` + "`" + `application/json` + "`" + `.\n    \n#### Response format\nThe Archer API always response with JSON data serialization format. The Content-Type header is always ` + "`" + `Content-Type: application/json` + "`" + `.\n    \n#### Authentication and authorization\nThe **Archer API** uses the OpenStack Identity service as the default authentication service. When Keystone is enabled, users that submit requests to the OpenStack Networking service must provide an authentication token in ` + "`" + `X-Auth-Token` + "`" + ` request header. \nYou obtain the token by authenticating to the Keystone endpoint.\n\nWhen Keystone is enabled, the ` + "`" + `project_id` + "`" + ` attribute is not required in create requests because the project ID is derived from the authentication token.\n\n#### Pagination\nTo reduce load on the service, list operations will return a maximum number of items at a time. To navigate the collection, the parameters limit, marker and page_reverse can be set in the URI. For example:\n\n` + "`" + `` + "`" + `` + "`" + `\n?limit=100\u0026marker=1234\u0026page_reverse=False\n` + "`" + `` + "`" + `` + "`" + `\n    \nThe ` + "`" + `marker` + "`" + ` parameter is the ID of the last item in the previous list. The ` + "`" + `limit` + "`" + ` parameter sets the page size. The ` + "`" + `page_reverse` + "`" + ` parameter sets the page direction. \nThese parameters are optional. \nIf the client requests a limit beyond the maximum limit configured by the deployment, the server returns the maximum limit number of items.\n\nFor convenience, list responses contain atom **next** links and **previous** links. The last page in the list requested with ` + "`" + `page_reverse=False` + "`" + ` will not contain **next** link, and the last page in the list requested with ` + "`" + `page_reverse=True` + "`" + ` will not contain **previous** link. \n\nTo determine if pagination is supported, a user can check whether the ` + "`" + `pagination` + "`" + ` capability is available through the Archer API detail endpoint.\n\n#### Sorting\nYou can use the ` + "`" + `sort` + "`" + ` parameter to sort the results of list operations.\nThe sort parameter contains a comma-separated list of sort keys, in order of the sort priority. Each sort key can be optionally prepended with a minus **-** character to reverse default sort direction (ascending).\n\nFor example: \n\n` + "`" + `` + "`" + `` + "`" + `\n?sort=key1,-key2,key3\n` + "`" + `` + "`" + `` + "`" + `\n\n**key1** is the first key (ascending order), **key2** is the second key (descending order) and **key3** is the third key in ascending order.\n\n\nTo determine if sorting is supported, a user can check whether the ` + "`" + `sort` + "`" + ` capability is available through the Archer API detail endpoint.\n\n#### Filtering by tags\nMost resources (e.g. service and endpoint) support adding tags to the resource attributes. Archer supports advanced filtering using these tags for list operations. The following tag filters are supported by the Archer API:\n\n* ` + "`" + `tags` + "`" + ` - Return the list of entities that have this tag or tags.\n* ` + "`" + `tags-any` + "`" + ` - Return the list of entities that have one or more of the given tags.\n* ` + "`" + `not-tags` + "`" + ` - Return the list of entities that do not have one or more of the given tags.\n* ` + "`" + `not-tags-any` + "`" + ` - Return the list of entities that do not have at least one of the given tags.\n\nEach tag supports a maximum amount of 64 characters.\n\nFor example to get a list of resources having both, **red** and **blue** tags:\n\n` + "`" + `` + "`" + `` + "`" + `\n?tags=red,blue\n` + "`" + `` + "`" + `` + "`" + `\n\nTo get a list of resourcing having either, **red** or **blue** tags:\n\n` + "`" + `` + "`" + `` + "`" + `\n?tags-any=red,blue\n` + "`" + `` + "`" + `` + "`" + `\n\nTag filters can also be combined in the same request:\n\n` + "`" + `` + "`" + `` + "`" + `\n?tags=red,blue\u0026tags-any=green,orange\n` + "`" + `` + "`" + `` + "`" + `\n\n#### Response Codes (Faults)\n\n| Code  | Description       |\n| ----- | ----------------- |\n| 400   | Validation Error |\n| 401   | Unauthorized |\n| 403   | Policy does not allow current user to do this \u003cbr\u003e The project is over quota for the request |\n| 404   | Not Found \u003cbr\u003e Resource not found |\n| 409   | Conflict |\n| 429   | You have reached maximum request limit |\n| 500   | Internal server error |\n",
     "title": "🏹 Archer",
     "contact": {
       "name": "SAP SE / Converged Cloud",
@@ -1541,6 +1616,42 @@ func init() {
             "type": "boolean",
             "description": "Sets the page direction.",
             "name": "page_reverse",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Filter for tags, multiple tags are considered as logical AND. \nShould be provided in a comma separated list.\n",
+            "name": "tags",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Filter for tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
+            "name": "tags-any",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Filter for resources not having tags, multiple not-tags are considered as logical AND.\nShould be provided in a comma separated list.\n",
+            "name": "not-tags",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Filter for resources not having tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
+            "name": "not-tags-any",
             "in": "query"
           }
         ],
@@ -2109,6 +2220,42 @@ func init() {
             "description": "Sets the page direction.",
             "name": "page_reverse",
             "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Filter for tags, multiple tags are considered as logical AND. \nShould be provided in a comma separated list.\n",
+            "name": "tags",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Filter for tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
+            "name": "tags-any",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Filter for resources not having tags, multiple not-tags are considered as logical AND.\nShould be provided in a comma separated list.\n",
+            "name": "not-tags",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Filter for resources not having tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
+            "name": "not-tags-any",
+            "in": "query"
           }
         ],
         "responses": {
@@ -2504,6 +2651,13 @@ func init() {
         "status": {
           "$ref": "#/definitions/EndpointStatus"
         },
+        "tags": {
+          "description": "The list of tags on the resource.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "target": {
           "description": "Endpoint target",
           "type": "object",
@@ -2797,6 +2951,7 @@ func init() {
         "host": {
           "description": "Device host.",
           "type": "string",
+          "x-nullable": true,
           "readOnly": true
         },
         "id": {
@@ -2861,6 +3016,13 @@ func init() {
             "UNAVAILABLE"
           ],
           "readOnly": true
+        },
+        "tags": {
+          "description": "The list of tags on the resource.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "updated_at": {
           "$ref": "#/definitions/Timestamp"
@@ -2935,6 +3097,24 @@ func init() {
       "name": "marker",
       "in": "query"
     },
+    "not-tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Filter for resources not having tags, multiple not-tags are considered as logical AND.\nShould be provided in a comma separated list.\n",
+      "name": "not-tags",
+      "in": "query"
+    },
+    "not-tags-any": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Filter for resources not having tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
+      "name": "not-tags-any",
+      "in": "query"
+    },
     "page_reverse": {
       "type": "boolean",
       "description": "Sets the page direction.",
@@ -2945,6 +3125,24 @@ func init() {
       "type": "string",
       "description": "Comma-separated list of sort keys, optinally prefix with - to reverse sort order.",
       "name": "sort",
+      "in": "query"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Filter for tags, multiple tags are considered as logical AND. \nShould be provided in a comma separated list.\n",
+      "name": "tags",
+      "in": "query"
+    },
+    "tags-any": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Filter for tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
+      "name": "tags-any",
       "in": "query"
     }
   },

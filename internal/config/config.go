@@ -17,10 +17,9 @@
 package config
 
 import (
-	"os"
+	"net/http"
+	"net/url"
 	"time"
-
-	"github.com/sapcc/go-bits/logg"
 )
 
 var (
@@ -48,15 +47,15 @@ type Default struct {
 }
 
 type ApiSettings struct {
-	ApiBaseURL         string  `long:"api_base_uri" description:"Base URI for the API for use in pagination links. This will be autodetected from the request if not overridden here."`
-	PolicyFile         string  `long:"policy-file" ini-name:"policy_file" description:"Use policy file" default:"policy.ini"`
-	AuthStrategy       string  `long:"auth-strategy" ini-name:"auth_strategy" description:"The auth strategy for API requests, currently supported: [keystone, none]" default:"none"`
-	PolicyEngine       string  `long:"policy-engine" ini-name:"policy_engine" description:"Policy engine to use, currently supported: [goslo, noop]"`
-	DisablePagination  bool    `long:"disable-pagination" ini-name:"disable_pagination" description:"Disable the usage of pagination"`
-	DisableSorting     bool    `long:"disable-sorting" ini-name:"disable_sorting" description:"Disable the usage of sorting"`
-	PaginationMaxLimit int64   `long:"pagination-max-limit" ini-name:"pagination_max_limit" default:"1000" description:"The maximum number of items returned in a single response."`
-	RateLimit          float64 `long:"rate-limit" ini-name:"rate_limit" default:"100" description:"Maximum number of requests to limit per second."`
-	DisableCors        bool    `long:"disable-cors" ini-name:"disable_cors" description:"Stops sending Access-Control-Allow-Origin Header to allow cross-origin requests."`
+	PolicyFile                string  `long:"policy-file" ini-name:"policy_file" description:"Use policy file" default:"policy.ini"`
+	AuthStrategy              string  `long:"auth-strategy" ini-name:"auth_strategy" description:"The auth strategy for API requests, currently supported: [keystone, none]" default:"none"`
+	PolicyEngine              string  `long:"policy-engine" ini-name:"policy_engine" description:"Policy engine to use, currently supported: [goslo, noop]"`
+	DisablePagination         bool    `long:"disable-pagination" ini-name:"disable_pagination" description:"Disable the usage of pagination"`
+	DisableSorting            bool    `long:"disable-sorting" ini-name:"disable_sorting" description:"Disable the usage of sorting"`
+	PaginationMaxLimit        int64   `long:"pagination-max-limit" ini-name:"pagination_max_limit" default:"1000" description:"The maximum number of items returned in a single response."`
+	RateLimit                 float64 `long:"rate-limit" ini-name:"rate_limit" default:"100" description:"Maximum number of requests to limit per second."`
+	DisableCors               bool    `long:"disable-cors" ini-name:"disable_cors" description:"Stops sending Access-Control-Allow-Origin Header to allow cross-origin requests."`
+	EnableProxyHeadersParsing bool    `long:"enable-proxy-headers-parsing" ini-name:"enable_proxy_headers_parsing" description:"Try parsing proxy headers for http scheme and base url."`
 }
 
 type Quota struct {
@@ -109,14 +108,22 @@ func IsDebug() bool {
 	return Global.Default.Debug
 }
 
-func HostName() string {
-	if Global.Default.Host == "" {
-		host, err := os.Hostname()
-		if err != nil {
-			logg.Fatal(err.Error())
+func GetApiBaseUrl(r *http.Request) string {
+	var baseUrl url.URL
+
+	baseUrl.Scheme = "http"
+	if r.TLS != nil {
+		baseUrl.Scheme = "https"
+	}
+	baseUrl.Host = Global.Default.Host
+	if Global.ApiSettings.EnableProxyHeadersParsing {
+		if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
+			baseUrl.Scheme = proto
 		}
-		return host
+		if host := r.Header.Get("X-Forwarded-Host"); host != "" {
+			baseUrl.Host = host
+		}
 	}
 
-	return Global.Default.Host
+	return baseUrl.String()
 }

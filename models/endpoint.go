@@ -57,6 +57,9 @@ type Endpoint struct {
 	// status
 	Status EndpointStatus `json:"status,omitempty"`
 
+	// The list of tags on the resource.
+	Tags []string `json:"tags"`
+
 	// target
 	Target *EndpointTarget `json:"target,omitempty"`
 

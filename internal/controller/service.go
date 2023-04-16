@@ -29,15 +29,15 @@ import (
 )
 
 func (c *Controller) GetServiceHandler(params service.GetServiceParams, principal any) middleware.Responder {
-	filter := make(map[string]string, 0)
+	filter := make(map[string]any, 0)
 	if projectId, err := auth.AuthenticatePrincipal(params.HTTPRequest, principal); err != nil {
 		return service.NewGetServiceForbidden()
-	} else {
+	} else if projectId != "" {
 		filter["project_id"] = projectId
 	}
 
-	pagination := db.NewPagination("service", params.Limit, params.Marker, params.Sort, params.PageReverse)
-	rows, err := pagination.Query(c.pool, filter)
+	pagination := db.Pagination(params)
+	rows, err := pagination.Query(c.pool, "service", filter)
 	if err != nil {
 		panic(err)
 	}
@@ -47,7 +47,7 @@ func (c *Controller) GetServiceHandler(params service.GetServiceParams, principa
 		panic(err)
 	}
 
-	links := pagination.GetLinks(servicesResponse, params.HTTPRequest)
+	links := pagination.GetLinks(servicesResponse)
 	return service.NewGetServiceOK().WithPayload(&service.GetServiceOKBody{Items: servicesResponse, Links: links})
 }
 
@@ -57,7 +57,7 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 
 	if projectId, err := auth.AuthenticatePrincipal(params.HTTPRequest, principal); err != nil {
 		return service.NewPostServiceForbidden()
-	} else if projectId != "%" {
+	} else if projectId != "" {
 		params.Body.ProjectID = models.Project(projectId)
 	}
 
@@ -77,9 +77,10 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 			                     availability_zone, 
 			                     proxy_protocol, 
 			                     project_id, 
-			                     port)
+			                     port,
+			                     tags)
 			VALUES
-				($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+				($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 			RETURNING *
 		`
 
@@ -94,7 +95,8 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 		params.Body.AvailabilityZone,
 		params.Body.ProxyProtocol,
 		params.Body.ProjectID,
-		params.Body.Port)
+		params.Body.Port,
+		params.Body.Tags)
 	if err != nil {
 		panic(err)
 	}

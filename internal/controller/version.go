@@ -49,7 +49,7 @@ func (c *Controller) GetVersionHandler(params version.GetParams) middleware.Resp
 	return version.NewGetOK().WithPayload(&models.Version{
 		Capabilities: capabilities,
 		Links: []*models.Link{{
-			Href: config.Global.ApiSettings.ApiBaseURL,
+			Href: config.GetApiBaseUrl(params.HTTPRequest),
 			Rel:  "self",
 		}},
 		Updated: "now", // TODO: build time

@@ -74,11 +74,11 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 	api.JSONConsumer = runtime.JSONConsumer()
 	api.JSONProducer = runtime.JSONProducer()
 
-	if config.Global.ApiSettings.ApiBaseURL == "" {
+	if config.Global.Default.Host == "" {
 		if hostname, err := os.Hostname(); err != nil {
 			logg.Fatal(err.Error())
 		} else {
-			config.Global.ApiSettings.ApiBaseURL = hostname
+			config.Global.Default.Host = hostname
 		}
 	}
 

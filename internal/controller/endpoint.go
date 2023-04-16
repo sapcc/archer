@@ -25,15 +25,15 @@ import (
 )
 
 func (c *Controller) GetEndpointHandler(params endpoint.GetEndpointParams, principal any) middleware.Responder {
-	filter := make(map[string]string, 0)
+	filter := make(map[string]any, 0)
 	if projectId, err := auth.AuthenticatePrincipal(params.HTTPRequest, principal); err != nil {
 		return endpoint.NewGetEndpointForbidden()
-	} else {
+	} else if projectId != "" {
 		filter["project_id"] = projectId
 	}
 
-	pagination := db.NewPagination("endpoint", params.Limit, params.Marker, params.Sort, params.PageReverse)
-	rows, err := pagination.Query(c.pool, filter)
+	pagination := db.Pagination(params)
+	rows, err := pagination.Query(c.pool, "endpoint", filter)
 	if err != nil {
 		panic(err)
 	}
@@ -42,7 +42,7 @@ func (c *Controller) GetEndpointHandler(params endpoint.GetEndpointParams, princ
 	if err := pgxscan.ScanAll(&items, rows); err != nil {
 		panic(err)
 	}
-	links := pagination.GetLinks(items, params.HTTPRequest)
+	links := pagination.GetLinks(items)
 	return endpoint.NewGetEndpointOK().WithPayload(&endpoint.GetEndpointOKBody{Items: items, Links: links})
 }
 

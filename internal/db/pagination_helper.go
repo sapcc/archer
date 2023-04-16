@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5/pgtype"
 	"net/http"
 	"reflect"
 	"regexp"
@@ -39,34 +40,50 @@ var (
 )
 
 type Pagination struct {
+
+	// HTTP Request Object
+	HTTPRequest *http.Request `json:"-"`
+
 	/*Sets the page size.
 	  In: query
 	*/
-	limit *int64
+	Limit *int64
 	/*Pagination ID of the last item in the previous list.
 	  In: query
 	*/
-	marker *strfmt.UUID
+	Marker *strfmt.UUID
+	/*Filter for resources not having tags, multiple not-tags are considered as logical AND.
+	Should be provided in a comma separated list.
+
+	  In: query
+	*/
+	NotTags []string
+	/*Filter for resources not having tags, multiple tags are considered as logical OR.
+	Should be provided in a comma separated list.
+
+	  In: query
+	*/
+	NotTagsAny []string
 	/*Sets the page direction.
 	  In: query
 	*/
-	pageReverse *bool
-	/*Comma-separated list of sort keys optionally prefix with - to reverse sort order.
+	PageReverse *bool
+	/*Comma-separated list of sort keys, optionally prefix with - to reverse sort order.
 	  In: query
 	*/
-	sort *string
+	Sort *string
+	/*Filter for tags, multiple tags are considered as logical AND.
+	Should be provided in a comma separated list.
 
-	table string
-}
+	  In: query
+	*/
+	Tags []string
+	/*Filter for tags, multiple tags are considered as logical OR.
+	Should be provided in a comma separated list.
 
-func NewPagination(Table string, Limit *int64, Marker *strfmt.UUID, Sort *string, pageReverse *bool) *Pagination {
-	return &Pagination{
-		limit:       Limit,
-		marker:      Marker,
-		sort:        Sort,
-		pageReverse: pageReverse,
-		table:       Table,
-	}
+	  In: query
+	*/
+	TagsAny []string
 }
 
 func stripDesc(sortDirKey string) (string, bool) {
@@ -75,24 +92,47 @@ func stripDesc(sortDirKey string) (string, bool) {
 }
 
 // Query pagination helper that also includes policy query filter
-func (p *Pagination) Query(db *pgxpool.Pool, filter map[string]string) (pgx.Rows, error) {
+func (p *Pagination) Query(db *pgxpool.Pool, table string, filter map[string]any) (pgx.Rows, error) {
 	var sortDirKeys []string
 	var whereClauses []string
 	var orderBy string
-	markerObj := make(map[string]any)
+	var pageReverse bool
 
-	query := fmt.Sprintf(`SELECT * FROM %s`, p.table)
+	query := fmt.Sprint("SELECT * FROM ", table)
 
-	//add filter
+	// add filter
 	for key, val := range filter {
-		whereClauses = append(whereClauses, fmt.Sprintf("%s = '%s'", key, val))
+		whereClauses = append(whereClauses, fmt.Sprintf("%s = @%s", key, val))
 	}
 
-	//add sorting
-	if !config.Global.ApiSettings.DisableSorting && p.sort != nil {
-		sortDirKeys = strings.Split(*p.sort, ",")
+	// tags Filter
+	if p.Tags != nil {
+		whereClauses = append(whereClauses, "tags @> @tags")
+		filter["tags"] = pgtype.FlatArray[string](p.Tags)
+	}
+	if p.TagsAny != nil {
+		whereClauses = append(whereClauses, "tags && @tags_any")
+		filter["tags_any"] = pgtype.FlatArray[string](p.TagsAny)
+	}
+	if p.NotTags != nil {
+		whereClauses = append(whereClauses, "NOT ( tags @> @not_tags )")
+		filter["not_tags"] = pgtype.FlatArray[string](p.NotTags)
+	}
+	if p.NotTagsAny != nil {
+		whereClauses = append(whereClauses, "NOT ( tags && @not_tags_any )")
+		filter["not_tags_any"] = pgtype.FlatArray[string](p.NotTagsAny)
+	}
 
-		// Add default sort keys (if not existing)
+	//page reverse
+	if p.PageReverse != nil {
+		pageReverse = *p.PageReverse
+	}
+
+	// add sorting
+	if !config.Global.ApiSettings.DisableSorting && p.Sort != nil {
+		sortDirKeys = strings.Split(*p.Sort, ",")
+
+		// add default sort keys (if not existing)
 		for _, defaultSortKey := range defaultSortKeys {
 			found := false
 			for _, paramSortKey := range sortDirKeys {
@@ -108,11 +148,11 @@ func (p *Pagination) Query(db *pgxpool.Pool, filter map[string]string) (pgx.Rows
 			}
 		}
 	} else {
-		// Creates a copy
+		// creates a copy
 		sortDirKeys = append(sortDirKeys, defaultSortKeys...)
 	}
 
-	//always order to ensure stable result
+	// always order to ensure stable result
 	orderBy += " ORDER BY "
 	for i, sortDirKey := range sortDirKeys {
 		// Input sanitation
@@ -120,10 +160,12 @@ func (p *Pagination) Query(db *pgxpool.Pool, filter map[string]string) (pgx.Rows
 			continue
 		}
 
-		if sortKey, ok := stripDesc(sortDirKey); ok {
-			orderBy += fmt.Sprintf("%s DESC", sortKey)
+		sortKey, desc := stripDesc(sortDirKey)
+		orderBy += sortKey
+		if (desc && !pageReverse) || (!desc && pageReverse) {
+			orderBy += " DESC"
 		} else {
-			orderBy += sortDirKey
+			orderBy += " ASC"
 		}
 
 		if i < len(sortDirKeys)-1 {
@@ -131,13 +173,14 @@ func (p *Pagination) Query(db *pgxpool.Pool, filter map[string]string) (pgx.Rows
 		}
 	}
 
-	if !config.Global.ApiSettings.DisablePagination && p.marker != nil {
-		sql := fmt.Sprintf(`SELECT * FROM %s WHERE id = $1`, p.table)
-		if err := pgxscan.Get(context.Background(), db, &markerObj, sql, p.marker); err != nil {
+	// paginate
+	if !config.Global.ApiSettings.DisablePagination && p.Marker != nil {
+		sql := fmt.Sprintf(`SELECT * FROM %s WHERE id = $1`, table)
+		if err := pgxscan.Get(context.Background(), db, &filter, sql, p.Marker); err != nil {
 			return nil, err
 		}
 
-		if len(markerObj) == 0 {
+		if len(filter) == 0 {
 			return nil, ErrInvalidMarker
 		}
 
@@ -165,24 +208,25 @@ func (p *Pagination) Query(db *pgxpool.Pool, filter map[string]string) (pgx.Rows
 		whereClauses = append(whereClauses, sortWhereClauses.String())
 	}
 
-	//add WHERE
+	// add WHERE
 	if len(whereClauses) > 0 {
 		query += " WHERE ( " + strings.Join(whereClauses, " ) AND ( ") + " )"
 	}
 
-	//add ORDER BY
+	// add ORDER BY
 	query += orderBy
 
+	// maximum limit
 	var limit = config.Global.ApiSettings.PaginationMaxLimit
-	if p.limit != nil && *p.limit < config.Global.ApiSettings.PaginationMaxLimit {
-		limit = *p.limit
+	if p.Limit != nil && *p.Limit < config.Global.ApiSettings.PaginationMaxLimit {
+		limit = *p.Limit
 	}
-	query += fmt.Sprintf(" LIMIT %d", limit)
+	query += fmt.Sprint(" LIMIT ", limit)
 
-	return db.Query(context.Background(), query, pgx.NamedArgs(markerObj))
+	return db.Query(context.Background(), query, pgx.NamedArgs(filter))
 }
 
-func (p *Pagination) GetLinks(modelList any, r *http.Request) []*models.Link {
+func (p *Pagination) GetLinks(modelList any) []*models.Link {
 	var links []*models.Link
 	if reflect.TypeOf(modelList).Kind() != reflect.Slice {
 		return nil
@@ -194,21 +238,21 @@ func (p *Pagination) GetLinks(modelList any, r *http.Request) []*models.Link {
 		first := s.Index(0).Elem().FieldByName("ID").String()
 		last := s.Index(s.Len() - 1).Elem().FieldByName("ID").String()
 
-		if p.sort != nil {
-			prevAttr = append(prevAttr, fmt.Sprintf("sort=%s", *p.sort))
-		}
-		if p.limit != nil {
-			prevAttr = append(prevAttr, fmt.Sprintf("limit=%d", *p.limit))
+		for key, val := range p.HTTPRequest.URL.Query() {
+			if key == "marker" || key == "page_reverse" {
+				continue
+			}
+			prevAttr = append(prevAttr, fmt.Sprint(key, "=", val[0]))
 		}
 
-		// Make a copy
+		// Make a shallow copy
 		nextAttr = append(prevAttr[:0:0], prevAttr...)
 
 		// Previous link of marker supplied
-		if p.marker != nil {
+		if p.Marker != nil {
 			prevAttr = append(prevAttr, fmt.Sprintf("marker=%s", first), "page_reverse=True")
-			prevUrl := fmt.Sprintf("%s%s?%s", config.Global.ApiSettings.ApiBaseURL,
-				r.URL.Path, strings.Join(prevAttr, "&"))
+			prevUrl := fmt.Sprint(config.GetApiBaseUrl(p.HTTPRequest), p.HTTPRequest.URL.Path,
+				"?", strings.Join(prevAttr, "&"))
 
 			links = append(links, &models.Link{
 				Href: prevUrl,
@@ -217,10 +261,10 @@ func (p *Pagination) GetLinks(modelList any, r *http.Request) []*models.Link {
 		}
 
 		// Next link of limit < size(fetched items)
-		if p.limit != nil && int64(s.Len()) >= *p.limit {
+		if p.Limit != nil && int64(s.Len()) >= *p.Limit {
 			nextAttr = append(nextAttr, fmt.Sprintf("marker=%s", last))
-			nextUrl := fmt.Sprintf("%s%s?%s", config.Global.ApiSettings.ApiBaseURL,
-				r.URL.Path, strings.Join(nextAttr, "&"))
+			nextUrl := fmt.Sprint(config.GetApiBaseUrl(p.HTTPRequest), p.HTTPRequest.URL.Path,
+				"?", strings.Join(nextAttr, "&"))
 			links = append(links, &models.Link{
 				Href: nextUrl,
 				Rel:  "next",

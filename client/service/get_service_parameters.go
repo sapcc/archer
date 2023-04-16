@@ -90,6 +90,22 @@ type GetServiceParams struct {
 	*/
 	Marker *strfmt.UUID
 
+	/* NotTags.
+
+	     Filter for resources not having tags, multiple not-tags are considered as logical AND.
+	Should be provided in a comma separated list.
+
+	*/
+	NotTags []string
+
+	/* NotTagsAny.
+
+	     Filter for resources not having tags, multiple tags are considered as logical OR.
+	Should be provided in a comma separated list.
+
+	*/
+	NotTagsAny []string
+
 	/* PageReverse.
 
 	   Sets the page direction.
@@ -101,6 +117,22 @@ type GetServiceParams struct {
 	   Comma-separated list of sort keys, optinally prefix with - to reverse sort order.
 	*/
 	Sort *string
+
+	/* Tags.
+
+	     Filter for tags, multiple tags are considered as logical AND.
+	Should be provided in a comma separated list.
+
+	*/
+	Tags []string
+
+	/* TagsAny.
+
+	     Filter for tags, multiple tags are considered as logical OR.
+	Should be provided in a comma separated list.
+
+	*/
+	TagsAny []string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -177,6 +209,28 @@ func (o *GetServiceParams) SetMarker(marker *strfmt.UUID) {
 	o.Marker = marker
 }
 
+// WithNotTags adds the notTags to the get service params
+func (o *GetServiceParams) WithNotTags(notTags []string) *GetServiceParams {
+	o.SetNotTags(notTags)
+	return o
+}
+
+// SetNotTags adds the notTags to the get service params
+func (o *GetServiceParams) SetNotTags(notTags []string) {
+	o.NotTags = notTags
+}
+
+// WithNotTagsAny adds the notTagsAny to the get service params
+func (o *GetServiceParams) WithNotTagsAny(notTagsAny []string) *GetServiceParams {
+	o.SetNotTagsAny(notTagsAny)
+	return o
+}
+
+// SetNotTagsAny adds the notTagsAny to the get service params
+func (o *GetServiceParams) SetNotTagsAny(notTagsAny []string) {
+	o.NotTagsAny = notTagsAny
+}
+
 // WithPageReverse adds the pageReverse to the get service params
 func (o *GetServiceParams) WithPageReverse(pageReverse *bool) *GetServiceParams {
 	o.SetPageReverse(pageReverse)
@@ -197,6 +251,28 @@ func (o *GetServiceParams) WithSort(sort *string) *GetServiceParams {
 // SetSort adds the sort to the get service params
 func (o *GetServiceParams) SetSort(sort *string) {
 	o.Sort = sort
+}
+
+// WithTags adds the tags to the get service params
+func (o *GetServiceParams) WithTags(tags []string) *GetServiceParams {
+	o.SetTags(tags)
+	return o
+}
+
+// SetTags adds the tags to the get service params
+func (o *GetServiceParams) SetTags(tags []string) {
+	o.Tags = tags
+}
+
+// WithTagsAny adds the tagsAny to the get service params
+func (o *GetServiceParams) WithTagsAny(tagsAny []string) *GetServiceParams {
+	o.SetTagsAny(tagsAny)
+	return o
+}
+
+// SetTagsAny adds the tagsAny to the get service params
+func (o *GetServiceParams) SetTagsAny(tagsAny []string) {
+	o.TagsAny = tagsAny
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -241,6 +317,28 @@ func (o *GetServiceParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Re
 		}
 	}
 
+	if o.NotTags != nil {
+
+		// binding items for not-tags
+		joinedNotTags := o.bindParamNotTags(reg)
+
+		// query array param not-tags
+		if err := r.SetQueryParam("not-tags", joinedNotTags...); err != nil {
+			return err
+		}
+	}
+
+	if o.NotTagsAny != nil {
+
+		// binding items for not-tags-any
+		joinedNotTagsAny := o.bindParamNotTagsAny(reg)
+
+		// query array param not-tags-any
+		if err := r.SetQueryParam("not-tags-any", joinedNotTagsAny...); err != nil {
+			return err
+		}
+	}
+
 	if o.PageReverse != nil {
 
 		// query param page_reverse
@@ -275,8 +373,98 @@ func (o *GetServiceParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Re
 		}
 	}
 
+	if o.Tags != nil {
+
+		// binding items for tags
+		joinedTags := o.bindParamTags(reg)
+
+		// query array param tags
+		if err := r.SetQueryParam("tags", joinedTags...); err != nil {
+			return err
+		}
+	}
+
+	if o.TagsAny != nil {
+
+		// binding items for tags-any
+		joinedTagsAny := o.bindParamTagsAny(reg)
+
+		// query array param tags-any
+		if err := r.SetQueryParam("tags-any", joinedTagsAny...); err != nil {
+			return err
+		}
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
 	return nil
+}
+
+// bindParamGetService binds the parameter not-tags
+func (o *GetServiceParams) bindParamNotTags(formats strfmt.Registry) []string {
+	notTagsIR := o.NotTags
+
+	var notTagsIC []string
+	for _, notTagsIIR := range notTagsIR { // explode []string
+
+		notTagsIIV := notTagsIIR // string as string
+		notTagsIC = append(notTagsIC, notTagsIIV)
+	}
+
+	// items.CollectionFormat: ""
+	notTagsIS := swag.JoinByFormat(notTagsIC, "")
+
+	return notTagsIS
+}
+
+// bindParamGetService binds the parameter not-tags-any
+func (o *GetServiceParams) bindParamNotTagsAny(formats strfmt.Registry) []string {
+	notTagsAnyIR := o.NotTagsAny
+
+	var notTagsAnyIC []string
+	for _, notTagsAnyIIR := range notTagsAnyIR { // explode []string
+
+		notTagsAnyIIV := notTagsAnyIIR // string as string
+		notTagsAnyIC = append(notTagsAnyIC, notTagsAnyIIV)
+	}
+
+	// items.CollectionFormat: ""
+	notTagsAnyIS := swag.JoinByFormat(notTagsAnyIC, "")
+
+	return notTagsAnyIS
+}
+
+// bindParamGetService binds the parameter tags
+func (o *GetServiceParams) bindParamTags(formats strfmt.Registry) []string {
+	tagsIR := o.Tags
+
+	var tagsIC []string
+	for _, tagsIIR := range tagsIR { // explode []string
+
+		tagsIIV := tagsIIR // string as string
+		tagsIC = append(tagsIC, tagsIIV)
+	}
+
+	// items.CollectionFormat: ""
+	tagsIS := swag.JoinByFormat(tagsIC, "")
+
+	return tagsIS
+}
+
+// bindParamGetService binds the parameter tags-any
+func (o *GetServiceParams) bindParamTagsAny(formats strfmt.Registry) []string {
+	tagsAnyIR := o.TagsAny
+
+	var tagsAnyIC []string
+	for _, tagsAnyIIR := range tagsAnyIR { // explode []string
+
+		tagsAnyIIV := tagsAnyIIR // string as string
+		tagsAnyIC = append(tagsAnyIC, tagsAnyIIV)
+	}
+
+	// items.CollectionFormat: ""
+	tagsAnyIS := swag.JoinByFormat(tagsAnyIC, "")
+
+	return tagsAnyIS
 }
