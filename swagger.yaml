@@ -935,6 +935,7 @@ definitions:
         description: The list of tags on the resource.
         items:
           type: string
+          maxLength: 64
       created_at:
         $ref: "#/definitions/Timestamp"
       updated_at:
@@ -1013,6 +1014,7 @@ definitions:
         description: The list of tags on the resource.
         items:
           type: string
+          maxLength: 64
       status:
         $ref: "#/definitions/EndpointStatus"
       created_at:
