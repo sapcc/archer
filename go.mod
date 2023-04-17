@@ -29,7 +29,7 @@ require (
 	github.com/prometheus/client_golang v1.15.0
 	github.com/rs/cors v1.8.3
 	github.com/sapcc/go-api-declarations v1.5.1
-	github.com/sapcc/go-bits v0.0.0-20230412141637-cee52bbb1c22
+	github.com/sapcc/go-bits v0.0.0-20230413144132-bee3aa4c8293
 	github.com/xo/dburl v0.13.1
 	github.com/z0ne-dev/mgx/v2 v2.0.1
 	golang.org/x/net v0.9.0
@@ -57,6 +57,7 @@ require (
 	github.com/jackc/puddle/v2 v2.2.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/karrick/godirwalk v1.15.3 // indirect
+	github.com/klauspost/cpuid/v2 v2.0.4 // indirect
 	github.com/logrusorgru/aurora v0.0.0-20181002194514-a7b3b318ed4e // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/markbates/errx v1.1.0 // indirect
@@ -64,6 +65,7 @@ require (
 	github.com/markbates/safe v1.0.1 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
+	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
