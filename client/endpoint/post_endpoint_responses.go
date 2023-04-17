@@ -43,12 +43,6 @@ func (o *PostEndpointReader) ReadResponse(response runtime.ClientResponse, consu
 			return nil, err
 		}
 		return result, nil
-	case 400:
-		result := NewPostEndpointBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
 	case 403:
 		result := NewPostEndpointForbidden()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -124,62 +118,6 @@ func (o *PostEndpointOK) readResponse(response runtime.ClientResponse, consumer 
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
-
-	return nil
-}
-
-// NewPostEndpointBadRequest creates a PostEndpointBadRequest with default headers values
-func NewPostEndpointBadRequest() *PostEndpointBadRequest {
-	return &PostEndpointBadRequest{}
-}
-
-/*
-PostEndpointBadRequest describes a response with status code 400, with default header values.
-
-Validation Error
-*/
-type PostEndpointBadRequest struct {
-}
-
-// IsSuccess returns true when this post endpoint bad request response has a 2xx status code
-func (o *PostEndpointBadRequest) IsSuccess() bool {
-	return false
-}
-
-// IsRedirect returns true when this post endpoint bad request response has a 3xx status code
-func (o *PostEndpointBadRequest) IsRedirect() bool {
-	return false
-}
-
-// IsClientError returns true when this post endpoint bad request response has a 4xx status code
-func (o *PostEndpointBadRequest) IsClientError() bool {
-	return true
-}
-
-// IsServerError returns true when this post endpoint bad request response has a 5xx status code
-func (o *PostEndpointBadRequest) IsServerError() bool {
-	return false
-}
-
-// IsCode returns true when this post endpoint bad request response a status code equal to that given
-func (o *PostEndpointBadRequest) IsCode(code int) bool {
-	return code == 400
-}
-
-// Code gets the status code for the post endpoint bad request response
-func (o *PostEndpointBadRequest) Code() int {
-	return 400
-}
-
-func (o *PostEndpointBadRequest) Error() string {
-	return fmt.Sprintf("[POST /endpoint][%d] postEndpointBadRequest ", 400)
-}
-
-func (o *PostEndpointBadRequest) String() string {
-	return fmt.Sprintf("[POST /endpoint][%d] postEndpointBadRequest ", 400)
-}
-
-func (o *PostEndpointBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

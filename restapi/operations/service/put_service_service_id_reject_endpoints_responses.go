@@ -75,31 +75,6 @@ func (o *PutServiceServiceIDRejectEndpointsOK) WriteResponse(rw http.ResponseWri
 	}
 }
 
-// PutServiceServiceIDRejectEndpointsBadRequestCode is the HTTP code returned for type PutServiceServiceIDRejectEndpointsBadRequest
-const PutServiceServiceIDRejectEndpointsBadRequestCode int = 400
-
-/*
-PutServiceServiceIDRejectEndpointsBadRequest Validation Error
-
-swagger:response putServiceServiceIdRejectEndpointsBadRequest
-*/
-type PutServiceServiceIDRejectEndpointsBadRequest struct {
-}
-
-// NewPutServiceServiceIDRejectEndpointsBadRequest creates PutServiceServiceIDRejectEndpointsBadRequest with default headers values
-func NewPutServiceServiceIDRejectEndpointsBadRequest() *PutServiceServiceIDRejectEndpointsBadRequest {
-
-	return &PutServiceServiceIDRejectEndpointsBadRequest{}
-}
-
-// WriteResponse to the client
-func (o *PutServiceServiceIDRejectEndpointsBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
-
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
-	rw.WriteHeader(400)
-}
-
 // PutServiceServiceIDRejectEndpointsForbiddenCode is the HTTP code returned for type PutServiceServiceIDRejectEndpointsForbidden
 const PutServiceServiceIDRejectEndpointsForbiddenCode int = 403
 

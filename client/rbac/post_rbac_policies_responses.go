@@ -43,12 +43,6 @@ func (o *PostRbacPoliciesReader) ReadResponse(response runtime.ClientResponse, c
 			return nil, err
 		}
 		return result, nil
-	case 400:
-		result := NewPostRbacPoliciesBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
 	case 403:
 		result := NewPostRbacPoliciesForbidden()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -130,62 +124,6 @@ func (o *PostRbacPoliciesOK) readResponse(response runtime.ClientResponse, consu
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
-
-	return nil
-}
-
-// NewPostRbacPoliciesBadRequest creates a PostRbacPoliciesBadRequest with default headers values
-func NewPostRbacPoliciesBadRequest() *PostRbacPoliciesBadRequest {
-	return &PostRbacPoliciesBadRequest{}
-}
-
-/*
-PostRbacPoliciesBadRequest describes a response with status code 400, with default header values.
-
-Validation Error
-*/
-type PostRbacPoliciesBadRequest struct {
-}
-
-// IsSuccess returns true when this post rbac policies bad request response has a 2xx status code
-func (o *PostRbacPoliciesBadRequest) IsSuccess() bool {
-	return false
-}
-
-// IsRedirect returns true when this post rbac policies bad request response has a 3xx status code
-func (o *PostRbacPoliciesBadRequest) IsRedirect() bool {
-	return false
-}
-
-// IsClientError returns true when this post rbac policies bad request response has a 4xx status code
-func (o *PostRbacPoliciesBadRequest) IsClientError() bool {
-	return true
-}
-
-// IsServerError returns true when this post rbac policies bad request response has a 5xx status code
-func (o *PostRbacPoliciesBadRequest) IsServerError() bool {
-	return false
-}
-
-// IsCode returns true when this post rbac policies bad request response a status code equal to that given
-func (o *PostRbacPoliciesBadRequest) IsCode(code int) bool {
-	return code == 400
-}
-
-// Code gets the status code for the post rbac policies bad request response
-func (o *PostRbacPoliciesBadRequest) Code() int {
-	return 400
-}
-
-func (o *PostRbacPoliciesBadRequest) Error() string {
-	return fmt.Sprintf("[POST /rbac-policies][%d] postRbacPoliciesBadRequest ", 400)
-}
-
-func (o *PostRbacPoliciesBadRequest) String() string {
-	return fmt.Sprintf("[POST /rbac-policies][%d] postRbacPoliciesBadRequest ", 400)
-}
-
-func (o *PostRbacPoliciesBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

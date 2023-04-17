@@ -38,7 +38,7 @@ type EndpointConsumerList struct {
 	EndpointIds []strfmt.UUID `json:"endpoint_ids"`
 
 	// project ids
-	ProjectIds []strfmt.UUID `json:"project_ids"`
+	ProjectIds []Project `json:"project_ids"`
 }
 
 // Validate validates this endpoint consumer list
@@ -82,7 +82,12 @@ func (m *EndpointConsumerList) validateProjectIds(formats strfmt.Registry) error
 
 	for i := 0; i < len(m.ProjectIds); i++ {
 
-		if err := validate.FormatOf("project_ids"+"."+strconv.Itoa(i), "body", "uuid", m.ProjectIds[i].String(), formats); err != nil {
+		if err := m.ProjectIds[i].Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("project_ids" + "." + strconv.Itoa(i))
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("project_ids" + "." + strconv.Itoa(i))
+			}
 			return err
 		}
 
@@ -126,7 +131,12 @@ func (m *EndpointConsumerList) contextValidateProjectIds(ctx context.Context, fo
 
 	for i := 0; i < len(m.ProjectIds); i++ {
 
-		if err := validate.ReadOnly(ctx, "project_ids"+"."+strconv.Itoa(i), "body", strfmt.UUID(m.ProjectIds[i])); err != nil {
+		if err := m.ProjectIds[i].ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("project_ids" + "." + strconv.Itoa(i))
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("project_ids" + "." + strconv.Itoa(i))
+			}
 			return err
 		}
 

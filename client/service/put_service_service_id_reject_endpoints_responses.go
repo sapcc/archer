@@ -43,12 +43,6 @@ func (o *PutServiceServiceIDRejectEndpointsReader) ReadResponse(response runtime
 			return nil, err
 		}
 		return result, nil
-	case 400:
-		result := NewPutServiceServiceIDRejectEndpointsBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
 	case 403:
 		result := NewPutServiceServiceIDRejectEndpointsForbidden()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -128,62 +122,6 @@ func (o *PutServiceServiceIDRejectEndpointsOK) readResponse(response runtime.Cli
 	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
 		return err
 	}
-
-	return nil
-}
-
-// NewPutServiceServiceIDRejectEndpointsBadRequest creates a PutServiceServiceIDRejectEndpointsBadRequest with default headers values
-func NewPutServiceServiceIDRejectEndpointsBadRequest() *PutServiceServiceIDRejectEndpointsBadRequest {
-	return &PutServiceServiceIDRejectEndpointsBadRequest{}
-}
-
-/*
-PutServiceServiceIDRejectEndpointsBadRequest describes a response with status code 400, with default header values.
-
-Validation Error
-*/
-type PutServiceServiceIDRejectEndpointsBadRequest struct {
-}
-
-// IsSuccess returns true when this put service service Id reject endpoints bad request response has a 2xx status code
-func (o *PutServiceServiceIDRejectEndpointsBadRequest) IsSuccess() bool {
-	return false
-}
-
-// IsRedirect returns true when this put service service Id reject endpoints bad request response has a 3xx status code
-func (o *PutServiceServiceIDRejectEndpointsBadRequest) IsRedirect() bool {
-	return false
-}
-
-// IsClientError returns true when this put service service Id reject endpoints bad request response has a 4xx status code
-func (o *PutServiceServiceIDRejectEndpointsBadRequest) IsClientError() bool {
-	return true
-}
-
-// IsServerError returns true when this put service service Id reject endpoints bad request response has a 5xx status code
-func (o *PutServiceServiceIDRejectEndpointsBadRequest) IsServerError() bool {
-	return false
-}
-
-// IsCode returns true when this put service service Id reject endpoints bad request response a status code equal to that given
-func (o *PutServiceServiceIDRejectEndpointsBadRequest) IsCode(code int) bool {
-	return code == 400
-}
-
-// Code gets the status code for the put service service Id reject endpoints bad request response
-func (o *PutServiceServiceIDRejectEndpointsBadRequest) Code() int {
-	return 400
-}
-
-func (o *PutServiceServiceIDRejectEndpointsBadRequest) Error() string {
-	return fmt.Sprintf("[PUT /service/{service_id}/reject_endpoints][%d] putServiceServiceIdRejectEndpointsBadRequest ", 400)
-}
-
-func (o *PutServiceServiceIDRejectEndpointsBadRequest) String() string {
-	return fmt.Sprintf("[PUT /service/{service_id}/reject_endpoints][%d] putServiceServiceIdRejectEndpointsBadRequest ", 400)
-}
-
-func (o *PutServiceServiceIDRejectEndpointsBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

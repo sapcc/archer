@@ -72,31 +72,6 @@ func (o *PostServiceOK) WriteResponse(rw http.ResponseWriter, producer runtime.P
 	}
 }
 
-// PostServiceBadRequestCode is the HTTP code returned for type PostServiceBadRequest
-const PostServiceBadRequestCode int = 400
-
-/*
-PostServiceBadRequest Validation Error
-
-swagger:response postServiceBadRequest
-*/
-type PostServiceBadRequest struct {
-}
-
-// NewPostServiceBadRequest creates PostServiceBadRequest with default headers values
-func NewPostServiceBadRequest() *PostServiceBadRequest {
-
-	return &PostServiceBadRequest{}
-}
-
-// WriteResponse to the client
-func (o *PostServiceBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
-
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
-	rw.WriteHeader(400)
-}
-
 // PostServiceForbiddenCode is the HTTP code returned for type PostServiceForbidden
 const PostServiceForbiddenCode int = 403
 

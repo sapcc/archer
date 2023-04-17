@@ -47,12 +47,6 @@ func (o *PutQuotasProjectIDReader) ReadResponse(response runtime.ClientResponse,
 			return nil, err
 		}
 		return result, nil
-	case 400:
-		result := NewPutQuotasProjectIDBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
 	case 403:
 		result := NewPutQuotasProjectIDForbidden()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -134,62 +128,6 @@ func (o *PutQuotasProjectIDAccepted) readResponse(response runtime.ClientRespons
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
-
-	return nil
-}
-
-// NewPutQuotasProjectIDBadRequest creates a PutQuotasProjectIDBadRequest with default headers values
-func NewPutQuotasProjectIDBadRequest() *PutQuotasProjectIDBadRequest {
-	return &PutQuotasProjectIDBadRequest{}
-}
-
-/*
-PutQuotasProjectIDBadRequest describes a response with status code 400, with default header values.
-
-Validation Error
-*/
-type PutQuotasProjectIDBadRequest struct {
-}
-
-// IsSuccess returns true when this put quotas project Id bad request response has a 2xx status code
-func (o *PutQuotasProjectIDBadRequest) IsSuccess() bool {
-	return false
-}
-
-// IsRedirect returns true when this put quotas project Id bad request response has a 3xx status code
-func (o *PutQuotasProjectIDBadRequest) IsRedirect() bool {
-	return false
-}
-
-// IsClientError returns true when this put quotas project Id bad request response has a 4xx status code
-func (o *PutQuotasProjectIDBadRequest) IsClientError() bool {
-	return true
-}
-
-// IsServerError returns true when this put quotas project Id bad request response has a 5xx status code
-func (o *PutQuotasProjectIDBadRequest) IsServerError() bool {
-	return false
-}
-
-// IsCode returns true when this put quotas project Id bad request response a status code equal to that given
-func (o *PutQuotasProjectIDBadRequest) IsCode(code int) bool {
-	return code == 400
-}
-
-// Code gets the status code for the put quotas project Id bad request response
-func (o *PutQuotasProjectIDBadRequest) Code() int {
-	return 400
-}
-
-func (o *PutQuotasProjectIDBadRequest) Error() string {
-	return fmt.Sprintf("[PUT /quotas/{project_id}][%d] putQuotasProjectIdBadRequest ", 400)
-}
-
-func (o *PutQuotasProjectIDBadRequest) String() string {
-	return fmt.Sprintf("[PUT /quotas/{project_id}][%d] putQuotasProjectIdBadRequest ", 400)
-}
-
-func (o *PutQuotasProjectIDBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

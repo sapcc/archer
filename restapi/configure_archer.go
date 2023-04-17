@@ -23,7 +23,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/didip/tollbooth"
+	"github.com/didip/tollbooth/v7"
 	"github.com/dre1080/recovr"
 	"github.com/getsentry/sentry-go"
 	sentryhttp "github.com/getsentry/sentry-go/http"
@@ -184,7 +184,6 @@ func configureServer(s *http.Server, scheme, addr string) {
 func setupMiddlewares(handler http.Handler) http.Handler {
 	if !config.Global.ApiSettings.DisableCors {
 		handler = cors.New(cors.Options{
-			AllowedOrigins: []string{"*"},
 			AllowedMethods: []string{"HEAD", "GET", "POST", "PUT", "DELETE"},
 			AllowedHeaders: []string{"Content-Type", "User-Agent", "X-Auth-Token"},
 		}).Handler(handler)
@@ -192,6 +191,8 @@ func setupMiddlewares(handler http.Handler) http.Handler {
 
 	if rl := config.Global.ApiSettings.RateLimit; rl > .0 {
 		limiter := tollbooth.NewLimiter(rl, nil)
+		limiter.SetHeader("X-Auth-Token", nil)
+		limiter.SetMethods([]string{"GET", "POST", "PUT", "DELETE"})
 		handler = tollbooth.LimitHandler(limiter, handler)
 	}
 

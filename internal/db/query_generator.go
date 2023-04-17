@@ -16,6 +16,7 @@ package db
 
 import (
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"strings"
 )
 
@@ -64,7 +65,7 @@ func (b *SelectBuilder) Where(pred string, args ...any) *SelectBuilder {
 	return b
 }
 
-func (b *SelectBuilder) ToSQL() (string, *[]any) {
+func (b *SelectBuilder) ToSQL() (string, []any) {
 	var sb strings.Builder
 
 	// SELECT ...
@@ -93,7 +94,7 @@ func (b *SelectBuilder) ToSQL() (string, *[]any) {
 	if b.limit > 0 {
 		sb.WriteString(fmt.Sprintf(" LIMIT %d", b.limit))
 	}
-	return sb.String(), &b.args
+	return sb.String(), b.args
 }
 
 /////////////////////////
@@ -113,6 +114,12 @@ func Insert(into string) *InsertBuilder {
 
 func (b *InsertBuilder) Insert(into string) *InsertBuilder {
 	b.into = into
+	return b
+}
+
+func (b *InsertBuilder) Set(column string, value any) *InsertBuilder {
+	b.columns = append(b.columns, column)
+	b.values = append(b.values, value)
 	return b
 }
 
@@ -191,7 +198,7 @@ func (b *DeleteBuilder) Where(pred string, args ...any) *DeleteBuilder {
 	return b
 }
 
-func (b *DeleteBuilder) ToSQL() (string, *[]any) {
+func (b *DeleteBuilder) ToSQL() (string, []any) {
 	var sb strings.Builder
 
 	// FROM ...
@@ -206,5 +213,91 @@ func (b *DeleteBuilder) ToSQL() (string, *[]any) {
 		sb.WriteString(whereClause)
 	}
 
-	return sb.String(), &b.args
+	return sb.String(), b.args
+}
+
+/////////////////////////
+// UPDATE
+/////////////////////////
+
+type Coalesce any
+type Raw string
+type UpdateBuilder struct {
+	table        string
+	whereClauses []string
+	values       map[string]any
+	returning    []string
+}
+
+func Update(table string) *UpdateBuilder {
+	return &UpdateBuilder{table: table, values: make(map[string]any)}
+}
+
+func (b *UpdateBuilder) Update(table string) *UpdateBuilder {
+	b.table = table
+	return b
+}
+
+func (b *UpdateBuilder) Set(column string, val any) *UpdateBuilder {
+	b.values[column] = val
+	return b
+}
+
+func (b *UpdateBuilder) Where(column string, val any) *UpdateBuilder {
+	b.whereClauses = append(b.whereClauses, column)
+	b.values[column] = val
+	return b
+}
+
+func (b *UpdateBuilder) Returning(returning ...string) *UpdateBuilder {
+	b.returning = returning
+	return b
+}
+
+func (b *UpdateBuilder) ToSQL() (string, pgx.NamedArgs) {
+	var sb strings.Builder
+
+	// UPDATE ...
+	sb.WriteString(fmt.Sprint("UPDATE ", b.table))
+
+	// SET ...
+	sb.WriteString(" SET ")
+	i := 0
+	for key, v := range b.values {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+
+		sb.WriteString(key)
+		sb.WriteString(" = ")
+		if val, ok := v.(Raw); ok {
+			sb.WriteString(string(val))
+		} else if val, ok := v.(Coalesce); ok {
+			sb.WriteString(fmt.Sprintf("COALESCE(@%s, %s)", key, key))
+			b.values[key] = val
+		} else {
+			sb.WriteString(fmt.Sprint("@", key))
+			b.values[key] = val
+		}
+		i++
+	}
+
+	// WHERE ...
+	sb.WriteString(" WHERE ")
+	for i, whereClause := range b.whereClauses {
+		if i > 0 {
+			sb.WriteString(" AND ")
+		}
+		sb.WriteString(whereClause)
+		sb.WriteString(" = @")
+		sb.WriteString(whereClause)
+	}
+
+	// RETURNING ...
+	if len(b.returning) > 0 {
+		sb.WriteString(" RETURNING ")
+		sb.WriteString(strings.Join(b.returning, ", "))
+	}
+
+	return sb.String(), b.values
 }

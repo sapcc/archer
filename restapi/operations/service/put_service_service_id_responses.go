@@ -72,31 +72,6 @@ func (o *PutServiceServiceIDOK) WriteResponse(rw http.ResponseWriter, producer r
 	}
 }
 
-// PutServiceServiceIDBadRequestCode is the HTTP code returned for type PutServiceServiceIDBadRequest
-const PutServiceServiceIDBadRequestCode int = 400
-
-/*
-PutServiceServiceIDBadRequest Validation Error
-
-swagger:response putServiceServiceIdBadRequest
-*/
-type PutServiceServiceIDBadRequest struct {
-}
-
-// NewPutServiceServiceIDBadRequest creates PutServiceServiceIDBadRequest with default headers values
-func NewPutServiceServiceIDBadRequest() *PutServiceServiceIDBadRequest {
-
-	return &PutServiceServiceIDBadRequest{}
-}
-
-// WriteResponse to the client
-func (o *PutServiceServiceIDBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
-
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
-	rw.WriteHeader(400)
-}
-
 // PutServiceServiceIDForbiddenCode is the HTTP code returned for type PutServiceServiceIDForbidden
 const PutServiceServiceIDForbiddenCode int = 403
 
@@ -159,6 +134,51 @@ func (o *PutServiceServiceIDNotFound) SetPayload(payload *models.Error) {
 func (o *PutServiceServiceIDNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// PutServiceServiceIDConflictCode is the HTTP code returned for type PutServiceServiceIDConflict
+const PutServiceServiceIDConflictCode int = 409
+
+/*
+PutServiceServiceIDConflict Duplicate entry
+
+swagger:response putServiceServiceIdConflict
+*/
+type PutServiceServiceIDConflict struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewPutServiceServiceIDConflict creates PutServiceServiceIDConflict with default headers values
+func NewPutServiceServiceIDConflict() *PutServiceServiceIDConflict {
+
+	return &PutServiceServiceIDConflict{}
+}
+
+// WithPayload adds the payload to the put service service Id conflict response
+func (o *PutServiceServiceIDConflict) WithPayload(payload *models.Error) *PutServiceServiceIDConflict {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the put service service Id conflict response
+func (o *PutServiceServiceIDConflict) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *PutServiceServiceIDConflict) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(409)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

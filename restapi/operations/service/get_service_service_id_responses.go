@@ -72,31 +72,6 @@ func (o *GetServiceServiceIDOK) WriteResponse(rw http.ResponseWriter, producer r
 	}
 }
 
-// GetServiceServiceIDBadRequestCode is the HTTP code returned for type GetServiceServiceIDBadRequest
-const GetServiceServiceIDBadRequestCode int = 400
-
-/*
-GetServiceServiceIDBadRequest Validation Error
-
-swagger:response getServiceServiceIdBadRequest
-*/
-type GetServiceServiceIDBadRequest struct {
-}
-
-// NewGetServiceServiceIDBadRequest creates GetServiceServiceIDBadRequest with default headers values
-func NewGetServiceServiceIDBadRequest() *GetServiceServiceIDBadRequest {
-
-	return &GetServiceServiceIDBadRequest{}
-}
-
-// WriteResponse to the client
-func (o *GetServiceServiceIDBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
-
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
-	rw.WriteHeader(400)
-}
-
 // GetServiceServiceIDForbiddenCode is the HTTP code returned for type GetServiceServiceIDForbidden
 const GetServiceServiceIDForbiddenCode int = 403
 

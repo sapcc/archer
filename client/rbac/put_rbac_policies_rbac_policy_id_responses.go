@@ -43,12 +43,6 @@ func (o *PutRbacPoliciesRbacPolicyIDReader) ReadResponse(response runtime.Client
 			return nil, err
 		}
 		return result, nil
-	case 400:
-		result := NewPutRbacPoliciesRbacPolicyIDBadRequest()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
 	case 403:
 		result := NewPutRbacPoliciesRbacPolicyIDForbidden()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -130,62 +124,6 @@ func (o *PutRbacPoliciesRbacPolicyIDOK) readResponse(response runtime.ClientResp
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
-
-	return nil
-}
-
-// NewPutRbacPoliciesRbacPolicyIDBadRequest creates a PutRbacPoliciesRbacPolicyIDBadRequest with default headers values
-func NewPutRbacPoliciesRbacPolicyIDBadRequest() *PutRbacPoliciesRbacPolicyIDBadRequest {
-	return &PutRbacPoliciesRbacPolicyIDBadRequest{}
-}
-
-/*
-PutRbacPoliciesRbacPolicyIDBadRequest describes a response with status code 400, with default header values.
-
-Validation Error
-*/
-type PutRbacPoliciesRbacPolicyIDBadRequest struct {
-}
-
-// IsSuccess returns true when this put rbac policies rbac policy Id bad request response has a 2xx status code
-func (o *PutRbacPoliciesRbacPolicyIDBadRequest) IsSuccess() bool {
-	return false
-}
-
-// IsRedirect returns true when this put rbac policies rbac policy Id bad request response has a 3xx status code
-func (o *PutRbacPoliciesRbacPolicyIDBadRequest) IsRedirect() bool {
-	return false
-}
-
-// IsClientError returns true when this put rbac policies rbac policy Id bad request response has a 4xx status code
-func (o *PutRbacPoliciesRbacPolicyIDBadRequest) IsClientError() bool {
-	return true
-}
-
-// IsServerError returns true when this put rbac policies rbac policy Id bad request response has a 5xx status code
-func (o *PutRbacPoliciesRbacPolicyIDBadRequest) IsServerError() bool {
-	return false
-}
-
-// IsCode returns true when this put rbac policies rbac policy Id bad request response a status code equal to that given
-func (o *PutRbacPoliciesRbacPolicyIDBadRequest) IsCode(code int) bool {
-	return code == 400
-}
-
-// Code gets the status code for the put rbac policies rbac policy Id bad request response
-func (o *PutRbacPoliciesRbacPolicyIDBadRequest) Code() int {
-	return 400
-}
-
-func (o *PutRbacPoliciesRbacPolicyIDBadRequest) Error() string {
-	return fmt.Sprintf("[PUT /rbac-policies/{rbac_policy_id}][%d] putRbacPoliciesRbacPolicyIdBadRequest ", 400)
-}
-
-func (o *PutRbacPoliciesRbacPolicyIDBadRequest) String() string {
-	return fmt.Sprintf("[PUT /rbac-policies/{rbac_policy_id}][%d] putRbacPoliciesRbacPolicyIdBadRequest ", 400)
-}
-
-func (o *PutRbacPoliciesRbacPolicyIDBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

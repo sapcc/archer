@@ -38,6 +38,9 @@ type EndpointConsumer struct {
 	// Format: uuid
 	ID strfmt.UUID `json:"id,omitempty"`
 
+	// project id
+	ProjectID Project `json:"project_id"`
+
 	// status
 	Status EndpointStatus `json:"status,omitempty"`
 }
@@ -47,6 +50,10 @@ func (m *EndpointConsumer) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateID(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateProjectID(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -66,6 +73,23 @@ func (m *EndpointConsumer) validateID(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("id", "body", "uuid", m.ID.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *EndpointConsumer) validateProjectID(formats strfmt.Registry) error {
+	if swag.IsZero(m.ProjectID) { // not required
+		return nil
+	}
+
+	if err := m.ProjectID.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("project_id")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("project_id")
+		}
 		return err
 	}
 
@@ -97,6 +121,10 @@ func (m *EndpointConsumer) ContextValidate(ctx context.Context, formats strfmt.R
 		res = append(res, err)
 	}
 
+	if err := m.contextValidateProjectID(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.contextValidateStatus(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -110,6 +138,20 @@ func (m *EndpointConsumer) ContextValidate(ctx context.Context, formats strfmt.R
 func (m *EndpointConsumer) contextValidateID(ctx context.Context, formats strfmt.Registry) error {
 
 	if err := validate.ReadOnly(ctx, "id", "body", strfmt.UUID(m.ID)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *EndpointConsumer) contextValidateProjectID(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := m.ProjectID.ContextValidate(ctx, formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("project_id")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("project_id")
+		}
 		return err
 	}
 

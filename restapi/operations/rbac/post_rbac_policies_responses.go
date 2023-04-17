@@ -72,31 +72,6 @@ func (o *PostRbacPoliciesOK) WriteResponse(rw http.ResponseWriter, producer runt
 	}
 }
 
-// PostRbacPoliciesBadRequestCode is the HTTP code returned for type PostRbacPoliciesBadRequest
-const PostRbacPoliciesBadRequestCode int = 400
-
-/*
-PostRbacPoliciesBadRequest Validation Error
-
-swagger:response postRbacPoliciesBadRequest
-*/
-type PostRbacPoliciesBadRequest struct {
-}
-
-// NewPostRbacPoliciesBadRequest creates PostRbacPoliciesBadRequest with default headers values
-func NewPostRbacPoliciesBadRequest() *PostRbacPoliciesBadRequest {
-
-	return &PostRbacPoliciesBadRequest{}
-}
-
-// WriteResponse to the client
-func (o *PostRbacPoliciesBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
-
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
-	rw.WriteHeader(400)
-}
-
 // PostRbacPoliciesForbiddenCode is the HTTP code returned for type PostRbacPoliciesForbidden
 const PostRbacPoliciesForbiddenCode int = 403
 

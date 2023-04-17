@@ -245,6 +245,7 @@ Tag filters can also be combined in the same request:
 | 403   | Policy does not allow current user to do this <br> The project is over quota for the request |
 | 404   | Not Found <br> Resource not found |
 | 409   | Conflict |
+| 422   | Unprocessable Entity |
 | 429   | You have reached maximum request limit |
 | 500   | Internal server error |
 */

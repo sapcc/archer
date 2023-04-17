@@ -72,31 +72,6 @@ func (o *PutQuotasProjectIDAccepted) WriteResponse(rw http.ResponseWriter, produ
 	}
 }
 
-// PutQuotasProjectIDBadRequestCode is the HTTP code returned for type PutQuotasProjectIDBadRequest
-const PutQuotasProjectIDBadRequestCode int = 400
-
-/*
-PutQuotasProjectIDBadRequest Validation Error
-
-swagger:response putQuotasProjectIdBadRequest
-*/
-type PutQuotasProjectIDBadRequest struct {
-}
-
-// NewPutQuotasProjectIDBadRequest creates PutQuotasProjectIDBadRequest with default headers values
-func NewPutQuotasProjectIDBadRequest() *PutQuotasProjectIDBadRequest {
-
-	return &PutQuotasProjectIDBadRequest{}
-}
-
-// WriteResponse to the client
-func (o *PutQuotasProjectIDBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
-
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
-	rw.WriteHeader(400)
-}
-
 // PutQuotasProjectIDForbiddenCode is the HTTP code returned for type PutQuotasProjectIDForbidden
 const PutQuotasProjectIDForbiddenCode int = 403
 

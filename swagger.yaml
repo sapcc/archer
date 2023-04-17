@@ -117,6 +117,7 @@ info:
     | 403   | Policy does not allow current user to do this <br> The project is over quota for the request |
     | 404   | Not Found <br> Resource not found |
     | 409   | Conflict |
+    | 422   | Unprocessable Entity |
     | 429   | You have reached maximum request limit |
     | 500   | Internal server error |
 
@@ -224,8 +225,6 @@ paths:
           description: Service
           schema:
             $ref: "#/definitions/Service"
-        400:
-          description: Validation Error
         403:
           description: Forbidden
         409:
@@ -250,8 +249,6 @@ paths:
           description: Service
           schema:
             $ref: "#/definitions/Service"
-        400:
-          description: Validation Error
         403:
           description: Forbidden
         404:
@@ -269,18 +266,20 @@ paths:
           description: Service object that needs to be updated
           required: true
           schema:
-            $ref: "#/definitions/Service"
+            $ref: "#/definitions/ServiceUpdatable"
       responses:
         200:
           description: Service
           schema:
             $ref: "#/definitions/Service"
-        400:
-          description: Validation Error
         403:
           description: Forbidden
         404:
           description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        409:
+          description: Duplicate entry
           schema:
             $ref: "#/definitions/Error"
     delete:
@@ -294,8 +293,6 @@ paths:
       responses:
         204:
           description: Resource successfully deleted.
-        400:
-          description: Validation Error
         404:
           description: Not Found
           schema:
@@ -382,8 +379,6 @@ paths:
             type: array
             items:
               $ref: "#/definitions/EndpointConsumer"
-        400:
-          description: Validation Error
         403:
           description: Forbidden
         404:
@@ -422,8 +417,6 @@ paths:
             type: array
             items:
               $ref: "#/definitions/EndpointConsumer"
-        400:
-          description: Validation Error
         403:
           description: Forbidden
           schema:
@@ -480,8 +473,6 @@ paths:
           description: Endpoint
           schema:
             $ref: "#/definitions/Endpoint"
-        400:
-          description: Validation Error
         403:
           description: Forbidden
   /endpoint/{endpoint_id}:
@@ -568,8 +559,6 @@ paths:
           description: RBAC policy
           schema:
             $ref: '#/definitions/RBACPolicy'
-        400:
-          description: Validation Error
         403:
           description: Forbidden
         409:
@@ -617,8 +606,6 @@ paths:
           description: RBAC Policy
           schema:
             $ref: "#/definitions/RBACPolicyCommon"
-        400:
-          description: Validation Error
         403:
           description: Forbidden
         404:
@@ -748,8 +735,6 @@ paths:
             properties:
               quota:
                 $ref: '#/definitions/Quota'
-        400:
-          description: Validation Error
         403:
           description: Forbidden
         404:
@@ -846,6 +831,7 @@ definitions:
       enabled:
         type: boolean
         description: Enable/disable this service. Existing endpoints are not touched by this.
+        x-nullable: true
       name:
         type: string
         description: Name of the service.
@@ -938,6 +924,64 @@ definitions:
         $ref: "#/definitions/Timestamp"
       project_id:
         $ref: "#/definitions/Project"
+  ServiceUpdatable:
+    type: object
+    properties:
+      enabled:
+        type: boolean
+        description: Enable/disable this service. Existing endpoints are not touched by this.
+        x-nullable: true
+      name:
+        type: string
+        description: Name of the service.
+        example: ExampleService
+        maxLength: 64
+        x-omitempty: false
+      description:
+        type: string
+        description: Description of the service.
+        example: An example of an Service.
+        maxLength: 255
+        x-omitempty: false
+      ip_addresses:
+        type: array
+        description: IP Addresses of the providing service, multiple addresses will be round robin load balanced.
+        minItems: 1
+        items:
+          type: string
+          format: ipv4
+          description: IP Address of the providing service.
+          example: 1.2.3.4
+      port:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 65535
+        example: 80
+        description: Port exposed by the service.
+        x-nullable: false
+      require_approval:
+        type: boolean
+        description: Require explicit project approval for the service owner.
+        default: true
+      visibility:
+        type: string
+        description: Set global visibility of the service. For `private` visibility, RBAC policies can extend the visibility to specific projects.
+        default: private
+        enum:
+          - private
+          - public
+      proxy_protocol:
+        type: boolean
+        default: true
+        description: Proxy protocol v2 enabled for this endpoint.
+      tags:
+        type: array
+        description: The list of tags on the resource.
+        default: []
+        items:
+          type: string
+          maxLength: 64
   EndpointConsumer:
     type: object
     properties:
@@ -948,6 +992,8 @@ definitions:
         readOnly: true
       status:
         $ref: "#/definitions/EndpointStatus"
+      project_id:
+        $ref: "#/definitions/Project"
   EndpointConsumerList:
     type: object
     description: list of consumer ids.
@@ -962,10 +1008,7 @@ definitions:
       project_ids:
         type: array
         items:
-          type: string
-          format: uuid
-          description: The ID of a project.
-          readOnly: true
+          $ref: "#/definitions/Project"
   Endpoint:
     type: object
     properties:

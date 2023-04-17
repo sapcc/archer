@@ -92,13 +92,11 @@ func stripDesc(sortDirKey string) (string, bool) {
 }
 
 // Query pagination helper that also includes policy query filter
-func (p *Pagination) Query(db *pgxpool.Pool, table string, filter map[string]any) (pgx.Rows, error) {
+func (p *Pagination) Query(db *pgxpool.Pool, query string, filter map[string]any) (pgx.Rows, error) {
 	var sortDirKeys []string
 	var whereClauses []string
 	var orderBy string
 	var pageReverse bool
-
-	query := fmt.Sprint("SELECT * FROM ", table)
 
 	// add filter
 	for key := range filter {
@@ -123,7 +121,7 @@ func (p *Pagination) Query(db *pgxpool.Pool, table string, filter map[string]any
 		filter["not_tags_any"] = pgtype.FlatArray[string](p.NotTagsAny)
 	}
 
-	//page reverse
+	// page reverse
 	if p.PageReverse != nil {
 		pageReverse = *p.PageReverse
 	}
@@ -175,7 +173,7 @@ func (p *Pagination) Query(db *pgxpool.Pool, table string, filter map[string]any
 
 	// paginate
 	if !config.Global.ApiSettings.DisablePagination && p.Marker != nil {
-		sql := fmt.Sprintf(`SELECT * FROM %s WHERE id = $1`, table)
+		sql := fmt.Sprintf(`%s WHERE id = $1`, query)
 		if err := pgxscan.Get(context.Background(), db, &filter, sql, p.Marker); err != nil {
 			return nil, err
 		}

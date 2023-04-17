@@ -72,31 +72,6 @@ func (o *PostEndpointOK) WriteResponse(rw http.ResponseWriter, producer runtime.
 	}
 }
 
-// PostEndpointBadRequestCode is the HTTP code returned for type PostEndpointBadRequest
-const PostEndpointBadRequestCode int = 400
-
-/*
-PostEndpointBadRequest Validation Error
-
-swagger:response postEndpointBadRequest
-*/
-type PostEndpointBadRequest struct {
-}
-
-// NewPostEndpointBadRequest creates PostEndpointBadRequest with default headers values
-func NewPostEndpointBadRequest() *PostEndpointBadRequest {
-
-	return &PostEndpointBadRequest{}
-}
-
-// WriteResponse to the client
-func (o *PostEndpointBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
-
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
-	rw.WriteHeader(400)
-}
-
 // PostEndpointForbiddenCode is the HTTP code returned for type PostEndpointForbidden
 const PostEndpointForbiddenCode int = 403
 

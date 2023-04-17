@@ -49,7 +49,7 @@ type Service struct {
 	Description string `json:"description"`
 
 	// Enable/disable this service. Existing endpoints are not touched by this.
-	Enabled bool `json:"enabled,omitempty"`
+	Enabled *bool `json:"enabled,omitempty"`
 
 	// Device host.
 	// Read Only: true

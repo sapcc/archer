@@ -81,7 +81,7 @@ type PutServiceServiceIDParams struct {
 
 	   Service object that needs to be updated
 	*/
-	Body *models.Service
+	Body *models.ServiceUpdatable
 
 	/* ServiceID.
 
@@ -145,13 +145,13 @@ func (o *PutServiceServiceIDParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithBody adds the body to the put service service ID params
-func (o *PutServiceServiceIDParams) WithBody(body *models.Service) *PutServiceServiceIDParams {
+func (o *PutServiceServiceIDParams) WithBody(body *models.ServiceUpdatable) *PutServiceServiceIDParams {
 	o.SetBody(body)
 	return o
 }
 
 // SetBody adds the body to the put service service ID params
-func (o *PutServiceServiceIDParams) SetBody(body *models.Service) {
+func (o *PutServiceServiceIDParams) SetBody(body *models.ServiceUpdatable) {
 	o.Body = body
 }
 

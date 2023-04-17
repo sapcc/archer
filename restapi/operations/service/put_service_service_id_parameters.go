@@ -53,7 +53,7 @@ type PutServiceServiceIDParams struct {
 	  Required: true
 	  In: body
 	*/
-	Body *models.Service
+	Body *models.ServiceUpdatable
 	/*The UUID of the service
 	  Required: true
 	  In: path
@@ -72,7 +72,7 @@ func (o *PutServiceServiceIDParams) BindRequest(r *http.Request, route *middlewa
 
 	if runtime.HasBody(r) {
 		defer r.Body.Close()
-		var body models.Service
+		var body models.ServiceUpdatable
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
 			if err == io.EOF {
 				res = append(res, errors.Required("body", "body", ""))
