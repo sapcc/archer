@@ -139,6 +139,7 @@ func (c *Controller) DeleteServiceServiceIDHandler(params service.DeleteServiceS
 
 func (c *Controller) GetServiceServiceIDEndpointsHandler(params service.GetServiceServiceIDEndpointsParams, principal any) middleware.Responder {
 	q := db.Select("1").From("service").Where("id = ?", params.ServiceID)
+
 	if projectId, err := auth.AuthenticatePrincipal(params.HTTPRequest, principal); err != nil {
 		return service.NewGetServiceServiceIDEndpointsForbidden()
 	} else if projectId != "" {

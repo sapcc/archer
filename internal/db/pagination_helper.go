@@ -193,7 +193,8 @@ func (p *Pagination) Query(db *pgxpool.Pool, table string, filter map[string]any
 				critAttrs = append(critAttrs, fmt.Sprintf("%s = @%s", sortKey, sortKey))
 			}
 
-			if sortKey := strings.TrimPrefix(sortDirKey, "-"); sortKey != sortDirKey {
+			sortKey := strings.TrimPrefix(sortDirKey, "-")
+			if (sortKey != sortDirKey) && !pageReverse || (sortKey == sortDirKey) && pageReverse {
 				critAttrs = append(critAttrs, fmt.Sprintf("%s < @%s", sortKey, sortKey))
 			} else {
 				critAttrs = append(critAttrs, fmt.Sprintf("%s > @%s", sortKey, sortKey))
