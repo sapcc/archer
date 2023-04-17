@@ -157,6 +157,10 @@ func (m *Service) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateTags(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateUpdatedAt(formats); err != nil {
 		res = append(res, err)
 	}
@@ -331,6 +335,22 @@ func (m *Service) validateStatus(formats strfmt.Registry) error {
 	// value enum
 	if err := m.validateStatusEnum("status", "body", m.Status); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *Service) validateTags(formats strfmt.Registry) error {
+	if swag.IsZero(m.Tags) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.Tags); i++ {
+
+		if err := validate.MaxLength("tags"+"."+strconv.Itoa(i), "body", m.Tags[i], 64); err != nil {
+			return err
+		}
+
 	}
 
 	return nil

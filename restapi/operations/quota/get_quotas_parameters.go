@@ -26,7 +26,6 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
@@ -47,28 +46,12 @@ type GetQuotasParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*Sets the page size.
-	  In: query
-	*/
-	Limit *int64
-	/*Pagination ID of the last item in the previous list.
-	  In: query
-	*/
-	Marker *strfmt.UUID
-	/*Sets the page direction.
-	  In: query
-	*/
-	PageReverse *bool
 	/*The ID of the project to query.
 	  Max Length: 32
 	  Min Length: 32
 	  In: query
 	*/
 	ProjectID *string
-	/*Comma-separated list of sort keys, optinally prefix with - to reverse sort order.
-	  In: query
-	*/
-	Sort *string
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -82,116 +65,13 @@ func (o *GetQuotasParams) BindRequest(r *http.Request, route *middleware.Matched
 
 	qs := runtime.Values(r.URL.Query())
 
-	qLimit, qhkLimit, _ := qs.GetOK("limit")
-	if err := o.bindLimit(qLimit, qhkLimit, route.Formats); err != nil {
-		res = append(res, err)
-	}
-
-	qMarker, qhkMarker, _ := qs.GetOK("marker")
-	if err := o.bindMarker(qMarker, qhkMarker, route.Formats); err != nil {
-		res = append(res, err)
-	}
-
-	qPageReverse, qhkPageReverse, _ := qs.GetOK("page_reverse")
-	if err := o.bindPageReverse(qPageReverse, qhkPageReverse, route.Formats); err != nil {
-		res = append(res, err)
-	}
-
 	qProjectID, qhkProjectID, _ := qs.GetOK("project_id")
 	if err := o.bindProjectID(qProjectID, qhkProjectID, route.Formats); err != nil {
-		res = append(res, err)
-	}
-
-	qSort, qhkSort, _ := qs.GetOK("sort")
-	if err := o.bindSort(qSort, qhkSort, route.Formats); err != nil {
 		res = append(res, err)
 	}
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
-	return nil
-}
-
-// bindLimit binds and validates parameter Limit from query.
-func (o *GetQuotasParams) bindLimit(rawData []string, hasKey bool, formats strfmt.Registry) error {
-	var raw string
-	if len(rawData) > 0 {
-		raw = rawData[len(rawData)-1]
-	}
-
-	// Required: false
-	// AllowEmptyValue: false
-
-	if raw == "" { // empty values pass all other validations
-		return nil
-	}
-
-	value, err := swag.ConvertInt64(raw)
-	if err != nil {
-		return errors.InvalidType("limit", "query", "int64", raw)
-	}
-	o.Limit = &value
-
-	return nil
-}
-
-// bindMarker binds and validates parameter Marker from query.
-func (o *GetQuotasParams) bindMarker(rawData []string, hasKey bool, formats strfmt.Registry) error {
-	var raw string
-	if len(rawData) > 0 {
-		raw = rawData[len(rawData)-1]
-	}
-
-	// Required: false
-	// AllowEmptyValue: false
-
-	if raw == "" { // empty values pass all other validations
-		return nil
-	}
-
-	// Format: uuid
-	value, err := formats.Parse("uuid", raw)
-	if err != nil {
-		return errors.InvalidType("marker", "query", "strfmt.UUID", raw)
-	}
-	o.Marker = (value.(*strfmt.UUID))
-
-	if err := o.validateMarker(formats); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// validateMarker carries on validations for parameter Marker
-func (o *GetQuotasParams) validateMarker(formats strfmt.Registry) error {
-
-	if err := validate.FormatOf("marker", "query", "uuid", o.Marker.String(), formats); err != nil {
-		return err
-	}
-	return nil
-}
-
-// bindPageReverse binds and validates parameter PageReverse from query.
-func (o *GetQuotasParams) bindPageReverse(rawData []string, hasKey bool, formats strfmt.Registry) error {
-	var raw string
-	if len(rawData) > 0 {
-		raw = rawData[len(rawData)-1]
-	}
-
-	// Required: false
-	// AllowEmptyValue: false
-
-	if raw == "" { // empty values pass all other validations
-		return nil
-	}
-
-	value, err := swag.ConvertBool(raw)
-	if err != nil {
-		return errors.InvalidType("page_reverse", "query", "bool", raw)
-	}
-	o.PageReverse = &value
-
 	return nil
 }
 
@@ -227,24 +107,6 @@ func (o *GetQuotasParams) validateProjectID(formats strfmt.Registry) error {
 	if err := validate.MaxLength("project_id", "query", *o.ProjectID, 32); err != nil {
 		return err
 	}
-
-	return nil
-}
-
-// bindSort binds and validates parameter Sort from query.
-func (o *GetQuotasParams) bindSort(rawData []string, hasKey bool, formats strfmt.Registry) error {
-	var raw string
-	if len(rawData) > 0 {
-		raw = rawData[len(rawData)-1]
-	}
-
-	// Required: false
-	// AllowEmptyValue: false
-
-	if raw == "" { // empty values pass all other validations
-		return nil
-	}
-	o.Sort = &raw
 
 	return nil
 }

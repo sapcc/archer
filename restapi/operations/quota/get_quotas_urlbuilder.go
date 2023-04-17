@@ -23,18 +23,11 @@ import (
 	"errors"
 	"net/url"
 	golangswaggerpaths "path"
-
-	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
 )
 
 // GetQuotasURL generates an URL for the get quotas operation
 type GetQuotasURL struct {
-	Limit       *int64
-	Marker      *strfmt.UUID
-	PageReverse *bool
-	ProjectID   *string
-	Sort        *string
+	ProjectID *string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -67,44 +60,12 @@ func (o *GetQuotasURL) Build() (*url.URL, error) {
 
 	qs := make(url.Values)
 
-	var limitQ string
-	if o.Limit != nil {
-		limitQ = swag.FormatInt64(*o.Limit)
-	}
-	if limitQ != "" {
-		qs.Set("limit", limitQ)
-	}
-
-	var markerQ string
-	if o.Marker != nil {
-		markerQ = o.Marker.String()
-	}
-	if markerQ != "" {
-		qs.Set("marker", markerQ)
-	}
-
-	var pageReverseQ string
-	if o.PageReverse != nil {
-		pageReverseQ = swag.FormatBool(*o.PageReverse)
-	}
-	if pageReverseQ != "" {
-		qs.Set("page_reverse", pageReverseQ)
-	}
-
 	var projectIDQ string
 	if o.ProjectID != nil {
 		projectIDQ = *o.ProjectID
 	}
 	if projectIDQ != "" {
 		qs.Set("project_id", projectIDQ)
-	}
-
-	var sortQ string
-	if o.Sort != nil {
-		sortQ = *o.Sort
-	}
-	if sortQ != "" {
-		qs.Set("sort", sortQ)
 	}
 
 	_result.RawQuery = qs.Encode()

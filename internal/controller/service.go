@@ -16,10 +16,10 @@ package controller
 
 import (
 	"errors"
-
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/sapcc/archer/internal/auth"
@@ -66,37 +66,16 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 		panic(err)
 	}
 
-	sql := `
-			INSERT INTO service (enabled, 
-			                     name, 
-			                     description, 
-			                     network_id, 
-			                     ip_addresses, 
-			                     require_approval, 
-			                     visibility, 
-			                     availability_zone, 
-			                     proxy_protocol, 
-			                     project_id, 
-			                     port,
-			                     tags)
-			VALUES
-				($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-			RETURNING *
-		`
-
-	rows, err := c.pool.Query(ctx, sql,
-		params.Body.Enabled,
-		params.Body.Name,
-		params.Body.Description,
-		params.Body.NetworkID,
-		params.Body.IPAddresses,
-		params.Body.RequireApproval,
-		params.Body.Visibility,
-		params.Body.AvailabilityZone,
-		params.Body.ProxyProtocol,
-		params.Body.ProjectID,
-		params.Body.Port,
-		params.Body.Tags)
+	q := db.
+		Insert("service").
+		Columns("enabled", "name", "description", "network_id", "ip_addresses", "require_approval",
+			"visibility", "availability_zone", "proxy_protocol", "project_id", "port", "tags").
+		Values(params.Body.Enabled, params.Body.Name, params.Body.Description, params.Body.NetworkID,
+			params.Body.IPAddresses, params.Body.RequireApproval, params.Body.Visibility, params.Body.AvailabilityZone,
+			params.Body.ProxyProtocol, params.Body.ProjectID, params.Body.Port, params.Body.Tags).
+		Returning("*")
+	sql, args := q.ToSQL()
+	rows, err := c.pool.Query(ctx, sql, *args...)
 	if err != nil {
 		panic(err)
 	}
@@ -115,7 +94,23 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 }
 
 func (c *Controller) GetServiceServiceIDHandler(params service.GetServiceServiceIDParams, principal any) middleware.Responder {
-	return middleware.NotImplemented("operation service.GetServiceServiceID has not yet been implemented")
+	q := db.Select("*").From("service").Where("id = ?", params.ServiceID)
+
+	if projectId, err := auth.AuthenticatePrincipal(params.HTTPRequest, principal); err != nil {
+		return service.NewGetServiceServiceIDForbidden()
+	} else if projectId != "" {
+		q.Where("project_id = ?", projectId)
+	}
+
+	var servicesResponse models.Service
+	sql, args := q.ToSQL()
+	if err := pgxscan.Get(params.HTTPRequest.Context(), c.pool, &servicesResponse, sql, *args...); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return service.NewGetServiceServiceIDNotFound()
+		}
+		panic(err)
+	}
+	return service.NewGetServiceServiceIDOK().WithPayload(&servicesResponse)
 }
 
 func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceServiceIDParams, principal any) middleware.Responder {
@@ -123,11 +118,61 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 }
 
 func (c *Controller) DeleteServiceServiceIDHandler(params service.DeleteServiceServiceIDParams, principal any) middleware.Responder {
-	return middleware.NotImplemented("operation service.DeleteServiceServiceID has not yet been implemented")
+	q := db.Delete("service").Where("id = ?", params.ServiceID)
+
+	if projectId, err := auth.AuthenticatePrincipal(params.HTTPRequest, principal); err != nil {
+		return service.NewDeleteServiceServiceIDForbidden()
+	} else if projectId != "" {
+		q.Where("project_id = ?", projectId)
+	}
+
+	sql, args := q.ToSQL()
+	if ct, err := c.pool.Exec(params.HTTPRequest.Context(), sql, *args...); err != nil {
+		//TODO: check for conflict (service in use)
+		panic(err)
+	} else if ct.RowsAffected() == 0 {
+		return service.NewDeleteServiceServiceIDNotFound()
+	}
+
+	return service.NewDeleteServiceServiceIDNoContent()
 }
 
 func (c *Controller) GetServiceServiceIDEndpointsHandler(params service.GetServiceServiceIDEndpointsParams, principal any) middleware.Responder {
-	return middleware.NotImplemented("operation service.GetServiceServiceIDEndpoints has not yet been implemented")
+	q := db.Select("1").From("service").Where("id = ?", params.ServiceID)
+	if projectId, err := auth.AuthenticatePrincipal(params.HTTPRequest, principal); err != nil {
+		return service.NewGetServiceServiceIDEndpointsForbidden()
+	} else if projectId != "" {
+		q.Where("project_id = ?", projectId)
+	}
+
+	sql, args := q.ToSQL()
+	if ct, err := c.pool.Exec(params.HTTPRequest.Context(), sql, *args...); err != nil {
+		panic(err)
+	} else if ct.RowsAffected() == 0 {
+		return service.NewGetServiceServiceIDEndpointsNotFound()
+	}
+
+	pagination := db.Pagination{
+		HTTPRequest: params.HTTPRequest,
+		Limit:       params.Limit,
+		Marker:      params.Marker,
+		PageReverse: params.PageReverse,
+		Sort:        params.Sort,
+	}
+	filter := map[string]any{"service_id": params.ServiceID}
+	rows, err := pagination.Query(c.pool, "endpoint", filter)
+	if err != nil {
+		panic(err)
+	}
+
+	var endpointsResponse = make([]*models.EndpointConsumer, 0)
+	if err := pgxscan.ScanAll(&endpointsResponse, rows); err != nil {
+		panic(err)
+	}
+
+	links := pagination.GetLinks(endpointsResponse)
+	return service.NewGetServiceServiceIDEndpointsOK().
+		WithPayload(&service.GetServiceServiceIDEndpointsOKBody{Items: endpointsResponse, Links: links})
 }
 
 func (c *Controller) PutServiceServiceIDAcceptEndpointsHandler(params service.PutServiceServiceIDAcceptEndpointsParams, principal any) middleware.Responder {

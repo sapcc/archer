@@ -235,20 +235,6 @@ func init() {
           "Quota"
         ],
         "summary": "List Quotas",
-        "parameters": [
-          {
-            "$ref": "#/parameters/marker"
-          },
-          {
-            "$ref": "#/parameters/limit"
-          },
-          {
-            "$ref": "#/parameters/sort"
-          },
-          {
-            "$ref": "#/parameters/page_reverse"
-          }
-        ],
         "responses": {
           "200": {
             "description": "A JSON array of quotas",
@@ -1049,8 +1035,10 @@ func init() {
         "tags": {
           "description": "The list of tags on the resource.",
           "type": "array",
+          "default": null,
           "items": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 64
           }
         },
         "target": {
@@ -1370,8 +1358,10 @@ func init() {
         "tags": {
           "description": "The list of tags on the resource.",
           "type": "array",
+          "default": null,
           "items": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 64
           }
         },
         "updated_at": {
@@ -1779,33 +1769,6 @@ func init() {
           "Quota"
         ],
         "summary": "List Quotas",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "description": "Pagination ID of the last item in the previous list.",
-            "name": "marker",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "Sets the page size.",
-            "name": "limit",
-            "in": "query"
-          },
-          {
-            "type": "string",
-            "description": "Comma-separated list of sort keys, optinally prefix with - to reverse sort order.",
-            "name": "sort",
-            "in": "query"
-          },
-          {
-            "type": "boolean",
-            "description": "Sets the page direction.",
-            "name": "page_reverse",
-            "in": "query"
-          }
-        ],
         "responses": {
           "200": {
             "description": "A JSON array of quotas",
@@ -2654,8 +2617,10 @@ func init() {
         "tags": {
           "description": "The list of tags on the resource.",
           "type": "array",
+          "default": [],
           "items": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 64
           }
         },
         "target": {
@@ -3020,8 +2985,10 @@ func init() {
         "tags": {
           "description": "The list of tags on the resource.",
           "type": "array",
+          "default": [],
           "items": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 64
           }
         },
         "updated_at": {

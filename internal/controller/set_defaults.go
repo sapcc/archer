@@ -40,7 +40,7 @@ func (c *Controller) SetModelDefaults(s any) error {
 				// Check if model has default set
 				if property.Default != nil {
 					propertyField := reflect.ValueOf(s).Elem().FieldByName(strcase.ToCamel(propName))
-					if propertyField.Kind() != reflect.Ptr && propertyField.Kind() != reflect.Uintptr {
+					if propertyField.Kind() != reflect.Ptr && propertyField.Kind() != reflect.Uintptr && propertyField.Kind() != reflect.Slice {
 						return fmt.Errorf("unexpected field %s for specDefinitionModel %s", propName, specDefinitionName)
 					}
 
@@ -62,6 +62,11 @@ func (c *Controller) SetModelDefaults(s any) error {
 					} else if property.Type.Contains("number") {
 						val := float32(property.Default.(float64))
 						vp.Elem().Set(reflect.ValueOf(&val))
+					} else if property.Type.Contains("array") {
+						val := property.Default.([]any)
+						if len(val) == 0 {
+							vp.Elem().Set(reflect.MakeSlice(vp.Elem().Type(), 0, 0))
+						}
 					} else {
 						return fmt.Errorf("unexpected type %T for property %s", property.Default, propName)
 					}

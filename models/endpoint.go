@@ -21,6 +21,7 @@ package models
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/go-openapi/errors"
@@ -88,6 +89,10 @@ func (m *Endpoint) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateStatus(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateTags(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -166,6 +171,22 @@ func (m *Endpoint) validateStatus(formats strfmt.Registry) error {
 			return ce.ValidateName("status")
 		}
 		return err
+	}
+
+	return nil
+}
+
+func (m *Endpoint) validateTags(formats strfmt.Registry) error {
+	if swag.IsZero(m.Tags) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.Tags); i++ {
+
+		if err := validate.MaxLength("tags"+"."+strconv.Itoa(i), "body", m.Tags[i], 64); err != nil {
+			return err
+		}
+
 	}
 
 	return nil

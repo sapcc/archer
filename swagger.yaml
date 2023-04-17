@@ -653,11 +653,6 @@ paths:
         - Quota
       summary: List Quotas
       x-policy: quota:read
-      parameters:
-        - $ref: '#/parameters/marker'
-        - $ref: '#/parameters/limit'
-        - $ref: '#/parameters/sort'
-        - $ref: '#/parameters/page_reverse'
       responses:
         200:
           description: A JSON array of quotas
@@ -933,6 +928,7 @@ definitions:
       tags:
         type: array
         description: The list of tags on the resource.
+        default: []
         items:
           type: string
           maxLength: 64
@@ -1012,6 +1008,7 @@ definitions:
       tags:
         type: array
         description: The list of tags on the resource.
+        default: []
         items:
           type: string
           maxLength: 64

@@ -101,8 +101,8 @@ func (p *Pagination) Query(db *pgxpool.Pool, table string, filter map[string]any
 	query := fmt.Sprint("SELECT * FROM ", table)
 
 	// add filter
-	for key, val := range filter {
-		whereClauses = append(whereClauses, fmt.Sprintf("%s = @%s", key, val))
+	for key := range filter {
+		whereClauses = append(whereClauses, fmt.Sprintf("%s = @%s", key, key))
 	}
 
 	// tags Filter
