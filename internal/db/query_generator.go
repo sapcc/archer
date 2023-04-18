@@ -34,6 +34,8 @@ type SelectBuilder struct {
 	limit        int64
 	whereClauses []string
 	args         []any
+	group        []string
+	join         []string
 }
 
 func Select(columns ...string) *SelectBuilder {
@@ -67,6 +69,16 @@ func (b *SelectBuilder) Where(pred string, args ...any) *SelectBuilder {
 	return b
 }
 
+func (b *SelectBuilder) Group(columns ...string) *SelectBuilder {
+	b.group = columns
+	return b
+}
+
+func (b *SelectBuilder) RawJoin(sql string) *SelectBuilder {
+	b.join = append(b.join, sql)
+	return b
+}
+
 func (b *SelectBuilder) ToSQL() (string, []any) {
 	var sb strings.Builder
 
@@ -83,13 +95,34 @@ func (b *SelectBuilder) ToSQL() (string, []any) {
 	// FROM ...
 	sb.WriteString(fmt.Sprint(" FROM ", b.from))
 
-	// WHERE ...
-	sb.WriteString(" WHERE ")
-	for i, whereClause := range b.whereClauses {
-		if i > 0 {
-			sb.WriteString(" AND ")
+	// JOIN ...
+	if len(b.join) > 0 {
+		for _, j := range b.join {
+			sb.WriteString(" ")
+			sb.WriteString(j)
 		}
-		sb.WriteString(whereClause)
+	}
+
+	// WHERE ...
+	if len(b.whereClauses) > 0 {
+		sb.WriteString(" WHERE ")
+		for i, whereClause := range b.whereClauses {
+			if i > 0 {
+				sb.WriteString(" AND ")
+			}
+			sb.WriteString(whereClause)
+		}
+	}
+
+	// GROUP ...
+	if len(b.group) > 0 {
+		sb.WriteString(" GROUP BY ")
+		for i, group := range b.group {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(group)
+		}
 	}
 
 	// LIMIT ...
@@ -288,7 +321,7 @@ func (b *UpdateBuilder) ToSQL() (string, pgx.NamedArgs) {
 			sb.WriteString(string(val))
 		case Coalesce:
 			sb.WriteString(fmt.Sprintf("COALESCE(@%s, %s)", key, key))
-			b.values[key] = val
+			b.values[key] = val.V
 		default:
 			sb.WriteString(fmt.Sprint("@", key))
 			b.values[key] = val

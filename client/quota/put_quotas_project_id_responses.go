@@ -41,8 +41,8 @@ type PutQuotasProjectIDReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *PutQuotasProjectIDReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-	case 202:
-		result := NewPutQuotasProjectIDAccepted()
+	case 200:
+		result := NewPutQuotasProjectIDOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -64,65 +64,65 @@ func (o *PutQuotasProjectIDReader) ReadResponse(response runtime.ClientResponse,
 	}
 }
 
-// NewPutQuotasProjectIDAccepted creates a PutQuotasProjectIDAccepted with default headers values
-func NewPutQuotasProjectIDAccepted() *PutQuotasProjectIDAccepted {
-	return &PutQuotasProjectIDAccepted{}
+// NewPutQuotasProjectIDOK creates a PutQuotasProjectIDOK with default headers values
+func NewPutQuotasProjectIDOK() *PutQuotasProjectIDOK {
+	return &PutQuotasProjectIDOK{}
 }
 
 /*
-PutQuotasProjectIDAccepted describes a response with status code 202, with default header values.
+PutQuotasProjectIDOK describes a response with status code 200, with default header values.
 
 Updated quota for a project.
 */
-type PutQuotasProjectIDAccepted struct {
-	Payload *PutQuotasProjectIDAcceptedBody
+type PutQuotasProjectIDOK struct {
+	Payload *PutQuotasProjectIDOKBody
 }
 
-// IsSuccess returns true when this put quotas project Id accepted response has a 2xx status code
-func (o *PutQuotasProjectIDAccepted) IsSuccess() bool {
+// IsSuccess returns true when this put quotas project Id o k response has a 2xx status code
+func (o *PutQuotasProjectIDOK) IsSuccess() bool {
 	return true
 }
 
-// IsRedirect returns true when this put quotas project Id accepted response has a 3xx status code
-func (o *PutQuotasProjectIDAccepted) IsRedirect() bool {
+// IsRedirect returns true when this put quotas project Id o k response has a 3xx status code
+func (o *PutQuotasProjectIDOK) IsRedirect() bool {
 	return false
 }
 
-// IsClientError returns true when this put quotas project Id accepted response has a 4xx status code
-func (o *PutQuotasProjectIDAccepted) IsClientError() bool {
+// IsClientError returns true when this put quotas project Id o k response has a 4xx status code
+func (o *PutQuotasProjectIDOK) IsClientError() bool {
 	return false
 }
 
-// IsServerError returns true when this put quotas project Id accepted response has a 5xx status code
-func (o *PutQuotasProjectIDAccepted) IsServerError() bool {
+// IsServerError returns true when this put quotas project Id o k response has a 5xx status code
+func (o *PutQuotasProjectIDOK) IsServerError() bool {
 	return false
 }
 
-// IsCode returns true when this put quotas project Id accepted response a status code equal to that given
-func (o *PutQuotasProjectIDAccepted) IsCode(code int) bool {
-	return code == 202
+// IsCode returns true when this put quotas project Id o k response a status code equal to that given
+func (o *PutQuotasProjectIDOK) IsCode(code int) bool {
+	return code == 200
 }
 
-// Code gets the status code for the put quotas project Id accepted response
-func (o *PutQuotasProjectIDAccepted) Code() int {
-	return 202
+// Code gets the status code for the put quotas project Id o k response
+func (o *PutQuotasProjectIDOK) Code() int {
+	return 200
 }
 
-func (o *PutQuotasProjectIDAccepted) Error() string {
-	return fmt.Sprintf("[PUT /quotas/{project_id}][%d] putQuotasProjectIdAccepted  %+v", 202, o.Payload)
+func (o *PutQuotasProjectIDOK) Error() string {
+	return fmt.Sprintf("[PUT /quotas/{project_id}][%d] putQuotasProjectIdOK  %+v", 200, o.Payload)
 }
 
-func (o *PutQuotasProjectIDAccepted) String() string {
-	return fmt.Sprintf("[PUT /quotas/{project_id}][%d] putQuotasProjectIdAccepted  %+v", 202, o.Payload)
+func (o *PutQuotasProjectIDOK) String() string {
+	return fmt.Sprintf("[PUT /quotas/{project_id}][%d] putQuotasProjectIdOK  %+v", 200, o.Payload)
 }
 
-func (o *PutQuotasProjectIDAccepted) GetPayload() *PutQuotasProjectIDAcceptedBody {
+func (o *PutQuotasProjectIDOK) GetPayload() *PutQuotasProjectIDOKBody {
 	return o.Payload
 }
 
-func (o *PutQuotasProjectIDAccepted) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *PutQuotasProjectIDOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(PutQuotasProjectIDAcceptedBody)
+	o.Payload = new(PutQuotasProjectIDOKBody)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -257,97 +257,6 @@ func (o *PutQuotasProjectIDNotFound) readResponse(response runtime.ClientRespons
 }
 
 /*
-PutQuotasProjectIDAcceptedBody put quotas project ID accepted body
-swagger:model PutQuotasProjectIDAcceptedBody
-*/
-type PutQuotasProjectIDAcceptedBody struct {
-
-	// quota
-	Quota *models.Quota `json:"quota,omitempty"`
-}
-
-// Validate validates this put quotas project ID accepted body
-func (o *PutQuotasProjectIDAcceptedBody) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := o.validateQuota(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (o *PutQuotasProjectIDAcceptedBody) validateQuota(formats strfmt.Registry) error {
-	if swag.IsZero(o.Quota) { // not required
-		return nil
-	}
-
-	if o.Quota != nil {
-		if err := o.Quota.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("putQuotasProjectIdAccepted" + "." + "quota")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("putQuotasProjectIdAccepted" + "." + "quota")
-			}
-			return err
-		}
-	}
-
-	return nil
-}
-
-// ContextValidate validate this put quotas project ID accepted body based on the context it is used
-func (o *PutQuotasProjectIDAcceptedBody) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
-	var res []error
-
-	if err := o.contextValidateQuota(ctx, formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (o *PutQuotasProjectIDAcceptedBody) contextValidateQuota(ctx context.Context, formats strfmt.Registry) error {
-
-	if o.Quota != nil {
-		if err := o.Quota.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("putQuotasProjectIdAccepted" + "." + "quota")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("putQuotasProjectIdAccepted" + "." + "quota")
-			}
-			return err
-		}
-	}
-
-	return nil
-}
-
-// MarshalBinary interface implementation
-func (o *PutQuotasProjectIDAcceptedBody) MarshalBinary() ([]byte, error) {
-	if o == nil {
-		return nil, nil
-	}
-	return swag.WriteJSON(o)
-}
-
-// UnmarshalBinary interface implementation
-func (o *PutQuotasProjectIDAcceptedBody) UnmarshalBinary(b []byte) error {
-	var res PutQuotasProjectIDAcceptedBody
-	if err := swag.ReadJSON(b, &res); err != nil {
-		return err
-	}
-	*o = res
-	return nil
-}
-
-/*
 PutQuotasProjectIDBody put quotas project ID body
 swagger:model PutQuotasProjectIDBody
 */
@@ -433,6 +342,97 @@ func (o *PutQuotasProjectIDBody) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary interface implementation
 func (o *PutQuotasProjectIDBody) UnmarshalBinary(b []byte) error {
 	var res PutQuotasProjectIDBody
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*o = res
+	return nil
+}
+
+/*
+PutQuotasProjectIDOKBody put quotas project ID o k body
+swagger:model PutQuotasProjectIDOKBody
+*/
+type PutQuotasProjectIDOKBody struct {
+
+	// quota
+	Quota *models.Quota `json:"quota,omitempty"`
+}
+
+// Validate validates this put quotas project ID o k body
+func (o *PutQuotasProjectIDOKBody) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := o.validateQuota(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (o *PutQuotasProjectIDOKBody) validateQuota(formats strfmt.Registry) error {
+	if swag.IsZero(o.Quota) { // not required
+		return nil
+	}
+
+	if o.Quota != nil {
+		if err := o.Quota.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("putQuotasProjectIdOK" + "." + "quota")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("putQuotasProjectIdOK" + "." + "quota")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ContextValidate validate this put quotas project ID o k body based on the context it is used
+func (o *PutQuotasProjectIDOKBody) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := o.contextValidateQuota(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (o *PutQuotasProjectIDOKBody) contextValidateQuota(ctx context.Context, formats strfmt.Registry) error {
+
+	if o.Quota != nil {
+		if err := o.Quota.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("putQuotasProjectIdOK" + "." + "quota")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("putQuotasProjectIdOK" + "." + "quota")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (o *PutQuotasProjectIDOKBody) MarshalBinary() ([]byte, error) {
+	if o == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(o)
+}
+
+// UnmarshalBinary interface implementation
+func (o *PutQuotasProjectIDOKBody) UnmarshalBinary(b []byte) error {
+	var res PutQuotasProjectIDOKBody
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

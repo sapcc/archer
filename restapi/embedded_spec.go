@@ -378,7 +378,7 @@ func init() {
           }
         ],
         "responses": {
-          "202": {
+          "200": {
             "description": "Updated quota for a project.",
             "schema": {
               "type": "object",
@@ -1957,7 +1957,7 @@ func init() {
           }
         ],
         "responses": {
-          "202": {
+          "200": {
             "description": "Updated quota for a project.",
             "schema": {
               "type": "object",

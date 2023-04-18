@@ -736,7 +736,7 @@ paths:
               quota:
                 $ref: '#/definitions/Quota'
       responses:
-        202:
+        200:
           description: Updated quota for a project.
           schema:
             type: object

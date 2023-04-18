@@ -27,43 +27,43 @@ import (
 	"github.com/sapcc/archer/models"
 )
 
-// PutQuotasProjectIDAcceptedCode is the HTTP code returned for type PutQuotasProjectIDAccepted
-const PutQuotasProjectIDAcceptedCode int = 202
+// PutQuotasProjectIDOKCode is the HTTP code returned for type PutQuotasProjectIDOK
+const PutQuotasProjectIDOKCode int = 200
 
 /*
-PutQuotasProjectIDAccepted Updated quota for a project.
+PutQuotasProjectIDOK Updated quota for a project.
 
-swagger:response putQuotasProjectIdAccepted
+swagger:response putQuotasProjectIdOK
 */
-type PutQuotasProjectIDAccepted struct {
+type PutQuotasProjectIDOK struct {
 
 	/*
 	  In: Body
 	*/
-	Payload *PutQuotasProjectIDAcceptedBody `json:"body,omitempty"`
+	Payload *PutQuotasProjectIDOKBody `json:"body,omitempty"`
 }
 
-// NewPutQuotasProjectIDAccepted creates PutQuotasProjectIDAccepted with default headers values
-func NewPutQuotasProjectIDAccepted() *PutQuotasProjectIDAccepted {
+// NewPutQuotasProjectIDOK creates PutQuotasProjectIDOK with default headers values
+func NewPutQuotasProjectIDOK() *PutQuotasProjectIDOK {
 
-	return &PutQuotasProjectIDAccepted{}
+	return &PutQuotasProjectIDOK{}
 }
 
-// WithPayload adds the payload to the put quotas project Id accepted response
-func (o *PutQuotasProjectIDAccepted) WithPayload(payload *PutQuotasProjectIDAcceptedBody) *PutQuotasProjectIDAccepted {
+// WithPayload adds the payload to the put quotas project Id o k response
+func (o *PutQuotasProjectIDOK) WithPayload(payload *PutQuotasProjectIDOKBody) *PutQuotasProjectIDOK {
 	o.Payload = payload
 	return o
 }
 
-// SetPayload sets the payload to the put quotas project Id accepted response
-func (o *PutQuotasProjectIDAccepted) SetPayload(payload *PutQuotasProjectIDAcceptedBody) {
+// SetPayload sets the payload to the put quotas project Id o k response
+func (o *PutQuotasProjectIDOK) SetPayload(payload *PutQuotasProjectIDOKBody) {
 	o.Payload = payload
 }
 
 // WriteResponse to the client
-func (o *PutQuotasProjectIDAccepted) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+func (o *PutQuotasProjectIDOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.WriteHeader(202)
+	rw.WriteHeader(200)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

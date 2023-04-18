@@ -52,7 +52,7 @@ type ClientService interface {
 
 	GetQuotasProjectID(params *GetQuotasProjectIDParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetQuotasProjectIDOK, error)
 
-	PutQuotasProjectID(params *PutQuotasProjectIDParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PutQuotasProjectIDAccepted, error)
+	PutQuotasProjectID(params *PutQuotasProjectIDParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PutQuotasProjectIDOK, error)
 
 	SetTransport(transport runtime.ClientTransport)
 }
@@ -216,7 +216,7 @@ func (a *Client) GetQuotasProjectID(params *GetQuotasProjectIDParams, authInfo r
 /*
 PutQuotasProjectID updates quota
 */
-func (a *Client) PutQuotasProjectID(params *PutQuotasProjectIDParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PutQuotasProjectIDAccepted, error) {
+func (a *Client) PutQuotasProjectID(params *PutQuotasProjectIDParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PutQuotasProjectIDOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewPutQuotasProjectIDParams()
@@ -242,7 +242,7 @@ func (a *Client) PutQuotasProjectID(params *PutQuotasProjectIDParams, authInfo r
 	if err != nil {
 		return nil, err
 	}
-	success, ok := result.(*PutQuotasProjectIDAccepted)
+	success, ok := result.(*PutQuotasProjectIDOK)
 	if ok {
 		return success, nil
 	}
