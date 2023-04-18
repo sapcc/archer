@@ -40,7 +40,7 @@ type PutRbacPoliciesRbacPolicyIDOK struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Rbacpolicycommon `json:"body,omitempty"`
+	Payload *models.Rbacpolicy `json:"body,omitempty"`
 }
 
 // NewPutRbacPoliciesRbacPolicyIDOK creates PutRbacPoliciesRbacPolicyIDOK with default headers values
@@ -50,13 +50,13 @@ func NewPutRbacPoliciesRbacPolicyIDOK() *PutRbacPoliciesRbacPolicyIDOK {
 }
 
 // WithPayload adds the payload to the put rbac policies rbac policy Id o k response
-func (o *PutRbacPoliciesRbacPolicyIDOK) WithPayload(payload *models.Rbacpolicycommon) *PutRbacPoliciesRbacPolicyIDOK {
+func (o *PutRbacPoliciesRbacPolicyIDOK) WithPayload(payload *models.Rbacpolicy) *PutRbacPoliciesRbacPolicyIDOK {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the put rbac policies rbac policy Id o k response
-func (o *PutRbacPoliciesRbacPolicyIDOK) SetPayload(payload *models.Rbacpolicycommon) {
+func (o *PutRbacPoliciesRbacPolicyIDOK) SetPayload(payload *models.Rbacpolicy) {
 	o.Payload = payload
 }
 
@@ -134,6 +134,51 @@ func (o *PutRbacPoliciesRbacPolicyIDNotFound) SetPayload(payload *models.Error) 
 func (o *PutRbacPoliciesRbacPolicyIDNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// PutRbacPoliciesRbacPolicyIDConflictCode is the HTTP code returned for type PutRbacPoliciesRbacPolicyIDConflict
+const PutRbacPoliciesRbacPolicyIDConflictCode int = 409
+
+/*
+PutRbacPoliciesRbacPolicyIDConflict Duplicate RBAC Policy
+
+swagger:response putRbacPoliciesRbacPolicyIdConflict
+*/
+type PutRbacPoliciesRbacPolicyIDConflict struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewPutRbacPoliciesRbacPolicyIDConflict creates PutRbacPoliciesRbacPolicyIDConflict with default headers values
+func NewPutRbacPoliciesRbacPolicyIDConflict() *PutRbacPoliciesRbacPolicyIDConflict {
+
+	return &PutRbacPoliciesRbacPolicyIDConflict{}
+}
+
+// WithPayload adds the payload to the put rbac policies rbac policy Id conflict response
+func (o *PutRbacPoliciesRbacPolicyIDConflict) WithPayload(payload *models.Error) *PutRbacPoliciesRbacPolicyIDConflict {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the put rbac policies rbac policy Id conflict response
+func (o *PutRbacPoliciesRbacPolicyIDConflict) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *PutRbacPoliciesRbacPolicyIDConflict) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(409)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

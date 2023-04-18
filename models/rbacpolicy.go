@@ -22,6 +22,7 @@ package models
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -33,6 +34,9 @@ import (
 //
 // swagger:model rbacpolicy
 type Rbacpolicy struct {
+
+	// created at
+	CreatedAt time.Time `json:"created_at,omitempty"`
 
 	// The ID of the resource.
 	// Read Only: true
@@ -54,11 +58,18 @@ type Rbacpolicy struct {
 	// target type
 	// Enum: [project_id domain_id]
 	TargetType string `json:"target_type,omitempty"`
+
+	// updated at
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
 }
 
 // Validate validates this rbacpolicy
 func (m *Rbacpolicy) Validate(formats strfmt.Registry) error {
 	var res []error
+
+	if err := m.validateCreatedAt(formats); err != nil {
+		res = append(res, err)
+	}
 
 	if err := m.validateID(formats); err != nil {
 		res = append(res, err)
@@ -76,9 +87,21 @@ func (m *Rbacpolicy) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateUpdatedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *Rbacpolicy) validateCreatedAt(formats strfmt.Registry) error {
+	if swag.IsZero(m.CreatedAt) { // not required
+		return nil
+	}
+
 	return nil
 }
 
@@ -161,6 +184,14 @@ func (m *Rbacpolicy) validateTargetType(formats strfmt.Registry) error {
 	// value enum
 	if err := m.validateTargetTypeEnum("target_type", "body", m.TargetType); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *Rbacpolicy) validateUpdatedAt(formats strfmt.Registry) error {
+	if swag.IsZero(m.UpdatedAt) { // not required
+		return nil
 	}
 
 	return nil

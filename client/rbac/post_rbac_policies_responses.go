@@ -49,6 +49,12 @@ func (o *PostRbacPoliciesReader) ReadResponse(response runtime.ClientResponse, c
 			return nil, err
 		}
 		return nil, result
+	case 404:
+		result := NewPostRbacPoliciesNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 409:
 		result := NewPostRbacPoliciesConflict()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -184,6 +190,62 @@ func (o *PostRbacPoliciesForbidden) readResponse(response runtime.ClientResponse
 	return nil
 }
 
+// NewPostRbacPoliciesNotFound creates a PostRbacPoliciesNotFound with default headers values
+func NewPostRbacPoliciesNotFound() *PostRbacPoliciesNotFound {
+	return &PostRbacPoliciesNotFound{}
+}
+
+/*
+PostRbacPoliciesNotFound describes a response with status code 404, with default header values.
+
+service_id not found
+*/
+type PostRbacPoliciesNotFound struct {
+}
+
+// IsSuccess returns true when this post rbac policies not found response has a 2xx status code
+func (o *PostRbacPoliciesNotFound) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this post rbac policies not found response has a 3xx status code
+func (o *PostRbacPoliciesNotFound) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this post rbac policies not found response has a 4xx status code
+func (o *PostRbacPoliciesNotFound) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this post rbac policies not found response has a 5xx status code
+func (o *PostRbacPoliciesNotFound) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this post rbac policies not found response a status code equal to that given
+func (o *PostRbacPoliciesNotFound) IsCode(code int) bool {
+	return code == 404
+}
+
+// Code gets the status code for the post rbac policies not found response
+func (o *PostRbacPoliciesNotFound) Code() int {
+	return 404
+}
+
+func (o *PostRbacPoliciesNotFound) Error() string {
+	return fmt.Sprintf("[POST /rbac-policies][%d] postRbacPoliciesNotFound ", 404)
+}
+
+func (o *PostRbacPoliciesNotFound) String() string {
+	return fmt.Sprintf("[POST /rbac-policies][%d] postRbacPoliciesNotFound ", 404)
+}
+
+func (o *PostRbacPoliciesNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
 // NewPostRbacPoliciesConflict creates a PostRbacPoliciesConflict with default headers values
 func NewPostRbacPoliciesConflict() *PostRbacPoliciesConflict {
 	return &PostRbacPoliciesConflict{}
@@ -192,7 +254,7 @@ func NewPostRbacPoliciesConflict() *PostRbacPoliciesConflict {
 /*
 PostRbacPoliciesConflict describes a response with status code 409, with default header values.
 
-Exists
+Duplicate RBAC Policy
 */
 type PostRbacPoliciesConflict struct {
 	Payload *models.Error

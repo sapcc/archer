@@ -38,7 +38,7 @@ func (c *Controller) GetEndpointHandler(params endpoint.GetEndpointParams, princ
 	}
 
 	pagination := db.Pagination(params)
-	rows, err := pagination.Query(c.pool, "endpoint", filter)
+	rows, err := pagination.Query(c.pool, "SELECT * FROM endpoint", filter)
 	if err != nil {
 		panic(err)
 	}

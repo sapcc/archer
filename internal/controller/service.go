@@ -121,7 +121,7 @@ func (c *Controller) GetServiceServiceIDHandler(params service.GetServiceService
 }
 
 func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceServiceIDParams, principal any) middleware.Responder {
-	q := db.Update("service")
+	q := db.Update("service").Where("id", params.ServiceID)
 
 	if projectId, err := auth.AuthenticatePrincipal(params.HTTPRequest, principal); err != nil {
 		return service.NewPutServiceServiceIDForbidden()
@@ -129,8 +129,7 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 		q.Where("project_id", projectId)
 	}
 
-	q = q.Where("id", params.ServiceID).
-		Set("enabled", db.Coalesce{V: params.Body.Enabled}).
+	q.Set("enabled", db.Coalesce{V: params.Body.Enabled}).
 		Set("name", db.Coalesce{V: params.Body.Name}).
 		Set("description", db.Coalesce{V: params.Body.Description}).
 		Set("require_approval", db.Coalesce{V: params.Body.RequireApproval}).
@@ -141,13 +140,8 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 		Returning("*")
 
 	sql, args := q.ToSQL()
-	rows, err := c.pool.Query(params.HTTPRequest.Context(), sql, args)
-	if err != nil {
-		panic(err)
-	}
-
 	var serviceResponse models.Service
-	if err := pgxscan.ScanOne(&serviceResponse, rows); err != nil {
+	if err := pgxscan.Get(params.HTTPRequest.Context(), c.pool, &serviceResponse, sql, args); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return service.NewPutServiceServiceIDNotFound()
 		}

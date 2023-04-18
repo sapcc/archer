@@ -97,11 +97,36 @@ func (o *PostRbacPoliciesForbidden) WriteResponse(rw http.ResponseWriter, produc
 	rw.WriteHeader(403)
 }
 
+// PostRbacPoliciesNotFoundCode is the HTTP code returned for type PostRbacPoliciesNotFound
+const PostRbacPoliciesNotFoundCode int = 404
+
+/*
+PostRbacPoliciesNotFound service_id not found
+
+swagger:response postRbacPoliciesNotFound
+*/
+type PostRbacPoliciesNotFound struct {
+}
+
+// NewPostRbacPoliciesNotFound creates PostRbacPoliciesNotFound with default headers values
+func NewPostRbacPoliciesNotFound() *PostRbacPoliciesNotFound {
+
+	return &PostRbacPoliciesNotFound{}
+}
+
+// WriteResponse to the client
+func (o *PostRbacPoliciesNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(404)
+}
+
 // PostRbacPoliciesConflictCode is the HTTP code returned for type PostRbacPoliciesConflict
 const PostRbacPoliciesConflictCode int = 409
 
 /*
-PostRbacPoliciesConflict Exists
+PostRbacPoliciesConflict Duplicate RBAC Policy
 
 swagger:response postRbacPoliciesConflict
 */

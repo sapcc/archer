@@ -512,8 +512,11 @@ func init() {
           "403": {
             "description": "Forbidden"
           },
+          "404": {
+            "description": "service_id not found"
+          },
           "409": {
-            "description": "Exists",
+            "description": "Duplicate RBAC Policy",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -567,7 +570,7 @@ func init() {
           "200": {
             "description": "RBAC Policy",
             "schema": {
-              "$ref": "#/definitions/RBACPolicyCommon"
+              "$ref": "#/definitions/RBACPolicy"
             }
           },
           "403": {
@@ -575,6 +578,12 @@ func init() {
           },
           "404": {
             "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Duplicate RBAC Policy",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -1192,6 +1201,9 @@ func init() {
         "service_id"
       ],
       "properties": {
+        "created_at": {
+          "$ref": "#/definitions/Timestamp"
+        },
         "id": {
           "description": "The ID of the resource.",
           "type": "string",
@@ -1217,6 +1229,9 @@ func init() {
             "project_id",
             "domain_id"
           ]
+        },
+        "updated_at": {
+          "$ref": "#/definitions/Timestamp"
         }
       },
       "x-go-name": "rbacpolicy"
@@ -2111,8 +2126,11 @@ func init() {
           "403": {
             "description": "Forbidden"
           },
+          "404": {
+            "description": "service_id not found"
+          },
           "409": {
-            "description": "Exists",
+            "description": "Duplicate RBAC Policy",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2166,7 +2184,7 @@ func init() {
           "200": {
             "description": "RBAC Policy",
             "schema": {
-              "$ref": "#/definitions/RBACPolicyCommon"
+              "$ref": "#/definitions/RBACPolicy"
             }
           },
           "403": {
@@ -2174,6 +2192,12 @@ func init() {
           },
           "404": {
             "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Duplicate RBAC Policy",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2887,6 +2911,9 @@ func init() {
         "service_id"
       ],
       "properties": {
+        "created_at": {
+          "$ref": "#/definitions/Timestamp"
+        },
         "id": {
           "description": "The ID of the resource.",
           "type": "string",
@@ -2912,6 +2939,9 @@ func init() {
             "project_id",
             "domain_id"
           ]
+        },
+        "updated_at": {
+          "$ref": "#/definitions/Timestamp"
         }
       },
       "x-go-name": "rbacpolicy"

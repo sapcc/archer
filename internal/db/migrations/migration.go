@@ -138,11 +138,23 @@ func Migrate() {
 			if _, err := commands.Exec(ctx, `
 				CREATE TABLE agents
 				(
-					host                 UUID NOT NULL,
+					host                 VARCHAR(255) NOT NULL,
 					availability_zone    VARCHAR(64),
 					UNIQUE(host)
 				);`,
 			); err != nil {
+				return err
+			}
+
+			if _, err := commands.Exec(ctx, `
+				CREATE TABLE rbac
+				(
+					id                UUID         DEFAULT gen_random_uuid() PRIMARY KEY,
+					target_project    VARCHAR(36)  NOT NULL,
+					service_id        UUID         NOT NULL,
+					project_id        VARCHAR(36)  NOT NULL,
+					CONSTRAINT fk_service FOREIGN KEY(service_id) REFERENCES service(id)
+				);`); err != nil {
 				return err
 			}
 

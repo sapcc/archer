@@ -55,6 +55,12 @@ func (o *PutRbacPoliciesRbacPolicyIDReader) ReadResponse(response runtime.Client
 			return nil, err
 		}
 		return nil, result
+	case 409:
+		result := NewPutRbacPoliciesRbacPolicyIDConflict()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -71,7 +77,7 @@ PutRbacPoliciesRbacPolicyIDOK describes a response with status code 200, with de
 RBAC Policy
 */
 type PutRbacPoliciesRbacPolicyIDOK struct {
-	Payload *models.Rbacpolicycommon
+	Payload *models.Rbacpolicy
 }
 
 // IsSuccess returns true when this put rbac policies rbac policy Id o k response has a 2xx status code
@@ -112,13 +118,13 @@ func (o *PutRbacPoliciesRbacPolicyIDOK) String() string {
 	return fmt.Sprintf("[PUT /rbac-policies/{rbac_policy_id}][%d] putRbacPoliciesRbacPolicyIdOK  %+v", 200, o.Payload)
 }
 
-func (o *PutRbacPoliciesRbacPolicyIDOK) GetPayload() *models.Rbacpolicycommon {
+func (o *PutRbacPoliciesRbacPolicyIDOK) GetPayload() *models.Rbacpolicy {
 	return o.Payload
 }
 
 func (o *PutRbacPoliciesRbacPolicyIDOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Rbacpolicycommon)
+	o.Payload = new(models.Rbacpolicy)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -241,6 +247,74 @@ func (o *PutRbacPoliciesRbacPolicyIDNotFound) GetPayload() *models.Error {
 }
 
 func (o *PutRbacPoliciesRbacPolicyIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewPutRbacPoliciesRbacPolicyIDConflict creates a PutRbacPoliciesRbacPolicyIDConflict with default headers values
+func NewPutRbacPoliciesRbacPolicyIDConflict() *PutRbacPoliciesRbacPolicyIDConflict {
+	return &PutRbacPoliciesRbacPolicyIDConflict{}
+}
+
+/*
+PutRbacPoliciesRbacPolicyIDConflict describes a response with status code 409, with default header values.
+
+Duplicate RBAC Policy
+*/
+type PutRbacPoliciesRbacPolicyIDConflict struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this put rbac policies rbac policy Id conflict response has a 2xx status code
+func (o *PutRbacPoliciesRbacPolicyIDConflict) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this put rbac policies rbac policy Id conflict response has a 3xx status code
+func (o *PutRbacPoliciesRbacPolicyIDConflict) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this put rbac policies rbac policy Id conflict response has a 4xx status code
+func (o *PutRbacPoliciesRbacPolicyIDConflict) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this put rbac policies rbac policy Id conflict response has a 5xx status code
+func (o *PutRbacPoliciesRbacPolicyIDConflict) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this put rbac policies rbac policy Id conflict response a status code equal to that given
+func (o *PutRbacPoliciesRbacPolicyIDConflict) IsCode(code int) bool {
+	return code == 409
+}
+
+// Code gets the status code for the put rbac policies rbac policy Id conflict response
+func (o *PutRbacPoliciesRbacPolicyIDConflict) Code() int {
+	return 409
+}
+
+func (o *PutRbacPoliciesRbacPolicyIDConflict) Error() string {
+	return fmt.Sprintf("[PUT /rbac-policies/{rbac_policy_id}][%d] putRbacPoliciesRbacPolicyIdConflict  %+v", 409, o.Payload)
+}
+
+func (o *PutRbacPoliciesRbacPolicyIDConflict) String() string {
+	return fmt.Sprintf("[PUT /rbac-policies/{rbac_policy_id}][%d] putRbacPoliciesRbacPolicyIdConflict  %+v", 409, o.Payload)
+}
+
+func (o *PutRbacPoliciesRbacPolicyIDConflict) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *PutRbacPoliciesRbacPolicyIDConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

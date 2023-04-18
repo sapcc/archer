@@ -573,8 +573,10 @@ paths:
             $ref: '#/definitions/RBACPolicy'
         403:
           description: Forbidden
+        404:
+          description: service_id not found
         409:
-          description: Exists
+          description: Duplicate RBAC Policy
           schema:
             $ref: "#/definitions/Error"
   /rbac-policies/{rbac_policy_id}:
@@ -617,11 +619,15 @@ paths:
         200:
           description: RBAC Policy
           schema:
-            $ref: "#/definitions/RBACPolicyCommon"
+            $ref: "#/definitions/RBACPolicy"
         403:
           description: Forbidden
         404:
           description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        409:
+          description: Duplicate RBAC Policy
           schema:
             $ref: "#/definitions/Error"
     delete:
@@ -1143,6 +1149,10 @@ definitions:
         type: string
         format: uuid
         description: The ID of the service resource.
+      created_at:
+        $ref: "#/definitions/Timestamp"
+      updated_at:
+        $ref: "#/definitions/Timestamp"
       project_id:
         $ref: "#/definitions/Project"
   Quota:
