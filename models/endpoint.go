@@ -62,7 +62,7 @@ type Endpoint struct {
 	Tags []string `json:"tags"`
 
 	// target
-	Target *EndpointTarget `json:"target,omitempty"`
+	Target EndpointTarget `json:"target,omitempty"`
 
 	// updated at
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
@@ -197,15 +197,13 @@ func (m *Endpoint) validateTarget(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if m.Target != nil {
-		if err := m.Target.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("target")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("target")
-			}
-			return err
+	if err := m.Target.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("target")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("target")
 		}
+		return err
 	}
 
 	return nil
@@ -297,15 +295,13 @@ func (m *Endpoint) contextValidateStatus(ctx context.Context, formats strfmt.Reg
 
 func (m *Endpoint) contextValidateTarget(ctx context.Context, formats strfmt.Registry) error {
 
-	if m.Target != nil {
-		if err := m.Target.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("target")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("target")
-			}
-			return err
+	if err := m.Target.ContextValidate(ctx, formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("target")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("target")
 		}
+		return err
 	}
 
 	return nil

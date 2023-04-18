@@ -162,6 +162,12 @@ func init() {
               "$ref": "#/definitions/Endpoint"
             }
           },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           }
@@ -1054,7 +1060,8 @@ func init() {
               "x-nullable": true,
               "example": "1fb12a1a-a1a5-4732-9a2e-635ba6ec8d3b"
             }
-          }
+          },
+          "x-nullable": false
         },
         "updated_at": {
           "$ref": "#/definitions/Timestamp"
@@ -1754,6 +1761,12 @@ func init() {
             "description": "Endpoint",
             "schema": {
               "$ref": "#/definitions/Endpoint"
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "$ref": "#/definitions/Error"
             }
           },
           "403": {
@@ -2696,7 +2709,8 @@ func init() {
               "x-nullable": true,
               "example": "1fb12a1a-a1a5-4732-9a2e-635ba6ec8d3b"
             }
-          }
+          },
+          "x-nullable": false
         },
         "updated_at": {
           "$ref": "#/definitions/Timestamp"
@@ -2778,7 +2792,8 @@ func init() {
           "x-nullable": true,
           "example": "1fb12a1a-a1a5-4732-9a2e-635ba6ec8d3b"
         }
-      }
+      },
+      "x-nullable": false
     },
     "Error": {
       "type": "object",

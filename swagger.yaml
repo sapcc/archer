@@ -481,6 +481,10 @@ paths:
           description: Endpoint
           schema:
             $ref: "#/definitions/Endpoint"
+        400:
+          description: Bad request
+          schema:
+            $ref: "#/definitions/Error"
         403:
           description: Forbidden
   /endpoint/{endpoint_id}:
@@ -1036,6 +1040,7 @@ definitions:
       target:
         type: object
         description: Endpoint target
+        x-nullable: false
         properties:
           network:
             type: string

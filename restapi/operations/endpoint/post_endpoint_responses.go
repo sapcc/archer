@@ -72,6 +72,51 @@ func (o *PostEndpointOK) WriteResponse(rw http.ResponseWriter, producer runtime.
 	}
 }
 
+// PostEndpointBadRequestCode is the HTTP code returned for type PostEndpointBadRequest
+const PostEndpointBadRequestCode int = 400
+
+/*
+PostEndpointBadRequest Bad request
+
+swagger:response postEndpointBadRequest
+*/
+type PostEndpointBadRequest struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewPostEndpointBadRequest creates PostEndpointBadRequest with default headers values
+func NewPostEndpointBadRequest() *PostEndpointBadRequest {
+
+	return &PostEndpointBadRequest{}
+}
+
+// WithPayload adds the payload to the post endpoint bad request response
+func (o *PostEndpointBadRequest) WithPayload(payload *models.Error) *PostEndpointBadRequest {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the post endpoint bad request response
+func (o *PostEndpointBadRequest) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *PostEndpointBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(400)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // PostEndpointForbiddenCode is the HTTP code returned for type PostEndpointForbidden
 const PostEndpointForbiddenCode int = 403
 

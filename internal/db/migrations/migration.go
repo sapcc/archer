@@ -94,6 +94,7 @@ func Migrate() {
 					('AVAILABLE'),
 					('PENDING_APPROVAL'),
 					('PENDING_CREATE'),
+					('PENDING_DELETE'),
 					('PENDING_REJECTED'),
 					('REJECTED'),
 					('FAILED')

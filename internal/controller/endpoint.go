@@ -15,8 +15,13 @@
 package controller
 
 import (
+	"errors"
+
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/sapcc/archer/internal/auth"
 	"github.com/sapcc/archer/internal/db"
@@ -47,13 +52,84 @@ func (c *Controller) GetEndpointHandler(params endpoint.GetEndpointParams, princ
 }
 
 func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, principal any) middleware.Responder {
-	return middleware.NotImplemented("operation endpoint.PostEndpoint has not yet been implemented")
+	ctx := params.HTTPRequest.Context()
+	var endpointResponse models.Endpoint
+
+	if projectId, err := auth.AuthenticatePrincipal(params.HTTPRequest, principal); err != nil {
+		return endpoint.NewGetEndpointForbidden()
+	} else if projectId != "" {
+		params.Body.ProjectID = models.Project(projectId)
+	}
+
+	// Set default values
+	if err := c.SetModelDefaults(params.Body); err != nil {
+		panic(err)
+	}
+
+	if params.Body.Target.Subnet == nil && params.Body.Target.Network == nil && params.Body.Target.Port == nil {
+		return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
+			Code:    400,
+			Message: "Only one of target_network, target_subnet or target_port must be specified.",
+		})
+	}
+
+	sql, args := db.Insert("endpoint").
+		Set("service_id", params.Body.ServiceID).
+		Set("project_id", params.Body.ProjectID).
+		Set("\"target.network\"", params.Body.Target.Network).
+		Set("\"target.subnet\"", params.Body.Target.Subnet).
+		Set("\"target.port\"", params.Body.Target.Port).
+		Returning("*").ToSQL()
+	if err := pgxscan.Get(ctx, c.pool, &endpointResponse, sql, args...); err != nil {
+		var pe *pgconn.PgError
+		if errors.As(err, &pe) && pgerrcode.IsIntegrityConstraintViolation(pe.Code) {
+			// Todo
+			return endpoint.NewPostEndpointForbidden()
+		}
+		panic(err)
+	}
+
+	return endpoint.NewPostEndpointOK().WithPayload(&endpointResponse)
 }
 
 func (c *Controller) GetEndpointEndpointIDHandler(params endpoint.GetEndpointEndpointIDParams, principal any) middleware.Responder {
-	return middleware.NotImplemented("operation endpoint.GetEndpointEndpointID has not yet been implemented")
+	q := db.Select("*").From("endpoint").Where("id = ?", params.EndpointID)
+
+	if projectId, err := auth.AuthenticatePrincipal(params.HTTPRequest, principal); err != nil {
+		return endpoint.NewGetEndpointEndpointIDForbidden()
+	} else if projectId != "" {
+		q.Where("project_id = ?", projectId)
+	}
+
+	var endpointResponse models.Endpoint
+	sql, args := q.ToSQL()
+	if err := pgxscan.Get(params.HTTPRequest.Context(), c.pool, &endpointResponse, sql, args...); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return endpoint.NewGetEndpointEndpointIDNotFound()
+		}
+		panic(err)
+	}
+
+	return endpoint.NewGetEndpointEndpointIDOK().WithPayload(&endpointResponse)
 }
 
 func (c *Controller) DeleteEndpointEndpointIDHandler(params endpoint.DeleteEndpointEndpointIDParams, principal any) middleware.Responder {
-	return middleware.NotImplemented("operation endpoint.DeleteEndpointEndpointID has not yet been implemented")
+	q := db.Update("endpoint").
+		Set("status", "PENDING_DELETE").
+		Where("id", params.EndpointID)
+
+	if projectId, err := auth.AuthenticatePrincipal(params.HTTPRequest, principal); err != nil {
+		return endpoint.NewDeleteEndpointEndpointIDForbidden()
+	} else if projectId != "" {
+		q.Where("project_id", projectId)
+	}
+
+	sql, args := q.ToSQL()
+	if ct, err := c.pool.Exec(params.HTTPRequest.Context(), sql, args); err != nil {
+		panic(err)
+	} else if ct.RowsAffected() == 0 {
+		return endpoint.NewDeleteEndpointEndpointIDNotFound()
+	}
+
+	return endpoint.NewDeleteEndpointEndpointIDNoContent()
 }

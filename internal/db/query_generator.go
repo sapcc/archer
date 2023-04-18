@@ -173,7 +173,7 @@ func (b *InsertBuilder) Returning(returning ...string) *InsertBuilder {
 	return b
 }
 
-func (b *InsertBuilder) ToSQL() (string, *[]any) {
+func (b *InsertBuilder) ToSQL() (string, []any) {
 	var sb strings.Builder
 
 	// SELECT ...
@@ -200,7 +200,7 @@ func (b *InsertBuilder) ToSQL() (string, *[]any) {
 		sb.WriteString(" RETURNING ")
 		sb.WriteString(strings.Join(b.returning, ", "))
 	}
-	return sb.String(), &b.values
+	return sb.String(), b.values
 }
 
 /////////////////////////

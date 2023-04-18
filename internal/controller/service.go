@@ -71,7 +71,7 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 		panic(err)
 	}
 
-	q := db.Insert("service").
+	sql, args := db.Insert("service").
 		Set("enabled", params.Body.Enabled).
 		Set("name", params.Body.Name).
 		Set("description", params.Body.Description).
@@ -84,14 +84,9 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 		Set("project_id", params.Body.ProjectID).
 		Set("port", params.Body.Port).
 		Set("tags", params.Body.Tags).
-		Returning("*")
-	sql, args := q.ToSQL()
-	rows, err := c.pool.Query(ctx, sql, *args...)
-	if err != nil {
-		panic(err)
-	}
-
-	if err := pgxscan.ScanOne(&serviceResponse, rows); err != nil {
+		Returning("*").
+		ToSQL()
+	if err := pgxscan.Get(ctx, c.pool, &serviceResponse, sql, args...); err != nil {
 		var pe *pgconn.PgError
 		if errors.As(err, &pe) && pgerrcode.IsIntegrityConstraintViolation(pe.Code) {
 			return service.NewPostServiceConflict().WithPayload(&models.Error{
