@@ -16,11 +16,16 @@ package controller
 
 import (
 	"errors"
+	"net/http"
+
+	"github.com/georgysavva/scany/v2/dbscan"
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/strfmt"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/sapcc/archer/internal/auth"
 	"github.com/sapcc/archer/internal/db"
@@ -130,14 +135,14 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 	}
 
 	q = q.Where("id", params.ServiceID).
-		Set("enabled", db.Coalesce(params.Body.Enabled)).
-		Set("name", db.Coalesce(params.Body.Name)).
-		Set("description", db.Coalesce(params.Body.Description)).
-		Set("require_approval", db.Coalesce(params.Body.RequireApproval)).
-		Set("proxy_protocol", db.Coalesce(params.Body.ProxyProtocol)).
-		Set("port", db.Coalesce(params.Body.Port)).
-		Set("ip_addresses", db.Coalesce(params.Body.IPAddresses)).
-		Set("tags", db.Coalesce(params.Body.Tags)).
+		Set("enabled", db.Coalesce{V: params.Body.Enabled}).
+		Set("name", db.Coalesce{V: params.Body.Name}).
+		Set("description", db.Coalesce{V: params.Body.Description}).
+		Set("require_approval", db.Coalesce{V: params.Body.RequireApproval}).
+		Set("proxy_protocol", db.Coalesce{V: params.Body.ProxyProtocol}).
+		Set("port", db.Coalesce{V: params.Body.Port}).
+		Set("ip_addresses", db.Coalesce{V: params.Body.IPAddresses}).
+		Set("tags", db.Coalesce{V: params.Body.Tags}).
 		Returning("*")
 
 	sql, args := q.ToSQL()
@@ -177,7 +182,13 @@ func (c *Controller) DeleteServiceServiceIDHandler(params service.DeleteServiceS
 
 	sql, args := q.ToSQL()
 	if ct, err := c.pool.Exec(params.HTTPRequest.Context(), sql, args...); err != nil {
-		//TODO: check for conflict (service in use)
+		var pe *pgconn.PgError
+		if errors.As(err, &pe) && pgerrcode.IsIntegrityConstraintViolation(pe.Code) {
+			return service.NewDeleteServiceServiceIDConflict().WithPayload(&models.Error{
+				Code:    409,
+				Message: "Service in use",
+			})
+		}
 		panic(err)
 	} else if ct.RowsAffected() == 0 {
 		return service.NewDeleteServiceServiceIDNotFound()
@@ -226,9 +237,90 @@ func (c *Controller) GetServiceServiceIDEndpointsHandler(params service.GetServi
 }
 
 func (c *Controller) PutServiceServiceIDAcceptEndpointsHandler(params service.PutServiceServiceIDAcceptEndpointsParams, principal any) middleware.Responder {
-	return middleware.NotImplemented("operation service.PutServiceServiceIDAcceptEndpoints has not yet been implemented")
+	endpointConsumers, err := commonEndpointsActionHandler(c.pool, params, principal)
+	switch err {
+	case auth.ErrForbidden:
+		return service.NewPutServiceServiceIDAcceptEndpointsForbidden()
+	case ErrBadRequest:
+		return service.NewPutServiceServiceIDAcceptEndpointsBadRequest().WithPayload(
+			&models.Error{
+				Code:    400,
+				Message: "Must declare at least one, endpoint_id(s) or project_id(s)",
+			})
+	case dbscan.ErrNotFound:
+		return service.NewPutServiceServiceIDAcceptEndpointsNotFound()
+	}
+	return service.NewPutServiceServiceIDAcceptEndpointsOK().WithPayload(endpointConsumers)
 }
 
 func (c *Controller) PutServiceServiceIDRejectEndpointsHandler(params service.PutServiceServiceIDRejectEndpointsParams, principal any) middleware.Responder {
-	return middleware.NotImplemented("operation service.PutServiceServiceIDRejectEndpoints has not yet been implemented")
+	endpointConsumers, err := commonEndpointsActionHandler(c.pool, params, principal)
+	switch err {
+	case auth.ErrForbidden:
+		return service.NewPutServiceServiceIDRejectEndpointsForbidden()
+	case ErrBadRequest:
+		return service.NewPutServiceServiceIDRejectEndpointsBadRequest().WithPayload(
+			&models.Error{
+				Code:    400,
+				Message: "Must declare at least one, endpoint_id(s) or project_id(s)",
+			})
+	case dbscan.ErrNotFound:
+		return service.NewPutServiceServiceIDRejectEndpointsNotFound()
+	}
+	return service.NewPutServiceServiceIDRejectEndpointsOK().WithPayload(endpointConsumers)
+}
+
+func commonEndpointsActionHandler(pool *pgxpool.Pool, body any, principal any) ([]*models.EndpointConsumer, error) {
+	var serviceId strfmt.UUID
+	var httpRequest *http.Request
+	var consumerList *models.EndpointConsumerList
+
+	q := db.Update("endpoint")
+	switch params := body.(type) {
+	case service.PutServiceServiceIDAcceptEndpointsParams:
+		q.Set("status", "PENDING_CREATE")
+		serviceId = params.ServiceID
+		httpRequest = params.HTTPRequest
+		consumerList = params.Body
+	case service.PutServiceServiceIDRejectEndpointsParams:
+		q.Set("status", "PENDING_REJECTED")
+		serviceId = params.ServiceID
+		httpRequest = params.HTTPRequest
+		consumerList = params.Body
+	}
+
+	if projectId, err := auth.AuthenticatePrincipal(httpRequest, principal); err != nil {
+		return nil, err
+	} else if projectId != "" {
+		q.Where("service.project_id", projectId)
+	}
+
+	q.From("service").
+		Where("endpoint.service_id", db.Raw("service.id")).
+		Where("service.id", serviceId).
+		Returning("endpoint.id", "endpoint.status", "endpoint.project_id")
+
+	if len(consumerList.EndpointIds) > 0 {
+		q.Where("endpoint.id", consumerList.EndpointIds)
+	} else if len(consumerList.ProjectIds) > 0 {
+		q.Where("endpoint.project_id", consumerList.ProjectIds)
+	} else {
+		return nil, ErrBadRequest
+	}
+
+	sql, args := q.ToSQL()
+	var endpointConsumers []*models.EndpointConsumer
+	rows, err := pool.Query(httpRequest.Context(), sql, args)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := pgxscan.ScanAll(&endpointConsumers, rows); err != nil {
+		return nil, err
+	}
+	if len(endpointConsumers) == 0 {
+		return nil, dbscan.ErrNotFound
+	}
+
+	return endpointConsumers, nil
 }

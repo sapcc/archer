@@ -75,6 +75,51 @@ func (o *PutServiceServiceIDRejectEndpointsOK) WriteResponse(rw http.ResponseWri
 	}
 }
 
+// PutServiceServiceIDRejectEndpointsBadRequestCode is the HTTP code returned for type PutServiceServiceIDRejectEndpointsBadRequest
+const PutServiceServiceIDRejectEndpointsBadRequestCode int = 400
+
+/*
+PutServiceServiceIDRejectEndpointsBadRequest Must declare at least one, endpoint_id(s) or project_id(s)
+
+swagger:response putServiceServiceIdRejectEndpointsBadRequest
+*/
+type PutServiceServiceIDRejectEndpointsBadRequest struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewPutServiceServiceIDRejectEndpointsBadRequest creates PutServiceServiceIDRejectEndpointsBadRequest with default headers values
+func NewPutServiceServiceIDRejectEndpointsBadRequest() *PutServiceServiceIDRejectEndpointsBadRequest {
+
+	return &PutServiceServiceIDRejectEndpointsBadRequest{}
+}
+
+// WithPayload adds the payload to the put service service Id reject endpoints bad request response
+func (o *PutServiceServiceIDRejectEndpointsBadRequest) WithPayload(payload *models.Error) *PutServiceServiceIDRejectEndpointsBadRequest {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the put service service Id reject endpoints bad request response
+func (o *PutServiceServiceIDRejectEndpointsBadRequest) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *PutServiceServiceIDRejectEndpointsBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(400)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // PutServiceServiceIDRejectEndpointsForbiddenCode is the HTTP code returned for type PutServiceServiceIDRejectEndpointsForbidden
 const PutServiceServiceIDRejectEndpointsForbiddenCode int = 403
 

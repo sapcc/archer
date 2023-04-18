@@ -837,14 +837,20 @@ func init() {
               }
             }
           },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found",
+          "400": {
+            "description": "Must declare at least one, endpoint_id(s) or project_id(s)",
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "403": {
+            "description": "Forbidden",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Not Found"
           }
         },
         "x-policy": "service-endpoint:accept"
@@ -952,6 +958,12 @@ func init() {
               "items": {
                 "$ref": "#/definitions/EndpointConsumer"
               }
+            }
+          },
+          "400": {
+            "description": "Must declare at least one, endpoint_id(s) or project_id(s)",
+            "schema": {
+              "$ref": "#/definitions/Error"
             }
           },
           "403": {
@@ -1075,8 +1087,7 @@ func init() {
           "items": {
             "description": "The ID of a service endpoint consumer.",
             "type": "string",
-            "format": "uuid",
-            "readOnly": true
+            "format": "uuid"
           }
         },
         "project_ids": {
@@ -1088,13 +1099,13 @@ func init() {
       }
     },
     "EndpointStatus": {
-      "description": "Status of the endpoint\n\n### Status can be one of\n| Status             | Description                           |\n| ------------------ | ------------------------------------- |\n| AVAILABLE          | Endpoint is active for consumption    |\n| PENDING_APPROVAL   | Endpoint is waiting for approval      |\n| PENDING_CREATE     | Endpoint is being set up              |\n| PENDING_DELETE     | Endpoint is being deleted             |\n| REJECTED           | Endpoint was rejected                 |\n| FAILED             | Endpoint setup failed                 |\n",
+      "description": "Status of the endpoint\n\n### Status can be one of\n| Status             | Description                           |\n| ------------------ | ------------------------------------- |\n| AVAILABLE          | Endpoint is active for consumption    |\n| PENDING_APPROVAL   | Endpoint is waiting for approval      |\n| PENDING_CREATE     | Endpoint is being set up              |\n| PENDING_REJECTED   | Endpoint is being rejected            |\n| REJECTED           | Endpoint was rejected                 |\n| FAILED             | Endpoint setup failed                 |\n",
       "type": "string",
       "enum": [
         "ACTIVE",
         "PENDING_APPROVAL",
         "PENDING_CREATE",
-        "PENDING_DELETE",
+        "PENDING_REJECTED",
         "REJECTED",
         "FAILED"
       ],
@@ -2455,14 +2466,20 @@ func init() {
               }
             }
           },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found",
+          "400": {
+            "description": "Must declare at least one, endpoint_id(s) or project_id(s)",
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "403": {
+            "description": "Forbidden",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Not Found"
           }
         },
         "x-policy": "service-endpoint:accept"
@@ -2583,6 +2600,12 @@ func init() {
               "items": {
                 "$ref": "#/definitions/EndpointConsumer"
               }
+            }
+          },
+          "400": {
+            "description": "Must declare at least one, endpoint_id(s) or project_id(s)",
+            "schema": {
+              "$ref": "#/definitions/Error"
             }
           },
           "403": {
@@ -2706,8 +2729,7 @@ func init() {
           "items": {
             "description": "The ID of a service endpoint consumer.",
             "type": "string",
-            "format": "uuid",
-            "readOnly": true
+            "format": "uuid"
           }
         },
         "project_ids": {
@@ -2719,13 +2741,13 @@ func init() {
       }
     },
     "EndpointStatus": {
-      "description": "Status of the endpoint\n\n### Status can be one of\n| Status             | Description                           |\n| ------------------ | ------------------------------------- |\n| AVAILABLE          | Endpoint is active for consumption    |\n| PENDING_APPROVAL   | Endpoint is waiting for approval      |\n| PENDING_CREATE     | Endpoint is being set up              |\n| PENDING_DELETE     | Endpoint is being deleted             |\n| REJECTED           | Endpoint was rejected                 |\n| FAILED             | Endpoint setup failed                 |\n",
+      "description": "Status of the endpoint\n\n### Status can be one of\n| Status             | Description                           |\n| ------------------ | ------------------------------------- |\n| AVAILABLE          | Endpoint is active for consumption    |\n| PENDING_APPROVAL   | Endpoint is waiting for approval      |\n| PENDING_CREATE     | Endpoint is being set up              |\n| PENDING_REJECTED   | Endpoint is being rejected            |\n| REJECTED           | Endpoint was rejected                 |\n| FAILED             | Endpoint setup failed                 |\n",
       "type": "string",
       "enum": [
         "ACTIVE",
         "PENDING_APPROVAL",
         "PENDING_CREATE",
-        "PENDING_DELETE",
+        "PENDING_REJECTED",
         "REJECTED",
         "FAILED"
       ],

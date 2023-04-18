@@ -15,8 +15,14 @@
 package controller
 
 import (
+	"errors"
+
 	"github.com/go-openapi/loads"
 	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+var (
+	ErrBadRequest = errors.New("bad request")
 )
 
 type Controller struct {

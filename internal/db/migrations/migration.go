@@ -94,7 +94,7 @@ func Migrate() {
 					('AVAILABLE'),
 					('PENDING_APPROVAL'),
 					('PENDING_CREATE'),
-					('PENDING_DELETE'),
+					('PENDING_REJECTED'),
 					('REJECTED'),
 					('FAILED')
 				;`,
@@ -110,7 +110,7 @@ func Migrate() {
 					"target.port"     UUID           NULL,
 					"target.network"  UUID           NULL,
 					"target.subnet"   UUID           NULL,
-					status            VARCHAR(14)    NOT NULL DEFAULT 'PENDING_CREATE',
+					status            VARCHAR(18)    NOT NULL DEFAULT 'PENDING_CREATE',
 					created_at        TIMESTAMP      NOT NULL DEFAULT now(),
 					updated_at        TIMESTAMP      NOT NULL DEFAULT now(),
 					project_id        VARCHAR(36)    NOT NULL,

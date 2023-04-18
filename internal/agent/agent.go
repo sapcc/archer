@@ -142,7 +142,7 @@ func (a *Agent) PendingSyncLoop(prometheus.Labels) error {
 	logg.Debug("pending sync scan")
 	rows, err = a.pool.Query(context.Background(),
 		`SELECT id FROM service WHERE status LIKE 'PENDING_%' AND host = $1`,
-		config.HostName())
+		config.Global.Default.Host)
 	if err != nil {
 		return err
 	}
@@ -160,7 +160,7 @@ func (a *Agent) PendingSyncLoop(prometheus.Labels) error {
               FROM endpoint
                     INNER JOIN service ON service.id = service_id AND service.status = 'AVAILABLE' 
               WHERE endpoint.status LIKE 'PENDING_%' AND host = $1`,
-		config.HostName())
+		config.Global.Default.Host)
 	if err != nil {
 		return err
 	}
@@ -209,7 +209,7 @@ func (a *Agent) DBNotificationThread(ctx context.Context) {
 }
 
 func (a *Agent) PrometheusListenerThread() {
-	logg.Info("Prometheus listening to %s", config.Global.Default.PrometheusListen)
+	logg.Info("Serving prometheus metrics to %s/metrics", config.Global.Default.PrometheusListen)
 	if err := http.ListenAndServe(config.Global.Default.PrometheusListen, nil); err != nil {
 		logg.Fatal(err.Error())
 	}

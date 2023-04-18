@@ -379,12 +379,16 @@ paths:
             type: array
             items:
               $ref: "#/definitions/EndpointConsumer"
-        403:
-          description: Forbidden
-        404:
-          description: Not Found
+        400:
+          description: Must declare at least one, endpoint_id(s) or project_id(s)
           schema:
             $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: Not Found
   /service/{service_id}/reject_endpoints:
     parameters:
       - in: path
@@ -417,6 +421,10 @@ paths:
             type: array
             items:
               $ref: "#/definitions/EndpointConsumer"
+        400:
+          description: Must declare at least one, endpoint_id(s) or project_id(s)
+          schema:
+            $ref: "#/definitions/Error"
         403:
           description: Forbidden
           schema:
@@ -1004,7 +1012,6 @@ definitions:
           type: string
           format: uuid
           description: The ID of a service endpoint consumer.
-          readOnly: true
       project_ids:
         type: array
         items:
@@ -1074,14 +1081,14 @@ definitions:
       | AVAILABLE          | Endpoint is active for consumption    |
       | PENDING_APPROVAL   | Endpoint is waiting for approval      |
       | PENDING_CREATE     | Endpoint is being set up              |
-      | PENDING_DELETE     | Endpoint is being deleted             |
+      | PENDING_REJECTED   | Endpoint is being rejected            |
       | REJECTED           | Endpoint was rejected                 |
       | FAILED             | Endpoint setup failed                 |
     enum:
       - ACTIVE
       - PENDING_APPROVAL
       - PENDING_CREATE
-      - PENDING_DELETE
+      - PENDING_REJECTED
       - REJECTED
       - FAILED
     readOnly: true

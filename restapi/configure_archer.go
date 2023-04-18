@@ -19,10 +19,12 @@ package restapi
 import (
 	"context"
 	"crypto/tls"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/IBM/pgxpoolprometheus"
 	"github.com/didip/tollbooth/v7"
 	"github.com/dre1080/recovr"
 	"github.com/getsentry/sentry-go"
@@ -33,6 +35,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/tracelog"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/cors"
 	"github.com/sapcc/go-bits/logg"
 
@@ -108,6 +111,14 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 	pool, err := pgxpool.NewWithConfig(context.Background(), connConfig)
 	if err != nil {
 		logg.Fatal(err.Error())
+	}
+
+	if config.Global.Default.Prometheus {
+		http.Handle("/metrics", promhttp.Handler())
+		go prometheusListenerThread()
+
+		collector := pgxpoolprometheus.NewCollector(pool, map[string]string{"db_name": connConfig.ConnConfig.Database})
+		prometheus.MustRegister(collector)
 	}
 
 	var keystone *auth.Keystone
@@ -214,4 +225,11 @@ func setupGlobalMiddleware(handler http.Handler) http.Handler {
 	}).Handle(handler)
 	// recover with recovr
 	return recovr.New()(handler)
+}
+
+func prometheusListenerThread() {
+	logg.Info("Serving prometheus metrics at http://%s/metrics", config.Global.Default.PrometheusListen)
+	if err := http.ListenAndServe(config.Global.Default.PrometheusListen, nil); err != nil {
+		logg.Fatal(err.Error())
+	}
 }

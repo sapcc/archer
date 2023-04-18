@@ -100,10 +100,6 @@ func (m *EndpointConsumerList) validateProjectIds(formats strfmt.Registry) error
 func (m *EndpointConsumerList) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.contextValidateEndpointIds(ctx, formats); err != nil {
-		res = append(res, err)
-	}
-
 	if err := m.contextValidateProjectIds(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -111,19 +107,6 @@ func (m *EndpointConsumerList) ContextValidate(ctx context.Context, formats strf
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
-	return nil
-}
-
-func (m *EndpointConsumerList) contextValidateEndpointIds(ctx context.Context, formats strfmt.Registry) error {
-
-	for i := 0; i < len(m.EndpointIds); i++ {
-
-		if err := validate.ReadOnly(ctx, "endpoint_ids"+"."+strconv.Itoa(i), "body", strfmt.UUID(m.EndpointIds[i])); err != nil {
-			return err
-		}
-
-	}
-
 	return nil
 }
 

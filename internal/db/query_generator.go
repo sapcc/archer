@@ -16,7 +16,9 @@ package db
 
 import (
 	"fmt"
+	"github.com/go-openapi/strfmt"
 	"github.com/jackc/pgx/v5"
+	"github.com/sapcc/archer/models"
 	"strings"
 )
 
@@ -220,21 +222,33 @@ func (b *DeleteBuilder) ToSQL() (string, []any) {
 // UPDATE
 /////////////////////////
 
-type Coalesce any
+type Coalesce struct {
+	V any
+}
 type Raw string
 type UpdateBuilder struct {
-	table        string
-	whereClauses []string
-	values       map[string]any
-	returning    []string
+	table     string
+	from      string
+	where     map[string]any
+	values    map[string]any
+	returning []string
 }
 
 func Update(table string) *UpdateBuilder {
-	return &UpdateBuilder{table: table, values: make(map[string]any)}
+	return &UpdateBuilder{
+		table:  table,
+		values: make(map[string]any),
+		where:  make(map[string]any),
+	}
 }
 
 func (b *UpdateBuilder) Update(table string) *UpdateBuilder {
 	b.table = table
+	return b
+}
+
+func (b *UpdateBuilder) From(from string) *UpdateBuilder {
+	b.from = from
 	return b
 }
 
@@ -244,8 +258,7 @@ func (b *UpdateBuilder) Set(column string, val any) *UpdateBuilder {
 }
 
 func (b *UpdateBuilder) Where(column string, val any) *UpdateBuilder {
-	b.whereClauses = append(b.whereClauses, column)
-	b.values[column] = val
+	b.where[column] = val
 	return b
 }
 
@@ -270,27 +283,60 @@ func (b *UpdateBuilder) ToSQL() (string, pgx.NamedArgs) {
 
 		sb.WriteString(key)
 		sb.WriteString(" = ")
-		if val, ok := v.(Raw); ok {
+		switch val := v.(type) {
+		case Raw:
 			sb.WriteString(string(val))
-		} else if val, ok := v.(Coalesce); ok {
+		case Coalesce:
 			sb.WriteString(fmt.Sprintf("COALESCE(@%s, %s)", key, key))
 			b.values[key] = val
-		} else {
+		default:
 			sb.WriteString(fmt.Sprint("@", key))
 			b.values[key] = val
 		}
 		i++
 	}
 
+	// FROM
+	if b.from != "" {
+		sb.WriteString(" FROM ")
+		sb.WriteString(b.from)
+	}
+
 	// WHERE ...
 	sb.WriteString(" WHERE ")
-	for i, whereClause := range b.whereClauses {
+	i = 0
+	for key, v := range b.where {
 		if i > 0 {
 			sb.WriteString(" AND ")
 		}
-		sb.WriteString(whereClause)
-		sb.WriteString(" = @")
-		sb.WriteString(whereClause)
+
+		sb.WriteString(key)
+		switch val := v.(type) {
+		case Raw:
+			sb.WriteString(" = ")
+			sb.WriteString(string(val))
+		case []string:
+			sb.WriteString(" = ")
+			key = strings.Replace(key, ".", "__", -1)
+			sb.WriteString(fmt.Sprint("ANY(@", key, ")"))
+			b.values[key] = val
+		case []strfmt.UUID:
+			sb.WriteString(" = ")
+			key = strings.Replace(key, ".", "__", -1)
+			sb.WriteString(fmt.Sprint("ANY(@", key, ")"))
+			b.values[key] = val
+		case []models.Project:
+			sb.WriteString(" = ")
+			key = strings.Replace(key, ".", "__", -1)
+			sb.WriteString(fmt.Sprint("ANY(@", key, ")"))
+			b.values[key] = val
+		default:
+			sb.WriteString(" = ")
+			key = strings.Replace(key, ".", "__", -1)
+			sb.WriteString(fmt.Sprint("@", key))
+			b.values[key] = v
+		}
+		i++
 	}
 
 	// RETURNING ...
