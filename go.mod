@@ -11,7 +11,7 @@ require (
 	github.com/getsentry/sentry-go v0.20.0
 	github.com/go-openapi/errors v0.20.3
 	github.com/go-openapi/loads v0.21.2
-	github.com/go-openapi/runtime v0.25.0
+	github.com/go-openapi/runtime v0.26.0
 	github.com/go-openapi/spec v0.20.8
 	github.com/go-openapi/strfmt v0.21.7
 	github.com/go-openapi/swag v0.22.3
@@ -40,7 +40,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/databus23/goslo.policy v0.0.0-20210929125152-81bf2876dbdb // indirect
-	github.com/docker/go-units v0.4.0 // indirect
+	github.com/docker/go-units v0.5.0 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/analysis v0.21.4 // indirect
@@ -79,8 +79,8 @@ require (
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/ztrue/tracerr v0.3.0 // indirect
 	go.mongodb.org/mongo-driver v1.11.3 // indirect
-	go.opentelemetry.io/otel v1.11.1 // indirect
-	go.opentelemetry.io/otel/trace v1.11.1 // indirect
+	go.opentelemetry.io/otel v1.14.0 // indirect
+	go.opentelemetry.io/otel/trace v1.14.0 // indirect
 	golang.org/x/crypto v0.7.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.7.0 // indirect
