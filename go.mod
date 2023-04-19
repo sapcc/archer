@@ -30,7 +30,7 @@ require (
 	github.com/rs/cors v1.9.0
 	github.com/sapcc/go-api-declarations v1.5.1
 	github.com/sapcc/go-bits v0.0.0-20230413144132-bee3aa4c8293
-	github.com/xo/dburl v0.13.1
+	github.com/xo/dburl v0.14.2
 	github.com/z0ne-dev/mgx/v2 v2.0.1
 	golang.org/x/net v0.9.0
 )
