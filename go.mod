@@ -29,7 +29,7 @@ require (
 	github.com/prometheus/client_golang v1.15.0
 	github.com/rs/cors v1.9.0
 	github.com/sapcc/go-api-declarations v1.5.1
-	github.com/sapcc/go-bits v0.0.0-20230413144132-bee3aa4c8293
+	github.com/sapcc/go-bits v0.0.0-20230420083834-e3870701a14b
 	github.com/stretchr/testify v1.8.2
 	github.com/xo/dburl v0.14.2
 	github.com/z0ne-dev/mgx/v2 v2.0.1
