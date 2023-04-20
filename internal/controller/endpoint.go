@@ -89,7 +89,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 		panic(err)
 	}
 
-	return endpoint.NewPostEndpointOK().WithPayload(&endpointResponse)
+	return endpoint.NewPostEndpointCreated().WithPayload(&endpointResponse)
 }
 
 func (c *Controller) GetEndpointEndpointIDHandler(params endpoint.GetEndpointEndpointIDParams, principal any) middleware.Responder {

@@ -27,15 +27,15 @@ import (
 	"github.com/sapcc/archer/models"
 )
 
-// PostRbacPoliciesOKCode is the HTTP code returned for type PostRbacPoliciesOK
-const PostRbacPoliciesOKCode int = 200
+// PostRbacPoliciesCreatedCode is the HTTP code returned for type PostRbacPoliciesCreated
+const PostRbacPoliciesCreatedCode int = 201
 
 /*
-PostRbacPoliciesOK RBAC policy
+PostRbacPoliciesCreated RBAC policy
 
-swagger:response postRbacPoliciesOK
+swagger:response postRbacPoliciesCreated
 */
-type PostRbacPoliciesOK struct {
+type PostRbacPoliciesCreated struct {
 
 	/*
 	  In: Body
@@ -43,27 +43,27 @@ type PostRbacPoliciesOK struct {
 	Payload *models.Rbacpolicy `json:"body,omitempty"`
 }
 
-// NewPostRbacPoliciesOK creates PostRbacPoliciesOK with default headers values
-func NewPostRbacPoliciesOK() *PostRbacPoliciesOK {
+// NewPostRbacPoliciesCreated creates PostRbacPoliciesCreated with default headers values
+func NewPostRbacPoliciesCreated() *PostRbacPoliciesCreated {
 
-	return &PostRbacPoliciesOK{}
+	return &PostRbacPoliciesCreated{}
 }
 
-// WithPayload adds the payload to the post rbac policies o k response
-func (o *PostRbacPoliciesOK) WithPayload(payload *models.Rbacpolicy) *PostRbacPoliciesOK {
+// WithPayload adds the payload to the post rbac policies created response
+func (o *PostRbacPoliciesCreated) WithPayload(payload *models.Rbacpolicy) *PostRbacPoliciesCreated {
 	o.Payload = payload
 	return o
 }
 
-// SetPayload sets the payload to the post rbac policies o k response
-func (o *PostRbacPoliciesOK) SetPayload(payload *models.Rbacpolicy) {
+// SetPayload sets the payload to the post rbac policies created response
+func (o *PostRbacPoliciesCreated) SetPayload(payload *models.Rbacpolicy) {
 	o.Payload = payload
 }
 
 // WriteResponse to the client
-func (o *PostRbacPoliciesOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+func (o *PostRbacPoliciesCreated) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.WriteHeader(200)
+	rw.WriteHeader(201)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

@@ -37,8 +37,8 @@ type PostServiceReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *PostServiceReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-	case 200:
-		result := NewPostServiceOK()
+	case 201:
+		result := NewPostServiceCreated()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -60,63 +60,63 @@ func (o *PostServiceReader) ReadResponse(response runtime.ClientResponse, consum
 	}
 }
 
-// NewPostServiceOK creates a PostServiceOK with default headers values
-func NewPostServiceOK() *PostServiceOK {
-	return &PostServiceOK{}
+// NewPostServiceCreated creates a PostServiceCreated with default headers values
+func NewPostServiceCreated() *PostServiceCreated {
+	return &PostServiceCreated{}
 }
 
 /*
-PostServiceOK describes a response with status code 200, with default header values.
+PostServiceCreated describes a response with status code 201, with default header values.
 
 Service
 */
-type PostServiceOK struct {
+type PostServiceCreated struct {
 	Payload *models.Service
 }
 
-// IsSuccess returns true when this post service o k response has a 2xx status code
-func (o *PostServiceOK) IsSuccess() bool {
+// IsSuccess returns true when this post service created response has a 2xx status code
+func (o *PostServiceCreated) IsSuccess() bool {
 	return true
 }
 
-// IsRedirect returns true when this post service o k response has a 3xx status code
-func (o *PostServiceOK) IsRedirect() bool {
+// IsRedirect returns true when this post service created response has a 3xx status code
+func (o *PostServiceCreated) IsRedirect() bool {
 	return false
 }
 
-// IsClientError returns true when this post service o k response has a 4xx status code
-func (o *PostServiceOK) IsClientError() bool {
+// IsClientError returns true when this post service created response has a 4xx status code
+func (o *PostServiceCreated) IsClientError() bool {
 	return false
 }
 
-// IsServerError returns true when this post service o k response has a 5xx status code
-func (o *PostServiceOK) IsServerError() bool {
+// IsServerError returns true when this post service created response has a 5xx status code
+func (o *PostServiceCreated) IsServerError() bool {
 	return false
 }
 
-// IsCode returns true when this post service o k response a status code equal to that given
-func (o *PostServiceOK) IsCode(code int) bool {
-	return code == 200
+// IsCode returns true when this post service created response a status code equal to that given
+func (o *PostServiceCreated) IsCode(code int) bool {
+	return code == 201
 }
 
-// Code gets the status code for the post service o k response
-func (o *PostServiceOK) Code() int {
-	return 200
+// Code gets the status code for the post service created response
+func (o *PostServiceCreated) Code() int {
+	return 201
 }
 
-func (o *PostServiceOK) Error() string {
-	return fmt.Sprintf("[POST /service][%d] postServiceOK  %+v", 200, o.Payload)
+func (o *PostServiceCreated) Error() string {
+	return fmt.Sprintf("[POST /service][%d] postServiceCreated  %+v", 201, o.Payload)
 }
 
-func (o *PostServiceOK) String() string {
-	return fmt.Sprintf("[POST /service][%d] postServiceOK  %+v", 200, o.Payload)
+func (o *PostServiceCreated) String() string {
+	return fmt.Sprintf("[POST /service][%d] postServiceCreated  %+v", 201, o.Payload)
 }
 
-func (o *PostServiceOK) GetPayload() *models.Service {
+func (o *PostServiceCreated) GetPayload() *models.Service {
 	return o.Payload
 }
 
-func (o *PostServiceOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *PostServiceCreated) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Service)
 

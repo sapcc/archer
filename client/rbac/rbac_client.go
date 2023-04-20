@@ -50,7 +50,7 @@ type ClientService interface {
 
 	GetRbacPoliciesRbacPolicyID(params *GetRbacPoliciesRbacPolicyIDParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetRbacPoliciesRbacPolicyIDOK, error)
 
-	PostRbacPolicies(params *PostRbacPoliciesParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostRbacPoliciesOK, error)
+	PostRbacPolicies(params *PostRbacPoliciesParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostRbacPoliciesCreated, error)
 
 	PutRbacPoliciesRbacPolicyID(params *PutRbacPoliciesRbacPolicyIDParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PutRbacPoliciesRbacPolicyIDOK, error)
 
@@ -177,7 +177,7 @@ func (a *Client) GetRbacPoliciesRbacPolicyID(params *GetRbacPoliciesRbacPolicyID
 /*
 PostRbacPolicies creates r b a c policy
 */
-func (a *Client) PostRbacPolicies(params *PostRbacPoliciesParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostRbacPoliciesOK, error) {
+func (a *Client) PostRbacPolicies(params *PostRbacPoliciesParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostRbacPoliciesCreated, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewPostRbacPoliciesParams()
@@ -203,7 +203,7 @@ func (a *Client) PostRbacPolicies(params *PostRbacPoliciesParams, authInfo runti
 	if err != nil {
 		return nil, err
 	}
-	success, ok := result.(*PostRbacPoliciesOK)
+	success, ok := result.(*PostRbacPoliciesCreated)
 	if ok {
 		return success, nil
 	}

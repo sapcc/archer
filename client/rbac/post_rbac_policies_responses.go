@@ -37,8 +37,8 @@ type PostRbacPoliciesReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *PostRbacPoliciesReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-	case 200:
-		result := NewPostRbacPoliciesOK()
+	case 201:
+		result := NewPostRbacPoliciesCreated()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -66,63 +66,63 @@ func (o *PostRbacPoliciesReader) ReadResponse(response runtime.ClientResponse, c
 	}
 }
 
-// NewPostRbacPoliciesOK creates a PostRbacPoliciesOK with default headers values
-func NewPostRbacPoliciesOK() *PostRbacPoliciesOK {
-	return &PostRbacPoliciesOK{}
+// NewPostRbacPoliciesCreated creates a PostRbacPoliciesCreated with default headers values
+func NewPostRbacPoliciesCreated() *PostRbacPoliciesCreated {
+	return &PostRbacPoliciesCreated{}
 }
 
 /*
-PostRbacPoliciesOK describes a response with status code 200, with default header values.
+PostRbacPoliciesCreated describes a response with status code 201, with default header values.
 
 RBAC policy
 */
-type PostRbacPoliciesOK struct {
+type PostRbacPoliciesCreated struct {
 	Payload *models.Rbacpolicy
 }
 
-// IsSuccess returns true when this post rbac policies o k response has a 2xx status code
-func (o *PostRbacPoliciesOK) IsSuccess() bool {
+// IsSuccess returns true when this post rbac policies created response has a 2xx status code
+func (o *PostRbacPoliciesCreated) IsSuccess() bool {
 	return true
 }
 
-// IsRedirect returns true when this post rbac policies o k response has a 3xx status code
-func (o *PostRbacPoliciesOK) IsRedirect() bool {
+// IsRedirect returns true when this post rbac policies created response has a 3xx status code
+func (o *PostRbacPoliciesCreated) IsRedirect() bool {
 	return false
 }
 
-// IsClientError returns true when this post rbac policies o k response has a 4xx status code
-func (o *PostRbacPoliciesOK) IsClientError() bool {
+// IsClientError returns true when this post rbac policies created response has a 4xx status code
+func (o *PostRbacPoliciesCreated) IsClientError() bool {
 	return false
 }
 
-// IsServerError returns true when this post rbac policies o k response has a 5xx status code
-func (o *PostRbacPoliciesOK) IsServerError() bool {
+// IsServerError returns true when this post rbac policies created response has a 5xx status code
+func (o *PostRbacPoliciesCreated) IsServerError() bool {
 	return false
 }
 
-// IsCode returns true when this post rbac policies o k response a status code equal to that given
-func (o *PostRbacPoliciesOK) IsCode(code int) bool {
-	return code == 200
+// IsCode returns true when this post rbac policies created response a status code equal to that given
+func (o *PostRbacPoliciesCreated) IsCode(code int) bool {
+	return code == 201
 }
 
-// Code gets the status code for the post rbac policies o k response
-func (o *PostRbacPoliciesOK) Code() int {
-	return 200
+// Code gets the status code for the post rbac policies created response
+func (o *PostRbacPoliciesCreated) Code() int {
+	return 201
 }
 
-func (o *PostRbacPoliciesOK) Error() string {
-	return fmt.Sprintf("[POST /rbac-policies][%d] postRbacPoliciesOK  %+v", 200, o.Payload)
+func (o *PostRbacPoliciesCreated) Error() string {
+	return fmt.Sprintf("[POST /rbac-policies][%d] postRbacPoliciesCreated  %+v", 201, o.Payload)
 }
 
-func (o *PostRbacPoliciesOK) String() string {
-	return fmt.Sprintf("[POST /rbac-policies][%d] postRbacPoliciesOK  %+v", 200, o.Payload)
+func (o *PostRbacPoliciesCreated) String() string {
+	return fmt.Sprintf("[POST /rbac-policies][%d] postRbacPoliciesCreated  %+v", 201, o.Payload)
 }
 
-func (o *PostRbacPoliciesOK) GetPayload() *models.Rbacpolicy {
+func (o *PostRbacPoliciesCreated) GetPayload() *models.Rbacpolicy {
 	return o.Payload
 }
 
-func (o *PostRbacPoliciesOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *PostRbacPoliciesCreated) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Rbacpolicy)
 

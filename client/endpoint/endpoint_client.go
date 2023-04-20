@@ -50,7 +50,7 @@ type ClientService interface {
 
 	GetEndpointEndpointID(params *GetEndpointEndpointIDParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetEndpointEndpointIDOK, error)
 
-	PostEndpoint(params *PostEndpointParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostEndpointOK, error)
+	PostEndpoint(params *PostEndpointParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostEndpointCreated, error)
 
 	SetTransport(transport runtime.ClientTransport)
 }
@@ -175,7 +175,7 @@ func (a *Client) GetEndpointEndpointID(params *GetEndpointEndpointIDParams, auth
 /*
 PostEndpoint creates endpoint for accessing a service
 */
-func (a *Client) PostEndpoint(params *PostEndpointParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostEndpointOK, error) {
+func (a *Client) PostEndpoint(params *PostEndpointParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostEndpointCreated, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewPostEndpointParams()
@@ -201,7 +201,7 @@ func (a *Client) PostEndpoint(params *PostEndpointParams, authInfo runtime.Clien
 	if err != nil {
 		return nil, err
 	}
-	success, ok := result.(*PostEndpointOK)
+	success, ok := result.(*PostEndpointCreated)
 	if ok {
 		return success, nil
 	}

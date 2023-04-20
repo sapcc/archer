@@ -156,7 +156,7 @@ func init() {
           }
         ],
         "responses": {
-          "200": {
+          "201": {
             "description": "Endpoint",
             "schema": {
               "$ref": "#/definitions/Endpoint"
@@ -503,7 +503,7 @@ func init() {
           }
         ],
         "responses": {
-          "200": {
+          "201": {
             "description": "RBAC policy",
             "schema": {
               "$ref": "#/definitions/RBACPolicy"
@@ -700,7 +700,7 @@ func init() {
           }
         ],
         "responses": {
-          "200": {
+          "201": {
             "description": "Service",
             "schema": {
               "$ref": "#/definitions/Service"
@@ -1115,13 +1115,14 @@ func init() {
       }
     },
     "EndpointStatus": {
-      "description": "Status of the endpoint\n\n### Status can be one of\n| Status             | Description                           |\n| ------------------ | ------------------------------------- |\n| AVAILABLE          | Endpoint is active for consumption    |\n| PENDING_APPROVAL   | Endpoint is waiting for approval      |\n| PENDING_CREATE     | Endpoint is being set up              |\n| PENDING_REJECTED   | Endpoint is being rejected            |\n| REJECTED           | Endpoint was rejected                 |\n| FAILED             | Endpoint setup failed                 |\n",
+      "description": "Status of the endpoint\n\n### Status can be one of\n| Status             | Description                           |\n| ------------------ | ------------------------------------- |\n| AVAILABLE          | Endpoint is active for consumption    |\n| PENDING_APPROVAL   | Endpoint is waiting for approval      |\n| PENDING_CREATE     | Endpoint is being set up              |\n| PENDING_REJECTED   | Endpoint is being rejected            |\n| PENDING_DELETE     | Endpoint is being deleted             |\n| REJECTED           | Endpoint was rejected                 |\n| FAILED             | Endpoint setup failed                 |\n",
       "type": "string",
       "enum": [
         "ACTIVE",
         "PENDING_APPROVAL",
         "PENDING_CREATE",
         "PENDING_REJECTED",
+        "PENDING_DELETE",
         "REJECTED",
         "FAILED"
       ],
@@ -1163,17 +1164,21 @@ func init() {
     },
     "Quota": {
       "type": "object",
+      "required": [
+        "service",
+        "endpoint"
+      ],
       "properties": {
         "endpoint": {
           "description": "The configured endpoint quota limit. A setting of null means it is using the deployment default quota. A setting of -1 means unlimited.",
           "type": "integer",
-          "x-nullable": true,
+          "x-nullable": false,
           "example": 5
         },
         "service": {
           "description": "The configured service quota limit. A setting of null means it is using the deployment default quota. A setting of -1 means unlimited.",
           "type": "integer",
-          "x-nullable": true,
+          "x-nullable": false,
           "example": 5
         }
       }
@@ -1294,7 +1299,7 @@ func init() {
         "enabled": {
           "description": "Enable/disable this service. Existing endpoints are not touched by this.",
           "type": "boolean",
-          "x-nullable": true
+          "default": true
         },
         "host": {
           "description": "Device host.",
@@ -1401,7 +1406,7 @@ func init() {
         "enabled": {
           "description": "Enable/disable this service. Existing endpoints are not touched by this.",
           "type": "boolean",
-          "x-nullable": true
+          "default": true
         },
         "ip_addresses": {
           "description": "IP Addresses of the providing service, multiple addresses will be round robin load balanced.",
@@ -1772,7 +1777,7 @@ func init() {
           }
         ],
         "responses": {
-          "200": {
+          "201": {
             "description": "Endpoint",
             "schema": {
               "$ref": "#/definitions/Endpoint"
@@ -2117,7 +2122,7 @@ func init() {
           }
         ],
         "responses": {
-          "200": {
+          "201": {
             "description": "RBAC policy",
             "schema": {
               "$ref": "#/definitions/RBACPolicy"
@@ -2351,7 +2356,7 @@ func init() {
           }
         ],
         "responses": {
-          "200": {
+          "201": {
             "description": "Service",
             "schema": {
               "$ref": "#/definitions/Service"
@@ -2779,13 +2784,14 @@ func init() {
       }
     },
     "EndpointStatus": {
-      "description": "Status of the endpoint\n\n### Status can be one of\n| Status             | Description                           |\n| ------------------ | ------------------------------------- |\n| AVAILABLE          | Endpoint is active for consumption    |\n| PENDING_APPROVAL   | Endpoint is waiting for approval      |\n| PENDING_CREATE     | Endpoint is being set up              |\n| PENDING_REJECTED   | Endpoint is being rejected            |\n| REJECTED           | Endpoint was rejected                 |\n| FAILED             | Endpoint setup failed                 |\n",
+      "description": "Status of the endpoint\n\n### Status can be one of\n| Status             | Description                           |\n| ------------------ | ------------------------------------- |\n| AVAILABLE          | Endpoint is active for consumption    |\n| PENDING_APPROVAL   | Endpoint is waiting for approval      |\n| PENDING_CREATE     | Endpoint is being set up              |\n| PENDING_REJECTED   | Endpoint is being rejected            |\n| PENDING_DELETE     | Endpoint is being deleted             |\n| REJECTED           | Endpoint was rejected                 |\n| FAILED             | Endpoint setup failed                 |\n",
       "type": "string",
       "enum": [
         "ACTIVE",
         "PENDING_APPROVAL",
         "PENDING_CREATE",
         "PENDING_REJECTED",
+        "PENDING_DELETE",
         "REJECTED",
         "FAILED"
       ],
@@ -2855,17 +2861,21 @@ func init() {
     },
     "Quota": {
       "type": "object",
+      "required": [
+        "service",
+        "endpoint"
+      ],
       "properties": {
         "endpoint": {
           "description": "The configured endpoint quota limit. A setting of null means it is using the deployment default quota. A setting of -1 means unlimited.",
           "type": "integer",
-          "x-nullable": true,
+          "x-nullable": false,
           "example": 5
         },
         "service": {
           "description": "The configured service quota limit. A setting of null means it is using the deployment default quota. A setting of -1 means unlimited.",
           "type": "integer",
-          "x-nullable": true,
+          "x-nullable": false,
           "example": 5
         }
       }
@@ -3004,7 +3014,7 @@ func init() {
         "enabled": {
           "description": "Enable/disable this service. Existing endpoints are not touched by this.",
           "type": "boolean",
-          "x-nullable": true
+          "default": true
         },
         "host": {
           "description": "Device host.",
@@ -3111,7 +3121,7 @@ func init() {
         "enabled": {
           "description": "Enable/disable this service. Existing endpoints are not touched by this.",
           "type": "boolean",
-          "x-nullable": true
+          "default": true
         },
         "ip_addresses": {
           "description": "IP Addresses of the providing service, multiple addresses will be round robin load balanced.",

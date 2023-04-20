@@ -27,15 +27,15 @@ import (
 	"github.com/sapcc/archer/models"
 )
 
-// PostEndpointOKCode is the HTTP code returned for type PostEndpointOK
-const PostEndpointOKCode int = 200
+// PostEndpointCreatedCode is the HTTP code returned for type PostEndpointCreated
+const PostEndpointCreatedCode int = 201
 
 /*
-PostEndpointOK Endpoint
+PostEndpointCreated Endpoint
 
-swagger:response postEndpointOK
+swagger:response postEndpointCreated
 */
-type PostEndpointOK struct {
+type PostEndpointCreated struct {
 
 	/*
 	  In: Body
@@ -43,27 +43,27 @@ type PostEndpointOK struct {
 	Payload *models.Endpoint `json:"body,omitempty"`
 }
 
-// NewPostEndpointOK creates PostEndpointOK with default headers values
-func NewPostEndpointOK() *PostEndpointOK {
+// NewPostEndpointCreated creates PostEndpointCreated with default headers values
+func NewPostEndpointCreated() *PostEndpointCreated {
 
-	return &PostEndpointOK{}
+	return &PostEndpointCreated{}
 }
 
-// WithPayload adds the payload to the post endpoint o k response
-func (o *PostEndpointOK) WithPayload(payload *models.Endpoint) *PostEndpointOK {
+// WithPayload adds the payload to the post endpoint created response
+func (o *PostEndpointCreated) WithPayload(payload *models.Endpoint) *PostEndpointCreated {
 	o.Payload = payload
 	return o
 }
 
-// SetPayload sets the payload to the post endpoint o k response
-func (o *PostEndpointOK) SetPayload(payload *models.Endpoint) {
+// SetPayload sets the payload to the post endpoint created response
+func (o *PostEndpointCreated) SetPayload(payload *models.Endpoint) {
 	o.Payload = payload
 }
 
 // WriteResponse to the client
-func (o *PostEndpointOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+func (o *PostEndpointCreated) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.WriteHeader(200)
+	rw.WriteHeader(201)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

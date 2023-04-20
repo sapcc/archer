@@ -22,8 +22,10 @@ package models
 import (
 	"context"
 
+	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // Quota quota
@@ -33,15 +35,48 @@ type Quota struct {
 
 	// The configured endpoint quota limit. A setting of null means it is using the deployment default quota. A setting of -1 means unlimited.
 	// Example: 5
-	Endpoint *int64 `json:"endpoint,omitempty"`
+	// Required: true
+	Endpoint int64 `json:"endpoint"`
 
 	// The configured service quota limit. A setting of null means it is using the deployment default quota. A setting of -1 means unlimited.
 	// Example: 5
-	Service *int64 `json:"service,omitempty"`
+	// Required: true
+	Service int64 `json:"service"`
 }
 
 // Validate validates this quota
 func (m *Quota) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateEndpoint(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateService(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *Quota) validateEndpoint(formats strfmt.Registry) error {
+
+	if err := validate.Required("endpoint", "body", int64(m.Endpoint)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Quota) validateService(formats strfmt.Registry) error {
+
+	if err := validate.Required("service", "body", int64(m.Service)); err != nil {
+		return err
+	}
+
 	return nil
 }
 

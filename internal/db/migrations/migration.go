@@ -17,26 +17,21 @@ package migrations
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/sapcc/go-bits/logg"
 	"github.com/z0ne-dev/mgx/v2"
-
-	"github.com/sapcc/archer/internal/config"
 )
 
-func Migrate() {
-	migrator, _ := mgx.New(mgx.Migrations(
-		mgx.NewMigration("initial", func(ctx context.Context, commands mgx.Commands) error {
-			if _, err := commands.Exec(ctx, `
+var Migrations = mgx.Migrations(
+	mgx.NewMigration("initial", func(ctx context.Context, commands mgx.Commands) error {
+		if _, err := commands.Exec(ctx, `
 				CREATE TABLE service_status
 				(
 					name VARCHAR(16) PRIMARY KEY
 				);`,
-			); err != nil {
-				return err
-			}
+		); err != nil {
+			return err
+		}
 
-			if _, err := commands.Exec(ctx, `
+		if _, err := commands.Exec(ctx, `
 				INSERT INTO
 					service_status(name)
 				VALUES
@@ -46,11 +41,11 @@ func Migrate() {
 					('PENDING_DELETE'),
 					('UNAVAILABLE')
 				;`,
-			); err != nil {
-				return err
-			}
+		); err != nil {
+			return err
+		}
 
-			if _, err := commands.Exec(ctx, `
+		if _, err := commands.Exec(ctx, `
 				CREATE TABLE service
 				(
 					id                UUID           DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -74,20 +69,20 @@ func Migrate() {
 					CONSTRAINT status FOREIGN KEY (status) REFERENCES service_status(name),
 					UNIQUE (network_id, ip_addresses, availability_zone)
 				);`,
-			); err != nil {
-				return err
-			}
+		); err != nil {
+			return err
+		}
 
-			if _, err := commands.Exec(ctx, `
+		if _, err := commands.Exec(ctx, `
 				CREATE TABLE endpoint_status
 				(
 					name VARCHAR(16) PRIMARY KEY
 				);`,
-			); err != nil {
-				return err
-			}
+		); err != nil {
+			return err
+		}
 
-			if _, err := commands.Exec(ctx, `
+		if _, err := commands.Exec(ctx, `
 				INSERT INTO
 					endpoint_status(name)
 				VALUES
@@ -99,11 +94,11 @@ func Migrate() {
 					('REJECTED'),
 					('FAILED')
 				;`,
-			); err != nil {
-				return err
-			}
+		); err != nil {
+			return err
+		}
 
-			if _, err := commands.Exec(ctx, `
+		if _, err := commands.Exec(ctx, `
 				CREATE TABLE endpoint
 				(
 					id                UUID           DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -119,11 +114,11 @@ func Migrate() {
 					CONSTRAINT fk_service FOREIGN KEY(service_id) REFERENCES service(id),
 					CONSTRAINT fk_status FOREIGN KEY (status) REFERENCES endpoint_status(name)
 				);`,
-			); err != nil {
-				return err
-			}
+		); err != nil {
+			return err
+		}
 
-			if _, err := commands.Exec(ctx, `
+		if _, err := commands.Exec(ctx, `
 				CREATE TABLE service_port
 				(
 					service_id UUID NOT NULL,
@@ -131,44 +126,46 @@ func Migrate() {
 					UNIQUE(port_id),
 					CONSTRAINT fk_service FOREIGN KEY(service_id) REFERENCES service(id) ON DELETE CASCADE
 				);`,
-			); err != nil {
-				return err
-			}
+		); err != nil {
+			return err
+		}
 
-			if _, err := commands.Exec(ctx, `
+		if _, err := commands.Exec(ctx, `
 				CREATE TABLE agents
 				(
 					host                 VARCHAR(255) NOT NULL,
 					availability_zone    VARCHAR(64),
 					UNIQUE(host)
 				);`,
-			); err != nil {
-				return err
-			}
+		); err != nil {
+			return err
+		}
 
-			if _, err := commands.Exec(ctx, `
+		if _, err := commands.Exec(ctx, `
 				CREATE TABLE rbac
 				(
 					id                UUID         DEFAULT gen_random_uuid() PRIMARY KEY,
 					target_project    VARCHAR(36)  NOT NULL,
 					service_id        UUID         NOT NULL,
 					project_id        VARCHAR(36)  NOT NULL,
-					CONSTRAINT fk_service FOREIGN KEY(service_id) REFERENCES service(id)
+					created_at        TIMESTAMP    NOT NULL DEFAULT now(),
+					updated_at        TIMESTAMP    NOT NULL DEFAULT now(),
+					CONSTRAINT fk_service FOREIGN KEY(service_id) REFERENCES service(id) ON DELETE CASCADE,
+					UNIQUE(target_project, service_id)
 				);`); err != nil {
-				return err
-			}
+			return err
+		}
 
-			return nil
-		}),
-	))
+		if _, err := commands.Exec(ctx, `
+				CREATE TABLE quota
+				(
+					project_id  VARCHAR(36)  NOT NULL PRIMARY KEY,
+					service     BIGINT       NOT NULL,
+					endpoint    BIGINT       NOT NULL
+				);`); err != nil {
+			return err
+		}
 
-	logg.ShowDebug = config.IsDebug()
-	conn, err := pgx.Connect(context.Background(), config.Global.Database.Connection)
-	if err != nil {
-		logg.Fatal(err.Error())
-	}
-
-	if err := migrator.Migrate(context.Background(), conn); err != nil {
-		logg.Fatal(err.Error())
-	}
-}
+		return nil
+	}),
+)

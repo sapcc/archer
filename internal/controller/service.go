@@ -97,7 +97,7 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 		panic(err)
 	}
 
-	return service.NewPostServiceOK().WithPayload(&serviceResponse)
+	return service.NewPostServiceCreated().WithPayload(&serviceResponse)
 }
 
 func (c *Controller) GetServiceServiceIDHandler(params service.GetServiceServiceIDParams, principal any) middleware.Responder {

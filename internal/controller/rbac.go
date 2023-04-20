@@ -92,7 +92,7 @@ func (c *Controller) PostRbacPoliciesHandler(params rbac.PostRbacPoliciesParams,
 		panic(err)
 	}
 
-	return rbac.NewPostRbacPoliciesOK().WithPayload(&rbacResponse)
+	return rbac.NewPostRbacPoliciesCreated().WithPayload(&rbacResponse)
 }
 
 func (c *Controller) GetRbacPoliciesRbacPolicyIDHandler(params rbac.GetRbacPoliciesRbacPolicyIDParams, principal any) middleware.Responder {
@@ -150,7 +150,7 @@ func (c *Controller) PutRbacPoliciesRbacPolicyIDHandler(params rbac.PutRbacPolic
 }
 
 func (c *Controller) DeleteRbacPoliciesRbacPolicyIDHandler(params rbac.DeleteRbacPoliciesRbacPolicyIDParams, principal any) middleware.Responder {
-	q := db.Delete("rbac").Where("id", params.RbacPolicyID)
+	q := db.Delete("rbac").Where("id = ?", params.RbacPolicyID)
 
 	if projectId, err := auth.AuthenticatePrincipal(params.HTTPRequest, principal); err != nil {
 		return rbac.NewDeleteRbacPoliciesRbacPolicyIDForbidden()
@@ -159,7 +159,7 @@ func (c *Controller) DeleteRbacPoliciesRbacPolicyIDHandler(params rbac.DeleteRba
 	}
 
 	sql, args := q.ToSQL()
-	if ct, err := c.pool.Exec(params.HTTPRequest.Context(), sql, args); err != nil {
+	if ct, err := c.pool.Exec(params.HTTPRequest.Context(), sql, args...); err != nil {
 		panic(err)
 	} else if ct.RowsAffected() == 0 {
 		return rbac.NewDeleteRbacPoliciesRbacPolicyIDNotFound()

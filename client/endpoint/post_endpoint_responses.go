@@ -37,8 +37,8 @@ type PostEndpointReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *PostEndpointReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-	case 200:
-		result := NewPostEndpointOK()
+	case 201:
+		result := NewPostEndpointCreated()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -60,63 +60,63 @@ func (o *PostEndpointReader) ReadResponse(response runtime.ClientResponse, consu
 	}
 }
 
-// NewPostEndpointOK creates a PostEndpointOK with default headers values
-func NewPostEndpointOK() *PostEndpointOK {
-	return &PostEndpointOK{}
+// NewPostEndpointCreated creates a PostEndpointCreated with default headers values
+func NewPostEndpointCreated() *PostEndpointCreated {
+	return &PostEndpointCreated{}
 }
 
 /*
-PostEndpointOK describes a response with status code 200, with default header values.
+PostEndpointCreated describes a response with status code 201, with default header values.
 
 Endpoint
 */
-type PostEndpointOK struct {
+type PostEndpointCreated struct {
 	Payload *models.Endpoint
 }
 
-// IsSuccess returns true when this post endpoint o k response has a 2xx status code
-func (o *PostEndpointOK) IsSuccess() bool {
+// IsSuccess returns true when this post endpoint created response has a 2xx status code
+func (o *PostEndpointCreated) IsSuccess() bool {
 	return true
 }
 
-// IsRedirect returns true when this post endpoint o k response has a 3xx status code
-func (o *PostEndpointOK) IsRedirect() bool {
+// IsRedirect returns true when this post endpoint created response has a 3xx status code
+func (o *PostEndpointCreated) IsRedirect() bool {
 	return false
 }
 
-// IsClientError returns true when this post endpoint o k response has a 4xx status code
-func (o *PostEndpointOK) IsClientError() bool {
+// IsClientError returns true when this post endpoint created response has a 4xx status code
+func (o *PostEndpointCreated) IsClientError() bool {
 	return false
 }
 
-// IsServerError returns true when this post endpoint o k response has a 5xx status code
-func (o *PostEndpointOK) IsServerError() bool {
+// IsServerError returns true when this post endpoint created response has a 5xx status code
+func (o *PostEndpointCreated) IsServerError() bool {
 	return false
 }
 
-// IsCode returns true when this post endpoint o k response a status code equal to that given
-func (o *PostEndpointOK) IsCode(code int) bool {
-	return code == 200
+// IsCode returns true when this post endpoint created response a status code equal to that given
+func (o *PostEndpointCreated) IsCode(code int) bool {
+	return code == 201
 }
 
-// Code gets the status code for the post endpoint o k response
-func (o *PostEndpointOK) Code() int {
-	return 200
+// Code gets the status code for the post endpoint created response
+func (o *PostEndpointCreated) Code() int {
+	return 201
 }
 
-func (o *PostEndpointOK) Error() string {
-	return fmt.Sprintf("[POST /endpoint][%d] postEndpointOK  %+v", 200, o.Payload)
+func (o *PostEndpointCreated) Error() string {
+	return fmt.Sprintf("[POST /endpoint][%d] postEndpointCreated  %+v", 201, o.Payload)
 }
 
-func (o *PostEndpointOK) String() string {
-	return fmt.Sprintf("[POST /endpoint][%d] postEndpointOK  %+v", 200, o.Payload)
+func (o *PostEndpointCreated) String() string {
+	return fmt.Sprintf("[POST /endpoint][%d] postEndpointCreated  %+v", 201, o.Payload)
 }
 
-func (o *PostEndpointOK) GetPayload() *models.Endpoint {
+func (o *PostEndpointCreated) GetPayload() *models.Endpoint {
 	return o.Payload
 }
 
-func (o *PostEndpointOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *PostEndpointCreated) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Endpoint)
 

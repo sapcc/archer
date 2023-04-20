@@ -27,15 +27,15 @@ import (
 	"github.com/sapcc/archer/models"
 )
 
-// PostServiceOKCode is the HTTP code returned for type PostServiceOK
-const PostServiceOKCode int = 200
+// PostServiceCreatedCode is the HTTP code returned for type PostServiceCreated
+const PostServiceCreatedCode int = 201
 
 /*
-PostServiceOK Service
+PostServiceCreated Service
 
-swagger:response postServiceOK
+swagger:response postServiceCreated
 */
-type PostServiceOK struct {
+type PostServiceCreated struct {
 
 	/*
 	  In: Body
@@ -43,27 +43,27 @@ type PostServiceOK struct {
 	Payload *models.Service `json:"body,omitempty"`
 }
 
-// NewPostServiceOK creates PostServiceOK with default headers values
-func NewPostServiceOK() *PostServiceOK {
+// NewPostServiceCreated creates PostServiceCreated with default headers values
+func NewPostServiceCreated() *PostServiceCreated {
 
-	return &PostServiceOK{}
+	return &PostServiceCreated{}
 }
 
-// WithPayload adds the payload to the post service o k response
-func (o *PostServiceOK) WithPayload(payload *models.Service) *PostServiceOK {
+// WithPayload adds the payload to the post service created response
+func (o *PostServiceCreated) WithPayload(payload *models.Service) *PostServiceCreated {
 	o.Payload = payload
 	return o
 }
 
-// SetPayload sets the payload to the post service o k response
-func (o *PostServiceOK) SetPayload(payload *models.Service) {
+// SetPayload sets the payload to the post service created response
+func (o *PostServiceCreated) SetPayload(payload *models.Service) {
 	o.Payload = payload
 }
 
 // WriteResponse to the client
-func (o *PostServiceOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+func (o *PostServiceCreated) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.WriteHeader(200)
+	rw.WriteHeader(201)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

@@ -52,7 +52,7 @@ type ClientService interface {
 
 	GetServiceServiceIDEndpoints(params *GetServiceServiceIDEndpointsParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetServiceServiceIDEndpointsOK, error)
 
-	PostService(params *PostServiceParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostServiceOK, error)
+	PostService(params *PostServiceParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostServiceCreated, error)
 
 	PutServiceServiceID(params *PutServiceServiceIDParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PutServiceServiceIDOK, error)
 
@@ -231,7 +231,7 @@ func (a *Client) GetServiceServiceIDEndpoints(params *GetServiceServiceIDEndpoin
 /*
 PostService adds a new service to the catalog
 */
-func (a *Client) PostService(params *PostServiceParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostServiceOK, error) {
+func (a *Client) PostService(params *PostServiceParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostServiceCreated, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewPostServiceParams()
@@ -257,7 +257,7 @@ func (a *Client) PostService(params *PostServiceParams, authInfo runtime.ClientA
 	if err != nil {
 		return nil, err
 	}
-	success, ok := result.(*PostServiceOK)
+	success, ok := result.(*PostServiceCreated)
 	if ok {
 		return success, nil
 	}

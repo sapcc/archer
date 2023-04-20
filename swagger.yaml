@@ -221,7 +221,7 @@ paths:
           schema:
             $ref: "#/definitions/Service"
       responses:
-        200:
+        201:
           description: Service
           schema:
             $ref: "#/definitions/Service"
@@ -477,7 +477,7 @@ paths:
           schema:
             $ref: "#/definitions/Endpoint"
       responses:
-        200:
+        201:
           description: Endpoint
           schema:
             $ref: "#/definitions/Endpoint"
@@ -567,7 +567,7 @@ paths:
           schema:
             $ref: "#/definitions/RBACPolicy"
       responses:
-        200:
+        201:
           description: RBAC policy
           schema:
             $ref: '#/definitions/RBACPolicy'
@@ -849,7 +849,7 @@ definitions:
       enabled:
         type: boolean
         description: Enable/disable this service. Existing endpoints are not touched by this.
-        x-nullable: true
+        default: true
       name:
         type: string
         description: Name of the service.
@@ -948,7 +948,7 @@ definitions:
       enabled:
         type: boolean
         description: Enable/disable this service. Existing endpoints are not touched by this.
-        x-nullable: true
+        default: true
       name:
         type: string
         description: Name of the service.
@@ -1093,6 +1093,7 @@ definitions:
       | PENDING_APPROVAL   | Endpoint is waiting for approval      |
       | PENDING_CREATE     | Endpoint is being set up              |
       | PENDING_REJECTED   | Endpoint is being rejected            |
+      | PENDING_DELETE     | Endpoint is being deleted             |
       | REJECTED           | Endpoint was rejected                 |
       | FAILED             | Endpoint setup failed                 |
     enum:
@@ -1100,6 +1101,7 @@ definitions:
       - PENDING_APPROVAL
       - PENDING_CREATE
       - PENDING_REJECTED
+      - PENDING_DELETE
       - REJECTED
       - FAILED
     readOnly: true
@@ -1157,17 +1159,20 @@ definitions:
         $ref: "#/definitions/Project"
   Quota:
     type: object
+    required:
+      - service
+      - endpoint
     properties:
       service:
         type: integer
         description: The configured service quota limit. A setting of null means it is using the deployment default quota. A setting of -1 means unlimited.
         example: 5
-        x-nullable: true
+        x-nullable: false
       endpoint:
         type: integer
         description: The configured endpoint quota limit. A setting of null means it is using the deployment default quota. A setting of -1 means unlimited.
         example: 5
-        x-nullable: true
+        x-nullable: false
   Project:
     type: string
     description: The ID of the project owning this resource.

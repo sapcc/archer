@@ -15,12 +15,10 @@
 package controller
 
 import (
-	"errors"
-
+	"fmt"
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/jackc/pgx/v5"
-
 	"github.com/sapcc/archer/internal/auth"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
@@ -59,8 +57,8 @@ func (c *Controller) GetQuotasDefaultsHandler(params quota.GetQuotasDefaultsPara
 
 	return quota.NewGetQuotasDefaultsOK().WithPayload(&quota.GetQuotasDefaultsOKBody{
 		Quota: &models.Quota{
-			Endpoint: &config.Global.Quota.DefaultQuotaEndpoint,
-			Service:  &config.Global.Quota.DefaultQuotaService,
+			Endpoint: config.Global.Quota.DefaultQuotaEndpoint,
+			Service:  config.Global.Quota.DefaultQuotaService,
 		},
 	})
 }
@@ -73,8 +71,8 @@ func (c *Controller) GetQuotasProjectIDHandler(params quota.GetQuotasProjectIDPa
 	q := db.Select("quota.service", "quota.endpoint", "COUNT(DISTINCT s.id)", "COUNT(DISTINCT e.id)").
 		From("quota").
 		Where("quota.project_id = ?", params.ProjectID).
-		RawJoin("INNER JOIN service s ON quota.project_id = s.project_id").
-		RawJoin("INNER JOIN endpoint e ON quota.project_id = e.project_id").
+		RawJoin("LEFT JOIN service s ON quota.project_id = s.project_id").
+		RawJoin("LEFT JOIN endpoint e ON quota.project_id = e.project_id").
 		Group("quota.project_id")
 
 	var quotaAvail models.Quota
@@ -82,6 +80,12 @@ func (c *Controller) GetQuotasProjectIDHandler(params quota.GetQuotasProjectIDPa
 	sql, args := q.ToSQL()
 	if err := c.pool.QueryRow(params.HTTPRequest.Context(), sql, args...).
 		Scan(&quotaAvail.Service, &quotaAvail.Endpoint, &quotaUsage.InUseService, &quotaUsage.InUseEndpoint); err != nil {
+		if err == pgx.ErrNoRows {
+			return quota.NewGetQuotasProjectIDNotFound().WithPayload(&models.Error{
+				Code:    404,
+				Message: fmt.Sprint("Could not find quotas for project ", params.ProjectID),
+			})
+		}
 		panic(err)
 	}
 
@@ -98,22 +102,18 @@ func (c *Controller) PutQuotasProjectIDHandler(params quota.PutQuotasProjectIDPa
 		return quota.NewPutQuotasProjectIDForbidden()
 	}
 
-	q := db.Update("quota").
-		Where("project_id", params.ProjectID).Returning("service", "endpoint")
+	sql := `
+		INSERT INTO quota
+		(service, endpoint, project_id) 
+		VALUES ($1, $2, $3)
+		ON CONFLICT (project_id) DO UPDATE SET 
+			service = $1, endpoint = $2
+		RETURNING service, endpoint;
+	`
 
-	if params.Quota.Quota.Service != nil {
-		q.Set("service", db.Coalesce{V: *params.Quota.Quota.Service})
-	}
-	if params.Quota.Quota.Endpoint != nil {
-		q.Set("endpoint", db.Coalesce{V: *params.Quota.Quota.Endpoint})
-	}
-
-	sql, args := q.ToSQL()
 	var quotaResponse models.Quota
-	if err := pgxscan.Get(params.HTTPRequest.Context(), c.pool, &quotaResponse, sql, args); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return quota.NewPutQuotasProjectIDNotFound()
-		}
+	if err := pgxscan.Get(params.HTTPRequest.Context(), c.pool, &quotaResponse, sql,
+		params.Quota.Quota.Service, params.Quota.Quota.Endpoint, params.ProjectID); err != nil {
 		panic(err)
 	}
 

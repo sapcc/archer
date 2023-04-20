@@ -15,6 +15,9 @@
 package main
 
 import (
+	"context"
+	"github.com/jackc/pgx/v5"
+	"github.com/z0ne-dev/mgx/v2"
 	"os"
 
 	"github.com/jessevdk/go-flags"
@@ -46,6 +49,20 @@ func main() {
 		}
 	}
 
-	logg.ShowDebug = config.Global.Default.Debug
-	migrations.Migrate()
+	logg.ShowDebug = config.IsDebug()
+	conn, err := pgx.Connect(context.Background(), config.Global.Database.Connection)
+	if err != nil {
+		logg.Fatal(err.Error())
+	}
+	migrator, err := mgx.New(migrations.Migrations)
+	if err != nil {
+		logg.Fatal(err.Error())
+	}
+
+	if err := migrator.Migrate(context.Background(), conn); err != nil {
+		logg.Fatal(err.Error())
+	}
+	if err := conn.Close(context.Background()); err != nil {
+		logg.Fatal(err.Error())
+	}
 }
