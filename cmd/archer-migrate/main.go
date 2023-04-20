@@ -16,12 +16,12 @@ package main
 
 import (
 	"context"
-	"github.com/jackc/pgx/v5"
-	"github.com/z0ne-dev/mgx/v2"
 	"os"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jessevdk/go-flags"
 	"github.com/sapcc/go-bits/logg"
+	"github.com/z0ne-dev/mgx/v2"
 
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db/migrations"
