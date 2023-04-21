@@ -27,8 +27,6 @@ import (
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/strfmt"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
-
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/models"
 )
@@ -92,7 +90,7 @@ func stripDesc(sortDirKey string) (string, bool) {
 }
 
 // Query pagination helper that also includes policy query filter
-func (p *Pagination) Query(db *pgxpool.Pool, query string, filter map[string]any) (pgx.Rows, error) {
+func (p *Pagination) Query(db pgxscan.Querier, query string, filter map[string]any) (pgx.Rows, error) {
 	var sortDirKeys []string
 	var whereClauses []string
 	var orderBy string
@@ -216,11 +214,11 @@ func (p *Pagination) Query(db *pgxpool.Pool, query string, filter map[string]any
 	query += orderBy
 
 	// maximum limit
-	var limit = config.Global.ApiSettings.PaginationMaxLimit
-	if p.Limit != nil && *p.Limit < config.Global.ApiSettings.PaginationMaxLimit {
-		limit = *p.Limit
+	var maxLimit = config.Global.ApiSettings.PaginationMaxLimit
+	if p.Limit == nil || (p.Limit != nil && *p.Limit > maxLimit) {
+		p.Limit = &maxLimit
 	}
-	query += fmt.Sprint(" LIMIT ", limit)
+	query += fmt.Sprint(" LIMIT ", *p.Limit)
 
 	return db.Query(context.Background(), query, pgx.NamedArgs(filter))
 }
