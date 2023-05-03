@@ -200,14 +200,66 @@ func init() {
         },
         "x-policy": "endpoint:read"
       },
+      "put": {
+        "tags": [
+          "Endpoint"
+        ],
+        "summary": "Update an existing endpoint",
+        "parameters": [
+          {
+            "description": "Endpoint object that needs to be updated",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "tags"
+              ],
+              "properties": {
+                "tags": {
+                  "description": "The list of tags on the resource.",
+                  "type": "array",
+                  "default": null,
+                  "items": {
+                    "type": "string",
+                    "maxLength": 64
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Endpoint",
+            "schema": {
+              "$ref": "#/definitions/Endpoint"
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        },
+        "x-policy": "endpoint:update"
+      },
       "delete": {
         "tags": [
           "Endpoint"
         ],
         "summary": "Remove an existing endpoint",
         "responses": {
-          "204": {
-            "description": "Resource successfully deleted."
+          "202": {
+            "description": "Delete request successfully accepted."
           },
           "403": {
             "description": "Forbidden",
@@ -598,7 +650,7 @@ func init() {
         "summary": "Delete RBAC policy",
         "responses": {
           "204": {
-            "description": "Resource successfully deleted."
+            "description": "RBAC policy successfully deleted."
           },
           "403": {
             "description": "Forbidden"
@@ -792,8 +844,8 @@ func init() {
         ],
         "summary": "Remove service from catalog",
         "responses": {
-          "204": {
-            "description": "Resource successfully deleted."
+          "202": {
+            "description": "Delete request successfully accepted."
           },
           "403": {
             "description": "Forbidden"
@@ -1349,7 +1401,7 @@ func init() {
           "$ref": "#/definitions/Project"
         },
         "proxy_protocol": {
-          "description": "Proxy protocol v2 enabled for this endpoint.",
+          "description": "Proxy protocol v2 enabled for this service.",
           "type": "boolean",
           "default": true
         },
@@ -1436,7 +1488,7 @@ func init() {
           "example": 80
         },
         "proxy_protocol": {
-          "description": "Proxy protocol v2 enabled for this endpoint.",
+          "description": "Proxy protocol v2 enabled for this service.",
           "type": "boolean",
           "default": true
         },
@@ -1821,14 +1873,66 @@ func init() {
         },
         "x-policy": "endpoint:read"
       },
+      "put": {
+        "tags": [
+          "Endpoint"
+        ],
+        "summary": "Update an existing endpoint",
+        "parameters": [
+          {
+            "description": "Endpoint object that needs to be updated",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "tags"
+              ],
+              "properties": {
+                "tags": {
+                  "description": "The list of tags on the resource.",
+                  "type": "array",
+                  "default": [],
+                  "items": {
+                    "type": "string",
+                    "maxLength": 64
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Endpoint",
+            "schema": {
+              "$ref": "#/definitions/Endpoint"
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        },
+        "x-policy": "endpoint:update"
+      },
       "delete": {
         "tags": [
           "Endpoint"
         ],
         "summary": "Remove an existing endpoint",
         "responses": {
-          "204": {
-            "description": "Resource successfully deleted."
+          "202": {
+            "description": "Delete request successfully accepted."
           },
           "403": {
             "description": "Forbidden",
@@ -2217,7 +2321,7 @@ func init() {
         "summary": "Delete RBAC policy",
         "responses": {
           "204": {
-            "description": "Resource successfully deleted."
+            "description": "RBAC policy successfully deleted."
           },
           "403": {
             "description": "Forbidden"
@@ -2448,8 +2552,8 @@ func init() {
         ],
         "summary": "Remove service from catalog",
         "responses": {
-          "204": {
-            "description": "Resource successfully deleted."
+          "202": {
+            "description": "Delete request successfully accepted."
           },
           "403": {
             "description": "Forbidden"
@@ -3064,7 +3168,7 @@ func init() {
           "$ref": "#/definitions/Project"
         },
         "proxy_protocol": {
-          "description": "Proxy protocol v2 enabled for this endpoint.",
+          "description": "Proxy protocol v2 enabled for this service.",
           "type": "boolean",
           "default": true
         },
@@ -3151,7 +3255,7 @@ func init() {
           "example": 80
         },
         "proxy_protocol": {
-          "description": "Proxy protocol v2 enabled for this endpoint.",
+          "description": "Proxy protocol v2 enabled for this service.",
           "type": "boolean",
           "default": true
         },

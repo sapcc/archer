@@ -27,6 +27,12 @@ import (
 	"github.com/sapcc/archer/internal/config"
 )
 
+const iRuleTemplate = `
+when CLIENT_ACCEPTED {
+    set proxyheader "PROXY TCP[IP::version] [getfield [IP::remote_addr] "%" 1] [getfield [IP::local_addr] "%" 1] [TCP::remote_port] [TCP::local_port]\r\n"
+}
+`
+
 func GetBigIPSession() (*bigip.BigIP, error) {
 	parsedURL, err := url.Parse(config.Global.Agent.Host)
 	if err != nil {
@@ -132,7 +138,7 @@ func GetServiceTenants(endpointServices []*ExtendedService) Tenant {
 			Class: "Pool",
 			Label: GetServiceName(service.ID),
 			Members: []PoolMember{{
-				Enable:          service.Enabled,
+				Enable:          *service.Enabled,
 				RouteDomain:     service.SegmentId,
 				ServicePort:     service.Port,
 				ServerAddresses: serverAddresses,
@@ -166,6 +172,7 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 		}
 
 		endpointName := fmt.Sprintf("endpoint-%s", endpoint.ID)
+		iRuleName := fmt.Sprintf("irule-%s", endpoint.ID)
 		pool := fmt.Sprintf("/Common/Shared/%s", GetServicePoolName(endpoint.ServiceID))
 		snat := fmt.Sprintf("/Common/Shared/%s", GetServiceSnatPoolName(endpoint.ServiceID))
 		virtualAddresses := []string{fmt.Sprintf("0.0.0.0%%%d/0", endpoint.SegmentId)}
@@ -175,9 +182,22 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 			)
 		}
 
+		iRules := make([]Pointer, 0)
+		if endpoint.ProxyProtocol {
+			services[iRuleName] = IRule{
+				Label: fmt.Sprint("irule-", endpointName),
+				Class: "iRule",
+				IRule: iRuleTemplate,
+			}
+			iRules = append(iRules, Pointer{
+				Use: iRuleName,
+			})
+		}
+
 		services[endpointName] = ServiceL4{
 			Label:               endpointName,
 			Class:               "Service_L4",
+			IRules:              iRules,
 			Mirroring:           "L4",
 			PersistanceMethods:  []string{},
 			Pool:                Pointer{BigIP: pool},
@@ -225,7 +245,7 @@ func EnsureRouteDomain(big *bigip.BigIP, segmentId int) error {
 	// Create route domain
 	if err := big.CreateRouteDomain(
 		fmt.Sprintf("vlan-%d", segmentId), segmentId,
-		true, "/Common/vlan-%d"); err != nil {
+		true, fmt.Sprintf("/Common/vlan-%d", segmentId)); err != nil {
 		return err
 	}
 

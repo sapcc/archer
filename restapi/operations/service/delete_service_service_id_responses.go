@@ -27,29 +27,29 @@ import (
 	"github.com/sapcc/archer/models"
 )
 
-// DeleteServiceServiceIDNoContentCode is the HTTP code returned for type DeleteServiceServiceIDNoContent
-const DeleteServiceServiceIDNoContentCode int = 204
+// DeleteServiceServiceIDAcceptedCode is the HTTP code returned for type DeleteServiceServiceIDAccepted
+const DeleteServiceServiceIDAcceptedCode int = 202
 
 /*
-DeleteServiceServiceIDNoContent Resource successfully deleted.
+DeleteServiceServiceIDAccepted Delete request successfully accepted.
 
-swagger:response deleteServiceServiceIdNoContent
+swagger:response deleteServiceServiceIdAccepted
 */
-type DeleteServiceServiceIDNoContent struct {
+type DeleteServiceServiceIDAccepted struct {
 }
 
-// NewDeleteServiceServiceIDNoContent creates DeleteServiceServiceIDNoContent with default headers values
-func NewDeleteServiceServiceIDNoContent() *DeleteServiceServiceIDNoContent {
+// NewDeleteServiceServiceIDAccepted creates DeleteServiceServiceIDAccepted with default headers values
+func NewDeleteServiceServiceIDAccepted() *DeleteServiceServiceIDAccepted {
 
-	return &DeleteServiceServiceIDNoContent{}
+	return &DeleteServiceServiceIDAccepted{}
 }
 
 // WriteResponse to the client
-func (o *DeleteServiceServiceIDNoContent) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+func (o *DeleteServiceServiceIDAccepted) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
 
-	rw.WriteHeader(204)
+	rw.WriteHeader(202)
 }
 
 // DeleteServiceServiceIDForbiddenCode is the HTTP code returned for type DeleteServiceServiceIDForbidden

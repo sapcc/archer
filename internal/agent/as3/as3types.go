@@ -130,18 +130,26 @@ type Pool struct {
 // Application Service_L4
 
 type ServiceL4 struct {
-	Label               string   `json:"label,omitempty"`
-	Remark              string   `json:"remark,omitempty"`
-	Class               string   `json:"class"`
-	AllowVlans          []string `json:"allowVlans"`
-	Mirroring           string   `json:"mirroring"`
-	PersistanceMethods  []string `json:"persistenceMethods"`
-	Pool                Pointer  `json:"pool"`
-	ProfileL4           Pointer  `json:"profileL4"`
-	Snat                Pointer  `json:"snat"`
-	VirtualAddresses    []string `json:"virtualAddresses"`
-	TranslateServerPort bool     `json:"translateServerPort"`
-	VirtualPort         int32    `json:"virtualPort"`
+	Label               string    `json:"label,omitempty"`
+	Remark              string    `json:"remark,omitempty"`
+	Class               string    `json:"class"`
+	AllowVlans          []string  `json:"allowVlans"`
+	IRules              []Pointer `json:"iRules"`
+	Mirroring           string    `json:"mirroring"`
+	PersistanceMethods  []string  `json:"persistenceMethods"`
+	Pool                Pointer   `json:"pool"`
+	ProfileL4           Pointer   `json:"profileL4"`
+	Snat                Pointer   `json:"snat"`
+	VirtualAddresses    []string  `json:"virtualAddresses"`
+	TranslateServerPort bool      `json:"translateServerPort"`
+	VirtualPort         int32     `json:"virtualPort"`
+}
+
+type IRule struct {
+	Label  string `json:"label,omitempty"`
+	Remark string `json:"remark,omitempty"`
+	Class  string `json:"class"`
+	IRule  string `json:"iRule"`
 }
 
 // Generic Pointer

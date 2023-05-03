@@ -68,7 +68,7 @@ func NewDeleteRbacPoliciesRbacPolicyIDNoContent() *DeleteRbacPoliciesRbacPolicyI
 /*
 DeleteRbacPoliciesRbacPolicyIDNoContent describes a response with status code 204, with default header values.
 
-Resource successfully deleted.
+RBAC policy successfully deleted.
 */
 type DeleteRbacPoliciesRbacPolicyIDNoContent struct {
 }

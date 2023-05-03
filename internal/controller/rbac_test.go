@@ -15,6 +15,7 @@
 package controller
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/go-openapi/strfmt"
@@ -176,7 +177,13 @@ func (t *SuiteTest) TestRbacServiceCascadeDelete() {
 		HTTPRequest: &http.Request{},
 		ServiceID:   *serviceId,
 	}, nil)
-	assert.IsType(t.T(), &service.DeleteServiceServiceIDNoContent{}, res)
+	assert.IsType(t.T(), &service.DeleteServiceServiceIDAccepted{}, res)
+
+	// emulate real delete from backend
+	sql := `DELETE FROM service WHERE id = $1 and status = 'PENDING_DELETE'`
+	ct, err := t.c.pool.Exec(context.Background(), sql, serviceId)
+	assert.Nil(t.T(), err)
+	assert.NotZero(t.T(), ct.RowsAffected())
 
 	// expect deleted
 	res = t.c.GetRbacPoliciesRbacPolicyIDHandler(

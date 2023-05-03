@@ -16,9 +16,11 @@ package controller
 
 import (
 	"fmt"
+
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/jackc/pgx/v5"
+
 	"github.com/sapcc/archer/internal/auth"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
@@ -27,22 +29,22 @@ import (
 )
 
 func (c *Controller) GetQuotasHandler(params quota.GetQuotasParams, principal any) middleware.Responder {
-	if _, err := auth.AuthenticatePrincipal(params.HTTPRequest, principal); err != nil {
+	if _, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
 		return quota.NewGetQuotasForbidden()
 	}
 
 	q := db.Select("quota.*", "COUNT(DISTINCT s.id) AS in_use_service", "COUNT(DISTINCT e.id) AS in_use_endpoint").
 		From("quota").
-		RawJoin("INNER JOIN service s ON quota.project_id = s.project_id").
-		RawJoin("INNER JOIN endpoint e ON quota.project_id = e.project_id").
-		Group("quota.project_id")
+		InnerJoin("service s ON quota.project_id = s.project_id").
+		InnerJoin("endpoint e ON quota.project_id = e.project_id").
+		GroupBy("quota.project_id")
 
 	if params.ProjectID != nil {
 		q.Where("project_id = ?", params.ProjectID)
 	}
 
 	var quotas = make([]*quota.GetQuotasOKBodyQuotasItems0, 0)
-	sql, args := q.ToSQL()
+	sql, args := q.MustSql()
 	if err := pgxscan.Select(params.HTTPRequest.Context(), c.pool, &quotas, sql, args...); err != nil {
 		panic(err)
 	}
@@ -51,7 +53,7 @@ func (c *Controller) GetQuotasHandler(params quota.GetQuotasParams, principal an
 }
 
 func (c *Controller) GetQuotasDefaultsHandler(params quota.GetQuotasDefaultsParams, principal any) middleware.Responder {
-	if _, err := auth.AuthenticatePrincipal(params.HTTPRequest, principal); err != nil {
+	if _, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
 		return quota.NewGetQuotasDefaultsForbidden()
 	}
 
@@ -64,20 +66,20 @@ func (c *Controller) GetQuotasDefaultsHandler(params quota.GetQuotasDefaultsPara
 }
 
 func (c *Controller) GetQuotasProjectIDHandler(params quota.GetQuotasProjectIDParams, principal any) middleware.Responder {
-	if _, err := auth.AuthenticatePrincipal(params.HTTPRequest, principal); err != nil {
+	if _, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
 		return quota.NewGetQuotasForbidden()
 	}
 
 	q := db.Select("quota.service", "quota.endpoint", "COUNT(DISTINCT s.id)", "COUNT(DISTINCT e.id)").
 		From("quota").
 		Where("quota.project_id = ?", params.ProjectID).
-		RawJoin("LEFT JOIN service s ON quota.project_id = s.project_id").
-		RawJoin("LEFT JOIN endpoint e ON quota.project_id = e.project_id").
-		Group("quota.project_id")
+		LeftJoin("service s ON quota.project_id = s.project_id").
+		LeftJoin("endpoint e ON quota.project_id = e.project_id").
+		GroupBy("quota.project_id")
 
 	var quotaAvail models.Quota
 	var quotaUsage models.QuotaUsage
-	sql, args := q.ToSQL()
+	sql, args := q.MustSql()
 	if err := c.pool.QueryRow(params.HTTPRequest.Context(), sql, args...).
 		Scan(&quotaAvail.Service, &quotaAvail.Endpoint, &quotaUsage.InUseService, &quotaUsage.InUseEndpoint); err != nil {
 		if err == pgx.ErrNoRows {
@@ -98,22 +100,20 @@ func (c *Controller) GetQuotasProjectIDHandler(params quota.GetQuotasProjectIDPa
 }
 
 func (c *Controller) PutQuotasProjectIDHandler(params quota.PutQuotasProjectIDParams, principal any) middleware.Responder {
-	if _, err := auth.AuthenticatePrincipal(params.HTTPRequest, principal); err != nil {
+	if _, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
 		return quota.NewPutQuotasProjectIDForbidden()
 	}
 
-	sql := `
-		INSERT INTO quota
-		(service, endpoint, project_id) 
-		VALUES ($1, $2, $3)
-		ON CONFLICT (project_id) DO UPDATE SET 
-			service = $1, endpoint = $2
-		RETURNING service, endpoint;
-	`
+	sql, args := db.Insert("quota").
+		Columns("service", "endpoint", "project_id").
+		Values(params.Quota.Quota.Service, params.Quota.Quota.Endpoint, params.ProjectID).
+		Suffix("ON CONFLICT (project_id) DO UPDATE SET service = ?, endpoint = ?",
+			params.Quota.Quota.Service, params.Quota.Quota.Endpoint).
+		Suffix("RETURNING service, endpoint").
+		MustSql()
 
 	var quotaResponse models.Quota
-	if err := pgxscan.Get(params.HTTPRequest.Context(), c.pool, &quotaResponse, sql,
-		params.Quota.Quota.Service, params.Quota.Quota.Endpoint, params.ProjectID); err != nil {
+	if err := pgxscan.Get(params.HTTPRequest.Context(), c.pool, &quotaResponse, sql, args...); err != nil {
 		panic(err)
 	}
 
@@ -121,11 +121,11 @@ func (c *Controller) PutQuotasProjectIDHandler(params quota.PutQuotasProjectIDPa
 }
 
 func (c *Controller) DeleteQuotasProjectIDHandler(params quota.DeleteQuotasProjectIDParams, principal any) middleware.Responder {
-	if _, err := auth.AuthenticatePrincipal(params.HTTPRequest, principal); err != nil {
+	if _, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
 		return quota.NewDeleteQuotasProjectIDForbidden()
 	}
 
-	sql, args := db.Delete("quota").Where("project_id = ?", params.ProjectID).ToSQL()
+	sql, args := db.Delete("quota").Where("project_id = ?", params.ProjectID).MustSql()
 	if ct, err := c.pool.Exec(params.HTTPRequest.Context(), sql, args...); err != nil {
 		panic(err)
 	} else if ct.RowsAffected() == 0 {

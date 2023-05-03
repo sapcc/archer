@@ -17,8 +17,10 @@
 package config
 
 import (
+	"github.com/sapcc/go-bits/logg"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 )
 
@@ -106,6 +108,16 @@ type AuthInfo struct {
 
 func IsDebug() bool {
 	return Global.Default.Debug
+}
+
+func ResolveHost() {
+	if Global.Default.Host == "" {
+		if hostname, err := os.Hostname(); err != nil {
+			logg.Fatal(err.Error())
+		} else {
+			Global.Default.Host = hostname
+		}
+	}
 }
 
 func GetApiBaseUrl(r *http.Request) string {

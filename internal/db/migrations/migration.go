@@ -103,9 +103,6 @@ var Migrations = mgx.Migrations(
 				(
 					id                UUID           DEFAULT gen_random_uuid() PRIMARY KEY,
 					service_id        UUID           NOT NULL,
-					"target.port"     UUID           NULL,
-					"target.network"  UUID           NULL,
-					"target.subnet"   UUID           NULL,
 					status            VARCHAR(18)    NOT NULL DEFAULT 'PENDING_CREATE',
 					created_at        TIMESTAMP      NOT NULL DEFAULT now(),
 					updated_at        TIMESTAMP      NOT NULL DEFAULT now(),
@@ -113,6 +110,21 @@ var Migrations = mgx.Migrations(
 					tags              VARCHAR(64)[]  NOT NULL DEFAULT '{}',
 					CONSTRAINT fk_service FOREIGN KEY(service_id) REFERENCES service(id),
 					CONSTRAINT fk_status FOREIGN KEY (status) REFERENCES endpoint_status(name)
+				);`,
+		); err != nil {
+			return err
+		}
+
+		if _, err := commands.Exec(ctx, `
+				CREATE TABLE endpoint_port
+				(
+				    endpoint_id UUID NOT NULL PRIMARY KEY,
+					port_id	    UUID NOT NULL,
+					subnet      UUID NOT NULL,
+					network     UUID NOT NULL,
+					ip_address  INET NOT NULL,
+					UNIQUE(endpoint_id),
+					CONSTRAINT fk_port FOREIGN KEY(endpoint_id) REFERENCES endpoint(id) ON DELETE CASCADE
 				);`,
 		); err != nil {
 			return err

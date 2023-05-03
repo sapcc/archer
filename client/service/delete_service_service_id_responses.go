@@ -37,8 +37,8 @@ type DeleteServiceServiceIDReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *DeleteServiceServiceIDReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-	case 204:
-		result := NewDeleteServiceServiceIDNoContent()
+	case 202:
+		result := NewDeleteServiceServiceIDAccepted()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -66,58 +66,58 @@ func (o *DeleteServiceServiceIDReader) ReadResponse(response runtime.ClientRespo
 	}
 }
 
-// NewDeleteServiceServiceIDNoContent creates a DeleteServiceServiceIDNoContent with default headers values
-func NewDeleteServiceServiceIDNoContent() *DeleteServiceServiceIDNoContent {
-	return &DeleteServiceServiceIDNoContent{}
+// NewDeleteServiceServiceIDAccepted creates a DeleteServiceServiceIDAccepted with default headers values
+func NewDeleteServiceServiceIDAccepted() *DeleteServiceServiceIDAccepted {
+	return &DeleteServiceServiceIDAccepted{}
 }
 
 /*
-DeleteServiceServiceIDNoContent describes a response with status code 204, with default header values.
+DeleteServiceServiceIDAccepted describes a response with status code 202, with default header values.
 
-Resource successfully deleted.
+Delete request successfully accepted.
 */
-type DeleteServiceServiceIDNoContent struct {
+type DeleteServiceServiceIDAccepted struct {
 }
 
-// IsSuccess returns true when this delete service service Id no content response has a 2xx status code
-func (o *DeleteServiceServiceIDNoContent) IsSuccess() bool {
+// IsSuccess returns true when this delete service service Id accepted response has a 2xx status code
+func (o *DeleteServiceServiceIDAccepted) IsSuccess() bool {
 	return true
 }
 
-// IsRedirect returns true when this delete service service Id no content response has a 3xx status code
-func (o *DeleteServiceServiceIDNoContent) IsRedirect() bool {
+// IsRedirect returns true when this delete service service Id accepted response has a 3xx status code
+func (o *DeleteServiceServiceIDAccepted) IsRedirect() bool {
 	return false
 }
 
-// IsClientError returns true when this delete service service Id no content response has a 4xx status code
-func (o *DeleteServiceServiceIDNoContent) IsClientError() bool {
+// IsClientError returns true when this delete service service Id accepted response has a 4xx status code
+func (o *DeleteServiceServiceIDAccepted) IsClientError() bool {
 	return false
 }
 
-// IsServerError returns true when this delete service service Id no content response has a 5xx status code
-func (o *DeleteServiceServiceIDNoContent) IsServerError() bool {
+// IsServerError returns true when this delete service service Id accepted response has a 5xx status code
+func (o *DeleteServiceServiceIDAccepted) IsServerError() bool {
 	return false
 }
 
-// IsCode returns true when this delete service service Id no content response a status code equal to that given
-func (o *DeleteServiceServiceIDNoContent) IsCode(code int) bool {
-	return code == 204
+// IsCode returns true when this delete service service Id accepted response a status code equal to that given
+func (o *DeleteServiceServiceIDAccepted) IsCode(code int) bool {
+	return code == 202
 }
 
-// Code gets the status code for the delete service service Id no content response
-func (o *DeleteServiceServiceIDNoContent) Code() int {
-	return 204
+// Code gets the status code for the delete service service Id accepted response
+func (o *DeleteServiceServiceIDAccepted) Code() int {
+	return 202
 }
 
-func (o *DeleteServiceServiceIDNoContent) Error() string {
-	return fmt.Sprintf("[DELETE /service/{service_id}][%d] deleteServiceServiceIdNoContent ", 204)
+func (o *DeleteServiceServiceIDAccepted) Error() string {
+	return fmt.Sprintf("[DELETE /service/{service_id}][%d] deleteServiceServiceIdAccepted ", 202)
 }
 
-func (o *DeleteServiceServiceIDNoContent) String() string {
-	return fmt.Sprintf("[DELETE /service/{service_id}][%d] deleteServiceServiceIdNoContent ", 204)
+func (o *DeleteServiceServiceIDAccepted) String() string {
+	return fmt.Sprintf("[DELETE /service/{service_id}][%d] deleteServiceServiceIdAccepted ", 202)
 }
 
-func (o *DeleteServiceServiceIDNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *DeleteServiceServiceIDAccepted) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

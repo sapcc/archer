@@ -58,7 +58,7 @@ type ServiceUpdatable struct {
 	// Minimum: 1
 	Port int32 `json:"port,omitempty"`
 
-	// Proxy protocol v2 enabled for this endpoint.
+	// Proxy protocol v2 enabled for this service.
 	ProxyProtocol *bool `json:"proxy_protocol,omitempty"`
 
 	// Require explicit project approval for the service owner.

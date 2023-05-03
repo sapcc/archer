@@ -85,7 +85,7 @@ type Service struct {
 	// project id
 	ProjectID Project `json:"project_id"`
 
-	// Proxy protocol v2 enabled for this endpoint.
+	// Proxy protocol v2 enabled for this service.
 	ProxyProtocol *bool `json:"proxy_protocol,omitempty"`
 
 	// Require explicit project approval for the service owner.

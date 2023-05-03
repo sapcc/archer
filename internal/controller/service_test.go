@@ -93,13 +93,14 @@ func (t *SuiteTest) TestServiceDelete() {
 	res := t.c.DeleteServiceServiceIDHandler(
 		service.DeleteServiceServiceIDParams{HTTPRequest: &http.Request{}, ServiceID: serviceId},
 		nil)
-	assert.IsType(t.T(), &service.DeleteServiceServiceIDNoContent{}, res)
+	assert.IsType(t.T(), &service.DeleteServiceServiceIDAccepted{}, res)
 
 	// not found
 	res = t.c.GetServiceServiceIDHandler(
 		service.GetServiceServiceIDParams{HTTPRequest: &http.Request{}, ServiceID: serviceId},
 		nil)
-	assert.IsType(t.T(), &service.GetServiceServiceIDNotFound{}, res)
+	assert.IsType(t.T(), &service.GetServiceServiceIDOK{}, res)
+	assert.Equal(t.T(), models.ServiceStatusPENDINGDELETE, res.(*service.GetServiceServiceIDOK).Payload.Status)
 }
 
 func (t *SuiteTest) TestServiceDuplicatePayload() {

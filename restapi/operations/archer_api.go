@@ -116,6 +116,9 @@ func NewArcherAPI(spec *loads.Document) *ArcherAPI {
 		ServicePostServiceHandler: service.PostServiceHandlerFunc(func(params service.PostServiceParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation service.PostService has not yet been implemented")
 		}),
+		EndpointPutEndpointEndpointIDHandler: endpoint.PutEndpointEndpointIDHandlerFunc(func(params endpoint.PutEndpointEndpointIDParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation endpoint.PutEndpointEndpointID has not yet been implemented")
+		}),
 		QuotaPutQuotasProjectIDHandler: quota.PutQuotasProjectIDHandlerFunc(func(params quota.PutQuotasProjectIDParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation quota.PutQuotasProjectID has not yet been implemented")
 		}),
@@ -324,6 +327,8 @@ type ArcherAPI struct {
 	RbacPostRbacPoliciesHandler rbac.PostRbacPoliciesHandler
 	// ServicePostServiceHandler sets the operation handler for the post service operation
 	ServicePostServiceHandler service.PostServiceHandler
+	// EndpointPutEndpointEndpointIDHandler sets the operation handler for the put endpoint endpoint ID operation
+	EndpointPutEndpointEndpointIDHandler endpoint.PutEndpointEndpointIDHandler
 	// QuotaPutQuotasProjectIDHandler sets the operation handler for the put quotas project ID operation
 	QuotaPutQuotasProjectIDHandler quota.PutQuotasProjectIDHandler
 	// RbacPutRbacPoliciesRbacPolicyIDHandler sets the operation handler for the put rbac policies rbac policy ID operation
@@ -468,6 +473,9 @@ func (o *ArcherAPI) Validate() error {
 	}
 	if o.ServicePostServiceHandler == nil {
 		unregistered = append(unregistered, "service.PostServiceHandler")
+	}
+	if o.EndpointPutEndpointEndpointIDHandler == nil {
+		unregistered = append(unregistered, "endpoint.PutEndpointEndpointIDHandler")
 	}
 	if o.QuotaPutQuotasProjectIDHandler == nil {
 		unregistered = append(unregistered, "quota.PutQuotasProjectIDHandler")
@@ -653,6 +661,10 @@ func (o *ArcherAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/service"] = service.NewPostService(o.context, o.ServicePostServiceHandler)
+	if o.handlers["PUT"] == nil {
+		o.handlers["PUT"] = make(map[string]http.Handler)
+	}
+	o.handlers["PUT"]["/endpoint/{endpoint_id}"] = endpoint.NewPutEndpointEndpointID(o.context, o.EndpointPutEndpointEndpointIDHandler)
 	if o.handlers["PUT"] == nil {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}

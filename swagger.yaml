@@ -291,8 +291,8 @@ paths:
         Deletes this service. There **must** be no active associated endpoint for successfully deleting the service. 
         Active endpoints can be rejected by the service owner via the `/service/{service_id}/reject_endpoints` API.
       responses:
-        204:
-          description: Resource successfully deleted.
+        202:
+          description: Delete request successfully accepted.
         404:
           description: Not Found
           schema:
@@ -511,14 +511,49 @@ paths:
             $ref: "#/definitions/Error"
         404:
           description: Not Found
+    put:
+      tags:
+        - Endpoint
+      summary: Update an existing endpoint
+      x-policy: endpoint:update
+      parameters:
+        - in: body
+          name: body
+          description: Endpoint object that needs to be updated
+          required: true
+          schema:
+            type: object
+            required:
+              - tags
+            properties:
+              tags:
+                type: array
+                description: The list of tags on the resource.
+                default: []
+                items:
+                  type: string
+                  maxLength: 64
+      responses:
+        200:
+          description: Endpoint
+          schema:
+            $ref: "#/definitions/Endpoint"
+        403:
+          description: Forbidden
+          schema:
+            $ref: "#/definitions/Error"
+        404:
+          description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
     delete:
       tags:
         - Endpoint
       summary: Remove an existing endpoint
       x-policy: endpoint:delete
       responses:
-        204:
-          description: Resource successfully deleted.
+        202:
+          description: Delete request successfully accepted.
         403:
           description: Forbidden
           schema:
@@ -637,7 +672,7 @@ paths:
       x-policy: rbac-policy:delete
       responses:
         204:
-          description: Resource successfully deleted.
+          description: RBAC policy successfully deleted.
         403:
           description: Forbidden
         404:
@@ -928,7 +963,7 @@ definitions:
       proxy_protocol:
         type: boolean
         default: true
-        description: Proxy protocol v2 enabled for this endpoint.
+        description: Proxy protocol v2 enabled for this service.
       tags:
         type: array
         description: The list of tags on the resource.
@@ -992,7 +1027,7 @@ definitions:
       proxy_protocol:
         type: boolean
         default: true
-        description: Proxy protocol v2 enabled for this endpoint.
+        description: Proxy protocol v2 enabled for this service.
       tags:
         type: array
         description: The list of tags on the resource.

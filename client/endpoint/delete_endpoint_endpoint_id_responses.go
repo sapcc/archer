@@ -37,8 +37,8 @@ type DeleteEndpointEndpointIDReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *DeleteEndpointEndpointIDReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-	case 204:
-		result := NewDeleteEndpointEndpointIDNoContent()
+	case 202:
+		result := NewDeleteEndpointEndpointIDAccepted()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -60,58 +60,58 @@ func (o *DeleteEndpointEndpointIDReader) ReadResponse(response runtime.ClientRes
 	}
 }
 
-// NewDeleteEndpointEndpointIDNoContent creates a DeleteEndpointEndpointIDNoContent with default headers values
-func NewDeleteEndpointEndpointIDNoContent() *DeleteEndpointEndpointIDNoContent {
-	return &DeleteEndpointEndpointIDNoContent{}
+// NewDeleteEndpointEndpointIDAccepted creates a DeleteEndpointEndpointIDAccepted with default headers values
+func NewDeleteEndpointEndpointIDAccepted() *DeleteEndpointEndpointIDAccepted {
+	return &DeleteEndpointEndpointIDAccepted{}
 }
 
 /*
-DeleteEndpointEndpointIDNoContent describes a response with status code 204, with default header values.
+DeleteEndpointEndpointIDAccepted describes a response with status code 202, with default header values.
 
-Resource successfully deleted.
+Delete request successfully accepted.
 */
-type DeleteEndpointEndpointIDNoContent struct {
+type DeleteEndpointEndpointIDAccepted struct {
 }
 
-// IsSuccess returns true when this delete endpoint endpoint Id no content response has a 2xx status code
-func (o *DeleteEndpointEndpointIDNoContent) IsSuccess() bool {
+// IsSuccess returns true when this delete endpoint endpoint Id accepted response has a 2xx status code
+func (o *DeleteEndpointEndpointIDAccepted) IsSuccess() bool {
 	return true
 }
 
-// IsRedirect returns true when this delete endpoint endpoint Id no content response has a 3xx status code
-func (o *DeleteEndpointEndpointIDNoContent) IsRedirect() bool {
+// IsRedirect returns true when this delete endpoint endpoint Id accepted response has a 3xx status code
+func (o *DeleteEndpointEndpointIDAccepted) IsRedirect() bool {
 	return false
 }
 
-// IsClientError returns true when this delete endpoint endpoint Id no content response has a 4xx status code
-func (o *DeleteEndpointEndpointIDNoContent) IsClientError() bool {
+// IsClientError returns true when this delete endpoint endpoint Id accepted response has a 4xx status code
+func (o *DeleteEndpointEndpointIDAccepted) IsClientError() bool {
 	return false
 }
 
-// IsServerError returns true when this delete endpoint endpoint Id no content response has a 5xx status code
-func (o *DeleteEndpointEndpointIDNoContent) IsServerError() bool {
+// IsServerError returns true when this delete endpoint endpoint Id accepted response has a 5xx status code
+func (o *DeleteEndpointEndpointIDAccepted) IsServerError() bool {
 	return false
 }
 
-// IsCode returns true when this delete endpoint endpoint Id no content response a status code equal to that given
-func (o *DeleteEndpointEndpointIDNoContent) IsCode(code int) bool {
-	return code == 204
+// IsCode returns true when this delete endpoint endpoint Id accepted response a status code equal to that given
+func (o *DeleteEndpointEndpointIDAccepted) IsCode(code int) bool {
+	return code == 202
 }
 
-// Code gets the status code for the delete endpoint endpoint Id no content response
-func (o *DeleteEndpointEndpointIDNoContent) Code() int {
-	return 204
+// Code gets the status code for the delete endpoint endpoint Id accepted response
+func (o *DeleteEndpointEndpointIDAccepted) Code() int {
+	return 202
 }
 
-func (o *DeleteEndpointEndpointIDNoContent) Error() string {
-	return fmt.Sprintf("[DELETE /endpoint/{endpoint_id}][%d] deleteEndpointEndpointIdNoContent ", 204)
+func (o *DeleteEndpointEndpointIDAccepted) Error() string {
+	return fmt.Sprintf("[DELETE /endpoint/{endpoint_id}][%d] deleteEndpointEndpointIdAccepted ", 202)
 }
 
-func (o *DeleteEndpointEndpointIDNoContent) String() string {
-	return fmt.Sprintf("[DELETE /endpoint/{endpoint_id}][%d] deleteEndpointEndpointIdNoContent ", 204)
+func (o *DeleteEndpointEndpointIDAccepted) String() string {
+	return fmt.Sprintf("[DELETE /endpoint/{endpoint_id}][%d] deleteEndpointEndpointIdAccepted ", 202)
 }
 
-func (o *DeleteEndpointEndpointIDNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *DeleteEndpointEndpointIDAccepted) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }

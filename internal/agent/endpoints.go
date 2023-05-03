@@ -71,7 +71,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, networkId strfmt.UUID) erro
 	}(tx, ctx)
 
 	err = pgxscan.Select(ctx, tx, &endpoints,
-		`SELECT endpoint.*, service.port AS service_port_nr 
+		`SELECT endpoint.*, service.port AS service_port_nr, service.proxy_protocol
               FROM endpoint
                   INNER JOIN service ON service.id = service_id and service.status = 'AVAILABLE' 
               WHERE endpoint."target.network" = $1`,

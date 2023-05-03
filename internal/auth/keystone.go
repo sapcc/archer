@@ -24,7 +24,6 @@ import (
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/tokens"
-	"github.com/gophercloud/utils/openstack/clientconfig"
 	"github.com/sapcc/go-bits/gopherpolicy"
 	"github.com/sapcc/go-bits/logg"
 
@@ -39,14 +38,7 @@ type Keystone struct {
 	tv gopherpolicy.TokenValidator
 }
 
-func InitializeKeystone() (*Keystone, error) {
-	authInfo := clientconfig.AuthInfo(config.Global.ServiceAuth)
-	providerClient, err := clientconfig.AuthenticatedClient(&clientconfig.ClientOpts{
-		AuthInfo: &authInfo})
-	if err != nil {
-		return nil, err
-	}
-
+func InitializeKeystone(providerClient *gophercloud.ProviderClient) (*Keystone, error) {
 	keystoneV3, err := openstack.NewIdentityV3(providerClient, gophercloud.EndpointOpts{})
 	if err != nil {
 		return nil, err
@@ -78,17 +70,17 @@ func (k *Keystone) AuthenticateToken(tokenStr string) (any, error) {
 	return token, nil
 }
 
-func AuthenticatePrincipal(r *http.Request, principal any) (string, error) {
+func AuthenticatePrincipal(r *http.Request, principal any) (string, bool) {
 	if t, ok := principal.(*gopherpolicy.Token); ok {
 		rule := policy.RuleFromHTTPRequest(r)
 		if t.Check(rule + "-global") {
-			return "", nil
+			return "", true
 		} else if t.Check(rule) {
-			return t.ProjectScopeUUID(), nil
+			return t.ProjectScopeUUID(), true
 		} else {
-			return "", ErrForbidden
+			return "", false
 		}
 	}
 
-	return "", nil
+	return "", true
 }

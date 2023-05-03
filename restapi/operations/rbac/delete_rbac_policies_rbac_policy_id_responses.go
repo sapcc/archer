@@ -31,7 +31,7 @@ import (
 const DeleteRbacPoliciesRbacPolicyIDNoContentCode int = 204
 
 /*
-DeleteRbacPoliciesRbacPolicyIDNoContent Resource successfully deleted.
+DeleteRbacPoliciesRbacPolicyIDNoContent RBAC policy successfully deleted.
 
 swagger:response deleteRbacPoliciesRbacPolicyIdNoContent
 */

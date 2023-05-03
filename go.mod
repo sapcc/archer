@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/IBM/pgxpoolprometheus v1.1.1
+	github.com/Masterminds/squirrel v1.5.4
 	github.com/didip/tollbooth/v7 v7.0.1
 	github.com/dre1080/recovr v1.0.3
 	github.com/f5devcentral/go-bigip v0.0.0-20230412170344-5684f43111ff
@@ -60,6 +61,8 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/karrick/godirwalk v1.15.3 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.4 // indirect
+	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
+	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/logrusorgru/aurora v0.0.0-20181002194514-a7b3b318ed4e // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/markbates/errx v1.1.0 // indirect

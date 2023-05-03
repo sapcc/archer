@@ -16,20 +16,24 @@ package controller
 
 import (
 	"errors"
-
 	"github.com/go-openapi/loads"
+	"github.com/gophercloud/gophercloud"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var (
-	ErrBadRequest = errors.New("bad request")
+	ErrBadRequest       = errors.New("bad request")
+	ErrPortNotFound     = errors.New("port not found")
+	ErrProjectMismatch  = errors.New("project mismatch")
+	ErrMissingIPAddress = errors.New("missing ip address")
 )
 
 type Controller struct {
-	spec *loads.Document
-	pool *pgxpool.Pool
+	spec    *loads.Document
+	pool    *pgxpool.Pool
+	neutron *gophercloud.ServiceClient
 }
 
-func NewController(pool *pgxpool.Pool, spec *loads.Document) *Controller {
-	return &Controller{pool: pool, spec: spec}
+func NewController(pool *pgxpool.Pool, spec *loads.Document, client *gophercloud.ServiceClient) *Controller {
+	return &Controller{pool: pool, spec: spec, neutron: client}
 }

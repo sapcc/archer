@@ -44,7 +44,7 @@ type ClientOption func(*runtime.ClientOperation)
 
 // ClientService is the interface for Client methods
 type ClientService interface {
-	DeleteServiceServiceID(params *DeleteServiceServiceIDParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*DeleteServiceServiceIDNoContent, error)
+	DeleteServiceServiceID(params *DeleteServiceServiceIDParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*DeleteServiceServiceIDAccepted, error)
 
 	GetService(params *GetServiceParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetServiceOK, error)
 
@@ -70,7 +70,7 @@ type ClientService interface {
 
 Active endpoints can be rejected by the service owner via the `/service/{service_id}/reject_endpoints` API.
 */
-func (a *Client) DeleteServiceServiceID(params *DeleteServiceServiceIDParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*DeleteServiceServiceIDNoContent, error) {
+func (a *Client) DeleteServiceServiceID(params *DeleteServiceServiceIDParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*DeleteServiceServiceIDAccepted, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewDeleteServiceServiceIDParams()
@@ -96,7 +96,7 @@ func (a *Client) DeleteServiceServiceID(params *DeleteServiceServiceIDParams, au
 	if err != nil {
 		return nil, err
 	}
-	success, ok := result.(*DeleteServiceServiceIDNoContent)
+	success, ok := result.(*DeleteServiceServiceIDAccepted)
 	if ok {
 		return success, nil
 	}

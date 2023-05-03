@@ -27,29 +27,29 @@ import (
 	"github.com/sapcc/archer/models"
 )
 
-// DeleteEndpointEndpointIDNoContentCode is the HTTP code returned for type DeleteEndpointEndpointIDNoContent
-const DeleteEndpointEndpointIDNoContentCode int = 204
+// DeleteEndpointEndpointIDAcceptedCode is the HTTP code returned for type DeleteEndpointEndpointIDAccepted
+const DeleteEndpointEndpointIDAcceptedCode int = 202
 
 /*
-DeleteEndpointEndpointIDNoContent Resource successfully deleted.
+DeleteEndpointEndpointIDAccepted Delete request successfully accepted.
 
-swagger:response deleteEndpointEndpointIdNoContent
+swagger:response deleteEndpointEndpointIdAccepted
 */
-type DeleteEndpointEndpointIDNoContent struct {
+type DeleteEndpointEndpointIDAccepted struct {
 }
 
-// NewDeleteEndpointEndpointIDNoContent creates DeleteEndpointEndpointIDNoContent with default headers values
-func NewDeleteEndpointEndpointIDNoContent() *DeleteEndpointEndpointIDNoContent {
+// NewDeleteEndpointEndpointIDAccepted creates DeleteEndpointEndpointIDAccepted with default headers values
+func NewDeleteEndpointEndpointIDAccepted() *DeleteEndpointEndpointIDAccepted {
 
-	return &DeleteEndpointEndpointIDNoContent{}
+	return &DeleteEndpointEndpointIDAccepted{}
 }
 
 // WriteResponse to the client
-func (o *DeleteEndpointEndpointIDNoContent) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+func (o *DeleteEndpointEndpointIDAccepted) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
 
-	rw.WriteHeader(204)
+	rw.WriteHeader(202)
 }
 
 // DeleteEndpointEndpointIDForbiddenCode is the HTTP code returned for type DeleteEndpointEndpointIDForbidden

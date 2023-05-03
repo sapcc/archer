@@ -125,7 +125,7 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
               FROM service 
                   LEFT JOIN service_snat_port sap ON service.id = sap.service_id 
               WHERE host = $1`,
-		config.HostName(),
+		config.Global.Default.Host,
 	); err != nil {
 		return err
 	}

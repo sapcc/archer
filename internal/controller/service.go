@@ -15,9 +15,11 @@
 package controller
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/v2/dbscan"
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/runtime/middleware"
@@ -35,7 +37,7 @@ import (
 
 func (c *Controller) GetServiceHandler(params service.GetServiceParams, principal any) middleware.Responder {
 	filter := make(map[string]any, 0)
-	if projectId, err := auth.AuthenticatePrincipal(params.HTTPRequest, principal); err != nil {
+	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
 		return service.NewGetServiceForbidden()
 	} else if projectId != "" {
 		filter["project_id"] = projectId
@@ -60,7 +62,7 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 	ctx := params.HTTPRequest.Context()
 	var serviceResponse models.Service
 
-	if projectId, err := auth.AuthenticatePrincipal(params.HTTPRequest, principal); err != nil {
+	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
 		return service.NewPostServiceForbidden()
 	} else if projectId != "" {
 		params.Body.ProjectID = models.Project(projectId)
@@ -72,20 +74,14 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 	}
 
 	sql, args := db.Insert("service").
-		Set("enabled", params.Body.Enabled).
-		Set("name", params.Body.Name).
-		Set("description", params.Body.Description).
-		Set("network_id", params.Body.NetworkID).
-		Set("ip_addresses", params.Body.IPAddresses).
-		Set("require_approval", params.Body.RequireApproval).
-		Set("visibility", params.Body.Visibility).
-		Set("availability_zone", params.Body.AvailabilityZone).
-		Set("proxy_protocol", params.Body.ProxyProtocol).
-		Set("project_id", params.Body.ProjectID).
-		Set("port", params.Body.Port).
-		Set("tags", params.Body.Tags).
-		Returning("*").
-		ToSQL()
+		Columns("enabled", "name", "description", "network_id", "ip_addresses", "require_approval",
+			"visibility", "availability_zone", "proxy_protocol", "project_id", "port", "tags").
+		Values(params.Body.Enabled, params.Body.Name, params.Body.Description, params.Body.NetworkID,
+			params.Body.IPAddresses, params.Body.RequireApproval, params.Body.Visibility,
+			params.Body.AvailabilityZone, params.Body.ProxyProtocol, params.Body.ProjectID,
+			params.Body.Port, params.Body.Tags).
+		Suffix("RETURNING *").
+		MustSql()
 	if err := pgxscan.Get(ctx, c.pool, &serviceResponse, sql, args...); err != nil {
 		var pe *pgconn.PgError
 		if errors.As(err, &pe) && pgerrcode.IsIntegrityConstraintViolation(pe.Code) {
@@ -103,14 +99,14 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 func (c *Controller) GetServiceServiceIDHandler(params service.GetServiceServiceIDParams, principal any) middleware.Responder {
 	q := db.Select("*").From("service").Where("id = ?", params.ServiceID)
 
-	if projectId, err := auth.AuthenticatePrincipal(params.HTTPRequest, principal); err != nil {
+	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
 		return service.NewGetServiceServiceIDForbidden()
 	} else if projectId != "" {
 		q.Where("project_id = ?", projectId)
 	}
 
 	var servicesResponse models.Service
-	sql, args := q.ToSQL()
+	sql, args := q.MustSql()
 	if err := pgxscan.Get(params.HTTPRequest.Context(), c.pool, &servicesResponse, sql, args...); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return service.NewGetServiceServiceIDNotFound()
@@ -121,27 +117,28 @@ func (c *Controller) GetServiceServiceIDHandler(params service.GetServiceService
 }
 
 func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceServiceIDParams, principal any) middleware.Responder {
-	q := db.Update("service").Where("id", params.ServiceID)
+	upd := db.Update("service")
 
-	if projectId, err := auth.AuthenticatePrincipal(params.HTTPRequest, principal); err != nil {
+	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
 		return service.NewPutServiceServiceIDForbidden()
 	} else if projectId != "" {
-		q.Where("project_id", projectId)
+		upd = upd.Where("project_id", projectId)
 	}
 
-	q.Set("enabled", db.Coalesce{V: params.Body.Enabled}).
-		Set("name", db.Coalesce{V: params.Body.Name}).
-		Set("description", db.Coalesce{V: params.Body.Description}).
-		Set("require_approval", db.Coalesce{V: params.Body.RequireApproval}).
-		Set("proxy_protocol", db.Coalesce{V: params.Body.ProxyProtocol}).
-		Set("port", db.Coalesce{V: params.Body.Port}).
-		Set("ip_addresses", db.Coalesce{V: params.Body.IPAddresses}).
-		Set("tags", db.Coalesce{V: params.Body.Tags}).
-		Returning("*")
+	upd = upd.Set("enabled", sq.Expr("COALESCE(?, enabled)", params.Body.Enabled)).
+		Set("name", sq.Expr("COALESCE(?, name)", params.Body.Name)).
+		Set("description", sq.Expr("COALESCE(?, description)", params.Body.Description)).
+		Set("require_approval", sq.Expr("COALESCE(?, require_approval)", params.Body.RequireApproval)).
+		Set("proxy_protocol", sq.Expr("COALESCE(?, proxy_protocol)", params.Body.ProxyProtocol)).
+		Set("port", sq.Expr("COALESCE(?, port)", params.Body.Port)).
+		Set("ip_addresses", sq.Expr("COALESCE(?, ip_addresses)", params.Body.IPAddresses)).
+		Set("tags", sq.Expr("COALESCE(?, tags)", params.Body.Tags)).
+		Where("id = ?", params.ServiceID).
+		Suffix("RETURNING *")
 
-	sql, args := q.ToSQL()
+	sql, args := upd.MustSql()
 	var serviceResponse models.Service
-	if err := pgxscan.Get(params.HTTPRequest.Context(), c.pool, &serviceResponse, sql, args); err != nil {
+	if err := pgxscan.Get(params.HTTPRequest.Context(), c.pool, &serviceResponse, sql, args...); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return service.NewPutServiceServiceIDNotFound()
 		}
@@ -161,44 +158,81 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 }
 
 func (c *Controller) DeleteServiceServiceIDHandler(params service.DeleteServiceServiceIDParams, principal any) middleware.Responder {
-	q := db.Delete("service").Where("id = ?", params.ServiceID)
+	q := db.Select("1").
+		From("service").
+		Where("id = ?", params.ServiceID).
+		Suffix("FOR UPDATE")
 
-	if projectId, err := auth.AuthenticatePrincipal(params.HTTPRequest, principal); err != nil {
+	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
 		return service.NewDeleteServiceServiceIDForbidden()
 	} else if projectId != "" {
 		q.Where("project_id = ?", projectId)
 	}
 
-	sql, args := q.ToSQL()
-	if ct, err := c.pool.Exec(params.HTTPRequest.Context(), sql, args...); err != nil {
-		var pe *pgconn.PgError
-		if errors.As(err, &pe) && pgerrcode.IsIntegrityConstraintViolation(pe.Code) {
-			return service.NewDeleteServiceServiceIDConflict().WithPayload(&models.Error{
-				Code:    409,
-				Message: "Service in use",
-			})
-		}
+	tx, err := c.pool.Begin(params.HTTPRequest.Context())
+	if err != nil {
 		panic(err)
-	} else if ct.RowsAffected() == 0 {
+	}
+	defer func() { _ = tx.Rollback(params.HTTPRequest.Context()) }()
+
+	// First check if service exists and is "accessible", and lock the row
+	sql, args := q.MustSql()
+	if ct, err := tx.Exec(params.HTTPRequest.Context(), sql, args...); err != nil {
+		panic(err)
+	} else if ct.RowsAffected() < 1 {
 		return service.NewDeleteServiceServiceIDNotFound()
 	}
 
-	return service.NewDeleteServiceServiceIDNoContent()
+	// Update status if no endpoints are attached.
+	u := db.Update("service").
+		Set("status", models.ServiceStatusPENDINGDELETE).
+		Where(sq.And{
+			sq.Eq{"id": params.ServiceID},
+			db.Select("1").
+				From("endpoint").
+				Where("service_id = service.id").
+				Prefix("NOT EXISTS(").
+				Suffix(")"), // RBAC subquery
+		})
+	sql, args = u.MustSql()
+	if ct, err := tx.Exec(params.HTTPRequest.Context(), sql, args...); err != nil {
+		panic(err)
+	} else if ct.RowsAffected() == 0 {
+		return service.NewDeleteServiceServiceIDConflict().WithPayload(&models.Error{
+			Code:    409,
+			Message: "Service in use",
+		})
+	}
+	if err = tx.Commit(params.HTTPRequest.Context()); err != nil {
+		panic(err)
+	}
+
+	return service.NewDeleteServiceServiceIDAccepted()
 }
 
 func (c *Controller) GetServiceServiceIDEndpointsHandler(params service.GetServiceServiceIDEndpointsParams, principal any) middleware.Responder {
-	q := db.Select("1").From("service").Where("id = ?", params.ServiceID)
+	q := db.Select("1").
+		From("service").
+		Where("id = ?", params.ServiceID)
 
-	if projectId, err := auth.AuthenticatePrincipal(params.HTTPRequest, principal); err != nil {
+	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
 		return service.NewGetServiceServiceIDEndpointsForbidden()
 	} else if projectId != "" {
 		q.Where("project_id = ?", projectId)
 	}
 
-	sql, args := q.ToSQL()
-	if ct, err := c.pool.Exec(params.HTTPRequest.Context(), sql, args...); err != nil {
+	sql, args := q.MustSql()
+	tx, err := c.pool.Begin(context.Background())
+	if err != nil {
 		panic(err)
-	} else if ct.RowsAffected() == 0 {
+	}
+	defer func() { _ = tx.Rollback(context.Background()) }()
+
+	ct, err := tx.Exec(params.HTTPRequest.Context(), sql, args...)
+	if err != nil {
+		panic(err)
+	}
+	if ct.RowsAffected() == 0 {
 		return service.NewGetServiceServiceIDEndpointsNotFound()
 	}
 
@@ -210,7 +244,7 @@ func (c *Controller) GetServiceServiceIDEndpointsHandler(params service.GetServi
 		Sort:        params.Sort,
 	}
 	filter := map[string]any{"service_id": params.ServiceID}
-	rows, err := pagination.Query(c.pool, "SELECT id, project_id, status FROM endpoint", filter)
+	rows, err := pagination.Query(tx, "SELECT id, project_id, status FROM endpoint", filter)
 	if err != nil {
 		panic(err)
 	}
@@ -267,37 +301,38 @@ func commonEndpointsActionHandler(pool *pgxpool.Pool, body any, principal any) (
 	q := db.Update("endpoint")
 	switch params := body.(type) {
 	case service.PutServiceServiceIDAcceptEndpointsParams:
-		q.Set("status", "PENDING_CREATE")
+		q.Set("status", models.EndpointStatusPENDINGCREATE)
 		serviceId = params.ServiceID
 		httpRequest = params.HTTPRequest
 		consumerList = params.Body
 	case service.PutServiceServiceIDRejectEndpointsParams:
-		q.Set("status", "PENDING_REJECTED")
+		q.Set("status", models.EndpointStatusPENDINGREJECTED)
 		serviceId = params.ServiceID
 		httpRequest = params.HTTPRequest
 		consumerList = params.Body
 	}
 
-	if projectId, err := auth.AuthenticatePrincipal(httpRequest, principal); err != nil {
-		return nil, err
+	if projectId, ok := auth.AuthenticatePrincipal(httpRequest, principal); !ok {
+		return nil, auth.ErrForbidden
 	} else if projectId != "" {
-		q.Where("service.project_id", projectId)
+		q.Where("service.project_id = ?", projectId)
 	}
 
 	q.From("service").
-		Where("endpoint.service_id", db.Raw("service.id")).
-		Where("service.id", serviceId).
-		Returning("endpoint.id", "endpoint.status", "endpoint.project_id")
+		Where(sq.And{
+			sq.Expr("endpoint.service_id = service.id"),
+			sq.Eq{"service.id": serviceId},
+		}).
+		Suffix("RETURNING endpoint.id, endpoint.status, endpoint.project_id")
 
 	if len(consumerList.EndpointIds) > 0 {
-		q.Where("endpoint.id", consumerList.EndpointIds)
+		q.Where("endpoint.id = ?", consumerList.EndpointIds)
 	} else if len(consumerList.ProjectIds) > 0 {
-		q.Where("endpoint.project_id", consumerList.ProjectIds)
+		q.Where("endpoint.project_id = ?", consumerList.ProjectIds)
 	} else {
 		return nil, ErrBadRequest
 	}
-
-	sql, args := q.ToSQL()
+	sql, args := q.MustSql()
 	var endpointConsumers []*models.EndpointConsumer
 	rows, err := pool.Query(httpRequest.Context(), sql, args)
 	if err != nil {

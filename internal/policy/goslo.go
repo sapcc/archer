@@ -17,9 +17,9 @@
 package policy
 
 import (
-	"github.com/sapcc/go-bits/gopherpolicy"
 	"net/http"
 
+	"github.com/sapcc/go-bits/gopherpolicy"
 	"github.com/sapcc/go-bits/logg"
 
 	"github.com/sapcc/archer/internal/config"

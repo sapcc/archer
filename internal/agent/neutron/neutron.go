@@ -28,24 +28,15 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/provider"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
-	"github.com/gophercloud/utils/openstack/clientconfig"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/sapcc/go-bits/logg"
 
 	"github.com/sapcc/archer/internal/config"
 )
 
-func ConnectToNeutron() (*gophercloud.ServiceClient, error) {
-	var serviceClient *gophercloud.ServiceClient
-
-	authInfo := clientconfig.AuthInfo(config.Global.ServiceAuth)
-	providerClient, err := clientconfig.AuthenticatedClient(&clientconfig.ClientOpts{
-		AuthInfo: &authInfo})
+func ConnectToNeutron(providerClient *gophercloud.ProviderClient) (*gophercloud.ServiceClient, error) {
+	serviceClient, err := openstack.NewNetworkV2(providerClient, gophercloud.EndpointOpts{})
 	if err != nil {
-		return nil, err
-	}
-
-	if serviceClient, err = openstack.NewNetworkV2(providerClient, gophercloud.EndpointOpts{}); err != nil {
 		return nil, err
 	}
 

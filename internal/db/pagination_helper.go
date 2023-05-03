@@ -18,7 +18,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/jackc/pgx/v5/pgtype"
 	"net/http"
 	"reflect"
 	"regexp"
@@ -27,6 +26,8 @@ import (
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/strfmt"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
+
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/models"
 )

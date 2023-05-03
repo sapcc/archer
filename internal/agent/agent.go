@@ -20,6 +20,7 @@ import (
 	"github.com/f5devcentral/go-bigip"
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/utils/openstack/clientconfig"
 	"github.com/hashicorp/golang-lru/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -47,6 +48,7 @@ type Agent struct {
 }
 
 func NewAgent() *Agent {
+	config.ResolveHost()
 	initalizePrometheus()
 	agent := new(Agent)
 
@@ -110,7 +112,14 @@ func NewAgent() *Agent {
 		logg.Info("%v", device.ActiveModules)
 	}
 
-	if agent.neutron, err = neutron.ConnectToNeutron(); err != nil {
+	authInfo := clientconfig.AuthInfo(config.Global.ServiceAuth)
+	providerClient, err := clientconfig.AuthenticatedClient(&clientconfig.ClientOpts{
+		AuthInfo: &authInfo})
+	if err != nil {
+		logg.Fatal(err.Error())
+	}
+
+	if agent.neutron, err = neutron.ConnectToNeutron(providerClient); err != nil {
 		logg.Fatal("While connecting to Neutron: %s", err.Error())
 	}
 	logg.Info("Connected to Neutron %s", agent.neutron.Endpoint)
@@ -137,22 +146,21 @@ func (a *Agent) Run() error {
 func (a *Agent) PendingSyncLoop(prometheus.Labels) error {
 	var id, networkId strfmt.UUID
 	var rows pgx.Rows
+	var ret pgconn.CommandTag
 	var err error
 
 	logg.Debug("pending sync scan")
-	rows, err = a.pool.Query(context.Background(),
-		`SELECT id FROM service WHERE status LIKE 'PENDING_%' AND host = $1`,
+	ret, err = a.pool.Exec(context.Background(),
+		`SELECT 1 FROM service WHERE status LIKE 'PENDING_%' AND host = $1`,
 		config.Global.Default.Host)
 	if err != nil {
 		return err
 	}
-	if _, err = pgx.ForEachRow(rows, []any{&id}, func() error {
+
+	if ret.RowsAffected() > 0 {
 		if err := a.jobQueue.Enqueue(job{model: "service"}); err != nil {
 			return err
 		}
-		return nil
-	}); err != nil {
-		return err
 	}
 
 	rows, err = a.pool.Query(context.Background(),

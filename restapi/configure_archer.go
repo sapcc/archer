@@ -19,9 +19,10 @@ package restapi
 import (
 	"context"
 	"crypto/tls"
+	"github.com/gophercloud/utils/openstack/clientconfig"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/sapcc/archer/internal/agent/neutron"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/IBM/pgxpoolprometheus"
@@ -77,14 +78,7 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 	api.JSONConsumer = runtime.JSONConsumer()
 	api.JSONProducer = runtime.JSONProducer()
 
-	if config.Global.Default.Host == "" {
-		if hostname, err := os.Hostname(); err != nil {
-			logg.Fatal(err.Error())
-		} else {
-			config.Global.Default.Host = hostname
-		}
-	}
-
+	config.ResolveHost()
 	if config.Global.Default.SentryDSN != "" {
 		if err := sentry.Init(sentry.ClientOptions{
 			Dsn:              config.Global.Default.SentryDSN,
@@ -121,9 +115,23 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 		prometheus.MustRegister(collector)
 	}
 
+	// Keystone authentication
+	authInfo := clientconfig.AuthInfo(config.Global.ServiceAuth)
+	providerClient, err := clientconfig.AuthenticatedClient(&clientconfig.ClientOpts{
+		AuthInfo: &authInfo})
+	if err != nil {
+		logg.Fatal(err.Error())
+	}
+
+	neutronClient, err := neutron.ConnectToNeutron(providerClient)
+	if err != nil {
+		logg.Fatal("While connecting to Neutron: %s", err.Error())
+	}
+	logg.Info("Connected to Neutron %s", neutronClient.Endpoint)
+
 	var keystone *auth.Keystone
 	if config.Global.ApiSettings.AuthStrategy == "keystone" {
-		keystone, err = auth.InitializeKeystone()
+		keystone, err = auth.InitializeKeystone(providerClient)
 		if err != nil {
 			logg.Fatal(err.Error())
 		}
@@ -138,7 +146,7 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 		return "", nil
 	}
 
-	c := controller.NewController(pool, SwaggerSpec)
+	c := controller.NewController(pool, SwaggerSpec, neutronClient)
 
 	api.VersionGetHandler = version.GetHandlerFunc(c.GetVersionHandler)
 
@@ -153,6 +161,7 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 
 	api.EndpointGetEndpointHandler = endpoint.GetEndpointHandlerFunc(c.GetEndpointHandler)
 	api.EndpointPostEndpointHandler = endpoint.PostEndpointHandlerFunc(c.PostEndpointHandler)
+	api.EndpointPutEndpointEndpointIDHandler = endpoint.PutEndpointEndpointIDHandlerFunc(c.PutEndpointEndpointIDHandler)
 	api.EndpointDeleteEndpointEndpointIDHandler = endpoint.DeleteEndpointEndpointIDHandlerFunc(c.DeleteEndpointEndpointIDHandler)
 	api.EndpointGetEndpointEndpointIDHandler = endpoint.GetEndpointEndpointIDHandlerFunc(c.GetEndpointEndpointIDHandler)
 

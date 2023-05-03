@@ -16,8 +16,10 @@ package controller
 
 import (
 	"net/http"
+	"net/url"
 
 	"github.com/go-openapi/strfmt"
+	th "github.com/gophercloud/gophercloud/testhelper"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/sapcc/archer/models"
@@ -36,6 +38,22 @@ func (t *SuiteTest) createEndpoint(serviceId strfmt.UUID, target models.Endpoint
 	assert.IsType(t.T(), &endpoint.PostEndpointCreated{}, res)
 
 	return res.(*endpoint.PostEndpointCreated).Payload
+}
+
+func (t *SuiteTest) TestEndpointList() {
+	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
+	payload := t.createEndpoint(t.createService(), models.EndpointTarget{
+		Network: &network,
+	})
+
+	res := t.c.GetEndpointHandler(endpoint.GetEndpointParams{HTTPRequest: &http.Request{URL: new(url.URL)}},
+		nil)
+	assert.IsType(t.T(), &endpoint.GetEndpointOK{}, res)
+	endpoints := res.(*endpoint.GetEndpointOK)
+	assert.Len(t.T(), endpoints.Payload.Items, 1)
+	assert.Equal(t.T(), endpoints.Payload.Items[0].ID, payload.ID)
+	assert.NotNil(t.T(), endpoints.Payload.Items[0].Target.Network)
+	assert.Equal(t.T(), endpoints.Payload.Items[0].Target.Network.String(), network.String())
 }
 
 func (t *SuiteTest) TestEndpointEmptyGet() {
@@ -76,7 +94,26 @@ func (t *SuiteTest) TestEndpointPost() {
 	assert.IsType(t.T(), &endpoint.GetEndpointEndpointIDOK{}, res)
 }
 
+func (t *SuiteTest) TestEndpointPut() {
+	// post and get
+	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
+	payload := t.createEndpoint(t.createService(), models.EndpointTarget{
+		Network: &network,
+	})
+
+	res := t.c.PutEndpointEndpointIDHandler(
+		endpoint.PutEndpointEndpointIDParams{HTTPRequest: &http.Request{}, EndpointID: payload.ID,
+			Body: endpoint.PutEndpointEndpointIDBody{Tags: []string{"a", "b", "c"}}},
+		nil)
+	assert.IsType(t.T(), &endpoint.PutEndpointEndpointIDOK{}, res)
+	assert.EqualValues(t.T(), []string{"a", "b", "c"}, res.(*endpoint.PutEndpointEndpointIDOK).Payload.Tags)
+	assert.Equal(t.T(), network, *res.(*endpoint.PutEndpointEndpointIDOK).Payload.Target.Network)
+}
+
 func (t *SuiteTest) TestEndpointDelete() {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
 	// create, delete, get
 	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
 	payload := t.createEndpoint(t.createService(), models.EndpointTarget{
@@ -87,7 +124,7 @@ func (t *SuiteTest) TestEndpointDelete() {
 	res := t.c.DeleteEndpointEndpointIDHandler(
 		endpoint.DeleteEndpointEndpointIDParams{HTTPRequest: &http.Request{}, EndpointID: payload.ID},
 		nil)
-	assert.IsType(t.T(), &endpoint.DeleteEndpointEndpointIDNoContent{}, res)
+	assert.IsType(t.T(), &endpoint.DeleteEndpointEndpointIDAccepted{}, res)
 
 	// pending delete
 	res = t.c.GetEndpointEndpointIDHandler(
@@ -96,5 +133,5 @@ func (t *SuiteTest) TestEndpointDelete() {
 	assert.IsType(t.T(), &endpoint.GetEndpointEndpointIDOK{}, res)
 	p2 := res.(*endpoint.GetEndpointEndpointIDOK).Payload
 	assert.NotNil(t.T(), p2)
-	assert.Equal(t.T(), models.EndpointStatus(models.EndpointStatusPENDINGDELETE), p2.Status)
+	assert.Equal(t.T(), models.EndpointStatusPENDINGDELETE, p2.Status)
 }
