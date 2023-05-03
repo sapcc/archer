@@ -26,7 +26,7 @@ require (
 	github.com/jedib0t/go-pretty v4.3.0+incompatible
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/jmoiron/sqlx v1.3.5
-	github.com/pashagolub/pgxmock/v2 v2.6.0
+	github.com/pashagolub/pgxmock/v2 v2.7.0
 	github.com/prometheus/client_golang v1.15.0
 	github.com/rs/cors v1.9.0
 	github.com/sapcc/go-api-declarations v1.5.1
