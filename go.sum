@@ -303,6 +303,8 @@ github.com/sapcc/go-bits v0.0.0-20230420083834-e3870701a14b h1:32tX1T7fnkfhcMy7E
 github.com/sapcc/go-bits v0.0.0-20230420083834-e3870701a14b/go.mod h1:K+vV1SV0tgY+yJJUFntZEp3hlGhXZZwV9RlPKsvMKY4=
 github.com/sapcc/go-bits v0.0.0-20230427112005-83ae3f63bf8b h1:DFongxUdQDSawe3t0ySujf2JRGrFfS4ypPIyAtgIH6I=
 github.com/sapcc/go-bits v0.0.0-20230427112005-83ae3f63bf8b/go.mod h1:R1hZleU5SIB0+V+oZJUfx+BCDByN6hg8E5OC8hX2Xgs=
+github.com/sapcc/go-bits v0.0.0-20230504084121-e1394d9f1b00 h1:PnFvjWTUKtxo7r17VCLM9ln3K3nNDAf0vxp9TI6Ehfw=
+github.com/sapcc/go-bits v0.0.0-20230504084121-e1394d9f1b00/go.mod h1:axEzNH52QDypVxJAxF4RhHD+j31/e3RFKBWBIl/MJkQ=
 github.com/sergi/go-diff v1.3.1 h1:xkr+Oxo4BOQKmkn/B9eMK0g5Kg/983T9DqqPHwYqD+8=
 github.com/shurcooL/sanitized_anchor_name v1.0.0/go.mod h1:1NzhyTcUVG4SuEtjjoZeVRXNmyL/1OwPU0+IJeTBvfc=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
