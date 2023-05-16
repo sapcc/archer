@@ -19,9 +19,6 @@ package restapi
 import (
 	"context"
 	"crypto/tls"
-	"github.com/gophercloud/utils/openstack/clientconfig"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/sapcc/archer/internal/agent/neutron"
 	"net/http"
 	"time"
 
@@ -34,12 +31,15 @@ import (
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/swag"
+	"github.com/gophercloud/utils/openstack/clientconfig"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/tracelog"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
 	"github.com/sapcc/go-bits/logg"
 
+	"github.com/sapcc/archer/internal/agent/neutron"
 	"github.com/sapcc/archer/internal/auth"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/controller"
@@ -202,13 +202,6 @@ func configureServer(s *http.Server, scheme, addr string) {
 // The middleware configuration is for the handler executors. These do not apply to the swagger.json document.
 // The middleware executes after routing but before authentication, binding and validation.
 func setupMiddlewares(handler http.Handler) http.Handler {
-	if !config.Global.ApiSettings.DisableCors {
-		handler = cors.New(cors.Options{
-			AllowedMethods: []string{"HEAD", "GET", "POST", "PUT", "DELETE"},
-			AllowedHeaders: []string{"Content-Type", "User-Agent", "X-Auth-Token"},
-		}).Handler(handler)
-	}
-
 	if rl := config.Global.ApiSettings.RateLimit; rl > .0 {
 		limiter := tollbooth.NewLimiter(rl, nil)
 		limiter.SetHeader("X-Auth-Token", nil)
@@ -227,11 +220,23 @@ func setupMiddlewares(handler http.Handler) http.Handler {
 // The middleware configuration happens before anything, this middleware also applies to serving the swagger.json document.
 // So this is a good place to plug in a panic handling middleware, logging and metrics.
 func setupGlobalMiddleware(handler http.Handler) http.Handler {
+	// health check middleware
 	handler = middlewares.HealthCheckMiddleware(handler)
+
+	if !config.Global.ApiSettings.DisableCors {
+		logg.Info("Initializing CORS middleware")
+		handler = cors.New(cors.Options{
+			AllowedOrigins: []string{"*"},
+			AllowedMethods: []string{"HEAD", "GET", "POST", "PUT", "DELETE"},
+			AllowedHeaders: []string{"Content-Type", "User-Agent", "X-Auth-Token"},
+		}).Handler(handler)
+	}
+
 	// Pass via sentry handler
 	handler = sentryhttp.New(sentryhttp.Options{
 		Repanic: true,
 	}).Handle(handler)
+
 	// recover with recovr
 	return recovr.New()(handler)
 }
