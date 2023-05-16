@@ -4,7 +4,7 @@ BIN = $(addprefix bin/,$(shell ls cmd))
 build-all: $(BIN)
 
 bin/%: cmd/%/main.go
-	go build -o $@ $<
+	GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build  -o $@ $<
 
 swagger:
 	swagger generate server --exclude-main --copyright-file COPYRIGHT.txt
