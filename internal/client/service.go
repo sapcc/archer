@@ -33,7 +33,7 @@ func (*ServiceList) Execute(_ []string) error {
 	}
 
 	Table.AppendHeader(table.Row{"ID", "Name"})
-	for _, service := range resp.Payload {
+	for _, service := range resp.Payload.Items {
 		Table.AppendRow(table.Row{service.ID, service.Name})
 	}
 	Table.Render()
