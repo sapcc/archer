@@ -31,7 +31,7 @@ require (
 	github.com/rs/cors v1.9.0
 	github.com/sapcc/go-api-declarations v1.5.1
 	github.com/sapcc/go-bits v0.0.0-20230511083554-fcf45d69f407
-	github.com/stretchr/testify v1.8.2
+	github.com/stretchr/testify v1.8.4
 	github.com/z0ne-dev/mgx/v2 v2.0.1
 	golang.org/x/net v0.10.0
 )
