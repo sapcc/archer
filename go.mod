@@ -7,7 +7,7 @@ require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/didip/tollbooth/v7 v7.0.1
 	github.com/dre1080/recovr v1.0.3
-	github.com/f5devcentral/go-bigip v0.0.0-20230412170344-5684f43111ff
+	github.com/f5devcentral/go-bigip v0.0.0-20230601082507-5c7c54edf454
 	github.com/georgysavva/scany/v2 v2.0.0
 	github.com/getsentry/sentry-go v0.21.0
 	github.com/go-openapi/errors v0.20.3
