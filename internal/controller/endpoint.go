@@ -33,23 +33,22 @@ import (
 )
 
 func (c *Controller) GetEndpointHandler(params endpoint.GetEndpointParams, principal any) middleware.Responder {
-	filter := make(map[string]any, 0)
+	q := db.StmtBuilder
 	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
 		return endpoint.NewGetEndpointForbidden()
 	} else if projectId != "" {
-		filter["project_id"] = projectId
+		q = q.Where("project_id = ?", projectId)
 	}
 
 	pagination := db.Pagination(params)
-
-	rows, err := pagination.Query(c.pool, `
-		SELECT endpoint.*, 
-		       endpoint_port.port_id AS "target.port", 
-		       endpoint_port.network AS "target.network", 
-		       endpoint_port.subnet AS "target.subnet" 
-		FROM endpoint
-		JOIN endpoint_port ON endpoint_port.endpoint_id = endpoint.id`,
-		filter)
+	sql, args, err := pagination.QuerySQ(c.pool, q.
+		Select("endpoint.*", "endpoint_port.port_id AS \"target.port\"",
+			"endpoint_port.network AS \"target.network\"", " endpoint_port.subnet AS \"target.subnet\"").
+		From("endpoint").Join("endpoint_port ON endpoint_port.endpoint_id = endpoint.id"))
+	if err != nil {
+		panic(err)
+	}
+	rows, err := c.pool.Query(context.Background(), sql, args...)
 	if err != nil {
 		panic(err)
 	}

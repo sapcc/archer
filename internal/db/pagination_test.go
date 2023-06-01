@@ -18,39 +18,33 @@ import (
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/jackc/pgx/v5"
 	"github.com/pashagolub/pgxmock/v2"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/sapcc/archer/internal/config"
+	"github.com/stretchr/testify/assert"
 )
 
 // for a valid return value.
 func TestPaginationGeneric(t *testing.T) {
 	config.Global.ApiSettings.PaginationMaxLimit = 10
 
-	mock, err := pgxmock.NewPool()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer mock.Close()
-
-	mock.ExpectQuery(`SELECT \* FROM example .*`).
-		WithArgs(pgx.NamedArgs(nil)).
-		WillReturnRows()
 	p := Pagination{
 		HTTPRequest: &http.Request{URL: &url.URL{RawQuery: ""}},
 	}
 
-	_, err = p.Query(mock, "SELECT * FROM example", nil)
+	dbMock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dbMock.Close()
+	sql, args, err := p.QuerySQ(dbMock, Select("*").From("example"))
 	if err != nil {
 		t.Error(err)
 	}
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("there were unfulfilled expectations: %s", err)
-	}
+	assert.Equal(t, "SELECT * FROM example ORDER BY id ASC, created_at ASC LIMIT 10", sql)
+	assert.Nil(t, args)
 
 	links := p.GetLinks([]*struct{}{})
 	assert.Empty(t, links)
@@ -59,44 +53,33 @@ func TestPaginationGeneric(t *testing.T) {
 func TestPaginationLimit(t *testing.T) {
 	config.Global.ApiSettings.PaginationMaxLimit = 1000
 
-	mock, err := pgxmock.NewPool()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer mock.Close()
-
-	exampleRows := mock.
-		NewRows([]string{"id"}).
-		AddRow("00000000-0000-0000-0000-000000000000").
-		AddRow("00000000-0000-0000-0000-000000000001")
-
-	mock.ExpectQuery(`SELECT \* FROM example .* LIMIT 2`).
-		WithArgs(pgx.NamedArgs(nil)).
-		WillReturnRows(exampleRows)
 	two := int64(2)
 	p := Pagination{
 		HTTPRequest: &http.Request{URL: &url.URL{RawQuery: "limit=2"}},
 		Limit:       &two,
 	}
 
-	rows, err := p.Query(mock, "SELECT * FROM example", nil)
+	dbMock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dbMock.Close()
+	sql, args, err := p.QuerySQ(dbMock, Select("*").From("example"))
 	if err != nil {
 		assert.Error(t, err)
-	}
-	if err := mock.ExpectationsWereMet(); err != nil {
-		assert.Errorf(t, err, "there were unfulfilled expectations")
 	}
 
 	type example struct {
 		ID string
 	}
-	var items []*example
-	for rows.Next() {
-		var item example
-		_ = rows.Scan(&item.ID)
-		items = append(items, &item)
-	}
 
+	assert.Equal(t, "SELECT * FROM example ORDER BY id ASC, created_at ASC LIMIT 2", sql)
+	assert.Nil(t, args)
+
+	var items = []*example{
+		{"00000000-0000-0000-0000-000000000000"},
+		{"00000000-0000-0000-0000-000000000001"},
+	}
 	links := p.GetLinks(items)
 	assert.NotEmpty(t, links)
 	assert.Equal(t, links[0].Rel, "next")
@@ -106,34 +89,32 @@ func TestPaginationLimit(t *testing.T) {
 func TestPaginationMarker(t *testing.T) {
 	config.Global.ApiSettings.PaginationMaxLimit = 1000
 
-	mock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
+	dbMock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer mock.Close()
+	defer dbMock.Close()
 
 	marker := strfmt.UUID("00000000-0000-0000-0000-000000000001")
-	values := [][]any{
-		{marker},
-		{strfmt.UUID("00000000-0000-0000-0000-000000000002")},
-		{strfmt.UUID("00000000-0000-0000-0000-000000000003")},
-	}
+	now := time.Now()
 
-	mock.ExpectQuery(`SELECT id FROM example WHERE id = $1`).WithArgs(&marker).
-		WillReturnRows(pgxmock.NewRows([]string{"id"}).AddRow(marker))
-	mock.ExpectQuery(`SELECT id FROM example WHERE ( ( id > @id ) OR ( id = @id AND created_at > @created_at ) ) ORDER BY id ASC, created_at ASC LIMIT 1000`).
-		WithArgs(pgx.NamedArgs{"id": marker}).
-		WillReturnRows(pgxmock.NewRows([]string{"id"}).AddRows(values[1:]...))
+	dbMock.ExpectQuery(`SELECT * FROM example WHERE id = $1`).WithArgs(&marker).
+		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at"}).AddRow(marker, now))
 
 	p := Pagination{
 		HTTPRequest: &http.Request{URL: &url.URL{RawQuery: ""}},
 		Marker:      &marker,
 	}
 
-	if _, err := p.Query(mock, "SELECT id FROM example", nil); err != nil {
-		t.Error(err)
-	}
-	if err := mock.ExpectationsWereMet(); err != nil {
+	sql, args, err := p.QuerySQ(dbMock, Select("*").From("example"))
+	assert.Nil(t, err)
+	assert.Equal(t, `SELECT * FROM example WHERE ((id > $1) OR (id = $2 AND created_at > $3)) ORDER BY id ASC, created_at ASC LIMIT 1000`,
+		sql)
+	assert.Len(t, args, 3)
+	assert.Equal(t, args[0], marker.String())
+	assert.Equal(t, args[1], marker.String())
+	assert.Equal(t, args[2], now)
+	if err := dbMock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 
@@ -141,8 +122,8 @@ func TestPaginationMarker(t *testing.T) {
 		ID string
 	}
 	var data = []*example{
-		{ID: values[1][0].(strfmt.UUID).String()},
-		{ID: values[2][0].(strfmt.UUID).String()},
+		{ID: "00000000-0000-0000-0000-000000000002"},
+		{ID: "00000000-0000-0000-0000-000000000003"},
 	}
 	links := p.GetLinks(data)
 	assert.Equal(t, "previous", links[0].Rel)
@@ -152,20 +133,11 @@ func TestPaginationMarker(t *testing.T) {
 
 func TestPageReverse(t *testing.T) {
 	config.Global.ApiSettings.PaginationMaxLimit = 2
-	mock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
+	dbMock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer mock.Close()
-
-	values := [][]any{
-		{strfmt.UUID("00000000-0000-0000-0000-000000000002")},
-		{strfmt.UUID("00000000-0000-0000-0000-000000000003")},
-	}
-
-	mock.ExpectQuery("SELECT id FROM example ORDER BY id DESC, created_at DESC LIMIT 2").
-		WithArgs(pgx.NamedArgs(nil)).
-		WillReturnRows(pgxmock.NewRows([]string{"id"}).AddRows(values...))
+	defer dbMock.Close()
 
 	pageReverse := true
 	p := Pagination{
@@ -173,10 +145,11 @@ func TestPageReverse(t *testing.T) {
 		PageReverse: &pageReverse,
 	}
 
-	if _, err := p.Query(mock, "SELECT id FROM example", nil); err != nil {
-		t.Error(err)
-	}
-	if err := mock.ExpectationsWereMet(); err != nil {
+	sql, args, err := p.QuerySQ(dbMock, Select("*").From("example"))
+	assert.Nil(t, err)
+	assert.Equal(t, sql, "SELECT * FROM example ORDER BY id DESC, created_at DESC LIMIT 2")
+	assert.Nil(t, args)
+	if err := dbMock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 
@@ -184,8 +157,8 @@ func TestPageReverse(t *testing.T) {
 		ID string
 	}
 	var data = []*example{
-		{ID: values[1][0].(strfmt.UUID).String()},
-		{ID: values[0][0].(strfmt.UUID).String()},
+		{ID: "00000000-0000-0000-0000-000000000003"},
+		{ID: "00000000-0000-0000-0000-000000000002"},
 	}
 	links := p.GetLinks(data)
 	assert.Equal(t, "next", links[0].Rel)

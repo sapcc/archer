@@ -21,9 +21,9 @@ import (
 // This is a basic postgresql query generator that allows building select stmts with ORM feeling.
 
 var (
-	stmtBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
-	Select      = stmtBuilder.Select
-	Update      = stmtBuilder.Update
-	Insert      = stmtBuilder.Insert
-	Delete      = stmtBuilder.Delete
+	StmtBuilder = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
+	Select      = StmtBuilder.Select
+	Update      = StmtBuilder.Update
+	Insert      = StmtBuilder.Insert
+	Delete      = StmtBuilder.Delete
 )

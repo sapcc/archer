@@ -36,15 +36,30 @@ import (
 )
 
 func (c *Controller) GetServiceHandler(params service.GetServiceParams, principal any) middleware.Responder {
-	filter := make(map[string]any, 0)
+	q := db.Select("*").From("service")
 	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
 		return service.NewGetServiceForbidden()
 	} else if projectId != "" {
-		filter["project_id"] = projectId
+		// RBAC support
+		q = q.Where(
+			sq.Or{
+				sq.Eq{"project_id": projectId},
+				db.Select("1").
+					Prefix("EXISTS(").
+					From("rbac r").
+					Where("r.target_project = ?", projectId).
+					Where("r.service_id = service.id").
+					Suffix(")"),
+			})
 	}
 
 	pagination := db.Pagination(params)
-	rows, err := pagination.Query(c.pool, "SELECT * FROM service", filter)
+	sql, args, err := pagination.QuerySQ(c.pool, q)
+	if err != nil {
+		panic(err)
+	}
+
+	rows, err := c.pool.Query(context.Background(), sql, args...)
 	if err != nil {
 		panic(err)
 	}

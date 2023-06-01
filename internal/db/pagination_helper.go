@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	sq "github.com/Masterminds/squirrel"
 	"net/http"
 	"reflect"
 	"regexp"
@@ -67,7 +68,14 @@ type Pagination struct {
 	  In: query
 	*/
 	PageReverse *bool
-	/*Comma-separated list of sort keys, optionally prefix with - to reverse sort order.
+	/*Filter for resources belonging or accessible by a specific project.
+
+	  Max Length: 32
+	  Min Length: 32
+	  In: query
+	*/
+	ProjectID *string
+	/*Comma-separated list of sort keys, optinally prefix with - to reverse sort order.
 	  In: query
 	*/
 	Sort *string
@@ -90,6 +98,122 @@ func stripDesc(sortDirKey string) (string, bool) {
 	return sortKey, sortKey != sortDirKey
 }
 
+func (p *Pagination) QuerySQ(db pgxscan.Querier, q sq.SelectBuilder) (string, []any, error) {
+	var sortDirKeys []string
+	var pageReverse bool
+
+	if p.ProjectID != nil {
+		q = q.Where("project_id = ?", p.ProjectID)
+	}
+
+	// tags Filter
+	if p.Tags != nil {
+		q = q.Where("tags @> ?", pgtype.FlatArray[string](p.Tags))
+	}
+	if p.TagsAny != nil {
+		q = q.Where("tags && ?", pgtype.FlatArray[string](p.TagsAny))
+	}
+	if p.NotTags != nil {
+		q = q.Where("NOT ( tags @> ? )", pgtype.FlatArray[string](p.NotTags))
+	}
+	if p.NotTagsAny != nil {
+		q = q.Where("NOT ( tags && ? )", pgtype.FlatArray[string](p.NotTagsAny))
+	}
+
+	// page reverse
+	if p.PageReverse != nil {
+		pageReverse = *p.PageReverse
+	}
+
+	if !config.Global.ApiSettings.DisableSorting && p.Sort != nil {
+		sortDirKeys = strings.Split(*p.Sort, ",")
+
+		// add default sort keys (if not existing)
+		for _, defaultSortKey := range defaultSortKeys {
+			found := false
+			for _, paramSortKey := range sortDirKeys {
+				sortKey, _ := stripDesc(paramSortKey)
+				if sortKey == defaultSortKey {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				sortDirKeys = append(sortDirKeys, defaultSortKey)
+			}
+		}
+	} else {
+		// creates a copy
+		sortDirKeys = append(sortDirKeys, defaultSortKeys...)
+	}
+
+	// paginate
+	if !config.Global.ApiSettings.DisablePagination && p.Marker != nil {
+		filter := make(map[string]any)
+		filter["id"] = strfmt.UUID("")
+		sql, args := q.Where("id = ?", p.Marker).MustSql()
+		if err := pgxscan.Get(context.Background(), db, &filter, sql, args...); err != nil {
+			return "", nil, err
+		}
+
+		if len(filter) == 0 {
+			return "", nil, ErrInvalidMarker
+		}
+
+		// workaround so squirrel doesn't complain about arrays from uuids
+		for key, val := range filter {
+			if v, ok := val.([16]uint8); ok {
+				filter[key] = pgtype.UUID{Bytes: v, Valid: true}
+			}
+		}
+
+		// Craft WHERE ... conditions
+		var sortWhereClauses sq.Or
+		for i, sortDirKey := range sortDirKeys {
+			var critAttrs sq.And
+			for j := range sortDirKeys[:i] {
+				sortKey := strings.TrimPrefix(sortDirKeys[j], "-")
+				critAttrs = append(critAttrs, sq.Eq{sortKey: filter[sortKey]})
+			}
+
+			sortKey := strings.TrimPrefix(sortDirKey, "-")
+			if (sortKey != sortDirKey) && !pageReverse || (sortKey == sortDirKey) && pageReverse {
+				critAttrs = append(critAttrs, sq.Lt{sortKey: filter[sortKey]})
+			} else {
+				critAttrs = append(critAttrs, sq.Gt{sortKey: filter[sortKey]})
+			}
+
+			sortWhereClauses = append(sortWhereClauses, critAttrs)
+		}
+		q = q.Where(sortWhereClauses)
+	}
+
+	// always order to ensure stable result
+	for _, sortDirKey := range sortDirKeys {
+		// Input sanitation
+		if !sortDirKeyRegex.MatchString(sortDirKey) {
+			continue
+		}
+
+		sortKey, desc := stripDesc(sortDirKey)
+
+		if (desc && !pageReverse) || (!desc && pageReverse) {
+			q = q.OrderBy(fmt.Sprintf("%s DESC", sortKey))
+		} else {
+			q = q.OrderBy(fmt.Sprintf("%s ASC", sortKey))
+		}
+	}
+
+	var maxLimit = config.Global.ApiSettings.PaginationMaxLimit
+	if p.Limit == nil || (p.Limit != nil && *p.Limit > maxLimit) {
+		p.Limit = &maxLimit
+	}
+	q = q.Limit(uint64(*p.Limit))
+
+	return q.ToSql()
+}
+
 // Query pagination helper that also includes policy query filter
 func (p *Pagination) Query(db pgxscan.Querier, query string, filter map[string]any) (pgx.Rows, error) {
 	var sortDirKeys []string
@@ -100,6 +224,10 @@ func (p *Pagination) Query(db pgxscan.Querier, query string, filter map[string]a
 	// add filter
 	for key := range filter {
 		whereClauses = append(whereClauses, fmt.Sprintf("%s = @%s", key, key))
+	}
+
+	if p.ProjectID != nil {
+		whereClauses = append(whereClauses, "project_id = @project_id")
 	}
 
 	// tags Filter

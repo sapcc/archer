@@ -1,16 +1,15 @@
 {
   "cloud_admin": "project_domain_name:ccadmin and project_name:cloud_admin",
-  "owner": "project_id:%(project_id)s",
-  "member": "role:member and rule:owner",
-  "viewer": "role:archer_viewer and rule:owner",
-  "admin": "role:archer_admin and rule:owner",
+  "member": "role:member",
+  "viewer": "role:network_viewer",
+  "admin": "role:network_admin",
 
   "context_is_admin": "rule:cloud_admin or rule:admin",
   "context_is_editor": "rule:context_is_admin or rule:member",
   "context_is_viewer": "rule:context_is_editor or rule:viewer",
 
   "service:read": "rule:context_is_viewer",
-  "service:read-global": "rule:context_is_admin",
+  "service:read-global": "rule:cloud_admin",
   "service:create": "rule:context_is_editor",
   "service:update": "rule:context_is_editor",
   "service:delete": "rule:context_is_editor",
@@ -20,11 +19,12 @@
   "service-endpoint:reject": "rule:context_is_editor",
 
   "endpoint:read": "rule:context_is_viewer",
-  "endpoint:read-global": "rule:context_is_admin",
+  "endpoint:read-global": "rule:cloud_admin",
   "endpoint:create": "rule:context_is_editor",
   "endpoint:delete": "rule:context_is_editor",
 
   "rbac-policy:read": "rule:context_is_viewer",
+  "rbac-policy:read-global": "rule:cloud_admin",
   "rbac-policy:create": "rule:context_is_editor",
   "rbac-policy:update": "rule:context_is_editor",
   "rbac-policy:delete": "rule:context_is_editor",
