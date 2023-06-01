@@ -71,6 +71,13 @@ type GetServiceParams struct {
 	  In: query
 	*/
 	PageReverse *bool
+	/*Filter for resources belonging or accessible by a specific project.
+
+	  Max Length: 32
+	  Min Length: 32
+	  In: query
+	*/
+	ProjectID *string
 	/*Comma-separated list of sort keys, optinally prefix with - to reverse sort order.
 	  In: query
 	*/
@@ -122,6 +129,11 @@ func (o *GetServiceParams) BindRequest(r *http.Request, route *middleware.Matche
 
 	qPageReverse, qhkPageReverse, _ := qs.GetOK("page_reverse")
 	if err := o.bindPageReverse(qPageReverse, qhkPageReverse, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qProjectID, qhkProjectID, _ := qs.GetOK("project_id")
+	if err := o.bindProjectID(qProjectID, qhkProjectID, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -278,6 +290,42 @@ func (o *GetServiceParams) bindPageReverse(rawData []string, hasKey bool, format
 		return errors.InvalidType("page_reverse", "query", "bool", raw)
 	}
 	o.PageReverse = &value
+
+	return nil
+}
+
+// bindProjectID binds and validates parameter ProjectID from query.
+func (o *GetServiceParams) bindProjectID(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+	o.ProjectID = &raw
+
+	if err := o.validateProjectID(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateProjectID carries on validations for parameter ProjectID
+func (o *GetServiceParams) validateProjectID(formats strfmt.Registry) error {
+
+	if err := validate.MinLength("project_id", "query", *o.ProjectID, 32); err != nil {
+		return err
+	}
+
+	if err := validate.MaxLength("project_id", "query", *o.ProjectID, 32); err != nil {
+		return err
+	}
 
 	return nil
 }

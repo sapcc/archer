@@ -112,6 +112,13 @@ type GetServiceParams struct {
 	*/
 	PageReverse *bool
 
+	/* ProjectID.
+
+	   Filter for resources belonging or accessible by a specific project.
+
+	*/
+	ProjectID *string
+
 	/* Sort.
 
 	   Comma-separated list of sort keys, optinally prefix with - to reverse sort order.
@@ -242,6 +249,17 @@ func (o *GetServiceParams) SetPageReverse(pageReverse *bool) {
 	o.PageReverse = pageReverse
 }
 
+// WithProjectID adds the projectID to the get service params
+func (o *GetServiceParams) WithProjectID(projectID *string) *GetServiceParams {
+	o.SetProjectID(projectID)
+	return o
+}
+
+// SetProjectID adds the projectId to the get service params
+func (o *GetServiceParams) SetProjectID(projectID *string) {
+	o.ProjectID = projectID
+}
+
 // WithSort adds the sort to the get service params
 func (o *GetServiceParams) WithSort(sort *string) *GetServiceParams {
 	o.SetSort(sort)
@@ -351,6 +369,23 @@ func (o *GetServiceParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Re
 		if qPageReverse != "" {
 
 			if err := r.SetQueryParam("page_reverse", qPageReverse); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.ProjectID != nil {
+
+		// query param project_id
+		var qrProjectID string
+
+		if o.ProjectID != nil {
+			qrProjectID = *o.ProjectID
+		}
+		qProjectID := qrProjectID
+		if qProjectID != "" {
+
+			if err := r.SetQueryParam("project_id", qProjectID); err != nil {
 				return err
 			}
 		}

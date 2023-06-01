@@ -109,6 +109,9 @@ func init() {
           },
           {
             "$ref": "#/parameters/not-tags-any"
+          },
+          {
+            "$ref": "#/parameters/project_id"
           }
         ],
         "responses": {
@@ -705,6 +708,9 @@ func init() {
           },
           {
             "$ref": "#/parameters/not-tags-any"
+          },
+          {
+            "$ref": "#/parameters/project_id"
           }
         ],
         "responses": {
@@ -1600,6 +1606,14 @@ func init() {
       "name": "page_reverse",
       "in": "query"
     },
+    "project_id": {
+      "maxLength": 32,
+      "minLength": 32,
+      "type": "string",
+      "description": "Filter for resources belonging or accessible by a specific project.\n",
+      "name": "project_id",
+      "in": "query"
+    },
     "sort": {
       "type": "string",
       "description": "Comma-separated list of sort keys, optinally prefix with - to reverse sort order.",
@@ -1781,6 +1795,14 @@ func init() {
             },
             "description": "Filter for resources not having tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
             "name": "not-tags-any",
+            "in": "query"
+          },
+          {
+            "maxLength": 32,
+            "minLength": 32,
+            "type": "string",
+            "description": "Filter for resources belonging or accessible by a specific project.\n",
+            "name": "project_id",
             "in": "query"
           }
         ],
@@ -2412,6 +2434,14 @@ func init() {
             },
             "description": "Filter for resources not having tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
             "name": "not-tags-any",
+            "in": "query"
+          },
+          {
+            "maxLength": 32,
+            "minLength": 32,
+            "type": "string",
+            "description": "Filter for resources belonging or accessible by a specific project.\n",
+            "name": "project_id",
             "in": "query"
           }
         ],
@@ -3365,6 +3395,14 @@ func init() {
       "type": "boolean",
       "description": "Sets the page direction.",
       "name": "page_reverse",
+      "in": "query"
+    },
+    "project_id": {
+      "maxLength": 32,
+      "minLength": 32,
+      "type": "string",
+      "description": "Filter for resources belonging or accessible by a specific project.\n",
+      "name": "project_id",
       "in": "query"
     },
     "sort": {

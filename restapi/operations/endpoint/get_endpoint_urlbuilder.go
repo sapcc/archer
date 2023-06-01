@@ -35,6 +35,7 @@ type GetEndpointURL struct {
 	NotTags     []string
 	NotTagsAny  []string
 	PageReverse *bool
+	ProjectID   *string
 	Sort        *string
 	Tags        []string
 	TagsAny     []string
@@ -126,6 +127,14 @@ func (o *GetEndpointURL) Build() (*url.URL, error) {
 	}
 	if pageReverseQ != "" {
 		qs.Set("page_reverse", pageReverseQ)
+	}
+
+	var projectIDQ string
+	if o.ProjectID != nil {
+		projectIDQ = *o.ProjectID
+	}
+	if projectIDQ != "" {
+		qs.Set("project_id", projectIDQ)
 	}
 
 	var sortQ string

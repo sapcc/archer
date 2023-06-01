@@ -191,6 +191,7 @@ paths:
         - $ref: '#/parameters/tags-any'
         - $ref: '#/parameters/not-tags'
         - $ref: '#/parameters/not-tags-any'
+        - $ref: '#/parameters/project_id'
       responses:
         200:
           description: An array of services.
@@ -447,6 +448,7 @@ paths:
         - $ref: '#/parameters/tags-any'
         - $ref: '#/parameters/not-tags'
         - $ref: '#/parameters/not-tags-any'
+        - $ref: '#/parameters/project_id'
       responses:
         200:
           description: An array of endpoints.
@@ -867,6 +869,14 @@ parameters:
       Should be provided in a comma separated list.
     items:
       type: string
+  project_id:
+    name: project_id
+    in: query
+    type: string
+    description: |
+      Filter for resources belonging or accessible by a specific project.
+    minLength: 32
+    maxLength: 32
 
 definitions:
   Service:
