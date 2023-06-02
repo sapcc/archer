@@ -23,6 +23,8 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime"
+
+	"github.com/sapcc/archer/models"
 )
 
 // GetRbacPoliciesOKCode is the HTTP code returned for type GetRbacPoliciesOK
@@ -62,6 +64,51 @@ func (o *GetRbacPoliciesOK) SetPayload(payload *GetRbacPoliciesOKBody) {
 func (o *GetRbacPoliciesOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(200)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// GetRbacPoliciesBadRequestCode is the HTTP code returned for type GetRbacPoliciesBadRequest
+const GetRbacPoliciesBadRequestCode int = 400
+
+/*
+GetRbacPoliciesBadRequest Bad request
+
+swagger:response getRbacPoliciesBadRequest
+*/
+type GetRbacPoliciesBadRequest struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetRbacPoliciesBadRequest creates GetRbacPoliciesBadRequest with default headers values
+func NewGetRbacPoliciesBadRequest() *GetRbacPoliciesBadRequest {
+
+	return &GetRbacPoliciesBadRequest{}
+}
+
+// WithPayload adds the payload to the get rbac policies bad request response
+func (o *GetRbacPoliciesBadRequest) WithPayload(payload *models.Error) *GetRbacPoliciesBadRequest {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get rbac policies bad request response
+func (o *GetRbacPoliciesBadRequest) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetRbacPoliciesBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(400)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

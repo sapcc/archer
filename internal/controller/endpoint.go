@@ -41,20 +41,23 @@ func (c *Controller) GetEndpointHandler(params endpoint.GetEndpointParams, princ
 	}
 
 	pagination := db.Pagination(params)
-	sql, args, err := pagination.QuerySQ(c.pool, q.
+	sql, args, err := pagination.Query(c.pool, q.
 		Select("endpoint.*", "endpoint_port.port_id AS \"target.port\"",
 			"endpoint_port.network AS \"target.network\"", " endpoint_port.subnet AS \"target.subnet\"").
 		From("endpoint").Join("endpoint_port ON endpoint_port.endpoint_id = endpoint.id"))
 	if err != nil {
 		panic(err)
 	}
-	rows, err := c.pool.Query(context.Background(), sql, args...)
-	if err != nil {
-		panic(err)
-	}
 
 	var items = make([]*models.Endpoint, 0)
-	if err := pgxscan.ScanAll(&items, rows); err != nil {
+	if err := pgxscan.Select(context.Background(), c.pool, &items, sql, args...); err != nil {
+		var pe *pgconn.PgError
+		if errors.As(err, &pe) && pe.Code == pgerrcode.UndefinedColumn {
+			return endpoint.NewGetEndpointBadRequest().WithPayload(&models.Error{
+				Code:    400,
+				Message: "Unknown sort column.",
+			})
+		}
 		panic(err)
 	}
 	links := pagination.GetLinks(items)

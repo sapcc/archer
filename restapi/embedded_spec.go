@@ -136,6 +136,12 @@ func init() {
               }
             }
           },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           }
@@ -535,6 +541,12 @@ func init() {
               }
             }
           },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           }
@@ -733,6 +745,12 @@ func init() {
                   "x-omitempty": true
                 }
               }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "$ref": "#/definitions/Error"
             }
           },
           "403": {
@@ -980,6 +998,12 @@ func init() {
                   "x-omitempty": true
                 }
               }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "$ref": "#/definitions/Error"
             }
           },
           "403": {
@@ -1828,6 +1852,12 @@ func init() {
               }
             }
           },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           }
@@ -2225,6 +2255,12 @@ func init() {
               }
             }
           },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           }
@@ -2465,6 +2501,12 @@ func init() {
                   "x-omitempty": true
                 }
               }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "$ref": "#/definitions/Error"
             }
           },
           "403": {
@@ -2725,6 +2767,12 @@ func init() {
                   "x-omitempty": true
                 }
               }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "$ref": "#/definitions/Error"
             }
           },
           "403": {

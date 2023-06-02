@@ -23,6 +23,8 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime"
+
+	"github.com/sapcc/archer/models"
 )
 
 // GetServiceOKCode is the HTTP code returned for type GetServiceOK
@@ -62,6 +64,51 @@ func (o *GetServiceOK) SetPayload(payload *GetServiceOKBody) {
 func (o *GetServiceOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(200)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// GetServiceBadRequestCode is the HTTP code returned for type GetServiceBadRequest
+const GetServiceBadRequestCode int = 400
+
+/*
+GetServiceBadRequest Bad request
+
+swagger:response getServiceBadRequest
+*/
+type GetServiceBadRequest struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetServiceBadRequest creates GetServiceBadRequest with default headers values
+func NewGetServiceBadRequest() *GetServiceBadRequest {
+
+	return &GetServiceBadRequest{}
+}
+
+// WithPayload adds the payload to the get service bad request response
+func (o *GetServiceBadRequest) WithPayload(payload *models.Error) *GetServiceBadRequest {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get service bad request response
+func (o *GetServiceBadRequest) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetServiceBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(400)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

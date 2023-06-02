@@ -39,7 +39,7 @@ func TestPaginationGeneric(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer dbMock.Close()
-	sql, args, err := p.QuerySQ(dbMock, Select("*").From("example"))
+	sql, args, err := p.Query(dbMock, Select("*").From("example"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -64,7 +64,7 @@ func TestPaginationLimit(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer dbMock.Close()
-	sql, args, err := p.QuerySQ(dbMock, Select("*").From("example"))
+	sql, args, err := p.Query(dbMock, Select("*").From("example"))
 	if err != nil {
 		assert.Error(t, err)
 	}
@@ -106,7 +106,7 @@ func TestPaginationMarker(t *testing.T) {
 		Marker:      &marker,
 	}
 
-	sql, args, err := p.QuerySQ(dbMock, Select("*").From("example"))
+	sql, args, err := p.Query(dbMock, Select("*").From("example"))
 	assert.Nil(t, err)
 	assert.Equal(t, `SELECT * FROM example WHERE ((id > $1) OR (id = $2 AND created_at > $3)) ORDER BY id ASC, created_at ASC LIMIT 1000`,
 		sql)
@@ -145,7 +145,7 @@ func TestPageReverse(t *testing.T) {
 		PageReverse: &pageReverse,
 	}
 
-	sql, args, err := p.QuerySQ(dbMock, Select("*").From("example"))
+	sql, args, err := p.Query(dbMock, Select("*").From("example"))
 	assert.Nil(t, err)
 	assert.Equal(t, sql, "SELECT * FROM example ORDER BY id DESC, created_at DESC LIMIT 2")
 	assert.Nil(t, args)

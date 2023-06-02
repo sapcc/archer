@@ -47,6 +47,12 @@ func (o *GetServiceServiceIDEndpointsReader) ReadResponse(response runtime.Clien
 			return nil, err
 		}
 		return result, nil
+	case 400:
+		result := NewGetServiceServiceIDEndpointsBadRequest()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 403:
 		result := NewGetServiceServiceIDEndpointsForbidden()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -123,6 +129,74 @@ func (o *GetServiceServiceIDEndpointsOK) GetPayload() *GetServiceServiceIDEndpoi
 func (o *GetServiceServiceIDEndpointsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(GetServiceServiceIDEndpointsOKBody)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetServiceServiceIDEndpointsBadRequest creates a GetServiceServiceIDEndpointsBadRequest with default headers values
+func NewGetServiceServiceIDEndpointsBadRequest() *GetServiceServiceIDEndpointsBadRequest {
+	return &GetServiceServiceIDEndpointsBadRequest{}
+}
+
+/*
+GetServiceServiceIDEndpointsBadRequest describes a response with status code 400, with default header values.
+
+Bad request
+*/
+type GetServiceServiceIDEndpointsBadRequest struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this get service service Id endpoints bad request response has a 2xx status code
+func (o *GetServiceServiceIDEndpointsBadRequest) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this get service service Id endpoints bad request response has a 3xx status code
+func (o *GetServiceServiceIDEndpointsBadRequest) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this get service service Id endpoints bad request response has a 4xx status code
+func (o *GetServiceServiceIDEndpointsBadRequest) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this get service service Id endpoints bad request response has a 5xx status code
+func (o *GetServiceServiceIDEndpointsBadRequest) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this get service service Id endpoints bad request response a status code equal to that given
+func (o *GetServiceServiceIDEndpointsBadRequest) IsCode(code int) bool {
+	return code == 400
+}
+
+// Code gets the status code for the get service service Id endpoints bad request response
+func (o *GetServiceServiceIDEndpointsBadRequest) Code() int {
+	return 400
+}
+
+func (o *GetServiceServiceIDEndpointsBadRequest) Error() string {
+	return fmt.Sprintf("[GET /service/{service_id}/endpoints][%d] getServiceServiceIdEndpointsBadRequest  %+v", 400, o.Payload)
+}
+
+func (o *GetServiceServiceIDEndpointsBadRequest) String() string {
+	return fmt.Sprintf("[GET /service/{service_id}/endpoints][%d] getServiceServiceIdEndpointsBadRequest  %+v", 400, o.Payload)
+}
+
+func (o *GetServiceServiceIDEndpointsBadRequest) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetServiceServiceIDEndpointsBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

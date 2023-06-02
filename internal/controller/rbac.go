@@ -15,6 +15,7 @@
 package controller
 
 import (
+	"context"
 	"errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -31,11 +32,13 @@ import (
 )
 
 func (c *Controller) GetRbacPoliciesHandler(params rbac.GetRbacPoliciesParams, principal any) middleware.Responder {
-	filter := make(map[string]any, 0)
+	q := db.Select("id", "target_project AS target", "'project' AS target_type", "service_id",
+		"created_at", "updated_at", "project_id").
+		From("rbac")
 	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
 		return rbac.NewGetRbacPoliciesForbidden()
 	} else if projectId != "" {
-		filter["project_id"] = projectId
+		q = q.Where("project_id = ?", projectId)
 	}
 
 	pagination := db.Pagination{
@@ -45,14 +48,21 @@ func (c *Controller) GetRbacPoliciesHandler(params rbac.GetRbacPoliciesParams, p
 		PageReverse: params.PageReverse,
 		Sort:        params.Sort,
 	}
-	sql := "SELECT id, target_project AS target, 'project' as target_type, service_id, created_at, updated_at, project_id FROM rbac"
-	rows, err := pagination.Query(c.pool, sql, filter)
+
+	sql, args, err := pagination.Query(c.pool, q)
 	if err != nil {
 		panic(err)
 	}
 
 	var items = make([]*models.Rbacpolicy, 0)
-	if err := pgxscan.ScanAll(&items, rows); err != nil {
+	if err := pgxscan.Select(context.Background(), c.pool, &items, sql, args...); err != nil {
+		var pe *pgconn.PgError
+		if errors.As(err, &pe) && pe.Code == pgerrcode.UndefinedColumn {
+			return rbac.NewGetRbacPoliciesBadRequest().WithPayload(&models.Error{
+				Code:    400,
+				Message: "Unknown sort column.",
+			})
+		}
 		panic(err)
 	}
 	links := pagination.GetLinks(items)

@@ -23,6 +23,8 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime"
+
+	"github.com/sapcc/archer/models"
 )
 
 // GetEndpointOKCode is the HTTP code returned for type GetEndpointOK
@@ -62,6 +64,51 @@ func (o *GetEndpointOK) SetPayload(payload *GetEndpointOKBody) {
 func (o *GetEndpointOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(200)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// GetEndpointBadRequestCode is the HTTP code returned for type GetEndpointBadRequest
+const GetEndpointBadRequestCode int = 400
+
+/*
+GetEndpointBadRequest Bad request
+
+swagger:response getEndpointBadRequest
+*/
+type GetEndpointBadRequest struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetEndpointBadRequest creates GetEndpointBadRequest with default headers values
+func NewGetEndpointBadRequest() *GetEndpointBadRequest {
+
+	return &GetEndpointBadRequest{}
+}
+
+// WithPayload adds the payload to the get endpoint bad request response
+func (o *GetEndpointBadRequest) WithPayload(payload *models.Error) *GetEndpointBadRequest {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get endpoint bad request response
+func (o *GetEndpointBadRequest) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetEndpointBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(400)
 	if o.Payload != nil {
 		payload := o.Payload
 		if err := producer.Produce(rw, payload); err != nil {

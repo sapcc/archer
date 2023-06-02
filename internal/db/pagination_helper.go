@@ -26,7 +26,6 @@ import (
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/strfmt"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/sapcc/archer/internal/config"
@@ -98,7 +97,7 @@ func stripDesc(sortDirKey string) (string, bool) {
 	return sortKey, sortKey != sortDirKey
 }
 
-func (p *Pagination) QuerySQ(db pgxscan.Querier, q sq.SelectBuilder) (string, []any, error) {
+func (p *Pagination) Query(db pgxscan.Querier, q sq.SelectBuilder) (string, []any, error) {
 	var sortDirKeys []string
 	var pageReverse bool
 
@@ -212,144 +211,6 @@ func (p *Pagination) QuerySQ(db pgxscan.Querier, q sq.SelectBuilder) (string, []
 	q = q.Limit(uint64(*p.Limit))
 
 	return q.ToSql()
-}
-
-// Query pagination helper that also includes policy query filter
-func (p *Pagination) Query(db pgxscan.Querier, query string, filter map[string]any) (pgx.Rows, error) {
-	var sortDirKeys []string
-	var whereClauses []string
-	var orderBy string
-	var pageReverse bool
-
-	// add filter
-	for key := range filter {
-		whereClauses = append(whereClauses, fmt.Sprintf("%s = @%s", key, key))
-	}
-
-	if p.ProjectID != nil {
-		whereClauses = append(whereClauses, "project_id = @project_id")
-	}
-
-	// tags Filter
-	if p.Tags != nil {
-		whereClauses = append(whereClauses, "tags @> @tags")
-		filter["tags"] = pgtype.FlatArray[string](p.Tags)
-	}
-	if p.TagsAny != nil {
-		whereClauses = append(whereClauses, "tags && @tags_any")
-		filter["tags_any"] = pgtype.FlatArray[string](p.TagsAny)
-	}
-	if p.NotTags != nil {
-		whereClauses = append(whereClauses, "NOT ( tags @> @not_tags )")
-		filter["not_tags"] = pgtype.FlatArray[string](p.NotTags)
-	}
-	if p.NotTagsAny != nil {
-		whereClauses = append(whereClauses, "NOT ( tags && @not_tags_any )")
-		filter["not_tags_any"] = pgtype.FlatArray[string](p.NotTagsAny)
-	}
-
-	// page reverse
-	if p.PageReverse != nil {
-		pageReverse = *p.PageReverse
-	}
-
-	// add sorting
-	if !config.Global.ApiSettings.DisableSorting && p.Sort != nil {
-		sortDirKeys = strings.Split(*p.Sort, ",")
-
-		// add default sort keys (if not existing)
-		for _, defaultSortKey := range defaultSortKeys {
-			found := false
-			for _, paramSortKey := range sortDirKeys {
-				sortKey, _ := stripDesc(paramSortKey)
-				if sortKey == defaultSortKey {
-					found = true
-					break
-				}
-			}
-
-			if !found {
-				sortDirKeys = append(sortDirKeys, defaultSortKey)
-			}
-		}
-	} else {
-		// creates a copy
-		sortDirKeys = append(sortDirKeys, defaultSortKeys...)
-	}
-
-	// always order to ensure stable result
-	orderBy += " ORDER BY "
-	for i, sortDirKey := range sortDirKeys {
-		// Input sanitation
-		if !sortDirKeyRegex.MatchString(sortDirKey) {
-			continue
-		}
-
-		sortKey, desc := stripDesc(sortDirKey)
-		orderBy += sortKey
-		if (desc && !pageReverse) || (!desc && pageReverse) {
-			orderBy += " DESC"
-		} else {
-			orderBy += " ASC"
-		}
-
-		if i < len(sortDirKeys)-1 {
-			orderBy += ", "
-		}
-	}
-
-	// paginate
-	if !config.Global.ApiSettings.DisablePagination && p.Marker != nil {
-		sql := fmt.Sprintf(`%s WHERE id = $1`, query)
-		if err := pgxscan.Get(context.Background(), db, &filter, sql, p.Marker); err != nil {
-			return nil, err
-		}
-
-		if len(filter) == 0 {
-			return nil, ErrInvalidMarker
-		}
-
-		// Craft WHERE ... conditions
-		var sortWhereClauses strings.Builder
-		for i, sortDirKey := range sortDirKeys {
-			var critAttrs []string = nil
-			for j := range sortDirKeys[:i] {
-				sortKey := strings.TrimPrefix(sortDirKeys[j], "-")
-				critAttrs = append(critAttrs, fmt.Sprintf("%s = @%s", sortKey, sortKey))
-			}
-
-			sortKey := strings.TrimPrefix(sortDirKey, "-")
-			if (sortKey != sortDirKey) && !pageReverse || (sortKey == sortDirKey) && pageReverse {
-				critAttrs = append(critAttrs, fmt.Sprintf("%s < @%s", sortKey, sortKey))
-			} else {
-				critAttrs = append(critAttrs, fmt.Sprintf("%s > @%s", sortKey, sortKey))
-			}
-
-			sortWhereClauses.WriteString("( " + strings.Join(critAttrs, " AND ") + " )")
-
-			if i < len(sortDirKeys)-1 {
-				sortWhereClauses.WriteString(" OR ")
-			}
-		}
-		whereClauses = append(whereClauses, sortWhereClauses.String())
-	}
-
-	// add WHERE
-	if len(whereClauses) > 0 {
-		query += " WHERE ( " + strings.Join(whereClauses, " ) AND ( ") + " )"
-	}
-
-	// add ORDER BY
-	query += orderBy
-
-	// maximum limit
-	var maxLimit = config.Global.ApiSettings.PaginationMaxLimit
-	if p.Limit == nil || (p.Limit != nil && *p.Limit > maxLimit) {
-		p.Limit = &maxLimit
-	}
-	query += fmt.Sprint(" LIMIT ", *p.Limit)
-
-	return db.Query(context.Background(), query, pgx.NamedArgs(filter))
 }
 
 func (p *Pagination) GetLinks(modelList any) []*models.Link {

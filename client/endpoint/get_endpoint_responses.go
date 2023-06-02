@@ -47,6 +47,12 @@ func (o *GetEndpointReader) ReadResponse(response runtime.ClientResponse, consum
 			return nil, err
 		}
 		return result, nil
+	case 400:
+		result := NewGetEndpointBadRequest()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 403:
 		result := NewGetEndpointForbidden()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -117,6 +123,74 @@ func (o *GetEndpointOK) GetPayload() *GetEndpointOKBody {
 func (o *GetEndpointOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(GetEndpointOKBody)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetEndpointBadRequest creates a GetEndpointBadRequest with default headers values
+func NewGetEndpointBadRequest() *GetEndpointBadRequest {
+	return &GetEndpointBadRequest{}
+}
+
+/*
+GetEndpointBadRequest describes a response with status code 400, with default header values.
+
+Bad request
+*/
+type GetEndpointBadRequest struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this get endpoint bad request response has a 2xx status code
+func (o *GetEndpointBadRequest) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this get endpoint bad request response has a 3xx status code
+func (o *GetEndpointBadRequest) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this get endpoint bad request response has a 4xx status code
+func (o *GetEndpointBadRequest) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this get endpoint bad request response has a 5xx status code
+func (o *GetEndpointBadRequest) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this get endpoint bad request response a status code equal to that given
+func (o *GetEndpointBadRequest) IsCode(code int) bool {
+	return code == 400
+}
+
+// Code gets the status code for the get endpoint bad request response
+func (o *GetEndpointBadRequest) Code() int {
+	return 400
+}
+
+func (o *GetEndpointBadRequest) Error() string {
+	return fmt.Sprintf("[GET /endpoint][%d] getEndpointBadRequest  %+v", 400, o.Payload)
+}
+
+func (o *GetEndpointBadRequest) String() string {
+	return fmt.Sprintf("[GET /endpoint][%d] getEndpointBadRequest  %+v", 400, o.Payload)
+}
+
+func (o *GetEndpointBadRequest) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetEndpointBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

@@ -47,6 +47,12 @@ func (o *GetRbacPoliciesReader) ReadResponse(response runtime.ClientResponse, co
 			return nil, err
 		}
 		return result, nil
+	case 400:
+		result := NewGetRbacPoliciesBadRequest()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 403:
 		result := NewGetRbacPoliciesForbidden()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -117,6 +123,74 @@ func (o *GetRbacPoliciesOK) GetPayload() *GetRbacPoliciesOKBody {
 func (o *GetRbacPoliciesOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(GetRbacPoliciesOKBody)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetRbacPoliciesBadRequest creates a GetRbacPoliciesBadRequest with default headers values
+func NewGetRbacPoliciesBadRequest() *GetRbacPoliciesBadRequest {
+	return &GetRbacPoliciesBadRequest{}
+}
+
+/*
+GetRbacPoliciesBadRequest describes a response with status code 400, with default header values.
+
+Bad request
+*/
+type GetRbacPoliciesBadRequest struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this get rbac policies bad request response has a 2xx status code
+func (o *GetRbacPoliciesBadRequest) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this get rbac policies bad request response has a 3xx status code
+func (o *GetRbacPoliciesBadRequest) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this get rbac policies bad request response has a 4xx status code
+func (o *GetRbacPoliciesBadRequest) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this get rbac policies bad request response has a 5xx status code
+func (o *GetRbacPoliciesBadRequest) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this get rbac policies bad request response a status code equal to that given
+func (o *GetRbacPoliciesBadRequest) IsCode(code int) bool {
+	return code == 400
+}
+
+// Code gets the status code for the get rbac policies bad request response
+func (o *GetRbacPoliciesBadRequest) Code() int {
+	return 400
+}
+
+func (o *GetRbacPoliciesBadRequest) Error() string {
+	return fmt.Sprintf("[GET /rbac-policies][%d] getRbacPoliciesBadRequest  %+v", 400, o.Payload)
+}
+
+func (o *GetRbacPoliciesBadRequest) String() string {
+	return fmt.Sprintf("[GET /rbac-policies][%d] getRbacPoliciesBadRequest  %+v", 400, o.Payload)
+}
+
+func (o *GetRbacPoliciesBadRequest) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetRbacPoliciesBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

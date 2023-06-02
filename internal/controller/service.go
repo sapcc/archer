@@ -54,18 +54,20 @@ func (c *Controller) GetServiceHandler(params service.GetServiceParams, principa
 	}
 
 	pagination := db.Pagination(params)
-	sql, args, err := pagination.QuerySQ(c.pool, q)
-	if err != nil {
-		panic(err)
-	}
-
-	rows, err := c.pool.Query(context.Background(), sql, args...)
+	sql, args, err := pagination.Query(c.pool, q)
 	if err != nil {
 		panic(err)
 	}
 
 	var servicesResponse = make([]*models.Service, 0)
-	if err := pgxscan.ScanAll(&servicesResponse, rows); err != nil {
+	if err := pgxscan.Select(context.Background(), c.pool, &servicesResponse, sql, args...); err != nil {
+		var pe *pgconn.PgError
+		if errors.As(err, &pe) && pe.Code == pgerrcode.UndefinedColumn {
+			return service.NewGetServiceBadRequest().WithPayload(&models.Error{
+				Code:    400,
+				Message: "Unknown sort column.",
+			})
+		}
 		panic(err)
 	}
 
@@ -258,14 +260,23 @@ func (c *Controller) GetServiceServiceIDEndpointsHandler(params service.GetServi
 		PageReverse: params.PageReverse,
 		Sort:        params.Sort,
 	}
-	filter := map[string]any{"service_id": params.ServiceID}
-	rows, err := pagination.Query(tx, "SELECT id, project_id, status FROM endpoint", filter)
+	q = db.Select("id", "project_id", "status").
+		From("endpoint").
+		Where("service_id = ?", params.ServiceID)
+	sql, args, err = pagination.Query(c.pool, q)
 	if err != nil {
 		panic(err)
 	}
 
 	var endpointsResponse = make([]*models.EndpointConsumer, 0)
-	if err := pgxscan.ScanAll(&endpointsResponse, rows); err != nil {
+	if err := pgxscan.Select(context.Background(), c.pool, &endpointsResponse, sql, args...); err != nil {
+		var pe *pgconn.PgError
+		if errors.As(err, &pe) && pe.Code == pgerrcode.UndefinedColumn {
+			return service.NewGetServiceServiceIDEndpointsBadRequest().WithPayload(&models.Error{
+				Code:    400,
+				Message: "Unknown sort column.",
+			})
+		}
 		panic(err)
 	}
 

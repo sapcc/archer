@@ -72,6 +72,51 @@ func (o *GetServiceServiceIDEndpointsOK) WriteResponse(rw http.ResponseWriter, p
 	}
 }
 
+// GetServiceServiceIDEndpointsBadRequestCode is the HTTP code returned for type GetServiceServiceIDEndpointsBadRequest
+const GetServiceServiceIDEndpointsBadRequestCode int = 400
+
+/*
+GetServiceServiceIDEndpointsBadRequest Bad request
+
+swagger:response getServiceServiceIdEndpointsBadRequest
+*/
+type GetServiceServiceIDEndpointsBadRequest struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetServiceServiceIDEndpointsBadRequest creates GetServiceServiceIDEndpointsBadRequest with default headers values
+func NewGetServiceServiceIDEndpointsBadRequest() *GetServiceServiceIDEndpointsBadRequest {
+
+	return &GetServiceServiceIDEndpointsBadRequest{}
+}
+
+// WithPayload adds the payload to the get service service Id endpoints bad request response
+func (o *GetServiceServiceIDEndpointsBadRequest) WithPayload(payload *models.Error) *GetServiceServiceIDEndpointsBadRequest {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get service service Id endpoints bad request response
+func (o *GetServiceServiceIDEndpointsBadRequest) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetServiceServiceIDEndpointsBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(400)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // GetServiceServiceIDEndpointsForbiddenCode is the HTTP code returned for type GetServiceServiceIDEndpointsForbidden
 const GetServiceServiceIDEndpointsForbiddenCode int = 403
 
