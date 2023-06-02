@@ -136,14 +136,14 @@ func (a *Agent) Run() error {
 	go a.WorkerThread(context.Background())
 	go func() {
 		// run pending sync scan immediately
-		_ = a.PendingSyncLoop(nil)
+		_ = a.PendingSyncLoop(nil, nil)
 	}()
 	a.jobLoop.Run(context.Background(), nil)
 
 	return nil
 }
 
-func (a *Agent) PendingSyncLoop(prometheus.Labels) error {
+func (a *Agent) PendingSyncLoop(context.Context, prometheus.Labels) error {
 	var id, networkId strfmt.UUID
 	var rows pgx.Rows
 	var ret pgconn.CommandTag
