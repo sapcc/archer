@@ -99,13 +99,13 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 		Where(sq.Or{
 			sq.Eq{"visibility": "public"},              // public service?
 			sq.Eq{"project_id": params.Body.ProjectID}, // same project?
-			db.Select("id").
+			db.Select("1").
+				Prefix("EXISTS(").
 				From("rbac").
 				Where(sq.And{
 					sq.Eq{"target_project": params.Body.ProjectID},
 					sq.Eq{"service_id": params.Body.ServiceID},
 				}).
-				Prefix("EXISTS(").
 				Suffix(")"), // RBAC subquery
 		}).
 		Suffix("FOR UPDATE"). // Lock service/rbac row in this transaction

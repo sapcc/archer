@@ -119,7 +119,17 @@ func (c *Controller) GetServiceServiceIDHandler(params service.GetServiceService
 	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
 		return service.NewGetServiceServiceIDForbidden()
 	} else if projectId != "" {
-		q.Where("project_id = ?", projectId)
+		// RBAC support
+		q = q.Where(
+			sq.Or{
+				sq.Eq{"project_id": projectId},
+				db.Select("1").
+					Prefix("EXISTS(").
+					From("rbac r").
+					Where("r.target_project = ?", projectId).
+					Where("r.service_id = service.id").
+					Suffix(")"),
+			})
 	}
 
 	var servicesResponse models.Service
