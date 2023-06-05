@@ -11,6 +11,7 @@
   "service:read": "rule:context_is_viewer",
   "service:read-global": "rule:cloud_admin",
   "service:create": "rule:context_is_editor",
+  "service:create:provider": "rule:cloud_admin",
   "service:update": "rule:context_is_editor",
   "service:delete": "rule:context_is_editor",
 

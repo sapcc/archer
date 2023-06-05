@@ -20,13 +20,13 @@ import (
 	"github.com/jessevdk/go-flags"
 	"github.com/sapcc/go-bits/logg"
 
-	"github.com/sapcc/archer/internal/agent"
+	"github.com/sapcc/archer/internal/agent/ni"
 	"github.com/sapcc/archer/internal/config"
 )
 
 func main() {
 	parser := flags.NewParser(&config.Global, flags.Default)
-	parser.ShortDescription = "Archer Agent"
+	parser.ShortDescription = "Archer Network Injector Agent"
 
 	if _, err := parser.Parse(); err != nil {
 		code := 1
@@ -49,7 +49,7 @@ func main() {
 	}
 
 	logg.ShowDebug = config.Global.Default.Debug
-	a := agent.NewAgent()
+	a := ni.NewAgent()
 	if err := a.Run(); err != nil {
 		logg.Fatal(err.Error())
 	}

@@ -12,22 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package agent
+package f5
 
 import (
 	"context"
+	as32 "github.com/sapcc/archer/internal/agent/f5/as3"
+	"github.com/sapcc/archer/internal/agent/neutron"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
 	"github.com/sapcc/go-bits/logg"
 
-	"github.com/sapcc/archer/internal/agent/as3"
-	"github.com/sapcc/archer/internal/agent/neutron"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/models"
 )
 
-func processSNATPort(a *Agent, ctx context.Context, tx pgx.Tx, service *as3.ExtendedService) error {
+func processSNATPort(a *Agent, ctx context.Context, tx pgx.Tx, service *as32.ExtendedService) error {
 	var err error
 
 	if service.Status == "PENDING_DELETE" {
@@ -73,17 +73,17 @@ func processSNATPort(a *Agent, ctx context.Context, tx pgx.Tx, service *as3.Exte
 	if err != nil {
 		return err
 	}
-	if err := as3.EnsureVLAN(a.bigip, service.SegmentId); err != nil {
+	if err := as32.EnsureVLAN(a.bigip, service.SegmentId); err != nil {
 		return err
 	}
-	if err := as3.EnsureRouteDomain(a.bigip, service.SegmentId); err != nil {
+	if err := as32.EnsureRouteDomain(a.bigip, service.SegmentId); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func doProcessing(a *Agent, ctx context.Context, tx pgx.Tx, services []*as3.ExtendedService) error {
+func doProcessing(a *Agent, ctx context.Context, tx pgx.Tx, services []*as32.ExtendedService) error {
 	// Ensure SNAT neutron ports and segment ids
 	for _, service := range services {
 		if err := processSNATPort(a, ctx, tx, service); err != nil {
@@ -91,11 +91,11 @@ func doProcessing(a *Agent, ctx context.Context, tx pgx.Tx, services []*as3.Exte
 		}
 	}
 
-	data := as3.GetAS3Declaration(map[string]as3.Tenant{
-		"Common": as3.GetServiceTenants(services),
+	data := as32.GetAS3Declaration(map[string]as32.Tenant{
+		"Common": as32.GetServiceTenants(services),
 	})
 
-	if err := as3.PostBigIP(a.bigip, &data, "Common"); err != nil {
+	if err := as32.PostBigIP(a.bigip, &data, "Common"); err != nil {
 		return err
 	}
 
@@ -117,7 +117,7 @@ func doProcessing(a *Agent, ctx context.Context, tx pgx.Tx, services []*as3.Exte
 }
 
 func (a *Agent) ProcessServices(ctx context.Context) error {
-	var services []*as3.ExtendedService
+	var services []*as32.ExtendedService
 
 	// We need to fetch all services of this host since the AS3 tenant is shared
 	if err := pgxscan.Select(ctx, a.pool, &services,

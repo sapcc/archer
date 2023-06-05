@@ -12,10 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package agent
+package f5
 
 import (
 	"context"
+	as32 "github.com/sapcc/archer/internal/agent/f5/as3"
+	"github.com/sapcc/archer/internal/agent/neutron"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/strfmt"
@@ -24,12 +26,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/sapcc/archer/models"
 	"github.com/sapcc/go-bits/logg"
-
-	"github.com/sapcc/archer/internal/agent/as3"
-	"github.com/sapcc/archer/internal/agent/neutron"
 )
 
-func (a *Agent) populateEndpointPorts(segmentId int, endpoints []*as3.ExtendedEndpoint) error {
+func (a *Agent) populateEndpointPorts(segmentId int, endpoints []*as32.ExtendedEndpoint) error {
 	// Fetch ports from neutron
 	var opts neutron.PortListOpts
 	for _, endpoint := range endpoints {
@@ -58,7 +57,7 @@ func (a *Agent) populateEndpointPorts(segmentId int, endpoints []*as3.ExtendedEn
 }
 
 func (a *Agent) ProcessEndpoint(ctx context.Context, networkId strfmt.UUID) error {
-	var endpoints []*as3.ExtendedEndpoint
+	var endpoints []*as32.ExtendedEndpoint
 	tx, err := a.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -95,10 +94,10 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, networkId strfmt.UUID) erro
 		}
 
 		// Ensure VLAN and Route Domain
-		if err := as3.EnsureVLAN(a.bigip, segmentId); err != nil {
+		if err := as32.EnsureVLAN(a.bigip, segmentId); err != nil {
 			return err
 		}
-		if err := as3.EnsureRouteDomain(a.bigip, segmentId); err != nil {
+		if err := as32.EnsureRouteDomain(a.bigip, segmentId); err != nil {
 			return err
 		}
 		if err := a.populateEndpointPorts(segmentId, endpoints); err != nil {
@@ -106,12 +105,12 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, networkId strfmt.UUID) erro
 		}
 	}
 
-	tenantName := as3.GetEndpointTenantName(networkId)
-	data := as3.GetAS3Declaration(map[string]as3.Tenant{
-		tenantName: as3.GetEndpointTenants(endpoints),
+	tenantName := as32.GetEndpointTenantName(networkId)
+	data := as32.GetAS3Declaration(map[string]as32.Tenant{
+		tenantName: as32.GetEndpointTenants(endpoints),
 	})
 
-	if err := as3.PostBigIP(a.bigip, &data, tenantName); err != nil {
+	if err := as32.PostBigIP(a.bigip, &data, tenantName); err != nil {
 		return err
 	}
 

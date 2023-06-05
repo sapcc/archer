@@ -5,6 +5,7 @@ go 1.20
 require (
 	github.com/IBM/pgxpoolprometheus v1.1.1
 	github.com/Masterminds/squirrel v1.5.4
+	github.com/bcicen/go-haproxy v0.0.0-20210728173702-412d077dabc1
 	github.com/didip/tollbooth/v7 v7.0.1
 	github.com/dre1080/recovr v1.0.3
 	github.com/f5devcentral/go-bigip v0.0.0-20230601082507-5c7c54edf454
@@ -32,6 +33,8 @@ require (
 	github.com/sapcc/go-api-declarations v1.5.1
 	github.com/sapcc/go-bits v0.0.0-20230601094646-819288b07996
 	github.com/stretchr/testify v1.8.4
+	github.com/vishvananda/netlink v1.1.0
+	github.com/vishvananda/netns v0.0.4
 	github.com/z0ne-dev/mgx/v2 v2.0.1
 	golang.org/x/net v0.10.0
 )
@@ -52,6 +55,7 @@ require (
 	github.com/gobuffalo/logger v1.0.3 // indirect
 	github.com/gobuffalo/packd v1.0.0 // indirect
 	github.com/gobuffalo/packr/v2 v2.8.0 // indirect
+	github.com/gocarina/gocsv v0.0.0-20210516172204-ca9e8a8ddea8 // indirect
 	github.com/gofrs/uuid v4.4.0+incompatible // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect

@@ -17,6 +17,7 @@ package controller
 import (
 	"context"
 	"errors"
+	"github.com/sapcc/go-bits/gopherpolicy"
 	"net/http"
 
 	sq "github.com/Masterminds/squirrel"
@@ -90,13 +91,21 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 		panic(err)
 	}
 
+	if *params.Body.Provider != "tenant" {
+		if t, ok := principal.(*gopherpolicy.Token); ok {
+			if !t.Check("service:create:provider") {
+				return service.NewPostServiceForbidden()
+			}
+		}
+	}
+
 	sql, args := db.Insert("service").
 		Columns("enabled", "name", "description", "network_id", "ip_addresses", "require_approval",
-			"visibility", "availability_zone", "proxy_protocol", "project_id", "port", "tags").
+			"visibility", "availability_zone", "proxy_protocol", "project_id", "port", "tags", "provider").
 		Values(params.Body.Enabled, params.Body.Name, params.Body.Description, params.Body.NetworkID,
 			params.Body.IPAddresses, params.Body.RequireApproval, params.Body.Visibility,
 			params.Body.AvailabilityZone, params.Body.ProxyProtocol, params.Body.ProjectID,
-			params.Body.Port, params.Body.Tags).
+			params.Body.Port, params.Body.Tags, params.Body.Provider).
 		Suffix("RETURNING *").
 		MustSql()
 	if err := pgxscan.Get(ctx, c.pool, &serviceResponse, sql, args...); err != nil {

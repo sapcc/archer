@@ -997,6 +997,14 @@ definitions:
         items:
           type: string
           maxLength: 64
+      provider:
+        type: string
+        description: Provider type, defaults to tenant type.
+        default: tenant
+        enum:
+          - tenant
+          - cp
+        x-nullable: true
       created_at:
         $ref: "#/definitions/Timestamp"
       updated_at:

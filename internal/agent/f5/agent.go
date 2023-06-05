@@ -12,10 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package agent
+package f5
 
 import (
 	"context"
+	"github.com/sapcc/archer/internal/agent/neutron"
+	"net/http"
+
 	"github.com/IBM/pgxpoolprometheus"
 	"github.com/f5devcentral/go-bigip"
 	"github.com/go-openapi/strfmt"
@@ -28,12 +31,10 @@ import (
 	"github.com/jackc/pgx/v5/tracelog"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/sapcc/archer/internal/agent/f5/as3"
 	"github.com/sapcc/go-bits/jobloop"
 	"github.com/sapcc/go-bits/logg"
-	"net/http"
 
-	"github.com/sapcc/archer/internal/agent/as3"
-	"github.com/sapcc/archer/internal/agent/neutron"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
 )

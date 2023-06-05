@@ -78,10 +78,16 @@ type Audit struct {
 }
 
 type Agent struct {
-	Host                string        `long:"bigip-host" ini-name:"host" description:"F5 BigIP Hostname"`
-	ValidateCert        bool          `long:"validate-certificates" ini-name:"validate_certificates" description:"Validate HTTPS Certificate."`
-	PhysicalNetwork     string        `long:"physical-network" ini-name:"physical_network" description:"Physical Network"`
-	PendingSyncInterval time.Duration `long:"pending-sync-interval" ini-name:"sync-interval" default:"120s" description:"Interval for pending sync scans, supports suffix (e.g. 10s)."`
+	Host                   string        `long:"bigip-host" ini-name:"host" description:"F5 BigIP Hostname"`
+	ValidateCert           bool          `long:"validate-certificates" ini-name:"validate_certificates" description:"Validate HTTPS Certificate."`
+	PhysicalNetwork        string        `long:"physical-network" ini-name:"physical_network" description:"Physical Network"`
+	PendingSyncInterval    time.Duration `long:"pending-sync-interval" ini-name:"sync-interval" default:"120s" description:"Interval for pending sync scans, supports suffix (e.g. 10s)."`
+	CreateService          bool          `long:"create-service" ini-name:"create_service" description:"Auto-create Service for network injection agent."`
+	ServiceName            string        `long:"service-name" ini-name:"service_name" description:"Service name for auto-created service."`
+	ServicePort            int           `long:"service-port" ini-name:"service_port" description:"Service port for auto-created service."`
+	ServiceRequireApproval bool          `long:"service-require-approval" ini-name:"service_require_approval" description:"Service requires approval."`
+	ServiceUpstreamHost    string        `long:"service-upstream-host" ini-name:"service_upstream_host" description:"Service upstream host."`
+	ServiceProxyPath       string        `long:"service-proxy-path" ini-name:"service_proxy_path" description:"Service proxy path." default:"/var/run/socat-proxy/proxy.sock"`
 }
 
 type AuthInfo struct {

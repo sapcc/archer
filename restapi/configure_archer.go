@@ -19,6 +19,7 @@ package restapi
 import (
 	"context"
 	"crypto/tls"
+	"github.com/sapcc/archer/internal/agent/neutron"
 	"net/http"
 	"time"
 
@@ -39,7 +40,6 @@ import (
 	"github.com/rs/cors"
 	"github.com/sapcc/go-bits/logg"
 
-	"github.com/sapcc/archer/internal/agent/neutron"
 	"github.com/sapcc/archer/internal/auth"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/controller"

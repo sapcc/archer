@@ -85,6 +85,10 @@ type Service struct {
 	// project id
 	ProjectID Project `json:"project_id"`
 
+	// Provider type, defaults to tenant type.
+	// Enum: [tenant cp]
+	Provider *string `json:"provider,omitempty"`
+
 	// Proxy protocol v2 enabled for this service.
 	ProxyProtocol *bool `json:"proxy_protocol,omitempty"`
 
@@ -150,6 +154,10 @@ func (m *Service) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateProjectID(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateProvider(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -283,6 +291,48 @@ func (m *Service) validateProjectID(formats strfmt.Registry) error {
 		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("project_id")
 		}
+		return err
+	}
+
+	return nil
+}
+
+var serviceTypeProviderPropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["tenant","cp"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		serviceTypeProviderPropEnum = append(serviceTypeProviderPropEnum, v)
+	}
+}
+
+const (
+
+	// ServiceProviderTenant captures enum value "tenant"
+	ServiceProviderTenant string = "tenant"
+
+	// ServiceProviderCp captures enum value "cp"
+	ServiceProviderCp string = "cp"
+)
+
+// prop value enum
+func (m *Service) validateProviderEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, serviceTypeProviderPropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Service) validateProvider(formats strfmt.Registry) error {
+	if swag.IsZero(m.Provider) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateProviderEnum("provider", "body", *m.Provider); err != nil {
 		return err
 	}
 

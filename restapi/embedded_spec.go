@@ -1430,6 +1430,16 @@ func init() {
         "project_id": {
           "$ref": "#/definitions/Project"
         },
+        "provider": {
+          "description": "Provider type, defaults to tenant type.",
+          "type": "string",
+          "default": "tenant",
+          "enum": [
+            "tenant",
+            "cp"
+          ],
+          "x-nullable": true
+        },
         "proxy_protocol": {
           "description": "Proxy protocol v2 enabled for this service.",
           "type": "boolean",
@@ -3244,6 +3254,16 @@ func init() {
         },
         "project_id": {
           "$ref": "#/definitions/Project"
+        },
+        "provider": {
+          "description": "Provider type, defaults to tenant type.",
+          "type": "string",
+          "default": "tenant",
+          "enum": [
+            "tenant",
+            "cp"
+          ],
+          "x-nullable": true
         },
         "proxy_protocol": {
           "description": "Proxy protocol v2 enabled for this service.",

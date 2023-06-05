@@ -16,7 +16,6 @@ package neutron
 
 import (
 	"fmt"
-	"github.com/sapcc/archer/internal/agent/as3"
 	"net/url"
 	"time"
 
@@ -31,6 +30,7 @@ import (
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/sapcc/go-bits/logg"
 
+	"github.com/sapcc/archer/internal/agent/f5/as3"
 	"github.com/sapcc/archer/internal/config"
 )
 

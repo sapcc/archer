@@ -180,4 +180,14 @@ var Migrations = mgx.Migrations(
 
 		return nil
 	}),
+	mgx.NewMigration("add_provider", func(ctx context.Context, commands mgx.Commands) error {
+		if _, err := commands.Exec(ctx, `
+			ALTER TABLE service
+    			ADD COLUMN provider VARCHAR(64) DEFAULT 'tenant' CONSTRAINT provider CHECK (provider IN ('tenant', 'cp'));
+		`); err != nil {
+			return err
+		}
+
+		return nil
+	}),
 )
