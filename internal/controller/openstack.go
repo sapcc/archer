@@ -15,8 +15,10 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/portsbinding"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
 
@@ -24,7 +26,8 @@ import (
 	"github.com/sapcc/archer/models"
 )
 
-func (c *Controller) AllocateNeutronPort(target *models.EndpointTarget, projectID string) (*ports.Port, error) {
+func (c *Controller) AllocateNeutronPort(target *models.EndpointTarget, endpoint *models.Endpoint,
+	projectID string) (*ports.Port, error) {
 	if target.Port != nil {
 		port, err := ports.Get(c.neutron, target.Port.String()).Extract()
 		if err != nil {
@@ -40,30 +43,39 @@ func (c *Controller) AllocateNeutronPort(target *models.EndpointTarget, projectI
 		}
 
 		return port, nil
-
 	}
-	// allocate neutron port
 
+	type fixedIP struct {
+		SubnetID string `json:"subnet_id"`
+	}
+	var fixedIPs []fixedIP
 	if target.Network == nil {
 		subnet, err := subnets.Get(c.neutron, target.Subnet.String()).Extract()
 		if err != nil {
 			return nil, err
 		}
 
+		fixedIPs = append(fixedIPs, fixedIP{subnet.ID})
 		networkID := strfmt.UUID(subnet.NetworkID)
 		target.Network = &networkID
+	} else {
+		network, err := networks.Get(c.neutron, target.Network.String()).Extract()
+		if err != nil {
+			return nil, err
+		}
+		if len(network.Subnets) == 0 {
+			return nil, ErrMissingSubnets
+		}
+
+		fixedIPs = append(fixedIPs, fixedIP{network.Subnets[0]})
 	}
 
-	var fixedIPs []ports.FixedIPOpts
-	if target.Subnet != nil {
-		fixedIPs = append(fixedIPs, ports.FixedIPOpts{SubnetID: target.Subnet.String()})
-	}
-
+	// allocate neutron port
 	port := portsbinding.CreateOptsExt{
 		CreateOptsBuilder: ports.CreateOpts{
-			Name:        "service-endpoint-pending",
-			DeviceOwner: "network-injector", // TODO: scheduler host
-			DeviceID:    "todo",
+			Name:        fmt.Sprintf("endpoint-%s", endpoint.ServiceName),
+			DeviceOwner: "network:archer",
+			DeviceID:    endpoint.ID.String(),
 			NetworkID:   target.Network.String(),
 			TenantID:    projectID,
 			FixedIPs:    fixedIPs,
@@ -76,4 +88,8 @@ func (c *Controller) AllocateNeutronPort(target *models.EndpointTarget, projectI
 		return nil, err
 	}
 	return res, nil
+}
+
+func (c *Controller) DeallocateNeutronPort(portID string) error {
+	return ports.Delete(c.neutron, portID).ExtractErr()
 }

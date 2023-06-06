@@ -18,13 +18,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/sapcc/go-bits/logg"
 
 	"github.com/sapcc/archer/internal/auth"
 	"github.com/sapcc/archer/internal/db"
@@ -83,7 +83,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 	if target.Subnet == nil && target.Network == nil && target.Port == nil {
 		return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
 			Code:    400,
-			Message: "Only one of target_network, target_subnet or target_port must be specified.",
+			Message: "At least one of target_network, target_subnet or target_port must be specified.",
 		})
 	}
 
@@ -147,7 +147,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 		panic(err)
 	}
 
-	port, err := c.AllocateNeutronPort(&params.Body.Target, string(params.Body.ProjectID))
+	port, err := c.AllocateNeutronPort(&params.Body.Target, &endpointResponse, string(params.Body.ProjectID))
 	if err != nil {
 		if errors.Is(err, ErrPortNotFound) {
 			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
@@ -178,11 +178,13 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 	row := tx.QueryRow(params.HTTPRequest.Context(), sql, args...)
 	if err := row.Scan(&endpointResponse.Target.Port, &endpointResponse.Target.Subnet,
 		&endpointResponse.Target.Network); err != nil {
+		logg.Error("Deallocating port %s: %s", port.ID, c.DeallocateNeutronPort(port.ID))
 		panic(err)
 	}
 
 	// done and done
 	if err := tx.Commit(ctx); err != nil {
+		logg.Error("Deallocating port %s: %s", port.ID, c.DeallocateNeutronPort(port.ID))
 		panic(err)
 	}
 

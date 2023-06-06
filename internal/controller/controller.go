@@ -26,6 +26,7 @@ var (
 	ErrPortNotFound     = errors.New("port not found")
 	ErrProjectMismatch  = errors.New("project mismatch")
 	ErrMissingIPAddress = errors.New("missing ip address")
+	ErrMissingSubnets   = errors.New("network has no subnets")
 )
 
 type Controller struct {
