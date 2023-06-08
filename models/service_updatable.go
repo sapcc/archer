@@ -38,7 +38,7 @@ type ServiceUpdatable struct {
 	// Description of the service.
 	// Example: An example of an Service.
 	// Max Length: 255
-	Description string `json:"description"`
+	Description *string `json:"description,omitempty"`
 
 	// Enable/disable this service. Existing endpoints are not touched by this.
 	Enabled *bool `json:"enabled,omitempty"`
@@ -50,13 +50,13 @@ type ServiceUpdatable struct {
 	// Name of the service.
 	// Example: ExampleService
 	// Max Length: 64
-	Name string `json:"name"`
+	Name *string `json:"name,omitempty"`
 
 	// Port exposed by the service.
 	// Example: 80
 	// Maximum: 65535
 	// Minimum: 1
-	Port int32 `json:"port,omitempty"`
+	Port *int32 `json:"port,omitempty"`
 
 	// Proxy protocol v2 enabled for this service.
 	ProxyProtocol *bool `json:"proxy_protocol,omitempty"`
@@ -111,7 +111,7 @@ func (m *ServiceUpdatable) validateDescription(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.MaxLength("description", "body", m.Description, 255); err != nil {
+	if err := validate.MaxLength("description", "body", *m.Description, 255); err != nil {
 		return err
 	}
 
@@ -145,7 +145,7 @@ func (m *ServiceUpdatable) validateName(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.MaxLength("name", "body", m.Name, 64); err != nil {
+	if err := validate.MaxLength("name", "body", *m.Name, 64); err != nil {
 		return err
 	}
 
@@ -157,11 +157,11 @@ func (m *ServiceUpdatable) validatePort(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.MinimumInt("port", "body", int64(m.Port), 1, false); err != nil {
+	if err := validate.MinimumInt("port", "body", int64(*m.Port), 1, false); err != nil {
 		return err
 	}
 
-	if err := validate.MaximumInt("port", "body", int64(m.Port), 65535, false); err != nil {
+	if err := validate.MaximumInt("port", "body", int64(*m.Port), 65535, false); err != nil {
 		return err
 	}
 

@@ -236,6 +236,10 @@ paths:
           description: Duplicate entry
           schema:
             $ref: "#/definitions/Error"
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
   /service/{service_id}:
     parameters:
       - in: path
@@ -543,7 +547,7 @@ paths:
               tags:
                 type: array
                 description: The list of tags on the resource.
-                default: []
+                x-nullable: true
                 items:
                   type: string
                   maxLength: 64
@@ -993,7 +997,7 @@ definitions:
       tags:
         type: array
         description: The list of tags on the resource.
-        default: []
+        x-nullable: true
         items:
           type: string
           maxLength: 64
@@ -1017,19 +1021,19 @@ definitions:
       enabled:
         type: boolean
         description: Enable/disable this service. Existing endpoints are not touched by this.
-        default: true
+        x-nullable: true
       name:
         type: string
         description: Name of the service.
         example: ExampleService
         maxLength: 64
-        x-omitempty: false
+        x-nullable: true
       description:
         type: string
         description: Description of the service.
         example: An example of an Service.
         maxLength: 255
-        x-omitempty: false
+        x-nullable: true
       ip_addresses:
         type: array
         description: IP Addresses of the providing service, multiple addresses will be round robin load balanced.
@@ -1046,26 +1050,25 @@ definitions:
         maximum: 65535
         example: 80
         description: Port exposed by the service.
-        x-nullable: false
+        x-nullable: true
       require_approval:
         type: boolean
         description: Require explicit project approval for the service owner.
-        default: true
+        x-nullable: true
       visibility:
         type: string
         description: Set global visibility of the service. For `private` visibility, RBAC policies can extend the visibility to specific projects.
-        default: private
         enum:
           - private
           - public
+        x-nullable: true
       proxy_protocol:
         type: boolean
-        default: true
         description: Proxy protocol v2 enabled for this service.
+        x-nullable: true
       tags:
         type: array
         description: The list of tags on the resource.
-        default: []
         items:
           type: string
           maxLength: 64
@@ -1138,7 +1141,7 @@ definitions:
       tags:
         type: array
         description: The list of tags on the resource.
-        default: []
+        x-nullable: true
         items:
           type: string
           maxLength: 64

@@ -141,3 +141,48 @@ func (o *PostServiceConflict) WriteResponse(rw http.ResponseWriter, producer run
 		}
 	}
 }
+
+// PostServiceUnprocessableEntityCode is the HTTP code returned for type PostServiceUnprocessableEntity
+const PostServiceUnprocessableEntityCode int = 422
+
+/*
+PostServiceUnprocessableEntity Unprocessable Content
+
+swagger:response postServiceUnprocessableEntity
+*/
+type PostServiceUnprocessableEntity struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewPostServiceUnprocessableEntity creates PostServiceUnprocessableEntity with default headers values
+func NewPostServiceUnprocessableEntity() *PostServiceUnprocessableEntity {
+
+	return &PostServiceUnprocessableEntity{}
+}
+
+// WithPayload adds the payload to the post service unprocessable entity response
+func (o *PostServiceUnprocessableEntity) WithPayload(payload *models.Error) *PostServiceUnprocessableEntity {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the post service unprocessable entity response
+func (o *PostServiceUnprocessableEntity) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *PostServiceUnprocessableEntity) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(422)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}

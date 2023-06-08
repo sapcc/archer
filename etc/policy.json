@@ -22,6 +22,7 @@
   "endpoint:read": "rule:context_is_viewer",
   "endpoint:read-global": "rule:cloud_admin",
   "endpoint:create": "rule:context_is_editor",
+  "endpoint:update": "rule:context_is_editor",
   "endpoint:delete": "rule:context_is_editor",
 
   "rbac-policy:read": "rule:context_is_viewer",

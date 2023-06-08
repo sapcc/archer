@@ -42,9 +42,14 @@ func (c *Controller) GetEndpointHandler(params endpoint.GetEndpointParams, princ
 
 	pagination := db.Pagination(params)
 	sql, args, err := pagination.Query(c.pool, q.
-		Select("endpoint.*", "endpoint_port.port_id AS \"target.port\"",
-			"endpoint_port.network AS \"target.network\"", " endpoint_port.subnet AS \"target.subnet\"").
-		From("endpoint").Join("endpoint_port ON endpoint_port.endpoint_id = endpoint.id"))
+		Select("endpoint.*",
+			`endpoint_port.port_id AS "target.port"`,
+			`endpoint_port.network AS "target.network"`,
+			`endpoint_port.subnet AS "target.subnet"`,
+			"service.name AS service_name").
+		From("endpoint").
+		Join("endpoint_port ON endpoint_port.endpoint_id = endpoint.id").
+		Join("service ON service.id = endpoint.service_id"))
 	if err != nil {
 		panic(err)
 	}
@@ -124,7 +129,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 	// Insert endpoint
 	sql, args = db.Insert("endpoint").
 		Columns("service_id", "project_id", "tags").
-		Values(params.Body.ServiceID, params.Body.ProjectID, params.Body.Tags).
+		Values(params.Body.ServiceID, params.Body.ProjectID, Unique(params.Body.Tags)).
 		Suffix("RETURNING id, service_id, project_id, tags, created_at, updated_at, status").
 		MustSql()
 	if err = pgxscan.Get(ctx, tx, &endpointResponse, sql, args...); err != nil {
@@ -182,6 +187,15 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 		panic(err)
 	}
 
+	sql, args = db.Select("name AS service_name").
+		From("service").
+		Where("id = ?", endpointResponse.ServiceID).
+		MustSql()
+	if err := tx.QueryRow(params.HTTPRequest.Context(), sql, args...).Scan(endpointResponse.ServiceName); err != nil {
+		logg.Error("Deallocating port %s: %s", port.ID, c.DeallocateNeutronPort(port.ID))
+		panic(err)
+	}
+
 	// done and done
 	if err := tx.Commit(ctx); err != nil {
 		logg.Error("Deallocating port %s: %s", port.ID, c.DeallocateNeutronPort(port.ID))
@@ -195,10 +209,12 @@ func (c *Controller) GetEndpointEndpointIDHandler(params endpoint.GetEndpointEnd
 	q := db.Select("endpoint.*",
 		`endpoint_port.port_id AS "target.port"`,
 		`endpoint_port.network AS "target.network"`,
-		`endpoint_port.subnet AS "target.subnet"`).
+		`endpoint_port.subnet AS "target.subnet"`,
+		"service.name AS service_name").
 		From("endpoint").
 		Join("endpoint_port ON endpoint_port.endpoint_id = endpoint.id").
-		Where("id = ?", params.EndpointID)
+		Join("service ON service.id = endpoint.service_id").
+		Where("endpoint.id = ?", params.EndpointID)
 
 	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
 		return endpoint.NewGetEndpointEndpointIDForbidden()
@@ -219,14 +235,19 @@ func (c *Controller) GetEndpointEndpointIDHandler(params endpoint.GetEndpointEnd
 }
 
 func (c *Controller) PutEndpointEndpointIDHandler(params endpoint.PutEndpointEndpointIDParams, principal any) middleware.Responder {
-	q := db.Update("endpoint").
-		Set("tags", params.Body.Tags).
-		From("endpoint_port").
-		Where(sq.Eq{"id": params.EndpointID}).
-		Suffix(`RETURNING endpoint.*, 
-                               endpoint_port.port_id AS "target.port", 
-                               endpoint_port.network as "target.network", 
-                               endpoint_port.subnet as "target.subnet"`)
+	q := db.Select("endpoint.*",
+		`endpoint_port.port_id AS "target.port"`,
+		`endpoint_port.network AS "target.network"`,
+		`endpoint_port.subnet AS "target.subnet"`,
+		"service.name AS service_name").
+		PrefixExpr(db.Update("endpoint").
+			Prefix("WITH endpoint AS (").
+			Set("tags", Unique(params.Body.Tags)).
+			Where("id = ?", params.EndpointID).
+			Suffix("RETURNING *)")).
+		From("endpoint").
+		Join("endpoint_port ON endpoint_port.endpoint_id = endpoint.id").
+		Join("service ON service.id = endpoint.service_id")
 
 	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
 		return endpoint.NewPutEndpointEndpointIDForbidden()

@@ -229,11 +229,11 @@ func init() {
                 "tags": {
                   "description": "The list of tags on the resource.",
                   "type": "array",
-                  "default": null,
                   "items": {
                     "type": "string",
                     "maxLength": 64
-                  }
+                  },
+                  "x-nullable": true
                 }
               }
             }
@@ -790,6 +790,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "service:create"
@@ -1120,11 +1126,11 @@ func init() {
         "tags": {
           "description": "The list of tags on the resource.",
           "type": "array",
-          "default": null,
           "items": {
             "type": "string",
             "maxLength": 64
-          }
+          },
+          "x-nullable": true
         },
         "target": {
           "description": "Endpoint target",
@@ -1465,11 +1471,11 @@ func init() {
         "tags": {
           "description": "The list of tags on the resource.",
           "type": "array",
-          "default": null,
           "items": {
             "type": "string",
             "maxLength": 64
-          }
+          },
+          "x-nullable": true
         },
         "updated_at": {
           "$ref": "#/definitions/Timestamp"
@@ -1492,13 +1498,13 @@ func init() {
           "description": "Description of the service.",
           "type": "string",
           "maxLength": 255,
-          "x-omitempty": false,
+          "x-nullable": true,
           "example": "An example of an Service."
         },
         "enabled": {
           "description": "Enable/disable this service. Existing endpoints are not touched by this.",
           "type": "boolean",
-          "default": true
+          "x-nullable": true
         },
         "ip_addresses": {
           "description": "IP Addresses of the providing service, multiple addresses will be round robin load balanced.",
@@ -1515,7 +1521,7 @@ func init() {
           "description": "Name of the service.",
           "type": "string",
           "maxLength": 64,
-          "x-omitempty": false,
+          "x-nullable": true,
           "example": "ExampleService"
         },
         "port": {
@@ -1524,23 +1530,22 @@ func init() {
           "format": "int32",
           "maximum": 65535,
           "minimum": 1,
-          "x-nullable": false,
+          "x-nullable": true,
           "example": 80
         },
         "proxy_protocol": {
           "description": "Proxy protocol v2 enabled for this service.",
           "type": "boolean",
-          "default": true
+          "x-nullable": true
         },
         "require_approval": {
           "description": "Require explicit project approval for the service owner.",
           "type": "boolean",
-          "default": true
+          "x-nullable": true
         },
         "tags": {
           "description": "The list of tags on the resource.",
           "type": "array",
-          "default": null,
           "items": {
             "type": "string",
             "maxLength": 64
@@ -1549,11 +1554,11 @@ func init() {
         "visibility": {
           "description": "Set global visibility of the service. For ` + "`" + `private` + "`" + ` visibility, RBAC policies can extend the visibility to specific projects.",
           "type": "string",
-          "default": "private",
           "enum": [
             "private",
             "public"
-          ]
+          ],
+          "x-nullable": true
         }
       }
     },
@@ -1955,11 +1960,11 @@ func init() {
                 "tags": {
                   "description": "The list of tags on the resource.",
                   "type": "array",
-                  "default": [],
                   "items": {
                     "type": "string",
                     "maxLength": 64
-                  }
+                  },
+                  "x-nullable": true
                 }
               }
             }
@@ -2556,6 +2561,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "service:create"
@@ -2899,11 +2910,11 @@ func init() {
         "tags": {
           "description": "The list of tags on the resource.",
           "type": "array",
-          "default": [],
           "items": {
             "type": "string",
             "maxLength": 64
-          }
+          },
+          "x-nullable": true
         },
         "target": {
           "description": "Endpoint target",
@@ -3290,11 +3301,11 @@ func init() {
         "tags": {
           "description": "The list of tags on the resource.",
           "type": "array",
-          "default": [],
           "items": {
             "type": "string",
             "maxLength": 64
-          }
+          },
+          "x-nullable": true
         },
         "updated_at": {
           "$ref": "#/definitions/Timestamp"
@@ -3317,13 +3328,13 @@ func init() {
           "description": "Description of the service.",
           "type": "string",
           "maxLength": 255,
-          "x-omitempty": false,
+          "x-nullable": true,
           "example": "An example of an Service."
         },
         "enabled": {
           "description": "Enable/disable this service. Existing endpoints are not touched by this.",
           "type": "boolean",
-          "default": true
+          "x-nullable": true
         },
         "ip_addresses": {
           "description": "IP Addresses of the providing service, multiple addresses will be round robin load balanced.",
@@ -3340,7 +3351,7 @@ func init() {
           "description": "Name of the service.",
           "type": "string",
           "maxLength": 64,
-          "x-omitempty": false,
+          "x-nullable": true,
           "example": "ExampleService"
         },
         "port": {
@@ -3349,23 +3360,22 @@ func init() {
           "format": "int32",
           "maximum": 65535,
           "minimum": 1,
-          "x-nullable": false,
+          "x-nullable": true,
           "example": 80
         },
         "proxy_protocol": {
           "description": "Proxy protocol v2 enabled for this service.",
           "type": "boolean",
-          "default": true
+          "x-nullable": true
         },
         "require_approval": {
           "description": "Require explicit project approval for the service owner.",
           "type": "boolean",
-          "default": true
+          "x-nullable": true
         },
         "tags": {
           "description": "The list of tags on the resource.",
           "type": "array",
-          "default": [],
           "items": {
             "type": "string",
             "maxLength": 64
@@ -3374,11 +3384,11 @@ func init() {
         "visibility": {
           "description": "Set global visibility of the service. For ` + "`" + `private` + "`" + ` visibility, RBAC policies can extend the visibility to specific projects.",
           "type": "string",
-          "default": "private",
           "enum": [
             "private",
             "public"
-          ]
+          ],
+          "x-nullable": true
         }
       }
     },

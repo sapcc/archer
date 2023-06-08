@@ -18,10 +18,9 @@ package client
 
 import (
 	"fmt"
+	"github.com/jedib0t/go-pretty/table"
 	"reflect"
 	"sort"
-
-	"github.com/jedib0t/go-pretty/table"
 )
 
 func formatValue(v reflect.Value) string {
@@ -34,7 +33,7 @@ func formatValue(v reflect.Value) string {
 		}
 		return formatValue(v.Elem())
 	default:
-		return fmt.Sprintf("%v", v)
+		return fmt.Sprintf("%+v", v)
 	}
 }
 

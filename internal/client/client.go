@@ -107,14 +107,15 @@ func SetupClient() {
 		endpointOpts := gophercloud.EndpointOpts{
 			Region: opts.OSRegionName,
 		}
-		endpointOpts.ApplyDefaults("gtm")
-		endpoint, err := provider.EndpointLocator(endpointOpts)
-		if err != nil {
-			return err
-		}
+		endpointOpts.ApplyDefaults("endpoint-services")
 		// Override endpoint?
+		var endpoint string
 		if opts.OSEndpoint != "" {
 			endpoint = opts.OSEndpoint
+		} else {
+			if endpoint, err = provider.EndpointLocator(endpointOpts); err != nil {
+				return err
+			}
 		}
 
 		uri, err := url.Parse(endpoint)

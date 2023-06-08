@@ -105,7 +105,7 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 		Values(params.Body.Enabled, params.Body.Name, params.Body.Description, params.Body.NetworkID,
 			params.Body.IPAddresses, params.Body.RequireApproval, params.Body.Visibility,
 			params.Body.AvailabilityZone, params.Body.ProxyProtocol, params.Body.ProjectID,
-			params.Body.Port, params.Body.Tags, params.Body.Provider).
+			params.Body.Port, Unique(params.Body.Tags), params.Body.Provider).
 		Suffix("RETURNING *").
 		MustSql()
 	if err := pgxscan.Get(ctx, c.pool, &serviceResponse, sql, args...); err != nil {
@@ -158,7 +158,7 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
 		return service.NewPutServiceServiceIDForbidden()
 	} else if projectId != "" {
-		upd = upd.Where("project_id", projectId)
+		upd = upd.Where("project_id = ?", projectId)
 	}
 
 	upd = upd.Set("enabled", sq.Expr("COALESCE(?, enabled)", params.Body.Enabled)).
@@ -168,7 +168,8 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 		Set("proxy_protocol", sq.Expr("COALESCE(?, proxy_protocol)", params.Body.ProxyProtocol)).
 		Set("port", sq.Expr("COALESCE(?, port)", params.Body.Port)).
 		Set("ip_addresses", sq.Expr("COALESCE(?, ip_addresses)", params.Body.IPAddresses)).
-		Set("tags", sq.Expr("COALESCE(?, tags)", params.Body.Tags)).
+		Set("tags", sq.Expr("COALESCE(?, tags)", Unique(params.Body.Tags))).
+		Set("status", "PENDING_UPDATE").
 		Where("id = ?", params.ServiceID).
 		Suffix("RETURNING *")
 
