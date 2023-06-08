@@ -144,6 +144,12 @@ func init() {
           },
           "403": {
             "description": "Forbidden"
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "endpoint:read"
@@ -179,6 +185,12 @@ func init() {
           },
           "403": {
             "description": "Forbidden"
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "endpoint:create"
@@ -205,6 +217,12 @@ func init() {
           },
           "404": {
             "description": "Not Found"
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "endpoint:read"
@@ -257,6 +275,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "endpoint:update"
@@ -278,6 +302,12 @@ func init() {
           },
           "404": {
             "description": "Not Found"
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "endpoint:delete"
@@ -344,6 +374,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "quota:read"
@@ -379,6 +415,12 @@ func init() {
           },
           "403": {
             "description": "Forbidden"
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "quota:read-defaults"
@@ -414,6 +456,12 @@ func init() {
           },
           "404": {
             "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -464,6 +512,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "quota:update"
@@ -482,6 +536,12 @@ func init() {
           },
           "404": {
             "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -549,6 +609,12 @@ func init() {
           },
           "403": {
             "description": "Forbidden"
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "rbac-policy:read"
@@ -587,6 +653,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "rbac-policy:create"
@@ -610,6 +682,12 @@ func init() {
           },
           "404": {
             "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -654,6 +732,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "rbac-policy:update"
@@ -672,6 +756,12 @@ func init() {
           },
           "404": {
             "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -755,6 +845,12 @@ func init() {
           },
           "403": {
             "description": "Forbidden"
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "service:read"
@@ -822,6 +918,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "service:read"
@@ -863,6 +965,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "service:update"
@@ -888,6 +996,12 @@ func init() {
           },
           "409": {
             "description": "In use.",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -948,6 +1062,12 @@ func init() {
           },
           "404": {
             "description": "Not Found"
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "service-endpoint:accept"
@@ -1020,6 +1140,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "service-endpoint:read"
@@ -1077,6 +1203,12 @@ func init() {
           },
           "404": {
             "description": "Not Found"
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "service-endpoint:reject"
@@ -1875,6 +2007,12 @@ func init() {
           },
           "403": {
             "description": "Forbidden"
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "endpoint:read"
@@ -1910,6 +2048,12 @@ func init() {
           },
           "403": {
             "description": "Forbidden"
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "endpoint:create"
@@ -1936,6 +2080,12 @@ func init() {
           },
           "404": {
             "description": "Not Found"
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "endpoint:read"
@@ -1988,6 +2138,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "endpoint:update"
@@ -2009,6 +2165,12 @@ func init() {
           },
           "404": {
             "description": "Not Found"
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "endpoint:delete"
@@ -2060,6 +2222,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "quota:read"
@@ -2095,6 +2263,12 @@ func init() {
           },
           "403": {
             "description": "Forbidden"
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "quota:read-defaults"
@@ -2130,6 +2304,12 @@ func init() {
           },
           "404": {
             "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2180,6 +2360,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "quota:update"
@@ -2198,6 +2384,12 @@ func init() {
           },
           "404": {
             "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2278,6 +2470,12 @@ func init() {
           },
           "403": {
             "description": "Forbidden"
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "rbac-policy:read"
@@ -2316,6 +2514,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "rbac-policy:create"
@@ -2339,6 +2543,12 @@ func init() {
           },
           "404": {
             "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2383,6 +2593,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "rbac-policy:update"
@@ -2401,6 +2617,12 @@ func init() {
           },
           "404": {
             "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2526,6 +2748,12 @@ func init() {
           },
           "403": {
             "description": "Forbidden"
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "service:read"
@@ -2593,6 +2821,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "service:read"
@@ -2634,6 +2868,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "service:update"
@@ -2659,6 +2899,12 @@ func init() {
           },
           "409": {
             "description": "In use.",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2719,6 +2965,12 @@ func init() {
           },
           "404": {
             "description": "Not Found"
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "service-endpoint:accept"
@@ -2804,6 +3056,12 @@ func init() {
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "service-endpoint:read"
@@ -2861,6 +3119,12 @@ func init() {
           },
           "404": {
             "description": "Not Found"
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           }
         },
         "x-policy": "service-endpoint:reject"

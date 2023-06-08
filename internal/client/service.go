@@ -25,11 +25,12 @@ import (
 )
 
 var ServiceOptions struct {
-	ServiceList   `command:"list" description:"List Services"`
-	ServiceShow   `command:"show" description:"Show Service"`
-	ServiceCreate `command:"create" description:"Create Service"`
-	ServiceSet    `command:"set" description:"Update Service"`
-	ServiceDelete `command:"delete" description:"Delete Service"`
+	ServiceList     `command:"list" description:"List Services"`
+	ServiceEndpoint `command:"endpoint" description:"Service Endpoint Commands"`
+	ServiceShow     `command:"show" description:"Show Service"`
+	ServiceCreate   `command:"create" description:"Create Service"`
+	ServiceSet      `command:"set" description:"Update Service"`
+	ServiceDelete   `command:"delete" description:"Delete Service"`
 }
 
 type ServiceList struct{}
@@ -179,6 +180,96 @@ func (*ServiceDelete) Execute(_ []string) error {
 		WithServiceID(ServiceOptions.ServiceDelete.Positional.Service)
 	_, err := ArcherClient.Service.DeleteServiceServiceID(params, nil)
 	return err
+}
+
+type ServiceEndpoint struct {
+	Service               strfmt.UUID `long:"service" description:"Service" required:"true"`
+	ServiceEndpointList   `command:"list" description:"List Service Endpoints"`
+	ServiceEndpointAccept `command:"accept" description:"Accept Service Endpoint"`
+	ServiceEndpointReject `command:"reject" description:"Reject Service Endpoint"`
+}
+
+type ServiceEndpointList struct {
+}
+
+func (*ServiceEndpointList) Execute(_ []string) error {
+	params := service.NewGetServiceServiceIDEndpointsParams().
+		WithServiceID(ServiceOptions.Service)
+	resp, err := ArcherClient.Service.GetServiceServiceIDEndpoints(params, nil)
+	if err != nil {
+		return err
+	}
+
+	Table.AppendHeader(table.Row{"ID", "Project", "Status", "Service"})
+	for _, ep := range resp.Payload.Items {
+		Table.AppendRow(table.Row{ep.ID, ep.ProjectID, ep.Status, ServiceOptions.Service})
+	}
+	Table.Render()
+	return nil
+}
+
+type ServiceEndpointAccept struct {
+	Endpoints []strfmt.UUID `long:"endpoint" description:"Accept endpoint (repeat option to accept multiple endpoints)"`
+	Projects  []strfmt.UUID `long:"project" description:"Accept all endpoints of project (repeat option to accept multiple projects)"`
+}
+
+func (*ServiceEndpointAccept) Execute(_ []string) error {
+	var projects []models.Project
+	for _, project := range ServiceOptions.ServiceEndpointAccept.Projects {
+		projects = append(projects, models.Project(project.String()))
+	}
+	consumerList := models.EndpointConsumerList{
+		EndpointIds: ServiceOptions.ServiceEndpointAccept.Endpoints,
+		ProjectIds:  projects,
+	}
+
+	params := service.
+		NewPutServiceServiceIDAcceptEndpointsParams().
+		WithServiceID(ServiceOptions.Service).
+		WithBody(&consumerList)
+	resp, err := ArcherClient.Service.PutServiceServiceIDAcceptEndpoints(params, nil)
+	if err != nil {
+		return err
+	}
+
+	Table.AppendHeader(table.Row{"ID", "Project", "Status", "Service"})
+	for _, ep := range resp.Payload {
+		Table.AppendRow(table.Row{ep.ID, ep.ProjectID, ep.Status, ServiceOptions.Service})
+	}
+	Table.Render()
+	return nil
+}
+
+type ServiceEndpointReject struct {
+	Endpoints []strfmt.UUID `long:"endpoint" description:"Reject endpoint (repeat option to reject multiple endpoints)"`
+	Projects  []strfmt.UUID `long:"project" description:"Reject all endpoints of project (repeat option to reject multiple projects)"`
+}
+
+func (*ServiceEndpointReject) Execute(_ []string) error {
+	var projects []models.Project
+	for _, project := range ServiceOptions.ServiceEndpointReject.Projects {
+		projects = append(projects, models.Project(project.String()))
+	}
+	consumerList := models.EndpointConsumerList{
+		EndpointIds: ServiceOptions.ServiceEndpointReject.Endpoints,
+		ProjectIds:  projects,
+	}
+
+	params := service.
+		NewPutServiceServiceIDRejectEndpointsParams().
+		WithServiceID(ServiceOptions.Service).
+		WithBody(&consumerList)
+	resp, err := ArcherClient.Service.PutServiceServiceIDRejectEndpoints(params, nil)
+	if err != nil {
+		return err
+	}
+
+	Table.AppendHeader(table.Row{"ID", "Project", "Status", "Service"})
+	for _, ep := range resp.Payload {
+		Table.AppendRow(table.Row{ep.ID, ep.ProjectID, ep.Status, ServiceOptions.Service})
+	}
+	Table.Render()
+	return nil
 }
 
 func init() {

@@ -55,6 +55,12 @@ func (o *GetRbacPoliciesRbacPolicyIDReader) ReadResponse(response runtime.Client
 			return nil, err
 		}
 		return nil, result
+	case 422:
+		result := NewGetRbacPoliciesRbacPolicyIDUnprocessableEntity()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -241,6 +247,74 @@ func (o *GetRbacPoliciesRbacPolicyIDNotFound) GetPayload() *models.Error {
 }
 
 func (o *GetRbacPoliciesRbacPolicyIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetRbacPoliciesRbacPolicyIDUnprocessableEntity creates a GetRbacPoliciesRbacPolicyIDUnprocessableEntity with default headers values
+func NewGetRbacPoliciesRbacPolicyIDUnprocessableEntity() *GetRbacPoliciesRbacPolicyIDUnprocessableEntity {
+	return &GetRbacPoliciesRbacPolicyIDUnprocessableEntity{}
+}
+
+/*
+GetRbacPoliciesRbacPolicyIDUnprocessableEntity describes a response with status code 422, with default header values.
+
+Unprocessable Content
+*/
+type GetRbacPoliciesRbacPolicyIDUnprocessableEntity struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this get rbac policies rbac policy Id unprocessable entity response has a 2xx status code
+func (o *GetRbacPoliciesRbacPolicyIDUnprocessableEntity) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this get rbac policies rbac policy Id unprocessable entity response has a 3xx status code
+func (o *GetRbacPoliciesRbacPolicyIDUnprocessableEntity) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this get rbac policies rbac policy Id unprocessable entity response has a 4xx status code
+func (o *GetRbacPoliciesRbacPolicyIDUnprocessableEntity) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this get rbac policies rbac policy Id unprocessable entity response has a 5xx status code
+func (o *GetRbacPoliciesRbacPolicyIDUnprocessableEntity) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this get rbac policies rbac policy Id unprocessable entity response a status code equal to that given
+func (o *GetRbacPoliciesRbacPolicyIDUnprocessableEntity) IsCode(code int) bool {
+	return code == 422
+}
+
+// Code gets the status code for the get rbac policies rbac policy Id unprocessable entity response
+func (o *GetRbacPoliciesRbacPolicyIDUnprocessableEntity) Code() int {
+	return 422
+}
+
+func (o *GetRbacPoliciesRbacPolicyIDUnprocessableEntity) Error() string {
+	return fmt.Sprintf("[GET /rbac-policies/{rbac_policy_id}][%d] getRbacPoliciesRbacPolicyIdUnprocessableEntity  %+v", 422, o.Payload)
+}
+
+func (o *GetRbacPoliciesRbacPolicyIDUnprocessableEntity) String() string {
+	return fmt.Sprintf("[GET /rbac-policies/{rbac_policy_id}][%d] getRbacPoliciesRbacPolicyIdUnprocessableEntity  %+v", 422, o.Payload)
+}
+
+func (o *GetRbacPoliciesRbacPolicyIDUnprocessableEntity) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetRbacPoliciesRbacPolicyIDUnprocessableEntity) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

@@ -61,6 +61,12 @@ func (o *PutServiceServiceIDAcceptEndpointsReader) ReadResponse(response runtime
 			return nil, err
 		}
 		return nil, result
+	case 422:
+		result := NewPutServiceServiceIDAcceptEndpointsUnprocessableEntity()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -320,6 +326,74 @@ func (o *PutServiceServiceIDAcceptEndpointsNotFound) String() string {
 }
 
 func (o *PutServiceServiceIDAcceptEndpointsNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewPutServiceServiceIDAcceptEndpointsUnprocessableEntity creates a PutServiceServiceIDAcceptEndpointsUnprocessableEntity with default headers values
+func NewPutServiceServiceIDAcceptEndpointsUnprocessableEntity() *PutServiceServiceIDAcceptEndpointsUnprocessableEntity {
+	return &PutServiceServiceIDAcceptEndpointsUnprocessableEntity{}
+}
+
+/*
+PutServiceServiceIDAcceptEndpointsUnprocessableEntity describes a response with status code 422, with default header values.
+
+Unprocessable Content
+*/
+type PutServiceServiceIDAcceptEndpointsUnprocessableEntity struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this put service service Id accept endpoints unprocessable entity response has a 2xx status code
+func (o *PutServiceServiceIDAcceptEndpointsUnprocessableEntity) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this put service service Id accept endpoints unprocessable entity response has a 3xx status code
+func (o *PutServiceServiceIDAcceptEndpointsUnprocessableEntity) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this put service service Id accept endpoints unprocessable entity response has a 4xx status code
+func (o *PutServiceServiceIDAcceptEndpointsUnprocessableEntity) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this put service service Id accept endpoints unprocessable entity response has a 5xx status code
+func (o *PutServiceServiceIDAcceptEndpointsUnprocessableEntity) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this put service service Id accept endpoints unprocessable entity response a status code equal to that given
+func (o *PutServiceServiceIDAcceptEndpointsUnprocessableEntity) IsCode(code int) bool {
+	return code == 422
+}
+
+// Code gets the status code for the put service service Id accept endpoints unprocessable entity response
+func (o *PutServiceServiceIDAcceptEndpointsUnprocessableEntity) Code() int {
+	return 422
+}
+
+func (o *PutServiceServiceIDAcceptEndpointsUnprocessableEntity) Error() string {
+	return fmt.Sprintf("[PUT /service/{service_id}/accept_endpoints][%d] putServiceServiceIdAcceptEndpointsUnprocessableEntity  %+v", 422, o.Payload)
+}
+
+func (o *PutServiceServiceIDAcceptEndpointsUnprocessableEntity) String() string {
+	return fmt.Sprintf("[PUT /service/{service_id}/accept_endpoints][%d] putServiceServiceIdAcceptEndpointsUnprocessableEntity  %+v", 422, o.Payload)
+}
+
+func (o *PutServiceServiceIDAcceptEndpointsUnprocessableEntity) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *PutServiceServiceIDAcceptEndpointsUnprocessableEntity) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

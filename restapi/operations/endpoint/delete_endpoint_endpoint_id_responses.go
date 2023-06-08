@@ -121,3 +121,48 @@ func (o *DeleteEndpointEndpointIDNotFound) WriteResponse(rw http.ResponseWriter,
 
 	rw.WriteHeader(404)
 }
+
+// DeleteEndpointEndpointIDUnprocessableEntityCode is the HTTP code returned for type DeleteEndpointEndpointIDUnprocessableEntity
+const DeleteEndpointEndpointIDUnprocessableEntityCode int = 422
+
+/*
+DeleteEndpointEndpointIDUnprocessableEntity Unprocessable Content
+
+swagger:response deleteEndpointEndpointIdUnprocessableEntity
+*/
+type DeleteEndpointEndpointIDUnprocessableEntity struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDeleteEndpointEndpointIDUnprocessableEntity creates DeleteEndpointEndpointIDUnprocessableEntity with default headers values
+func NewDeleteEndpointEndpointIDUnprocessableEntity() *DeleteEndpointEndpointIDUnprocessableEntity {
+
+	return &DeleteEndpointEndpointIDUnprocessableEntity{}
+}
+
+// WithPayload adds the payload to the delete endpoint endpoint Id unprocessable entity response
+func (o *DeleteEndpointEndpointIDUnprocessableEntity) WithPayload(payload *models.Error) *DeleteEndpointEndpointIDUnprocessableEntity {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the delete endpoint endpoint Id unprocessable entity response
+func (o *DeleteEndpointEndpointIDUnprocessableEntity) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DeleteEndpointEndpointIDUnprocessableEntity) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(422)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}

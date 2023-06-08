@@ -141,3 +141,48 @@ func (o *GetQuotasProjectIDNotFound) WriteResponse(rw http.ResponseWriter, produ
 		}
 	}
 }
+
+// GetQuotasProjectIDUnprocessableEntityCode is the HTTP code returned for type GetQuotasProjectIDUnprocessableEntity
+const GetQuotasProjectIDUnprocessableEntityCode int = 422
+
+/*
+GetQuotasProjectIDUnprocessableEntity Unprocessable Content
+
+swagger:response getQuotasProjectIdUnprocessableEntity
+*/
+type GetQuotasProjectIDUnprocessableEntity struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetQuotasProjectIDUnprocessableEntity creates GetQuotasProjectIDUnprocessableEntity with default headers values
+func NewGetQuotasProjectIDUnprocessableEntity() *GetQuotasProjectIDUnprocessableEntity {
+
+	return &GetQuotasProjectIDUnprocessableEntity{}
+}
+
+// WithPayload adds the payload to the get quotas project Id unprocessable entity response
+func (o *GetQuotasProjectIDUnprocessableEntity) WithPayload(payload *models.Error) *GetQuotasProjectIDUnprocessableEntity {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get quotas project Id unprocessable entity response
+func (o *GetQuotasProjectIDUnprocessableEntity) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetQuotasProjectIDUnprocessableEntity) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(422)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}

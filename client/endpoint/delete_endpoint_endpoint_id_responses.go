@@ -55,6 +55,12 @@ func (o *DeleteEndpointEndpointIDReader) ReadResponse(response runtime.ClientRes
 			return nil, err
 		}
 		return nil, result
+	case 422:
+		result := NewDeleteEndpointEndpointIDUnprocessableEntity()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -236,6 +242,74 @@ func (o *DeleteEndpointEndpointIDNotFound) String() string {
 }
 
 func (o *DeleteEndpointEndpointIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewDeleteEndpointEndpointIDUnprocessableEntity creates a DeleteEndpointEndpointIDUnprocessableEntity with default headers values
+func NewDeleteEndpointEndpointIDUnprocessableEntity() *DeleteEndpointEndpointIDUnprocessableEntity {
+	return &DeleteEndpointEndpointIDUnprocessableEntity{}
+}
+
+/*
+DeleteEndpointEndpointIDUnprocessableEntity describes a response with status code 422, with default header values.
+
+Unprocessable Content
+*/
+type DeleteEndpointEndpointIDUnprocessableEntity struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this delete endpoint endpoint Id unprocessable entity response has a 2xx status code
+func (o *DeleteEndpointEndpointIDUnprocessableEntity) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this delete endpoint endpoint Id unprocessable entity response has a 3xx status code
+func (o *DeleteEndpointEndpointIDUnprocessableEntity) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this delete endpoint endpoint Id unprocessable entity response has a 4xx status code
+func (o *DeleteEndpointEndpointIDUnprocessableEntity) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this delete endpoint endpoint Id unprocessable entity response has a 5xx status code
+func (o *DeleteEndpointEndpointIDUnprocessableEntity) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this delete endpoint endpoint Id unprocessable entity response a status code equal to that given
+func (o *DeleteEndpointEndpointIDUnprocessableEntity) IsCode(code int) bool {
+	return code == 422
+}
+
+// Code gets the status code for the delete endpoint endpoint Id unprocessable entity response
+func (o *DeleteEndpointEndpointIDUnprocessableEntity) Code() int {
+	return 422
+}
+
+func (o *DeleteEndpointEndpointIDUnprocessableEntity) Error() string {
+	return fmt.Sprintf("[DELETE /endpoint/{endpoint_id}][%d] deleteEndpointEndpointIdUnprocessableEntity  %+v", 422, o.Payload)
+}
+
+func (o *DeleteEndpointEndpointIDUnprocessableEntity) String() string {
+	return fmt.Sprintf("[DELETE /endpoint/{endpoint_id}][%d] deleteEndpointEndpointIdUnprocessableEntity  %+v", 422, o.Payload)
+}
+
+func (o *DeleteEndpointEndpointIDUnprocessableEntity) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DeleteEndpointEndpointIDUnprocessableEntity) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

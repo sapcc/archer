@@ -55,6 +55,12 @@ func (o *DeleteQuotasProjectIDReader) ReadResponse(response runtime.ClientRespon
 			return nil, err
 		}
 		return nil, result
+	case 422:
+		result := NewDeleteQuotasProjectIDUnprocessableEntity()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -229,6 +235,74 @@ func (o *DeleteQuotasProjectIDNotFound) GetPayload() *models.Error {
 }
 
 func (o *DeleteQuotasProjectIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewDeleteQuotasProjectIDUnprocessableEntity creates a DeleteQuotasProjectIDUnprocessableEntity with default headers values
+func NewDeleteQuotasProjectIDUnprocessableEntity() *DeleteQuotasProjectIDUnprocessableEntity {
+	return &DeleteQuotasProjectIDUnprocessableEntity{}
+}
+
+/*
+DeleteQuotasProjectIDUnprocessableEntity describes a response with status code 422, with default header values.
+
+Unprocessable Content
+*/
+type DeleteQuotasProjectIDUnprocessableEntity struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this delete quotas project Id unprocessable entity response has a 2xx status code
+func (o *DeleteQuotasProjectIDUnprocessableEntity) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this delete quotas project Id unprocessable entity response has a 3xx status code
+func (o *DeleteQuotasProjectIDUnprocessableEntity) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this delete quotas project Id unprocessable entity response has a 4xx status code
+func (o *DeleteQuotasProjectIDUnprocessableEntity) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this delete quotas project Id unprocessable entity response has a 5xx status code
+func (o *DeleteQuotasProjectIDUnprocessableEntity) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this delete quotas project Id unprocessable entity response a status code equal to that given
+func (o *DeleteQuotasProjectIDUnprocessableEntity) IsCode(code int) bool {
+	return code == 422
+}
+
+// Code gets the status code for the delete quotas project Id unprocessable entity response
+func (o *DeleteQuotasProjectIDUnprocessableEntity) Code() int {
+	return 422
+}
+
+func (o *DeleteQuotasProjectIDUnprocessableEntity) Error() string {
+	return fmt.Sprintf("[DELETE /quotas/{project_id}][%d] deleteQuotasProjectIdUnprocessableEntity  %+v", 422, o.Payload)
+}
+
+func (o *DeleteQuotasProjectIDUnprocessableEntity) String() string {
+	return fmt.Sprintf("[DELETE /quotas/{project_id}][%d] deleteQuotasProjectIdUnprocessableEntity  %+v", 422, o.Payload)
+}
+
+func (o *DeleteQuotasProjectIDUnprocessableEntity) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DeleteQuotasProjectIDUnprocessableEntity) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

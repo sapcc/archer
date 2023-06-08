@@ -58,6 +58,12 @@ func (o *GetQuotasProjectIDReader) ReadResponse(response runtime.ClientResponse,
 			return nil, err
 		}
 		return nil, result
+	case 422:
+		result := NewGetQuotasProjectIDUnprocessableEntity()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -244,6 +250,74 @@ func (o *GetQuotasProjectIDNotFound) GetPayload() *models.Error {
 }
 
 func (o *GetQuotasProjectIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetQuotasProjectIDUnprocessableEntity creates a GetQuotasProjectIDUnprocessableEntity with default headers values
+func NewGetQuotasProjectIDUnprocessableEntity() *GetQuotasProjectIDUnprocessableEntity {
+	return &GetQuotasProjectIDUnprocessableEntity{}
+}
+
+/*
+GetQuotasProjectIDUnprocessableEntity describes a response with status code 422, with default header values.
+
+Unprocessable Content
+*/
+type GetQuotasProjectIDUnprocessableEntity struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this get quotas project Id unprocessable entity response has a 2xx status code
+func (o *GetQuotasProjectIDUnprocessableEntity) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this get quotas project Id unprocessable entity response has a 3xx status code
+func (o *GetQuotasProjectIDUnprocessableEntity) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this get quotas project Id unprocessable entity response has a 4xx status code
+func (o *GetQuotasProjectIDUnprocessableEntity) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this get quotas project Id unprocessable entity response has a 5xx status code
+func (o *GetQuotasProjectIDUnprocessableEntity) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this get quotas project Id unprocessable entity response a status code equal to that given
+func (o *GetQuotasProjectIDUnprocessableEntity) IsCode(code int) bool {
+	return code == 422
+}
+
+// Code gets the status code for the get quotas project Id unprocessable entity response
+func (o *GetQuotasProjectIDUnprocessableEntity) Code() int {
+	return 422
+}
+
+func (o *GetQuotasProjectIDUnprocessableEntity) Error() string {
+	return fmt.Sprintf("[GET /quotas/{project_id}][%d] getQuotasProjectIdUnprocessableEntity  %+v", 422, o.Payload)
+}
+
+func (o *GetQuotasProjectIDUnprocessableEntity) String() string {
+	return fmt.Sprintf("[GET /quotas/{project_id}][%d] getQuotasProjectIdUnprocessableEntity  %+v", 422, o.Payload)
+}
+
+func (o *GetQuotasProjectIDUnprocessableEntity) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetQuotasProjectIDUnprocessableEntity) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

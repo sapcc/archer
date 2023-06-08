@@ -61,6 +61,12 @@ func (o *PostRbacPoliciesReader) ReadResponse(response runtime.ClientResponse, c
 			return nil, err
 		}
 		return nil, result
+	case 422:
+		result := NewPostRbacPoliciesUnprocessableEntity()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -303,6 +309,74 @@ func (o *PostRbacPoliciesConflict) GetPayload() *models.Error {
 }
 
 func (o *PostRbacPoliciesConflict) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewPostRbacPoliciesUnprocessableEntity creates a PostRbacPoliciesUnprocessableEntity with default headers values
+func NewPostRbacPoliciesUnprocessableEntity() *PostRbacPoliciesUnprocessableEntity {
+	return &PostRbacPoliciesUnprocessableEntity{}
+}
+
+/*
+PostRbacPoliciesUnprocessableEntity describes a response with status code 422, with default header values.
+
+Unprocessable Content
+*/
+type PostRbacPoliciesUnprocessableEntity struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this post rbac policies unprocessable entity response has a 2xx status code
+func (o *PostRbacPoliciesUnprocessableEntity) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this post rbac policies unprocessable entity response has a 3xx status code
+func (o *PostRbacPoliciesUnprocessableEntity) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this post rbac policies unprocessable entity response has a 4xx status code
+func (o *PostRbacPoliciesUnprocessableEntity) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this post rbac policies unprocessable entity response has a 5xx status code
+func (o *PostRbacPoliciesUnprocessableEntity) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this post rbac policies unprocessable entity response a status code equal to that given
+func (o *PostRbacPoliciesUnprocessableEntity) IsCode(code int) bool {
+	return code == 422
+}
+
+// Code gets the status code for the post rbac policies unprocessable entity response
+func (o *PostRbacPoliciesUnprocessableEntity) Code() int {
+	return 422
+}
+
+func (o *PostRbacPoliciesUnprocessableEntity) Error() string {
+	return fmt.Sprintf("[POST /rbac-policies][%d] postRbacPoliciesUnprocessableEntity  %+v", 422, o.Payload)
+}
+
+func (o *PostRbacPoliciesUnprocessableEntity) String() string {
+	return fmt.Sprintf("[POST /rbac-policies][%d] postRbacPoliciesUnprocessableEntity  %+v", 422, o.Payload)
+}
+
+func (o *PostRbacPoliciesUnprocessableEntity) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *PostRbacPoliciesUnprocessableEntity) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

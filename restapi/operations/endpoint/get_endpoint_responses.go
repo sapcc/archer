@@ -141,3 +141,48 @@ func (o *GetEndpointForbidden) WriteResponse(rw http.ResponseWriter, producer ru
 
 	rw.WriteHeader(403)
 }
+
+// GetEndpointUnprocessableEntityCode is the HTTP code returned for type GetEndpointUnprocessableEntity
+const GetEndpointUnprocessableEntityCode int = 422
+
+/*
+GetEndpointUnprocessableEntity Unprocessable Content
+
+swagger:response getEndpointUnprocessableEntity
+*/
+type GetEndpointUnprocessableEntity struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetEndpointUnprocessableEntity creates GetEndpointUnprocessableEntity with default headers values
+func NewGetEndpointUnprocessableEntity() *GetEndpointUnprocessableEntity {
+
+	return &GetEndpointUnprocessableEntity{}
+}
+
+// WithPayload adds the payload to the get endpoint unprocessable entity response
+func (o *GetEndpointUnprocessableEntity) WithPayload(payload *models.Error) *GetEndpointUnprocessableEntity {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get endpoint unprocessable entity response
+func (o *GetEndpointUnprocessableEntity) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetEndpointUnprocessableEntity) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(422)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}

@@ -344,15 +344,18 @@ func commonEndpointsActionHandler(pool *pgxpool.Pool, body any, principal any) (
 	var httpRequest *http.Request
 	var consumerList *models.EndpointConsumerList
 
-	q := db.Update("endpoint")
+	q := db.Update("endpoint").
+		From("service").
+		Suffix("RETURNING endpoint.id, endpoint.status, endpoint.project_id")
+
 	switch params := body.(type) {
 	case service.PutServiceServiceIDAcceptEndpointsParams:
-		q.Set("status", models.EndpointStatusPENDINGCREATE)
+		q = q.Set("status", models.EndpointStatusPENDINGCREATE)
 		serviceId = params.ServiceID
 		httpRequest = params.HTTPRequest
 		consumerList = params.Body
 	case service.PutServiceServiceIDRejectEndpointsParams:
-		q.Set("status", models.EndpointStatusPENDINGREJECTED)
+		q = q.Set("status", models.EndpointStatusPENDINGREJECTED)
 		serviceId = params.ServiceID
 		httpRequest = params.HTTPRequest
 		consumerList = params.Body
@@ -361,26 +364,27 @@ func commonEndpointsActionHandler(pool *pgxpool.Pool, body any, principal any) (
 	if projectId, ok := auth.AuthenticatePrincipal(httpRequest, principal); !ok {
 		return nil, auth.ErrForbidden
 	} else if projectId != "" {
-		q.Where("service.project_id = ?", projectId)
+		q = q.Where(db.Select("1").
+			Prefix("EXISTS(").
+			From("service").
+			Where("project_id = ?", projectId).
+			Where("id = ?", serviceId).
+			Suffix(")"), // service subquery
+		)
 	}
 
-	q.From("service").
-		Where(sq.And{
-			sq.Expr("endpoint.service_id = service.id"),
-			sq.Eq{"service.id": serviceId},
-		}).
-		Suffix("RETURNING endpoint.id, endpoint.status, endpoint.project_id")
-
-	if len(consumerList.EndpointIds) > 0 {
-		q.Where("endpoint.id = ?", consumerList.EndpointIds)
-	} else if len(consumerList.ProjectIds) > 0 {
-		q.Where("endpoint.project_id = ?", consumerList.ProjectIds)
-	} else {
+	if len(consumerList.EndpointIds) == 0 && len(consumerList.ProjectIds) == 0 {
 		return nil, ErrBadRequest
 	}
+
+	q = q.Where(sq.Or{
+		sq.Eq{"endpoint.id": consumerList.EndpointIds},
+		sq.Eq{"endpoint.project_id": consumerList.ProjectIds},
+	})
+
 	sql, args := q.MustSql()
 	var endpointConsumers []*models.EndpointConsumer
-	rows, err := pool.Query(httpRequest.Context(), sql, args)
+	rows, err := pool.Query(httpRequest.Context(), sql, args...)
 	if err != nil {
 		return nil, err
 	}

@@ -166,3 +166,48 @@ func (o *PostRbacPoliciesConflict) WriteResponse(rw http.ResponseWriter, produce
 		}
 	}
 }
+
+// PostRbacPoliciesUnprocessableEntityCode is the HTTP code returned for type PostRbacPoliciesUnprocessableEntity
+const PostRbacPoliciesUnprocessableEntityCode int = 422
+
+/*
+PostRbacPoliciesUnprocessableEntity Unprocessable Content
+
+swagger:response postRbacPoliciesUnprocessableEntity
+*/
+type PostRbacPoliciesUnprocessableEntity struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewPostRbacPoliciesUnprocessableEntity creates PostRbacPoliciesUnprocessableEntity with default headers values
+func NewPostRbacPoliciesUnprocessableEntity() *PostRbacPoliciesUnprocessableEntity {
+
+	return &PostRbacPoliciesUnprocessableEntity{}
+}
+
+// WithPayload adds the payload to the post rbac policies unprocessable entity response
+func (o *PostRbacPoliciesUnprocessableEntity) WithPayload(payload *models.Error) *PostRbacPoliciesUnprocessableEntity {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the post rbac policies unprocessable entity response
+func (o *PostRbacPoliciesUnprocessableEntity) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *PostRbacPoliciesUnprocessableEntity) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(422)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}

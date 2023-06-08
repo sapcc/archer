@@ -23,6 +23,8 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime"
+
+	"github.com/sapcc/archer/models"
 )
 
 // GetQuotasDefaultsOKCode is the HTTP code returned for type GetQuotasDefaultsOK
@@ -93,4 +95,49 @@ func (o *GetQuotasDefaultsForbidden) WriteResponse(rw http.ResponseWriter, produ
 	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
 
 	rw.WriteHeader(403)
+}
+
+// GetQuotasDefaultsUnprocessableEntityCode is the HTTP code returned for type GetQuotasDefaultsUnprocessableEntity
+const GetQuotasDefaultsUnprocessableEntityCode int = 422
+
+/*
+GetQuotasDefaultsUnprocessableEntity Unprocessable Content
+
+swagger:response getQuotasDefaultsUnprocessableEntity
+*/
+type GetQuotasDefaultsUnprocessableEntity struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetQuotasDefaultsUnprocessableEntity creates GetQuotasDefaultsUnprocessableEntity with default headers values
+func NewGetQuotasDefaultsUnprocessableEntity() *GetQuotasDefaultsUnprocessableEntity {
+
+	return &GetQuotasDefaultsUnprocessableEntity{}
+}
+
+// WithPayload adds the payload to the get quotas defaults unprocessable entity response
+func (o *GetQuotasDefaultsUnprocessableEntity) WithPayload(payload *models.Error) *GetQuotasDefaultsUnprocessableEntity {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get quotas defaults unprocessable entity response
+func (o *GetQuotasDefaultsUnprocessableEntity) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetQuotasDefaultsUnprocessableEntity) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(422)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
 }

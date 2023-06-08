@@ -189,3 +189,48 @@ func (o *PutServiceServiceIDAcceptEndpointsNotFound) WriteResponse(rw http.Respo
 
 	rw.WriteHeader(404)
 }
+
+// PutServiceServiceIDAcceptEndpointsUnprocessableEntityCode is the HTTP code returned for type PutServiceServiceIDAcceptEndpointsUnprocessableEntity
+const PutServiceServiceIDAcceptEndpointsUnprocessableEntityCode int = 422
+
+/*
+PutServiceServiceIDAcceptEndpointsUnprocessableEntity Unprocessable Content
+
+swagger:response putServiceServiceIdAcceptEndpointsUnprocessableEntity
+*/
+type PutServiceServiceIDAcceptEndpointsUnprocessableEntity struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewPutServiceServiceIDAcceptEndpointsUnprocessableEntity creates PutServiceServiceIDAcceptEndpointsUnprocessableEntity with default headers values
+func NewPutServiceServiceIDAcceptEndpointsUnprocessableEntity() *PutServiceServiceIDAcceptEndpointsUnprocessableEntity {
+
+	return &PutServiceServiceIDAcceptEndpointsUnprocessableEntity{}
+}
+
+// WithPayload adds the payload to the put service service Id accept endpoints unprocessable entity response
+func (o *PutServiceServiceIDAcceptEndpointsUnprocessableEntity) WithPayload(payload *models.Error) *PutServiceServiceIDAcceptEndpointsUnprocessableEntity {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the put service service Id accept endpoints unprocessable entity response
+func (o *PutServiceServiceIDAcceptEndpointsUnprocessableEntity) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *PutServiceServiceIDAcceptEndpointsUnprocessableEntity) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(422)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}

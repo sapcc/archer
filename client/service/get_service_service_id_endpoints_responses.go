@@ -65,6 +65,12 @@ func (o *GetServiceServiceIDEndpointsReader) ReadResponse(response runtime.Clien
 			return nil, err
 		}
 		return nil, result
+	case 422:
+		result := NewGetServiceServiceIDEndpointsUnprocessableEntity()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	default:
 		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
@@ -319,6 +325,74 @@ func (o *GetServiceServiceIDEndpointsNotFound) GetPayload() *models.Error {
 }
 
 func (o *GetServiceServiceIDEndpointsNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetServiceServiceIDEndpointsUnprocessableEntity creates a GetServiceServiceIDEndpointsUnprocessableEntity with default headers values
+func NewGetServiceServiceIDEndpointsUnprocessableEntity() *GetServiceServiceIDEndpointsUnprocessableEntity {
+	return &GetServiceServiceIDEndpointsUnprocessableEntity{}
+}
+
+/*
+GetServiceServiceIDEndpointsUnprocessableEntity describes a response with status code 422, with default header values.
+
+Unprocessable Content
+*/
+type GetServiceServiceIDEndpointsUnprocessableEntity struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this get service service Id endpoints unprocessable entity response has a 2xx status code
+func (o *GetServiceServiceIDEndpointsUnprocessableEntity) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this get service service Id endpoints unprocessable entity response has a 3xx status code
+func (o *GetServiceServiceIDEndpointsUnprocessableEntity) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this get service service Id endpoints unprocessable entity response has a 4xx status code
+func (o *GetServiceServiceIDEndpointsUnprocessableEntity) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this get service service Id endpoints unprocessable entity response has a 5xx status code
+func (o *GetServiceServiceIDEndpointsUnprocessableEntity) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this get service service Id endpoints unprocessable entity response a status code equal to that given
+func (o *GetServiceServiceIDEndpointsUnprocessableEntity) IsCode(code int) bool {
+	return code == 422
+}
+
+// Code gets the status code for the get service service Id endpoints unprocessable entity response
+func (o *GetServiceServiceIDEndpointsUnprocessableEntity) Code() int {
+	return 422
+}
+
+func (o *GetServiceServiceIDEndpointsUnprocessableEntity) Error() string {
+	return fmt.Sprintf("[GET /service/{service_id}/endpoints][%d] getServiceServiceIdEndpointsUnprocessableEntity  %+v", 422, o.Payload)
+}
+
+func (o *GetServiceServiceIDEndpointsUnprocessableEntity) String() string {
+	return fmt.Sprintf("[GET /service/{service_id}/endpoints][%d] getServiceServiceIdEndpointsUnprocessableEntity  %+v", 422, o.Payload)
+}
+
+func (o *GetServiceServiceIDEndpointsUnprocessableEntity) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetServiceServiceIDEndpointsUnprocessableEntity) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

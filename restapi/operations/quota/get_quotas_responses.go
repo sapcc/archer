@@ -141,3 +141,48 @@ func (o *GetQuotasNotFound) WriteResponse(rw http.ResponseWriter, producer runti
 		}
 	}
 }
+
+// GetQuotasUnprocessableEntityCode is the HTTP code returned for type GetQuotasUnprocessableEntity
+const GetQuotasUnprocessableEntityCode int = 422
+
+/*
+GetQuotasUnprocessableEntity Unprocessable Content
+
+swagger:response getQuotasUnprocessableEntity
+*/
+type GetQuotasUnprocessableEntity struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetQuotasUnprocessableEntity creates GetQuotasUnprocessableEntity with default headers values
+func NewGetQuotasUnprocessableEntity() *GetQuotasUnprocessableEntity {
+
+	return &GetQuotasUnprocessableEntity{}
+}
+
+// WithPayload adds the payload to the get quotas unprocessable entity response
+func (o *GetQuotasUnprocessableEntity) WithPayload(payload *models.Error) *GetQuotasUnprocessableEntity {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get quotas unprocessable entity response
+func (o *GetQuotasUnprocessableEntity) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetQuotasUnprocessableEntity) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(422)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}

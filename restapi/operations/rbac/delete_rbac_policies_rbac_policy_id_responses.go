@@ -121,3 +121,48 @@ func (o *DeleteRbacPoliciesRbacPolicyIDNotFound) WriteResponse(rw http.ResponseW
 		}
 	}
 }
+
+// DeleteRbacPoliciesRbacPolicyIDUnprocessableEntityCode is the HTTP code returned for type DeleteRbacPoliciesRbacPolicyIDUnprocessableEntity
+const DeleteRbacPoliciesRbacPolicyIDUnprocessableEntityCode int = 422
+
+/*
+DeleteRbacPoliciesRbacPolicyIDUnprocessableEntity Unprocessable Content
+
+swagger:response deleteRbacPoliciesRbacPolicyIdUnprocessableEntity
+*/
+type DeleteRbacPoliciesRbacPolicyIDUnprocessableEntity struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDeleteRbacPoliciesRbacPolicyIDUnprocessableEntity creates DeleteRbacPoliciesRbacPolicyIDUnprocessableEntity with default headers values
+func NewDeleteRbacPoliciesRbacPolicyIDUnprocessableEntity() *DeleteRbacPoliciesRbacPolicyIDUnprocessableEntity {
+
+	return &DeleteRbacPoliciesRbacPolicyIDUnprocessableEntity{}
+}
+
+// WithPayload adds the payload to the delete rbac policies rbac policy Id unprocessable entity response
+func (o *DeleteRbacPoliciesRbacPolicyIDUnprocessableEntity) WithPayload(payload *models.Error) *DeleteRbacPoliciesRbacPolicyIDUnprocessableEntity {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the delete rbac policies rbac policy Id unprocessable entity response
+func (o *DeleteRbacPoliciesRbacPolicyIDUnprocessableEntity) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DeleteRbacPoliciesRbacPolicyIDUnprocessableEntity) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(422)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}

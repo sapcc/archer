@@ -166,3 +166,48 @@ func (o *DeleteServiceServiceIDConflict) WriteResponse(rw http.ResponseWriter, p
 		}
 	}
 }
+
+// DeleteServiceServiceIDUnprocessableEntityCode is the HTTP code returned for type DeleteServiceServiceIDUnprocessableEntity
+const DeleteServiceServiceIDUnprocessableEntityCode int = 422
+
+/*
+DeleteServiceServiceIDUnprocessableEntity Unprocessable Content
+
+swagger:response deleteServiceServiceIdUnprocessableEntity
+*/
+type DeleteServiceServiceIDUnprocessableEntity struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDeleteServiceServiceIDUnprocessableEntity creates DeleteServiceServiceIDUnprocessableEntity with default headers values
+func NewDeleteServiceServiceIDUnprocessableEntity() *DeleteServiceServiceIDUnprocessableEntity {
+
+	return &DeleteServiceServiceIDUnprocessableEntity{}
+}
+
+// WithPayload adds the payload to the delete service service Id unprocessable entity response
+func (o *DeleteServiceServiceIDUnprocessableEntity) WithPayload(payload *models.Error) *DeleteServiceServiceIDUnprocessableEntity {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the delete service service Id unprocessable entity response
+func (o *DeleteServiceServiceIDUnprocessableEntity) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DeleteServiceServiceIDUnprocessableEntity) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(422)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
