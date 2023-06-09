@@ -33,14 +33,14 @@ func (t *SuiteTest) createQuota(projectId string) {
 	res := t.c.PutQuotasProjectIDHandler(quota.PutQuotasProjectIDParams{
 		HTTPRequest: &http.Request{},
 		ProjectID:   projectId,
-		Quota:       quota.PutQuotasProjectIDBody{Quota: &q},
+		Body:        &q,
 	}, nil)
 
 	assert.NotNil(t.T(), res)
 	assert.IsType(t.T(), &quota.PutQuotasProjectIDOK{}, res)
 	payload := res.(*quota.PutQuotasProjectIDOK).Payload
-	assert.EqualValues(t.T(), 1, payload.Quota.Endpoint)
-	assert.EqualValues(t.T(), 2, payload.Quota.Service)
+	assert.EqualValues(t.T(), 1, payload.Endpoint)
+	assert.EqualValues(t.T(), 2, payload.Service)
 }
 
 func (t *SuiteTest) TestQuotaPut() {
@@ -94,5 +94,5 @@ func (t *SuiteTest) TestResetQuotas() {
 			HTTPRequest: &http.Request{},
 			ProjectID:   projectId,
 		}, nil)
-	assert.IsType(t.T(), &quota.GetQuotasProjectIDNotFound{}, res)
+	assert.IsType(t.T(), &quota.GetQuotasProjectIDOK{}, res)
 }

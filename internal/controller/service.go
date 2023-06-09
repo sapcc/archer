@@ -17,7 +17,6 @@ package controller
 import (
 	"context"
 	"errors"
-	"github.com/sapcc/go-bits/gopherpolicy"
 	"net/http"
 
 	sq "github.com/Masterminds/squirrel"
@@ -29,6 +28,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/sapcc/go-bits/gopherpolicy"
 
 	"github.com/sapcc/archer/internal/auth"
 	"github.com/sapcc/archer/internal/db"

@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/runtime/middleware"
@@ -191,7 +192,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 		From("service").
 		Where("id = ?", endpointResponse.ServiceID).
 		MustSql()
-	if err := tx.QueryRow(params.HTTPRequest.Context(), sql, args...).Scan(endpointResponse.ServiceName); err != nil {
+	if err := tx.QueryRow(params.HTTPRequest.Context(), sql, args...).Scan(&endpointResponse.ServiceName); err != nil {
 		logg.Error("Deallocating port %s: %s", port.ID, c.DeallocateNeutronPort(port.ID))
 		panic(err)
 	}

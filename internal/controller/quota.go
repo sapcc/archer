@@ -16,9 +16,11 @@ package controller
 
 import (
 	"context"
+
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/jackc/pgx/v5"
+
 	"github.com/sapcc/archer/internal/auth"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"

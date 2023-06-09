@@ -44,7 +44,7 @@ func TestSuite(t *testing.T) {
 	suite.Run(t, new(SuiteTest))
 }
 
-const CreateResponseFixture = `
+const CreatePortResponseFixture = `
 {
     "port": {
         "status": "DOWN",
@@ -56,6 +56,15 @@ const CreateResponseFixture = `
                 "ip_address": "10.0.0.2"
             }
         ]
+    }
+}
+`
+
+const GetNetworkResponseFixture = `
+{
+    "network": {
+        "id": "d714f65e-bffd-494f-8219-8eb0a85d7a2d]",
+        "subnets": ["a0304c3a-4f08-4c43-88af-d796509c97d2"]
     }
 }
 `
@@ -94,8 +103,21 @@ func (t *SuiteTest) SetupSuite() {
 		var port portRequest
 
 		t.Assert().Nil(json.NewDecoder(r.Body).Decode(&port))
-		_, err := fmt.Fprintf(w, CreateResponseFixture, port.Port.NetworkID)
+		_, err := fmt.Fprintf(w, CreatePortResponseFixture, port.Port.NetworkID)
 		t.Assert().Nil(err)
+	})
+	th.Mux.HandleFunc("/v2.0/networks/d714f65e-bffd-494f-8219-8eb0a85d7a2d", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t.T(), r, "GET")
+
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, err := fmt.Fprint(w, GetNetworkResponseFixture)
+		t.Assert().Nil(err)
+	})
+	th.Mux.HandleFunc("/v2.0/ports/65c0ee9f-d634-4522-8954-51021b570b0d", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t.T(), r, "DELETE")
+		w.WriteHeader(http.StatusNoContent)
 	})
 	t.c = NewController(pool, spec, fake.ServiceClient())
 

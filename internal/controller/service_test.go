@@ -71,9 +71,10 @@ func (t *SuiteTest) TestServicePut() {
 	// post and get
 	serviceId := t.createService()
 
+	name := "test2"
 	res := t.c.PutServiceServiceIDHandler(
 		service.PutServiceServiceIDParams{HTTPRequest: &http.Request{},
-			ServiceID: serviceId, Body: &models.ServiceUpdatable{Name: "test2"}},
+			ServiceID: serviceId, Body: &models.ServiceUpdatable{Name: &name}},
 		nil)
 	assert.IsType(t.T(), &service.PutServiceServiceIDOK{}, res)
 
