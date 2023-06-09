@@ -476,19 +476,11 @@ func init() {
         "summary": "Update Quota",
         "parameters": [
           {
-            "name": "quota",
+            "name": "body",
             "in": "body",
             "required": true,
             "schema": {
-              "type": "object",
-              "required": [
-                "quota"
-              ],
-              "properties": {
-                "quota": {
-                  "$ref": "#/definitions/Quota"
-                }
-              }
+              "$ref": "#/definitions/Quota"
             }
           }
         ],
@@ -496,12 +488,7 @@ func init() {
           "200": {
             "description": "Updated quota for a project.",
             "schema": {
-              "type": "object",
-              "properties": {
-                "quota": {
-                  "$ref": "#/definitions/Quota"
-                }
-              }
+              "$ref": "#/definitions/Quota"
             }
           },
           "403": {
@@ -1384,20 +1371,20 @@ func init() {
     },
     "Quota": {
       "type": "object",
-      "required": [
-        "service",
-        "endpoint"
-      ],
       "properties": {
         "endpoint": {
           "description": "The configured endpoint quota limit. A setting of null means it is using the deployment default quota. A setting of -1 means unlimited.",
           "type": "integer",
+          "format": "int64",
+          "minimum": -1,
           "x-nullable": false,
           "example": 5
         },
         "service": {
           "description": "The configured service quota limit. A setting of null means it is using the deployment default quota. A setting of -1 means unlimited.",
           "type": "integer",
+          "format": "int64",
+          "minimum": -1,
           "x-nullable": false,
           "example": 5
         }
@@ -2324,19 +2311,11 @@ func init() {
         "summary": "Update Quota",
         "parameters": [
           {
-            "name": "quota",
+            "name": "body",
             "in": "body",
             "required": true,
             "schema": {
-              "type": "object",
-              "required": [
-                "quota"
-              ],
-              "properties": {
-                "quota": {
-                  "$ref": "#/definitions/Quota"
-                }
-              }
+              "$ref": "#/definitions/Quota"
             }
           }
         ],
@@ -2344,12 +2323,7 @@ func init() {
           "200": {
             "description": "Updated quota for a project.",
             "schema": {
-              "type": "object",
-              "properties": {
-                "quota": {
-                  "$ref": "#/definitions/Quota"
-                }
-              }
+              "$ref": "#/definitions/Quota"
             }
           },
           "403": {
@@ -3328,20 +3302,20 @@ func init() {
     },
     "Quota": {
       "type": "object",
-      "required": [
-        "service",
-        "endpoint"
-      ],
       "properties": {
         "endpoint": {
           "description": "The configured endpoint quota limit. A setting of null means it is using the deployment default quota. A setting of -1 means unlimited.",
           "type": "integer",
+          "format": "int64",
+          "minimum": -1,
           "x-nullable": false,
           "example": 5
         },
         "service": {
           "description": "The configured service quota limit. A setting of null means it is using the deployment default quota. A setting of -1 means unlimited.",
           "type": "integer",
+          "format": "int64",
+          "minimum": -1,
           "x-nullable": false,
           "example": 5
         }

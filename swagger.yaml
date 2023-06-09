@@ -873,23 +873,15 @@ paths:
       x-policy: quota:update
       parameters:
         - in: body
-          name: quota
+          name: body
           required: true
           schema:
-            type: object
-            required:
-              - quota
-            properties:
-              quota:
-                $ref: '#/definitions/Quota'
+            $ref: '#/definitions/Quota'
       responses:
         200:
           description: Updated quota for a project.
           schema:
-            type: object
-            properties:
-              quota:
-                $ref: '#/definitions/Quota'
+            $ref: '#/definitions/Quota'
         403:
           description: Forbidden
         404:
@@ -1319,19 +1311,20 @@ definitions:
         $ref: "#/definitions/Project"
   Quota:
     type: object
-    required:
-      - service
-      - endpoint
     properties:
       service:
         type: integer
+        format: int64
         description: The configured service quota limit. A setting of null means it is using the deployment default quota. A setting of -1 means unlimited.
         example: 5
+        minimum: -1
         x-nullable: false
       endpoint:
         type: integer
+        format: int64
         description: The configured endpoint quota limit. A setting of null means it is using the deployment default quota. A setting of -1 means unlimited.
         example: 5
+        minimum: -1
         x-nullable: false
   Project:
     type: string

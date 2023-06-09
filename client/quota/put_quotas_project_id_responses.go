@@ -20,15 +20,11 @@ package quota
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"context"
 	"fmt"
 	"io"
 
-	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
-	"github.com/go-openapi/validate"
 
 	"github.com/sapcc/archer/models"
 )
@@ -81,7 +77,7 @@ PutQuotasProjectIDOK describes a response with status code 200, with default hea
 Updated quota for a project.
 */
 type PutQuotasProjectIDOK struct {
-	Payload *PutQuotasProjectIDOKBody
+	Payload *models.Quota
 }
 
 // IsSuccess returns true when this put quotas project Id o k response has a 2xx status code
@@ -122,13 +118,13 @@ func (o *PutQuotasProjectIDOK) String() string {
 	return fmt.Sprintf("[PUT /quotas/{project_id}][%d] putQuotasProjectIdOK  %+v", 200, o.Payload)
 }
 
-func (o *PutQuotasProjectIDOK) GetPayload() *PutQuotasProjectIDOKBody {
+func (o *PutQuotasProjectIDOK) GetPayload() *models.Quota {
 	return o.Payload
 }
 
 func (o *PutQuotasProjectIDOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(PutQuotasProjectIDOKBody)
+	o.Payload = new(models.Quota)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -327,189 +323,5 @@ func (o *PutQuotasProjectIDUnprocessableEntity) readResponse(response runtime.Cl
 		return err
 	}
 
-	return nil
-}
-
-/*
-PutQuotasProjectIDBody put quotas project ID body
-swagger:model PutQuotasProjectIDBody
-*/
-type PutQuotasProjectIDBody struct {
-
-	// quota
-	// Required: true
-	Quota *models.Quota `json:"quota"`
-}
-
-// Validate validates this put quotas project ID body
-func (o *PutQuotasProjectIDBody) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := o.validateQuota(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (o *PutQuotasProjectIDBody) validateQuota(formats strfmt.Registry) error {
-
-	if err := validate.Required("quota"+"."+"quota", "body", o.Quota); err != nil {
-		return err
-	}
-
-	if o.Quota != nil {
-		if err := o.Quota.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("quota" + "." + "quota")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("quota" + "." + "quota")
-			}
-			return err
-		}
-	}
-
-	return nil
-}
-
-// ContextValidate validate this put quotas project ID body based on the context it is used
-func (o *PutQuotasProjectIDBody) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
-	var res []error
-
-	if err := o.contextValidateQuota(ctx, formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (o *PutQuotasProjectIDBody) contextValidateQuota(ctx context.Context, formats strfmt.Registry) error {
-
-	if o.Quota != nil {
-		if err := o.Quota.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("quota" + "." + "quota")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("quota" + "." + "quota")
-			}
-			return err
-		}
-	}
-
-	return nil
-}
-
-// MarshalBinary interface implementation
-func (o *PutQuotasProjectIDBody) MarshalBinary() ([]byte, error) {
-	if o == nil {
-		return nil, nil
-	}
-	return swag.WriteJSON(o)
-}
-
-// UnmarshalBinary interface implementation
-func (o *PutQuotasProjectIDBody) UnmarshalBinary(b []byte) error {
-	var res PutQuotasProjectIDBody
-	if err := swag.ReadJSON(b, &res); err != nil {
-		return err
-	}
-	*o = res
-	return nil
-}
-
-/*
-PutQuotasProjectIDOKBody put quotas project ID o k body
-swagger:model PutQuotasProjectIDOKBody
-*/
-type PutQuotasProjectIDOKBody struct {
-
-	// quota
-	Quota *models.Quota `json:"quota,omitempty"`
-}
-
-// Validate validates this put quotas project ID o k body
-func (o *PutQuotasProjectIDOKBody) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := o.validateQuota(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (o *PutQuotasProjectIDOKBody) validateQuota(formats strfmt.Registry) error {
-	if swag.IsZero(o.Quota) { // not required
-		return nil
-	}
-
-	if o.Quota != nil {
-		if err := o.Quota.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("putQuotasProjectIdOK" + "." + "quota")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("putQuotasProjectIdOK" + "." + "quota")
-			}
-			return err
-		}
-	}
-
-	return nil
-}
-
-// ContextValidate validate this put quotas project ID o k body based on the context it is used
-func (o *PutQuotasProjectIDOKBody) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
-	var res []error
-
-	if err := o.contextValidateQuota(ctx, formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (o *PutQuotasProjectIDOKBody) contextValidateQuota(ctx context.Context, formats strfmt.Registry) error {
-
-	if o.Quota != nil {
-		if err := o.Quota.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("putQuotasProjectIdOK" + "." + "quota")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("putQuotasProjectIdOK" + "." + "quota")
-			}
-			return err
-		}
-	}
-
-	return nil
-}
-
-// MarshalBinary interface implementation
-func (o *PutQuotasProjectIDOKBody) MarshalBinary() ([]byte, error) {
-	if o == nil {
-		return nil, nil
-	}
-	return swag.WriteJSON(o)
-}
-
-// UnmarshalBinary interface implementation
-func (o *PutQuotasProjectIDOKBody) UnmarshalBinary(b []byte) error {
-	var res PutQuotasProjectIDOKBody
-	if err := swag.ReadJSON(b, &res); err != nil {
-		return err
-	}
-	*o = res
 	return nil
 }

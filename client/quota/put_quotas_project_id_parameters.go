@@ -28,6 +28,8 @@ import (
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+
+	"github.com/sapcc/archer/models"
 )
 
 // NewPutQuotasProjectIDParams creates a new PutQuotasProjectIDParams object,
@@ -75,14 +77,14 @@ PutQuotasProjectIDParams contains all the parameters to send to the API endpoint
 */
 type PutQuotasProjectIDParams struct {
 
+	// Body.
+	Body *models.Quota
+
 	/* ProjectID.
 
 	   The ID of the project to query.
 	*/
 	ProjectID string
-
-	// Quota.
-	Quota PutQuotasProjectIDBody
 
 	timeout    time.Duration
 	Context    context.Context
@@ -137,6 +139,17 @@ func (o *PutQuotasProjectIDParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithBody adds the body to the put quotas project ID params
+func (o *PutQuotasProjectIDParams) WithBody(body *models.Quota) *PutQuotasProjectIDParams {
+	o.SetBody(body)
+	return o
+}
+
+// SetBody adds the body to the put quotas project ID params
+func (o *PutQuotasProjectIDParams) SetBody(body *models.Quota) {
+	o.Body = body
+}
+
 // WithProjectID adds the projectID to the put quotas project ID params
 func (o *PutQuotasProjectIDParams) WithProjectID(projectID string) *PutQuotasProjectIDParams {
 	o.SetProjectID(projectID)
@@ -148,17 +161,6 @@ func (o *PutQuotasProjectIDParams) SetProjectID(projectID string) {
 	o.ProjectID = projectID
 }
 
-// WithQuota adds the quota to the put quotas project ID params
-func (o *PutQuotasProjectIDParams) WithQuota(quota PutQuotasProjectIDBody) *PutQuotasProjectIDParams {
-	o.SetQuota(quota)
-	return o
-}
-
-// SetQuota adds the quota to the put quotas project ID params
-func (o *PutQuotasProjectIDParams) SetQuota(quota PutQuotasProjectIDBody) {
-	o.Quota = quota
-}
-
 // WriteToRequest writes these params to a swagger request
 func (o *PutQuotasProjectIDParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -166,12 +168,14 @@ func (o *PutQuotasProjectIDParams) WriteToRequest(r runtime.ClientRequest, reg s
 		return err
 	}
 	var res []error
+	if o.Body != nil {
+		if err := r.SetBodyParam(o.Body); err != nil {
+			return err
+		}
+	}
 
 	// path param project_id
 	if err := r.SetPathParam("project_id", o.ProjectID); err != nil {
-		return err
-	}
-	if err := r.SetBodyParam(o.Quota); err != nil {
 		return err
 	}
 

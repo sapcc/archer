@@ -40,7 +40,7 @@ type PutQuotasProjectIDOK struct {
 	/*
 	  In: Body
 	*/
-	Payload *PutQuotasProjectIDOKBody `json:"body,omitempty"`
+	Payload *models.Quota `json:"body,omitempty"`
 }
 
 // NewPutQuotasProjectIDOK creates PutQuotasProjectIDOK with default headers values
@@ -50,13 +50,13 @@ func NewPutQuotasProjectIDOK() *PutQuotasProjectIDOK {
 }
 
 // WithPayload adds the payload to the put quotas project Id o k response
-func (o *PutQuotasProjectIDOK) WithPayload(payload *PutQuotasProjectIDOKBody) *PutQuotasProjectIDOK {
+func (o *PutQuotasProjectIDOK) WithPayload(payload *models.Quota) *PutQuotasProjectIDOK {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the put quotas project Id o k response
-func (o *PutQuotasProjectIDOK) SetPayload(payload *PutQuotasProjectIDOKBody) {
+func (o *PutQuotasProjectIDOK) SetPayload(payload *models.Quota) {
 	o.Payload = payload
 }
 

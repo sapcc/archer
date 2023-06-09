@@ -28,6 +28,8 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
+
+	"github.com/sapcc/archer/models"
 )
 
 // NewPutQuotasProjectIDParams creates a new PutQuotasProjectIDParams object
@@ -47,16 +49,16 @@ type PutQuotasProjectIDParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
+	/*
+	  Required: true
+	  In: body
+	*/
+	Body *models.Quota
 	/*The ID of the project to query.
 	  Required: true
 	  In: path
 	*/
 	ProjectID string
-	/*
-	  Required: true
-	  In: body
-	*/
-	Quota PutQuotasProjectIDBody
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -68,19 +70,14 @@ func (o *PutQuotasProjectIDParams) BindRequest(r *http.Request, route *middlewar
 
 	o.HTTPRequest = r
 
-	rProjectID, rhkProjectID, _ := route.Params.GetOK("project_id")
-	if err := o.bindProjectID(rProjectID, rhkProjectID, route.Formats); err != nil {
-		res = append(res, err)
-	}
-
 	if runtime.HasBody(r) {
 		defer r.Body.Close()
-		var body PutQuotasProjectIDBody
+		var body models.Quota
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
 			if err == io.EOF {
-				res = append(res, errors.Required("quota", "body", ""))
+				res = append(res, errors.Required("body", "body", ""))
 			} else {
-				res = append(res, errors.NewParseError("quota", "body", "", err))
+				res = append(res, errors.NewParseError("body", "body", "", err))
 			}
 		} else {
 			// validate body object
@@ -94,11 +91,16 @@ func (o *PutQuotasProjectIDParams) BindRequest(r *http.Request, route *middlewar
 			}
 
 			if len(res) == 0 {
-				o.Quota = body
+				o.Body = &body
 			}
 		}
 	} else {
-		res = append(res, errors.Required("quota", "body", ""))
+		res = append(res, errors.Required("body", "body", ""))
+	}
+
+	rProjectID, rhkProjectID, _ := route.Params.GetOK("project_id")
+	if err := o.bindProjectID(rProjectID, rhkProjectID, route.Formats); err != nil {
+		res = append(res, err)
 	}
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)

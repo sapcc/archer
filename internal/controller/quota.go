@@ -15,12 +15,10 @@
 package controller
 
 import (
-	"fmt"
-
+	"context"
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/jackc/pgx/v5"
-
 	"github.com/sapcc/archer/internal/auth"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
@@ -65,38 +63,73 @@ func (c *Controller) GetQuotasDefaultsHandler(params quota.GetQuotasDefaultsPara
 	})
 }
 
+func getQuotaDetails(ctx context.Context, tx pgx.Tx, projectID string, body *quota.GetQuotasProjectIDOKBody) error {
+	sql, args, err := db.Select("quota.service", "quota.endpoint", "COUNT(DISTINCT s.id)", "COUNT(DISTINCT e.id)").
+		From("quota").
+		Where("quota.project_id = ?", projectID).
+		LeftJoin("service s ON quota.project_id = s.project_id").
+		LeftJoin("endpoint e ON quota.project_id = e.project_id").
+		GroupBy("quota.project_id").
+		ToSql()
+
+	if err != nil {
+		return err
+	}
+
+	return tx.QueryRow(ctx, sql, args...).
+		Scan(
+			&body.Quota.Service,
+			&body.Quota.Endpoint,
+			&body.Quota.InUseService,
+			&body.Quota.InUseEndpoint)
+}
+
+func insertDefaultQuota(ctx context.Context, tx pgx.Tx, projectID string) error {
+	sql, args, err := db.Insert("quota").
+		Columns("service", "endpoint", "project_id").
+		Values(
+			config.Global.Quota.DefaultQuotaService,
+			config.Global.Quota.DefaultQuotaEndpoint,
+			projectID).
+		ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(ctx, sql, args...)
+	return err
+}
+
 func (c *Controller) GetQuotasProjectIDHandler(params quota.GetQuotasProjectIDParams, principal any) middleware.Responder {
 	if _, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
 		return quota.NewGetQuotasForbidden()
 	}
 
-	q := db.Select("quota.service", "quota.endpoint", "COUNT(DISTINCT s.id)", "COUNT(DISTINCT e.id)").
-		From("quota").
-		Where("quota.project_id = ?", params.ProjectID).
-		LeftJoin("service s ON quota.project_id = s.project_id").
-		LeftJoin("endpoint e ON quota.project_id = e.project_id").
-		GroupBy("quota.project_id")
-
-	var quotaAvail models.Quota
-	var quotaUsage models.QuotaUsage
-	sql, args := q.MustSql()
-	if err := c.pool.QueryRow(params.HTTPRequest.Context(), sql, args...).
-		Scan(&quotaAvail.Service, &quotaAvail.Endpoint, &quotaUsage.InUseService, &quotaUsage.InUseEndpoint); err != nil {
-		if err == pgx.ErrNoRows {
-			return quota.NewGetQuotasProjectIDNotFound().WithPayload(&models.Error{
-				Code:    404,
-				Message: fmt.Sprint("Could not find quotas for project ", params.ProjectID),
-			})
-		}
-		panic(err)
-	}
-
-	return quota.NewGetQuotasProjectIDOK().WithPayload(&quota.GetQuotasProjectIDOKBody{
+	q := quota.GetQuotasProjectIDOKBody{
 		Quota: struct {
 			models.Quota
 			models.QuotaUsage
-		}{quotaAvail, quotaUsage},
-	})
+		}{models.Quota{}, models.QuotaUsage{}},
+	}
+
+	if err := pgx.BeginFunc(context.Background(), c.pool, func(tx pgx.Tx) error {
+		err := getQuotaDetails(params.HTTPRequest.Context(), tx, params.ProjectID, &q)
+		if err == nil {
+			return nil
+		}
+
+		if err == pgx.ErrNoRows {
+			// insert default quotas
+			if err := insertDefaultQuota(params.HTTPRequest.Context(), tx, params.ProjectID); err != nil {
+				return err
+			}
+			return getQuotaDetails(params.HTTPRequest.Context(), tx, params.ProjectID, &q)
+		}
+		return err
+	}); err != nil {
+		panic(err)
+	}
+	return quota.NewGetQuotasProjectIDOK().WithPayload(&q)
 }
 
 func (c *Controller) PutQuotasProjectIDHandler(params quota.PutQuotasProjectIDParams, principal any) middleware.Responder {
@@ -106,9 +139,9 @@ func (c *Controller) PutQuotasProjectIDHandler(params quota.PutQuotasProjectIDPa
 
 	sql, args := db.Insert("quota").
 		Columns("service", "endpoint", "project_id").
-		Values(params.Quota.Quota.Service, params.Quota.Quota.Endpoint, params.ProjectID).
+		Values(params.Body.Service, params.Body.Endpoint, params.ProjectID).
 		Suffix("ON CONFLICT (project_id) DO UPDATE SET service = ?, endpoint = ?",
-			params.Quota.Quota.Service, params.Quota.Quota.Endpoint).
+			params.Body.Service, params.Body.Endpoint).
 		Suffix("RETURNING service, endpoint").
 		MustSql()
 
@@ -117,7 +150,7 @@ func (c *Controller) PutQuotasProjectIDHandler(params quota.PutQuotasProjectIDPa
 		panic(err)
 	}
 
-	return quota.NewPutQuotasProjectIDOK().WithPayload(&quota.PutQuotasProjectIDOKBody{Quota: &quotaResponse})
+	return quota.NewPutQuotasProjectIDOK().WithPayload(&quotaResponse)
 }
 
 func (c *Controller) DeleteQuotasProjectIDHandler(params quota.DeleteQuotasProjectIDParams, principal any) middleware.Responder {

@@ -35,13 +35,13 @@ type Quota struct {
 
 	// The configured endpoint quota limit. A setting of null means it is using the deployment default quota. A setting of -1 means unlimited.
 	// Example: 5
-	// Required: true
-	Endpoint int64 `json:"endpoint"`
+	// Minimum: -1
+	Endpoint int64 `json:"endpoint,omitempty"`
 
 	// The configured service quota limit. A setting of null means it is using the deployment default quota. A setting of -1 means unlimited.
 	// Example: 5
-	// Required: true
-	Service int64 `json:"service"`
+	// Minimum: -1
+	Service int64 `json:"service,omitempty"`
 }
 
 // Validate validates this quota
@@ -63,8 +63,11 @@ func (m *Quota) Validate(formats strfmt.Registry) error {
 }
 
 func (m *Quota) validateEndpoint(formats strfmt.Registry) error {
+	if swag.IsZero(m.Endpoint) { // not required
+		return nil
+	}
 
-	if err := validate.Required("endpoint", "body", int64(m.Endpoint)); err != nil {
+	if err := validate.MinimumInt("endpoint", "body", m.Endpoint, -1, false); err != nil {
 		return err
 	}
 
@@ -72,8 +75,11 @@ func (m *Quota) validateEndpoint(formats strfmt.Registry) error {
 }
 
 func (m *Quota) validateService(formats strfmt.Registry) error {
+	if swag.IsZero(m.Service) { // not required
+		return nil
+	}
 
-	if err := validate.Required("service", "body", int64(m.Service)); err != nil {
+	if err := validate.MinimumInt("service", "body", m.Service, -1, false); err != nil {
 		return err
 	}
 
