@@ -52,12 +52,6 @@ func (o *GetQuotasProjectIDReader) ReadResponse(response runtime.ClientResponse,
 			return nil, err
 		}
 		return nil, result
-	case 404:
-		result := NewGetQuotasProjectIDNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
 	case 422:
 		result := NewGetQuotasProjectIDUnprocessableEntity()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -189,74 +183,6 @@ func (o *GetQuotasProjectIDForbidden) String() string {
 }
 
 func (o *GetQuotasProjectIDForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	return nil
-}
-
-// NewGetQuotasProjectIDNotFound creates a GetQuotasProjectIDNotFound with default headers values
-func NewGetQuotasProjectIDNotFound() *GetQuotasProjectIDNotFound {
-	return &GetQuotasProjectIDNotFound{}
-}
-
-/*
-GetQuotasProjectIDNotFound describes a response with status code 404, with default header values.
-
-Not Found
-*/
-type GetQuotasProjectIDNotFound struct {
-	Payload *models.Error
-}
-
-// IsSuccess returns true when this get quotas project Id not found response has a 2xx status code
-func (o *GetQuotasProjectIDNotFound) IsSuccess() bool {
-	return false
-}
-
-// IsRedirect returns true when this get quotas project Id not found response has a 3xx status code
-func (o *GetQuotasProjectIDNotFound) IsRedirect() bool {
-	return false
-}
-
-// IsClientError returns true when this get quotas project Id not found response has a 4xx status code
-func (o *GetQuotasProjectIDNotFound) IsClientError() bool {
-	return true
-}
-
-// IsServerError returns true when this get quotas project Id not found response has a 5xx status code
-func (o *GetQuotasProjectIDNotFound) IsServerError() bool {
-	return false
-}
-
-// IsCode returns true when this get quotas project Id not found response a status code equal to that given
-func (o *GetQuotasProjectIDNotFound) IsCode(code int) bool {
-	return code == 404
-}
-
-// Code gets the status code for the get quotas project Id not found response
-func (o *GetQuotasProjectIDNotFound) Code() int {
-	return 404
-}
-
-func (o *GetQuotasProjectIDNotFound) Error() string {
-	return fmt.Sprintf("[GET /quotas/{project_id}][%d] getQuotasProjectIdNotFound  %+v", 404, o.Payload)
-}
-
-func (o *GetQuotasProjectIDNotFound) String() string {
-	return fmt.Sprintf("[GET /quotas/{project_id}][%d] getQuotasProjectIdNotFound  %+v", 404, o.Payload)
-}
-
-func (o *GetQuotasProjectIDNotFound) GetPayload() *models.Error {
-	return o.Payload
-}
-
-func (o *GetQuotasProjectIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.Error)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
 
 	return nil
 }

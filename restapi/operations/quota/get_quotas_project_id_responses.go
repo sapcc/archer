@@ -97,51 +97,6 @@ func (o *GetQuotasProjectIDForbidden) WriteResponse(rw http.ResponseWriter, prod
 	rw.WriteHeader(403)
 }
 
-// GetQuotasProjectIDNotFoundCode is the HTTP code returned for type GetQuotasProjectIDNotFound
-const GetQuotasProjectIDNotFoundCode int = 404
-
-/*
-GetQuotasProjectIDNotFound Not Found
-
-swagger:response getQuotasProjectIdNotFound
-*/
-type GetQuotasProjectIDNotFound struct {
-
-	/*
-	  In: Body
-	*/
-	Payload *models.Error `json:"body,omitempty"`
-}
-
-// NewGetQuotasProjectIDNotFound creates GetQuotasProjectIDNotFound with default headers values
-func NewGetQuotasProjectIDNotFound() *GetQuotasProjectIDNotFound {
-
-	return &GetQuotasProjectIDNotFound{}
-}
-
-// WithPayload adds the payload to the get quotas project Id not found response
-func (o *GetQuotasProjectIDNotFound) WithPayload(payload *models.Error) *GetQuotasProjectIDNotFound {
-	o.Payload = payload
-	return o
-}
-
-// SetPayload sets the payload to the get quotas project Id not found response
-func (o *GetQuotasProjectIDNotFound) SetPayload(payload *models.Error) {
-	o.Payload = payload
-}
-
-// WriteResponse to the client
-func (o *GetQuotasProjectIDNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
-
-	rw.WriteHeader(404)
-	if o.Payload != nil {
-		payload := o.Payload
-		if err := producer.Produce(rw, payload); err != nil {
-			panic(err) // let the recovery middleware deal with this
-		}
-	}
-}
-
 // GetQuotasProjectIDUnprocessableEntityCode is the HTTP code returned for type GetQuotasProjectIDUnprocessableEntity
 const GetQuotasProjectIDUnprocessableEntityCode int = 422
 

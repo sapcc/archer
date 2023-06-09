@@ -454,12 +454,6 @@ func init() {
           "403": {
             "description": "Forbidden"
           },
-          "404": {
-            "description": "Not Found",
-            "schema": {
-              "$ref": "#/definitions/Error"
-            }
-          },
           "422": {
             "description": "Unprocessable Content",
             "schema": {
@@ -2288,12 +2282,6 @@ func init() {
           },
           "403": {
             "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found",
-            "schema": {
-              "$ref": "#/definitions/Error"
-            }
           },
           "422": {
             "description": "Unprocessable Content",
