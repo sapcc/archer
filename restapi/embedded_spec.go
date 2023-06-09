@@ -1460,8 +1460,7 @@ func init() {
         "target_type": {
           "type": "string",
           "enum": [
-            "project_id",
-            "domain_id"
+            "project"
           ]
         }
       },
@@ -3398,8 +3397,7 @@ func init() {
         "target_type": {
           "type": "string",
           "enum": [
-            "project_id",
-            "domain_id"
+            "project"
           ]
         }
       },

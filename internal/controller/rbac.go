@@ -87,7 +87,7 @@ func (c *Controller) PostRbacPoliciesHandler(params rbac.PostRbacPoliciesParams,
 	sql, args := db.Insert("rbac").
 		Columns("service_id", "target_project", "project_id").
 		Values(params.Body.ServiceID, params.Body.Target, params.Body.ProjectID).
-		Suffix("RETURNING id, target_project AS target, service_id, created_at, updated_at, project_id").
+		Suffix("RETURNING id, target_project AS target, 'project' AS target_type, service_id, created_at, updated_at, project_id").
 		MustSql()
 	if err := pgxscan.Get(ctx, c.pool, &rbacResponse, sql, args...); err != nil {
 		var pe *pgconn.PgError
@@ -143,7 +143,7 @@ func (c *Controller) PutRbacPoliciesRbacPolicyIDHandler(params rbac.PutRbacPolic
 	}
 
 	sql, args := q.Set("target_project", sq.Expr("COALESCE(?, target_project)", params.Body.Target)).
-		Suffix("RETURNING id, target_project AS target, service_id, created_at, updated_at, project_id").
+		Suffix("RETURNING id, target_project AS target, 'project' AS target_type, service_id, created_at, updated_at, project_id").
 		MustSql()
 	var rbacResponse models.Rbacpolicy
 	if err := pgxscan.Get(params.HTTPRequest.Context(), c.pool, &rbacResponse, sql, args...); err != nil {

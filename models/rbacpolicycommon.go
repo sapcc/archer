@@ -48,7 +48,7 @@ type Rbacpolicycommon struct {
 	Target *string `json:"target"`
 
 	// target type
-	// Enum: [project_id domain_id]
+	// Enum: [project]
 	TargetType string `json:"target_type,omitempty"`
 }
 
@@ -120,7 +120,7 @@ var rbacpolicycommonTypeTargetTypePropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["project_id","domain_id"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["project"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -130,11 +130,8 @@ func init() {
 
 const (
 
-	// RbacpolicycommonTargetTypeProjectID captures enum value "project_id"
-	RbacpolicycommonTargetTypeProjectID string = "project_id"
-
-	// RbacpolicycommonTargetTypeDomainID captures enum value "domain_id"
-	RbacpolicycommonTargetTypeDomainID string = "domain_id"
+	// RbacpolicycommonTargetTypeProject captures enum value "project"
+	RbacpolicycommonTargetTypeProject string = "project"
 )
 
 // prop value enum
