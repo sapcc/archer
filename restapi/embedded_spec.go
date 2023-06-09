@@ -436,19 +436,14 @@ func init() {
           "200": {
             "description": "Shows the details of a specific monitor.",
             "schema": {
-              "type": "object",
-              "properties": {
-                "quota": {
-                  "allOf": [
-                    {
-                      "$ref": "#/definitions/Quota"
-                    },
-                    {
-                      "$ref": "#/definitions/QuotaUsage"
-                    }
-                  ]
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Quota"
+                },
+                {
+                  "$ref": "#/definitions/QuotaUsage"
                 }
-              }
+              ]
             }
           },
           "403": {
@@ -2265,19 +2260,14 @@ func init() {
           "200": {
             "description": "Shows the details of a specific monitor.",
             "schema": {
-              "type": "object",
-              "properties": {
-                "quota": {
-                  "allOf": [
-                    {
-                      "$ref": "#/definitions/Quota"
-                    },
-                    {
-                      "$ref": "#/definitions/QuotaUsage"
-                    }
-                  ]
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Quota"
+                },
+                {
+                  "$ref": "#/definitions/QuotaUsage"
                 }
-              }
+              ]
             }
           },
           "403": {

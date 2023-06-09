@@ -82,8 +82,8 @@ func getQuotaDetails(ctx context.Context, tx pgx.Tx, projectID string, body *quo
 		Scan(
 			&body.Quota.Service,
 			&body.Quota.Endpoint,
-			&body.Quota.InUseService,
-			&body.Quota.InUseEndpoint)
+			&body.QuotaUsage.InUseService,
+			&body.QuotaUsage.InUseEndpoint)
 }
 
 func insertDefaultQuota(ctx context.Context, tx pgx.Tx, projectID string) error {
@@ -108,10 +108,8 @@ func (c *Controller) GetQuotasProjectIDHandler(params quota.GetQuotasProjectIDPa
 	}
 
 	q := quota.GetQuotasProjectIDOKBody{
-		Quota: struct {
-			models.Quota
-			models.QuotaUsage
-		}{models.Quota{}, models.QuotaUsage{}},
+		Quota:      models.Quota{},
+		QuotaUsage: models.QuotaUsage{},
 	}
 
 	if err := pgx.BeginFunc(context.Background(), c.pool, func(tx pgx.Tx) error {

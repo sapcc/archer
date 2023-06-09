@@ -74,8 +74,8 @@ func (t *SuiteTest) TestQuotaPutGet() {
 	payload := res.(*quota.GetQuotasProjectIDOK).Payload
 	assert.EqualValues(t.T(), 1, payload.Quota.Endpoint)
 	assert.EqualValues(t.T(), 2, payload.Quota.Service)
-	assert.EqualValues(t.T(), 0, payload.Quota.QuotaUsage.InUseEndpoint)
-	assert.EqualValues(t.T(), 0, payload.Quota.QuotaUsage.InUseService)
+	assert.EqualValues(t.T(), 0, payload.QuotaUsage.InUseEndpoint)
+	assert.EqualValues(t.T(), 0, payload.QuotaUsage.InUseService)
 }
 
 func (t *SuiteTest) TestResetQuotas() {

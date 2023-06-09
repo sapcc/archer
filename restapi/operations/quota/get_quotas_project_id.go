@@ -92,34 +92,64 @@ func (o *GetQuotasProjectID) ServeHTTP(rw http.ResponseWriter, r *http.Request) 
 //
 // swagger:model GetQuotasProjectIDOKBody
 type GetQuotasProjectIDOKBody struct {
+	models.Quota
 
-	// quota
-	Quota struct {
-		models.Quota
+	models.QuotaUsage
+}
 
-		models.QuotaUsage
-	} `json:"quota,omitempty"`
+// UnmarshalJSON unmarshals this object from a JSON structure
+func (o *GetQuotasProjectIDOKBody) UnmarshalJSON(raw []byte) error {
+	// GetQuotasProjectIDOKBodyAO0
+	var getQuotasProjectIDOKBodyAO0 models.Quota
+	if err := swag.ReadJSON(raw, &getQuotasProjectIDOKBodyAO0); err != nil {
+		return err
+	}
+	o.Quota = getQuotasProjectIDOKBodyAO0
+
+	// GetQuotasProjectIDOKBodyAO1
+	var getQuotasProjectIDOKBodyAO1 models.QuotaUsage
+	if err := swag.ReadJSON(raw, &getQuotasProjectIDOKBodyAO1); err != nil {
+		return err
+	}
+	o.QuotaUsage = getQuotasProjectIDOKBodyAO1
+
+	return nil
+}
+
+// MarshalJSON marshals this object to a JSON structure
+func (o GetQuotasProjectIDOKBody) MarshalJSON() ([]byte, error) {
+	_parts := make([][]byte, 0, 2)
+
+	getQuotasProjectIDOKBodyAO0, err := swag.WriteJSON(o.Quota)
+	if err != nil {
+		return nil, err
+	}
+	_parts = append(_parts, getQuotasProjectIDOKBodyAO0)
+
+	getQuotasProjectIDOKBodyAO1, err := swag.WriteJSON(o.QuotaUsage)
+	if err != nil {
+		return nil, err
+	}
+	_parts = append(_parts, getQuotasProjectIDOKBodyAO1)
+	return swag.ConcatJSON(_parts...), nil
 }
 
 // Validate validates this get quotas project ID o k body
 func (o *GetQuotasProjectIDOKBody) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := o.validateQuota(formats); err != nil {
+	// validation for a type composition with models.Quota
+	if err := o.Quota.Validate(formats); err != nil {
+		res = append(res, err)
+	}
+	// validation for a type composition with models.QuotaUsage
+	if err := o.QuotaUsage.Validate(formats); err != nil {
 		res = append(res, err)
 	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
-	return nil
-}
-
-func (o *GetQuotasProjectIDOKBody) validateQuota(formats strfmt.Registry) error {
-	if swag.IsZero(o.Quota) { // not required
-		return nil
-	}
-
 	return nil
 }
 
@@ -127,18 +157,18 @@ func (o *GetQuotasProjectIDOKBody) validateQuota(formats strfmt.Registry) error 
 func (o *GetQuotasProjectIDOKBody) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
-	if err := o.contextValidateQuota(ctx, formats); err != nil {
+	// validation for a type composition with models.Quota
+	if err := o.Quota.ContextValidate(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+	// validation for a type composition with models.QuotaUsage
+	if err := o.QuotaUsage.ContextValidate(ctx, formats); err != nil {
 		res = append(res, err)
 	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
-	return nil
-}
-
-func (o *GetQuotasProjectIDOKBody) contextValidateQuota(ctx context.Context, formats strfmt.Registry) error {
-
 	return nil
 }
 

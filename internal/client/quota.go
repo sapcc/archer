@@ -60,7 +60,7 @@ func (*QuotaShow) Execute(_ []string) error {
 		return err
 	}
 
-	return WriteTable(resp.GetPayload().Quota)
+	return WriteTable(resp.GetPayload())
 }
 
 type QuotaShowDefaults struct{}
@@ -97,8 +97,8 @@ func (*QuotaSet) Execute(_ []string) error {
 		return err
 	}
 	quotas := models.Quota{
-		Endpoint: getResp.Payload.Quota.Quota.Endpoint,
-		Service:  getResp.Payload.Quota.Quota.Service,
+		Endpoint: getResp.Payload.Quota.Endpoint,
+		Service:  getResp.Payload.Quota.Service,
 	}
 
 	if QuotaOptions.QuotaSet.Endpoint != nil {
