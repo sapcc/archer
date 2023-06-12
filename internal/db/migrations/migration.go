@@ -190,4 +190,22 @@ var Migrations = mgx.Migrations(
 
 		return nil
 	}),
+	mgx.NewMigration("add_agents", func(ctx context.Context, commands mgx.Commands) error {
+		if _, err := commands.Exec(ctx, `
+			DROP TABLE IF EXISTS agents;
+			CREATE TABLE agents
+			(
+				host              VARCHAR(64)  NOT NULL PRIMARY KEY,
+				availability_zone VARCHAR(64)  NOT NULL,
+				created_at        TIMESTAMP    NOT NULL DEFAULT now(),
+				updated_at        TIMESTAMP    NOT NULL DEFAULT now(),
+				enabled           BOOLEAN      DEFAULT true NOT NULL,
+				provider          VARCHAR(64)  DEFAULT 'tenant' NOT NULL
+			);
+		`); err != nil {
+			return err
+		}
+
+		return nil
+	}),
 )

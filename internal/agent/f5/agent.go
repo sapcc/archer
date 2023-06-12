@@ -16,10 +16,11 @@ package f5
 
 import (
 	"context"
-	"github.com/sapcc/archer/internal/agent/neutron"
 	"net/http"
+	"strings"
 
 	"github.com/IBM/pgxpoolprometheus"
+	sq "github.com/Masterminds/squirrel"
 	"github.com/f5devcentral/go-bigip"
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud"
@@ -31,10 +32,12 @@ import (
 	"github.com/jackc/pgx/v5/tracelog"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/sapcc/archer/internal/agent/f5/as3"
 	"github.com/sapcc/go-bits/jobloop"
 	"github.com/sapcc/go-bits/logg"
 
+	common "github.com/sapcc/archer/internal/agent"
+	"github.com/sapcc/archer/internal/agent/f5/as3"
+	"github.com/sapcc/archer/internal/agent/neutron"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
 )
@@ -88,6 +91,7 @@ func NewAgent() *Agent {
 		}
 		connConfig.ConnConfig.Tracer = &logger
 	}
+	connConfig.ConnConfig.RuntimeParams["application_name"] = "archer-agent"
 	if agent.pool, err = pgxpool.NewWithConfig(context.Background(), connConfig); err != nil {
 		logg.Fatal(err.Error())
 	}
@@ -125,6 +129,7 @@ func NewAgent() *Agent {
 	}
 	logg.Info("Connected to Neutron %s", agent.neutron.Endpoint)
 
+	common.RegisterAgent(agent.pool)
 	return agent
 }
 
@@ -137,7 +142,7 @@ func (a *Agent) Run() error {
 	go a.WorkerThread(context.Background())
 	go func() {
 		// run pending sync scan immediately
-		_ = a.PendingSyncLoop(nil, nil)
+		_ = a.PendingSyncLoop(context.Background(), nil)
 	}()
 	a.jobLoop.Run(context.Background(), nil)
 
@@ -145,15 +150,21 @@ func (a *Agent) Run() error {
 }
 
 func (a *Agent) PendingSyncLoop(context.Context, prometheus.Labels) error {
-	var id, networkId strfmt.UUID
+	var id strfmt.UUID
 	var rows pgx.Rows
 	var ret pgconn.CommandTag
 	var err error
 
 	logg.Debug("pending sync scan")
-	ret, err = a.pool.Exec(context.Background(),
-		`SELECT 1 FROM service WHERE status LIKE 'PENDING_%' AND host = $1`,
-		config.Global.Default.Host)
+	sql, args := db.Select("1").
+		From("service").
+		Where(sq.And{
+			sq.Like{"status": "PENDING_%"},
+			sq.Eq{"host": config.Global.Default.Host},
+			sq.Eq{"provider": "tenant"},
+		}).
+		MustSql()
+	ret, err = a.pool.Exec(context.Background(), sql, args...)
 	if err != nil {
 		return err
 	}
@@ -164,16 +175,24 @@ func (a *Agent) PendingSyncLoop(context.Context, prometheus.Labels) error {
 		}
 	}
 
-	rows, err = a.pool.Query(context.Background(),
-		`SELECT endpoint.id, "target.network" 
-              FROM endpoint
-                    INNER JOIN service ON service.id = service_id AND service.status = 'AVAILABLE' 
-              WHERE endpoint.status LIKE 'PENDING_%' AND host = $1`,
-		config.Global.Default.Host)
+	sql, args = db.Select("id").
+		From("endpoint").
+		Where(sq.And{
+			sq.Like{"status": "PENDING_%"},
+			db.Select("1").
+				Prefix("EXISTS(").
+				From("service").
+				Where("service.id = endpoint.service_id").
+				Where("service.provider = 'tenant'").
+				Where("service.host = ?", config.Global.Default.Host).
+				Suffix(")"),
+		}).
+		MustSql()
+	rows, err = a.pool.Query(context.Background(), sql, args...)
 	if err != nil {
 		return err
 	}
-	if _, err = pgx.ForEachRow(rows, []any{&id, &networkId}, func() error {
+	if _, err = pgx.ForEachRow(rows, []any{&id}, func() error {
 		if err := a.jobQueue.Enqueue(job{model: "service", id: id}); err != nil {
 			return err
 		}
@@ -192,7 +211,8 @@ func (a *Agent) DBNotificationThread(ctx context.Context) {
 		logg.Fatal(err.Error())
 	}
 
-	if _, err := conn.Exec(ctx, "listen service; listen endpoint;"); err != nil {
+	sql := "LISTEN service; LISTEN endpoint;"
+	if _, err := conn.Exec(ctx, sql); err != nil {
 		logg.Fatal(err.Error())
 	}
 
@@ -208,9 +228,19 @@ func (a *Agent) DBNotificationThread(ctx context.Context) {
 
 		logg.Debug("received notification, channel=%s, payload=%s", notification.Channel, notification.Payload)
 		j := job{model: notification.Channel}
-		if notification.Payload != "" {
-			j.id = strfmt.UUID(notification.Payload)
+		s := strings.SplitN(notification.Payload, ":", 2)
+		if len(s) < 1 {
+			logg.Error("Received invalid notification payload: %s", notification.Payload)
+			continue
 		}
+
+		if s[0] != config.Global.Default.Host {
+			continue
+		}
+		if len(s) > 1 {
+			j.id = strfmt.UUID(s[1])
+		}
+
 		if err := a.jobQueue.Enqueue(j); err != nil {
 			logg.Error(err.Error())
 		}

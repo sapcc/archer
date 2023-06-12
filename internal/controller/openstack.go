@@ -26,7 +26,11 @@ import (
 	"github.com/sapcc/archer/models"
 )
 
-func (c *Controller) AllocateNeutronPort(target *models.EndpointTarget, endpoint *models.Endpoint,
+type fixedIP struct {
+	SubnetID string `json:"subnet_id"`
+}
+
+func (c *Controller) AllocateNeutronEndpointPort(target *models.EndpointTarget, endpoint *models.Endpoint,
 	projectID string) (*ports.Port, error) {
 	if target.Port != nil {
 		port, err := ports.Get(c.neutron, target.Port.String()).Extract()
@@ -45,9 +49,6 @@ func (c *Controller) AllocateNeutronPort(target *models.EndpointTarget, endpoint
 		return port, nil
 	}
 
-	type fixedIP struct {
-		SubnetID string `json:"subnet_id"`
-	}
 	var fixedIPs []fixedIP
 	if target.Network == nil {
 		subnet, err := subnets.Get(c.neutron, target.Subnet.String()).Extract()
@@ -78,6 +79,37 @@ func (c *Controller) AllocateNeutronPort(target *models.EndpointTarget, endpoint
 			DeviceID:    endpoint.ID.String(),
 			NetworkID:   target.Network.String(),
 			TenantID:    projectID,
+			FixedIPs:    fixedIPs,
+		},
+		HostID: config.Global.Default.Host,
+	}
+
+	res, err := ports.Create(c.neutron, port).Extract()
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func (c *Controller) AllocateSNATNeutronPort(service *models.Service) (*ports.Port, error) {
+	var fixedIPs []fixedIP
+	network, err := networks.Get(c.neutron, service.NetworkID.String()).Extract()
+	if err != nil {
+		return nil, err
+	}
+	if len(network.Subnets) == 0 {
+		return nil, ErrMissingSubnets
+	}
+	fixedIPs = append(fixedIPs, fixedIP{network.Subnets[0]})
+
+	// allocate neutron port
+	port := portsbinding.CreateOptsExt{
+		CreateOptsBuilder: ports.CreateOpts{
+			Name:        fmt.Sprintf("endpoint-service-snat-%s", service.Name),
+			DeviceOwner: "network:archer-snat",
+			DeviceID:    service.ID.String(),
+			NetworkID:   service.NetworkID.String(),
+			TenantID:    string(service.ProjectID),
 			FixedIPs:    fixedIPs,
 		},
 		HostID: config.Global.Default.Host,

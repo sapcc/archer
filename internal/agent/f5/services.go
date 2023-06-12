@@ -16,18 +16,18 @@ package f5
 
 import (
 	"context"
-	as32 "github.com/sapcc/archer/internal/agent/f5/as3"
-	"github.com/sapcc/archer/internal/agent/neutron"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
 	"github.com/sapcc/go-bits/logg"
 
+	"github.com/sapcc/archer/internal/agent/f5/as3"
+	"github.com/sapcc/archer/internal/agent/neutron"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/models"
 )
 
-func processSNATPort(a *Agent, ctx context.Context, tx pgx.Tx, service *as32.ExtendedService) error {
+func processSNATPort(a *Agent, ctx context.Context, tx pgx.Tx, service *as3.ExtendedService) error {
 	var err error
 
 	if service.Status == "PENDING_DELETE" {
@@ -73,17 +73,17 @@ func processSNATPort(a *Agent, ctx context.Context, tx pgx.Tx, service *as32.Ext
 	if err != nil {
 		return err
 	}
-	if err := as32.EnsureVLAN(a.bigip, service.SegmentId); err != nil {
+	if err := as3.EnsureVLAN(a.bigip, service.SegmentId); err != nil {
 		return err
 	}
-	if err := as32.EnsureRouteDomain(a.bigip, service.SegmentId); err != nil {
+	if err := as3.EnsureRouteDomain(a.bigip, service.SegmentId); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func doProcessing(a *Agent, ctx context.Context, tx pgx.Tx, services []*as32.ExtendedService) error {
+func doProcessing(a *Agent, ctx context.Context, tx pgx.Tx, services []*as3.ExtendedService) error {
 	// Ensure SNAT neutron ports and segment ids
 	for _, service := range services {
 		if err := processSNATPort(a, ctx, tx, service); err != nil {
@@ -91,11 +91,11 @@ func doProcessing(a *Agent, ctx context.Context, tx pgx.Tx, services []*as32.Ext
 		}
 	}
 
-	data := as32.GetAS3Declaration(map[string]as32.Tenant{
-		"Common": as32.GetServiceTenants(services),
+	data := as3.GetAS3Declaration(map[string]as3.Tenant{
+		"Common": as3.GetServiceTenants(services),
 	})
 
-	if err := as32.PostBigIP(a.bigip, &data, "Common"); err != nil {
+	if err := as3.PostBigIP(a.bigip, &data, "Common"); err != nil {
 		return err
 	}
 
@@ -117,14 +117,14 @@ func doProcessing(a *Agent, ctx context.Context, tx pgx.Tx, services []*as32.Ext
 }
 
 func (a *Agent) ProcessServices(ctx context.Context) error {
-	var services []*as32.ExtendedService
+	var services []*as3.ExtendedService
 
 	// We need to fetch all services of this host since the AS3 tenant is shared
 	if err := pgxscan.Select(ctx, a.pool, &services,
 		`SELECT id, status, enabled, network_id, proxy_protocol, port, ip_addresses, sap.port_id AS snat_port_id
               FROM service 
                   LEFT JOIN service_snat_port sap ON service.id = sap.service_id 
-              WHERE host = $1`,
+              WHERE host = $1 and provider = 'tenant'`,
 		config.Global.Default.Host,
 	); err != nil {
 		return err

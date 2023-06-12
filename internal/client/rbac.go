@@ -19,6 +19,7 @@ package client
 import (
 	"github.com/go-openapi/strfmt"
 	"github.com/jedib0t/go-pretty/table"
+
 	"github.com/sapcc/archer/client/rbac"
 	"github.com/sapcc/archer/models"
 )

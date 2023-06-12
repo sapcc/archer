@@ -153,7 +153,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 		panic(err)
 	}
 
-	port, err := c.AllocateNeutronPort(&params.Body.Target, &endpointResponse, string(params.Body.ProjectID))
+	port, err := c.AllocateNeutronEndpointPort(&params.Body.Target, &endpointResponse, string(params.Body.ProjectID))
 	if err != nil {
 		if errors.Is(err, ErrPortNotFound) {
 			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{

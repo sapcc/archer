@@ -16,11 +16,11 @@ package ni
 
 import (
 	"context"
-	sq "github.com/Masterminds/squirrel"
 	"net/http"
 	"time"
 
 	"github.com/IBM/pgxpoolprometheus"
+	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud"
@@ -31,6 +31,7 @@ import (
 	"github.com/sapcc/go-bits/jobloop"
 	"github.com/sapcc/go-bits/logg"
 
+	common "github.com/sapcc/archer/internal/agent"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
 )
@@ -80,6 +81,7 @@ func NewAgent() *Agent {
 		logg.Fatal(err.Error())
 	}
 
+	common.RegisterAgent(agent.pool)
 	return agent
 }
 

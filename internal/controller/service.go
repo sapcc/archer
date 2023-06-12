@@ -24,11 +24,13 @@ import (
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sapcc/go-bits/gopherpolicy"
+	"github.com/sapcc/go-bits/logg"
 
 	"github.com/sapcc/archer/internal/auth"
 	"github.com/sapcc/archer/internal/db"
@@ -99,16 +101,86 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 		}
 	}
 
-	sql, args := db.Insert("service").
-		Columns("enabled", "name", "description", "network_id", "ip_addresses", "require_approval",
-			"visibility", "availability_zone", "proxy_protocol", "project_id", "port", "tags", "provider").
-		Values(params.Body.Enabled, params.Body.Name, params.Body.Description, params.Body.NetworkID,
-			params.Body.IPAddresses, params.Body.RequireApproval, params.Body.Visibility,
-			params.Body.AvailabilityZone, params.Body.ProxyProtocol, params.Body.ProjectID,
-			params.Body.Port, Unique(params.Body.Tags), params.Body.Provider).
-		Suffix("RETURNING *").
-		MustSql()
-	if err := pgxscan.Get(ctx, c.pool, &serviceResponse, sql, args...); err != nil {
+	var port *ports.Port
+	var host string
+	if err := pgx.BeginFunc(context.Background(), c.pool, func(tx pgx.Tx) error {
+		var az string
+		if params.Body.AvailabilityZone != nil {
+			az = *params.Body.AvailabilityZone
+		}
+		// schedule
+		sql, args, err := db.Select("agents.host", "COUNT(service.id) AS usage").
+			From("agents").
+			Join("service ON service.host = agents.host").
+			Where(sq.And{
+				sq.Eq{"agents.availability_zone": az},
+				sq.Eq{"agents.enabled": true},
+				sq.Eq{"agents.provider": params.Body.Provider},
+			}).
+			OrderBy("usage ASC", "agents.updated_at DESC").
+			GroupBy("agents.host").
+			Limit(1).
+			ToSql()
+		if err != nil {
+			return err
+		}
+
+		var usage int
+		if err = c.pool.QueryRow(context.Background(), sql, args...).Scan(&host, &usage); err != nil {
+			return err
+		}
+
+		logg.Info("Found host '%s' (usage=%d) for service request (provider=%s, az=%s)", host, usage,
+			params.Body.Provider, az)
+		params.Body.Host = &host
+
+		sql, args, err = db.Insert("service").
+			Columns("enabled", "name", "description", "network_id", "ip_addresses", "require_approval",
+				"visibility", "availability_zone", "proxy_protocol", "project_id", "port", "tags", "provider", "host").
+			Values(params.Body.Enabled, params.Body.Name, params.Body.Description, params.Body.NetworkID,
+				params.Body.IPAddresses, params.Body.RequireApproval, params.Body.Visibility,
+				params.Body.AvailabilityZone, params.Body.ProxyProtocol, params.Body.ProjectID,
+				params.Body.Port, Unique(params.Body.Tags), params.Body.Provider, params.Body.Host).
+			Suffix("RETURNING *").ToSql()
+		if err != nil {
+			return err
+		}
+
+		if err = pgxscan.Get(ctx, tx, &serviceResponse, sql, args...); err != nil {
+			return err
+		}
+
+		if *params.Body.Provider == "tenant" {
+			// Allocate SNAT port for provider 'tenant' (F5)
+			if port, err = c.AllocateSNATNeutronPort(&serviceResponse); err != nil {
+				return err
+			}
+
+			sql, args, err = db.Insert("service_snat_port").
+				Columns("service_id", "port_id").
+				Values(serviceResponse.ID, port.ID).
+				ToSql()
+			if err != nil {
+				return err
+			}
+			if _, err = tx.Exec(ctx, sql, args...); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}); err != nil {
+		if port != nil {
+			logg.Info("Deallocating snat-port due to error %s: %s", port.ID, c.DeallocateNeutronPort(port.ID))
+		}
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			return service.NewPostServiceConflict().WithPayload(&models.Error{
+				Code:    409,
+				Message: "No available host agent found.",
+			})
+		}
+
 		var pe *pgconn.PgError
 		if errors.As(err, &pe) && pgerrcode.IsIntegrityConstraintViolation(pe.Code) {
 			return service.NewPostServiceConflict().WithPayload(&models.Error{
@@ -119,6 +191,7 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 		panic(err)
 	}
 
+	c.notifyService(host)
 	return service.NewPostServiceCreated().WithPayload(&serviceResponse)
 }
 
@@ -190,12 +263,13 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 		panic(err)
 	}
 
+	c.notifyService(*serviceResponse.Host)
 	return service.NewPutServiceServiceIDOK().WithPayload(&serviceResponse)
-
 }
 
 func (c *Controller) DeleteServiceServiceIDHandler(params service.DeleteServiceServiceIDParams, principal any) middleware.Responder {
-	q := db.Select("1").
+	var host string
+	q := db.Select("host").
 		From("service").
 		Where("id = ?", params.ServiceID).
 		Suffix("FOR UPDATE")
@@ -214,10 +288,11 @@ func (c *Controller) DeleteServiceServiceIDHandler(params service.DeleteServiceS
 
 	// First check if service exists and is "accessible", and lock the row
 	sql, args := q.MustSql()
-	if ct, err := tx.Exec(params.HTTPRequest.Context(), sql, args...); err != nil {
+	if err := tx.QueryRow(params.HTTPRequest.Context(), sql, args...).Scan(&host); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return service.NewDeleteServiceServiceIDNotFound()
+		}
 		panic(err)
-	} else if ct.RowsAffected() < 1 {
-		return service.NewDeleteServiceServiceIDNotFound()
 	}
 
 	// Update status if no endpoints are attached.
@@ -244,6 +319,7 @@ func (c *Controller) DeleteServiceServiceIDHandler(params service.DeleteServiceS
 		panic(err)
 	}
 
+	c.notifyService(host)
 	return service.NewDeleteServiceServiceIDAccepted()
 }
 
@@ -319,6 +395,7 @@ func (c *Controller) PutServiceServiceIDAcceptEndpointsHandler(params service.Pu
 	case dbscan.ErrNotFound:
 		return service.NewPutServiceServiceIDAcceptEndpointsNotFound()
 	}
+
 	return service.NewPutServiceServiceIDAcceptEndpointsOK().WithPayload(endpointConsumers)
 }
 
