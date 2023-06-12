@@ -15,9 +15,9 @@
 package controller
 
 import (
-	"context"
 	"errors"
 	"fmt"
+	"github.com/go-openapi/strfmt"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/v2/pgxscan"
@@ -56,7 +56,7 @@ func (c *Controller) GetEndpointHandler(params endpoint.GetEndpointParams, princ
 	}
 
 	var items = make([]*models.Endpoint, 0)
-	if err := pgxscan.Select(context.Background(), c.pool, &items, sql, args...); err != nil {
+	if err := pgxscan.Select(params.HTTPRequest.Context(), c.pool, &items, sql, args...); err != nil {
 		var pe *pgconn.PgError
 		if errors.As(err, &pe) && pe.Code == pgerrcode.UndefinedColumn {
 			return endpoint.NewGetEndpointBadRequest().WithPayload(&models.Error{
@@ -73,6 +73,7 @@ func (c *Controller) GetEndpointHandler(params endpoint.GetEndpointParams, princ
 func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, principal any) middleware.Responder {
 	ctx := params.HTTPRequest.Context()
 	var endpointResponse models.Endpoint
+	var host string
 
 	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
 		return endpoint.NewGetEndpointForbidden()
@@ -100,7 +101,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	// Check if service is accessible
-	sql, args := db.Select("1").
+	sql, args := db.Select("host").
 		From("service").
 		Where(sq.Or{
 			sq.Eq{"visibility": "public"},              // public service?
@@ -117,14 +118,15 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 		Suffix("FOR UPDATE"). // Lock service/rbac row in this transaction
 		MustSql()
 
-	if ct, err := tx.Exec(ctx, sql, args...); err != nil {
+	if err = tx.QueryRow(ctx, sql, args...).Scan(&host); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
+				Code: 400,
+				Message: fmt.Sprintf("Service '%s' is not accessible.",
+					params.Body.ServiceID),
+			})
+		}
 		panic(err)
-	} else if ct.RowsAffected() < 1 {
-		return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
-			Code: 400,
-			Message: fmt.Sprintf("Service '%s' is not accessible.",
-				params.Body.ServiceID),
-		})
 	}
 
 	// Insert endpoint
@@ -203,6 +205,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 		panic(err)
 	}
 
+	c.notifyEndpoint(host, endpointResponse.ID)
 	return endpoint.NewPostEndpointCreated().WithPayload(&endpointResponse)
 }
 
@@ -258,7 +261,7 @@ func (c *Controller) PutEndpointEndpointIDHandler(params endpoint.PutEndpointEnd
 
 	sql, args := q.MustSql()
 	var endpointResponse models.Endpoint
-	if err := pgxscan.Get(context.Background(), c.pool, &endpointResponse, sql, args...); err != nil {
+	if err := pgxscan.Get(params.HTTPRequest.Context(), c.pool, &endpointResponse, sql, args...); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return endpoint.NewPutEndpointEndpointIDNotFound().WithPayload(&models.Error{
 				Code:    404,
@@ -268,13 +271,22 @@ func (c *Controller) PutEndpointEndpointIDHandler(params endpoint.PutEndpointEnd
 		panic(err)
 	}
 
+	var host string
+	if err := c.pool.QueryRow(params.HTTPRequest.Context(), `SELECT host FROM service WHERE id = $1`,
+		params.EndpointID).Scan(&host); err == nil {
+		c.notifyEndpoint(host, params.EndpointID)
+	}
 	return endpoint.NewPutEndpointEndpointIDOK().WithPayload(&endpointResponse)
 }
 
 func (c *Controller) DeleteEndpointEndpointIDHandler(params endpoint.DeleteEndpointEndpointIDParams, principal any) middleware.Responder {
+	var serviceID strfmt.UUID
+	var host string
+
 	q := db.Update("endpoint").
 		Set("status", "PENDING_DELETE").
-		Where("id = ?", params.EndpointID)
+		Where("id = ?", params.EndpointID).
+		Suffix("RETURNING service_id")
 
 	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
 		return endpoint.NewDeleteEndpointEndpointIDForbidden()
@@ -283,11 +295,24 @@ func (c *Controller) DeleteEndpointEndpointIDHandler(params endpoint.DeleteEndpo
 	}
 
 	sql, args := q.MustSql()
-	if ct, err := c.pool.Exec(params.HTTPRequest.Context(), sql, args...); err != nil {
-		panic(err)
-	} else if ct.RowsAffected() == 0 {
-		return endpoint.NewDeleteEndpointEndpointIDNotFound()
+
+	if err := pgx.BeginFunc(params.HTTPRequest.Context(), c.pool, func(tx pgx.Tx) error {
+		if err := tx.QueryRow(params.HTTPRequest.Context(), sql, args...).Scan(&serviceID); err != nil {
+			return err
+		}
+
+		if err := tx.QueryRow(params.HTTPRequest.Context(), `SELECT host FROM service WHERE id = $1`, serviceID).
+			Scan(&host); err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return endpoint.NewDeleteEndpointEndpointIDNotFound()
+		}
 	}
 
+	c.notifyEndpoint(host, params.EndpointID)
 	return endpoint.NewDeleteEndpointEndpointIDAccepted()
 }

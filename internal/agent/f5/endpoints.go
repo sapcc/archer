@@ -18,6 +18,7 @@ import (
 	"context"
 	as32 "github.com/sapcc/archer/internal/agent/f5/as3"
 	"github.com/sapcc/archer/internal/agent/neutron"
+	"github.com/sapcc/archer/internal/db"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/strfmt"
@@ -56,8 +57,10 @@ func (a *Agent) populateEndpointPorts(segmentId int, endpoints []*as32.ExtendedE
 	return nil
 }
 
-func (a *Agent) ProcessEndpoint(ctx context.Context, networkId strfmt.UUID) error {
+func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) error {
 	var endpoints []*as32.ExtendedEndpoint
+	var networkID strfmt.UUID
+
 	tx, err := a.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -69,13 +72,26 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, networkId strfmt.UUID) erro
 		_ = tx.Rollback(ctx)
 	}(tx, ctx)
 
-	err = pgxscan.Select(ctx, tx, &endpoints,
-		`SELECT endpoint.*, service.port AS service_port_nr, service.proxy_protocol
-              FROM endpoint
-                  INNER JOIN service ON service.id = service_id and service.status = 'AVAILABLE' 
-              WHERE endpoint."target.network" = $1`,
-		networkId)
-	if err != nil {
+	sql, args := db.Select("network").
+		From("endpoint_port").
+		Where("endpoint_id = ?", endpointID).
+		MustSql()
+	if err = tx.QueryRow(ctx, sql, args...).Scan(&networkID); err != nil {
+		return err
+	}
+
+	sql, args = db.Select("endpoint.*",
+		"service.port AS service_port_nr",
+		"service.proxy_protocol",
+		`endpoint_port.port_id AS "target.port"`,
+		`endpoint_port.network AS "target.network"`,
+		`endpoint_port.subnet AS "target.subnet"`).
+		From("endpoint").
+		InnerJoin("service ON service_id = service.id").
+		Join("endpoint_port ON endpoint_id = endpoint.id").
+		Where("network = ?", networkID).
+		MustSql()
+	if err = pgxscan.Select(ctx, tx, &endpoints, sql, args...); err != nil {
 		return err
 	}
 
@@ -88,7 +104,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, networkId strfmt.UUID) erro
 
 	if !deleteAll {
 		// Fetch segment ID from neutron
-		segmentId, err := neutron.GetNetworkSegment(a.cache, a.neutron, networkId.String())
+		segmentId, err := neutron.GetNetworkSegment(a.cache, a.neutron, networkID.String())
 		if err != nil {
 			return err
 		}
@@ -105,7 +121,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, networkId strfmt.UUID) erro
 		}
 	}
 
-	tenantName := as32.GetEndpointTenantName(networkId)
+	tenantName := as32.GetEndpointTenantName(networkID)
 	data := as32.GetAS3Declaration(map[string]as32.Tenant{
 		tenantName: as32.GetEndpointTenants(endpoints),
 	})

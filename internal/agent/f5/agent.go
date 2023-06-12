@@ -193,7 +193,7 @@ func (a *Agent) PendingSyncLoop(context.Context, prometheus.Labels) error {
 		return err
 	}
 	if _, err = pgx.ForEachRow(rows, []any{&id}, func() error {
-		if err := a.jobQueue.Enqueue(job{model: "service", id: id}); err != nil {
+		if err := a.jobQueue.Enqueue(job{model: "endpoint", id: id}); err != nil {
 			return err
 		}
 		return nil
@@ -224,9 +224,10 @@ func (a *Agent) DBNotificationThread(ctx context.Context) {
 			if !pgconn.Timeout(err) {
 				logg.Fatal(err.Error())
 			}
+			continue
 		}
 
-		logg.Debug("received notification, channel=%s, payload=%s", notification.Channel, notification.Payload)
+		logg.Debug("Received notification, channel=%s, payload=%s", notification.Channel, notification.Payload)
 		j := job{model: notification.Channel}
 		s := strings.SplitN(notification.Payload, ":", 2)
 		if len(s) < 1 {

@@ -41,9 +41,9 @@ func (*ServiceList) Execute(_ []string) error {
 		return err
 	}
 
-	Table.AppendHeader(table.Row{"ID", "Name", "Port", "Enabled", "Project"})
+	Table.AppendHeader(table.Row{"ID", "Name", "Port", "Enabled", "Provider", "Status", "Project"})
 	for _, sv := range resp.Payload.Items {
-		Table.AppendRow(table.Row{sv.ID, sv.Name, sv.Port, *sv.Enabled, sv.ProjectID})
+		Table.AppendRow(table.Row{sv.ID, sv.Name, sv.Port, *sv.Enabled, *sv.Provider, sv.Status, sv.ProjectID})
 	}
 	Table.Render()
 	return nil
