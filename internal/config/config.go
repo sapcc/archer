@@ -17,11 +17,13 @@
 package config
 
 import (
-	"github.com/sapcc/go-bits/logg"
 	"net/http"
 	"net/url"
 	"os"
 	"time"
+
+	"github.com/jessevdk/go-flags"
+	"github.com/sapcc/go-bits/logg"
 )
 
 var (
@@ -29,7 +31,7 @@ var (
 )
 
 type Archer struct {
-	ConfigFile  string      `long:"config-file" description:"Use config file"`
+	ConfigFile  []string    `long:"config-file" description:"Use config file"`
 	Default     Default     `group:"DEFAULT"`
 	Database    Database    `group:"database"`
 	ApiSettings ApiSettings `group:"api_settings"`
@@ -122,6 +124,16 @@ func ResolveHost() {
 			logg.Fatal(err.Error())
 		} else {
 			Global.Default.Host = hostname
+		}
+	}
+}
+
+func ParseConfig(parser *flags.Parser) {
+	// parse config file
+	for _, file := range Global.ConfigFile {
+		ini := flags.NewIniParser(parser)
+		if err := ini.ParseFile(file); err != nil {
+			logg.Fatal(err.Error())
 		}
 	}
 }

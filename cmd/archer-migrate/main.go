@@ -41,13 +41,7 @@ func main() {
 		os.Exit(code)
 	}
 
-	// parse config file
-	if config.Global.ConfigFile != "" {
-		ini := flags.NewIniParser(parser)
-		if err := ini.ParseFile(config.Global.ConfigFile); err != nil {
-			logg.Fatal(err.Error())
-		}
-	}
+	config.ParseConfig(parser)
 
 	logg.ShowDebug = config.IsDebug()
 	conn, err := pgx.Connect(context.Background(), config.Global.Database.Connection)
