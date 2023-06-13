@@ -41,6 +41,7 @@ func main() {
 	}
 
 	config.ParseConfig(parser)
+	config.InitSentry()
 
 	logg.ShowDebug = config.Global.Default.Debug
 	a := ni.NewAgent()

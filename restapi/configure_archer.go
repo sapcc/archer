@@ -79,18 +79,7 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 	api.JSONProducer = runtime.JSONProducer()
 
 	config.ResolveHost()
-	if config.Global.Default.SentryDSN != "" {
-		if err := sentry.Init(sentry.ClientOptions{
-			Dsn:              config.Global.Default.SentryDSN,
-			AttachStacktrace: true,
-			Release:          "TODO Version",
-		}); err != nil {
-			logg.Fatal("Sentry initialization failed: %v", err)
-		}
-
-		logg.Info("Sentry is enabled")
-	}
-
+	config.InitSentry()
 	connConfig, err := pgxpool.ParseConfig(config.Global.Database.Connection)
 	if err != nil {
 		logg.Fatal(err.Error())

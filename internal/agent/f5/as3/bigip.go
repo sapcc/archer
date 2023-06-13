@@ -34,7 +34,7 @@ when CLIENT_ACCEPTED {
 `
 
 func GetBigIPSession() (*bigip.BigIP, error) {
-	parsedURL, err := url.Parse(config.Global.Agent.Host)
+	parsedURL, err := url.Parse(config.Global.Agent.Devices[0])
 	if err != nil {
 		return nil, err
 	}

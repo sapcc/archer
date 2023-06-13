@@ -17,6 +17,7 @@
 package config
 
 import (
+	"github.com/getsentry/sentry-go"
 	"net/http"
 	"net/url"
 	"os"
@@ -47,6 +48,7 @@ type Default struct {
 	Host             string `long:"hostname" ini-name:"host" description:"Hostname used by the server/agent. Defaults to auto-discovery."`
 	Prometheus       bool   `long:"prometheus" description:"Enable prometheus exporter."`
 	PrometheusListen string `long:"prometheus-listen" ini-name:"prometheus_listen" default:"127.0.0.1:9090" description:"Prometheus listen TCP network address."`
+	Sentry           bool   `long:"sentry" ini-name:"sentry" description:"Enable Sentry"`
 	SentryDSN        string `long:"sentry-dsn" ini-name:"sentry_dsn" description:"Sentry Data Source Name."`
 }
 
@@ -80,7 +82,7 @@ type Audit struct {
 }
 
 type Agent struct {
-	Host                   string        `long:"bigip-host" ini-name:"host" description:"F5 BigIP Hostname"`
+	Devices                []string      `long:"devices" ini-name:"devices" description:"F5 BigIP Hostnames"`
 	ValidateCert           bool          `long:"validate-certificates" ini-name:"validate_certificates" description:"Validate HTTPS Certificate."`
 	PhysicalNetwork        string        `long:"physical-network" ini-name:"physical_network" description:"Physical Network"`
 	PendingSyncInterval    time.Duration `long:"pending-sync-interval" ini-name:"sync-interval" default:"120s" description:"Interval for pending sync scans, supports suffix (e.g. 10s)."`
@@ -135,6 +137,20 @@ func ParseConfig(parser *flags.Parser) {
 		if err := ini.ParseFile(file); err != nil {
 			logg.Fatal(err.Error())
 		}
+	}
+}
+
+func InitSentry() {
+	if Global.Default.Sentry {
+		if err := sentry.Init(sentry.ClientOptions{
+			Dsn:              Global.Default.SentryDSN,
+			AttachStacktrace: true,
+			Release:          "TODO Version",
+		}); err != nil {
+			logg.Fatal("Sentry initialization failed: %v", err)
+		}
+
+		logg.Info("Sentry is enabled")
 	}
 }
 
