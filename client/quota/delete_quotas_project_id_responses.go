@@ -43,6 +43,12 @@ func (o *DeleteQuotasProjectIDReader) ReadResponse(response runtime.ClientRespon
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewDeleteQuotasProjectIDUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 403:
 		result := NewDeleteQuotasProjectIDForbidden()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -118,6 +124,74 @@ func (o *DeleteQuotasProjectIDNoContent) String() string {
 }
 
 func (o *DeleteQuotasProjectIDNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewDeleteQuotasProjectIDUnauthorized creates a DeleteQuotasProjectIDUnauthorized with default headers values
+func NewDeleteQuotasProjectIDUnauthorized() *DeleteQuotasProjectIDUnauthorized {
+	return &DeleteQuotasProjectIDUnauthorized{}
+}
+
+/*
+DeleteQuotasProjectIDUnauthorized describes a response with status code 401, with default header values.
+
+Unauthorized
+*/
+type DeleteQuotasProjectIDUnauthorized struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this delete quotas project Id unauthorized response has a 2xx status code
+func (o *DeleteQuotasProjectIDUnauthorized) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this delete quotas project Id unauthorized response has a 3xx status code
+func (o *DeleteQuotasProjectIDUnauthorized) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this delete quotas project Id unauthorized response has a 4xx status code
+func (o *DeleteQuotasProjectIDUnauthorized) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this delete quotas project Id unauthorized response has a 5xx status code
+func (o *DeleteQuotasProjectIDUnauthorized) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this delete quotas project Id unauthorized response a status code equal to that given
+func (o *DeleteQuotasProjectIDUnauthorized) IsCode(code int) bool {
+	return code == 401
+}
+
+// Code gets the status code for the delete quotas project Id unauthorized response
+func (o *DeleteQuotasProjectIDUnauthorized) Code() int {
+	return 401
+}
+
+func (o *DeleteQuotasProjectIDUnauthorized) Error() string {
+	return fmt.Sprintf("[DELETE /quotas/{project_id}][%d] deleteQuotasProjectIdUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *DeleteQuotasProjectIDUnauthorized) String() string {
+	return fmt.Sprintf("[DELETE /quotas/{project_id}][%d] deleteQuotasProjectIdUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *DeleteQuotasProjectIDUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DeleteQuotasProjectIDUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

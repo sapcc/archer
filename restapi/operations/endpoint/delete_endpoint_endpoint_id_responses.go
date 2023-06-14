@@ -52,6 +52,51 @@ func (o *DeleteEndpointEndpointIDAccepted) WriteResponse(rw http.ResponseWriter,
 	rw.WriteHeader(202)
 }
 
+// DeleteEndpointEndpointIDUnauthorizedCode is the HTTP code returned for type DeleteEndpointEndpointIDUnauthorized
+const DeleteEndpointEndpointIDUnauthorizedCode int = 401
+
+/*
+DeleteEndpointEndpointIDUnauthorized Unauthorized
+
+swagger:response deleteEndpointEndpointIdUnauthorized
+*/
+type DeleteEndpointEndpointIDUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDeleteEndpointEndpointIDUnauthorized creates DeleteEndpointEndpointIDUnauthorized with default headers values
+func NewDeleteEndpointEndpointIDUnauthorized() *DeleteEndpointEndpointIDUnauthorized {
+
+	return &DeleteEndpointEndpointIDUnauthorized{}
+}
+
+// WithPayload adds the payload to the delete endpoint endpoint Id unauthorized response
+func (o *DeleteEndpointEndpointIDUnauthorized) WithPayload(payload *models.Error) *DeleteEndpointEndpointIDUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the delete endpoint endpoint Id unauthorized response
+func (o *DeleteEndpointEndpointIDUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DeleteEndpointEndpointIDUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // DeleteEndpointEndpointIDForbiddenCode is the HTTP code returned for type DeleteEndpointEndpointIDForbidden
 const DeleteEndpointEndpointIDForbiddenCode int = 403
 

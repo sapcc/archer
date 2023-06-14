@@ -72,6 +72,51 @@ func (o *PostServiceCreated) WriteResponse(rw http.ResponseWriter, producer runt
 	}
 }
 
+// PostServiceUnauthorizedCode is the HTTP code returned for type PostServiceUnauthorized
+const PostServiceUnauthorizedCode int = 401
+
+/*
+PostServiceUnauthorized Unauthorized
+
+swagger:response postServiceUnauthorized
+*/
+type PostServiceUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewPostServiceUnauthorized creates PostServiceUnauthorized with default headers values
+func NewPostServiceUnauthorized() *PostServiceUnauthorized {
+
+	return &PostServiceUnauthorized{}
+}
+
+// WithPayload adds the payload to the post service unauthorized response
+func (o *PostServiceUnauthorized) WithPayload(payload *models.Error) *PostServiceUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the post service unauthorized response
+func (o *PostServiceUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *PostServiceUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // PostServiceForbiddenCode is the HTTP code returned for type PostServiceForbidden
 const PostServiceForbiddenCode int = 403
 

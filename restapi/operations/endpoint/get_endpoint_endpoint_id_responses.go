@@ -72,6 +72,51 @@ func (o *GetEndpointEndpointIDOK) WriteResponse(rw http.ResponseWriter, producer
 	}
 }
 
+// GetEndpointEndpointIDUnauthorizedCode is the HTTP code returned for type GetEndpointEndpointIDUnauthorized
+const GetEndpointEndpointIDUnauthorizedCode int = 401
+
+/*
+GetEndpointEndpointIDUnauthorized Unauthorized
+
+swagger:response getEndpointEndpointIdUnauthorized
+*/
+type GetEndpointEndpointIDUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetEndpointEndpointIDUnauthorized creates GetEndpointEndpointIDUnauthorized with default headers values
+func NewGetEndpointEndpointIDUnauthorized() *GetEndpointEndpointIDUnauthorized {
+
+	return &GetEndpointEndpointIDUnauthorized{}
+}
+
+// WithPayload adds the payload to the get endpoint endpoint Id unauthorized response
+func (o *GetEndpointEndpointIDUnauthorized) WithPayload(payload *models.Error) *GetEndpointEndpointIDUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get endpoint endpoint Id unauthorized response
+func (o *GetEndpointEndpointIDUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetEndpointEndpointIDUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // GetEndpointEndpointIDForbiddenCode is the HTTP code returned for type GetEndpointEndpointIDForbidden
 const GetEndpointEndpointIDForbiddenCode int = 403
 

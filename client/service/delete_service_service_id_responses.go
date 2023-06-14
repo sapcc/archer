@@ -43,6 +43,12 @@ func (o *DeleteServiceServiceIDReader) ReadResponse(response runtime.ClientRespo
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewDeleteServiceServiceIDUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 403:
 		result := NewDeleteServiceServiceIDForbidden()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -124,6 +130,74 @@ func (o *DeleteServiceServiceIDAccepted) String() string {
 }
 
 func (o *DeleteServiceServiceIDAccepted) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewDeleteServiceServiceIDUnauthorized creates a DeleteServiceServiceIDUnauthorized with default headers values
+func NewDeleteServiceServiceIDUnauthorized() *DeleteServiceServiceIDUnauthorized {
+	return &DeleteServiceServiceIDUnauthorized{}
+}
+
+/*
+DeleteServiceServiceIDUnauthorized describes a response with status code 401, with default header values.
+
+Unauthorized
+*/
+type DeleteServiceServiceIDUnauthorized struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this delete service service Id unauthorized response has a 2xx status code
+func (o *DeleteServiceServiceIDUnauthorized) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this delete service service Id unauthorized response has a 3xx status code
+func (o *DeleteServiceServiceIDUnauthorized) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this delete service service Id unauthorized response has a 4xx status code
+func (o *DeleteServiceServiceIDUnauthorized) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this delete service service Id unauthorized response has a 5xx status code
+func (o *DeleteServiceServiceIDUnauthorized) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this delete service service Id unauthorized response a status code equal to that given
+func (o *DeleteServiceServiceIDUnauthorized) IsCode(code int) bool {
+	return code == 401
+}
+
+// Code gets the status code for the delete service service Id unauthorized response
+func (o *DeleteServiceServiceIDUnauthorized) Code() int {
+	return 401
+}
+
+func (o *DeleteServiceServiceIDUnauthorized) Error() string {
+	return fmt.Sprintf("[DELETE /service/{service_id}][%d] deleteServiceServiceIdUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *DeleteServiceServiceIDUnauthorized) String() string {
+	return fmt.Sprintf("[DELETE /service/{service_id}][%d] deleteServiceServiceIdUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *DeleteServiceServiceIDUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DeleteServiceServiceIDUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

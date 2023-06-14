@@ -211,6 +211,10 @@ paths:
           description: Bad request
           schema:
             $ref: "#/definitions/Error"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
         403:
           description: Forbidden
         422:
@@ -234,6 +238,10 @@ paths:
           description: Service
           schema:
             $ref: "#/definitions/Service"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
         403:
           description: Forbidden
         409:
@@ -262,6 +270,10 @@ paths:
           description: Service
           schema:
             $ref: "#/definitions/Service"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
         403:
           description: Forbidden
         404:
@@ -289,6 +301,10 @@ paths:
           description: Service
           schema:
             $ref: "#/definitions/Service"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
         403:
           description: Forbidden
         404:
@@ -316,6 +332,10 @@ paths:
           description: Delete request successfully accepted.
         404:
           description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: Unauthorized
           schema:
             $ref: "#/definitions/Error"
         403:
@@ -370,6 +390,10 @@ paths:
           description: Bad request
           schema:
             $ref: "#/definitions/Error"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
         403:
           description: Forbidden
         404:
@@ -414,6 +438,10 @@ paths:
               $ref: "#/definitions/EndpointConsumer"
         400:
           description: Must declare at least one, endpoint_id(s) or project_id(s)
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: Unauthorized
           schema:
             $ref: "#/definitions/Error"
         403:
@@ -462,6 +490,10 @@ paths:
           description: Must declare at least one, endpoint_id(s) or project_id(s)
           schema:
             $ref: "#/definitions/Error"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
         403:
           description: Forbidden
           schema:
@@ -508,6 +540,10 @@ paths:
           description: Bad request
           schema:
             $ref: "#/definitions/Error"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
         403:
           description: Forbidden
         422:
@@ -535,6 +571,10 @@ paths:
           description: Bad request
           schema:
             $ref: "#/definitions/Error"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
         403:
           description: Forbidden
         422:
@@ -559,6 +599,10 @@ paths:
           description: An endpoint detail.
           schema:
             $ref: "#/definitions/Endpoint"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
         403:
           description: Forbidden
           schema:
@@ -596,6 +640,10 @@ paths:
           description: Endpoint
           schema:
             $ref: "#/definitions/Endpoint"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
         403:
           description: Forbidden
           schema:
@@ -616,6 +664,10 @@ paths:
       responses:
         202:
           description: Delete request successfully accepted.
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
         403:
           description: Forbidden
           schema:
@@ -657,6 +709,10 @@ paths:
           description: Bad request
           schema:
             $ref: "#/definitions/Error"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
         403:
           description: Forbidden
         422:
@@ -680,6 +736,10 @@ paths:
           description: RBAC policy
           schema:
             $ref: '#/definitions/RBACPolicy'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
         403:
           description: Forbidden
         404:
@@ -710,6 +770,10 @@ paths:
           description: RBAC Policy
           schema:
             $ref: '#/definitions/RBACPolicy'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
         403:
           description: Forbidden
         404:
@@ -737,6 +801,10 @@ paths:
           description: RBAC Policy
           schema:
             $ref: "#/definitions/RBACPolicy"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
         403:
           description: Forbidden
         404:
@@ -759,6 +827,10 @@ paths:
       responses:
         204:
           description: RBAC policy successfully deleted.
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
         403:
           description: Forbidden
         404:
@@ -804,6 +876,10 @@ paths:
                 type: array
                 items:
                   $ref: '#/definitions/Link'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
         403:
           description: Forbidden
         404:
@@ -828,6 +904,10 @@ paths:
             properties:
               quota:
                 $ref: '#/definitions/Quota'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
         403:
           description: Forbidden
         422:
@@ -853,6 +933,10 @@ paths:
             allOf:
               - $ref: '#/definitions/Quota'
               - $ref: '#/definitions/QuotaUsage'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
         403:
           description: Forbidden
         422:
@@ -875,6 +959,10 @@ paths:
           description: Updated quota for a project.
           schema:
             $ref: '#/definitions/Quota'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
         403:
           description: Forbidden
         404:
@@ -893,6 +981,10 @@ paths:
       responses:
         204:
           description: Resource successfully reset
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
         403:
           description: Forbidden
         404:

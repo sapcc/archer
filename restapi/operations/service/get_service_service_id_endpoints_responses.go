@@ -117,6 +117,51 @@ func (o *GetServiceServiceIDEndpointsBadRequest) WriteResponse(rw http.ResponseW
 	}
 }
 
+// GetServiceServiceIDEndpointsUnauthorizedCode is the HTTP code returned for type GetServiceServiceIDEndpointsUnauthorized
+const GetServiceServiceIDEndpointsUnauthorizedCode int = 401
+
+/*
+GetServiceServiceIDEndpointsUnauthorized Unauthorized
+
+swagger:response getServiceServiceIdEndpointsUnauthorized
+*/
+type GetServiceServiceIDEndpointsUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetServiceServiceIDEndpointsUnauthorized creates GetServiceServiceIDEndpointsUnauthorized with default headers values
+func NewGetServiceServiceIDEndpointsUnauthorized() *GetServiceServiceIDEndpointsUnauthorized {
+
+	return &GetServiceServiceIDEndpointsUnauthorized{}
+}
+
+// WithPayload adds the payload to the get service service Id endpoints unauthorized response
+func (o *GetServiceServiceIDEndpointsUnauthorized) WithPayload(payload *models.Error) *GetServiceServiceIDEndpointsUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get service service Id endpoints unauthorized response
+func (o *GetServiceServiceIDEndpointsUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetServiceServiceIDEndpointsUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // GetServiceServiceIDEndpointsForbiddenCode is the HTTP code returned for type GetServiceServiceIDEndpointsForbidden
 const GetServiceServiceIDEndpointsForbiddenCode int = 403
 

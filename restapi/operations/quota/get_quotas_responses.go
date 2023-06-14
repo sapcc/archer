@@ -72,6 +72,51 @@ func (o *GetQuotasOK) WriteResponse(rw http.ResponseWriter, producer runtime.Pro
 	}
 }
 
+// GetQuotasUnauthorizedCode is the HTTP code returned for type GetQuotasUnauthorized
+const GetQuotasUnauthorizedCode int = 401
+
+/*
+GetQuotasUnauthorized Unauthorized
+
+swagger:response getQuotasUnauthorized
+*/
+type GetQuotasUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetQuotasUnauthorized creates GetQuotasUnauthorized with default headers values
+func NewGetQuotasUnauthorized() *GetQuotasUnauthorized {
+
+	return &GetQuotasUnauthorized{}
+}
+
+// WithPayload adds the payload to the get quotas unauthorized response
+func (o *GetQuotasUnauthorized) WithPayload(payload *models.Error) *GetQuotasUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get quotas unauthorized response
+func (o *GetQuotasUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetQuotasUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // GetQuotasForbiddenCode is the HTTP code returned for type GetQuotasForbidden
 const GetQuotasForbiddenCode int = 403
 

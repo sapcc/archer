@@ -43,6 +43,12 @@ func (o *PutServiceServiceIDReader) ReadResponse(response runtime.ClientResponse
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewPutServiceServiceIDUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 403:
 		result := NewPutServiceServiceIDForbidden()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -131,6 +137,74 @@ func (o *PutServiceServiceIDOK) GetPayload() *models.Service {
 func (o *PutServiceServiceIDOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Service)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewPutServiceServiceIDUnauthorized creates a PutServiceServiceIDUnauthorized with default headers values
+func NewPutServiceServiceIDUnauthorized() *PutServiceServiceIDUnauthorized {
+	return &PutServiceServiceIDUnauthorized{}
+}
+
+/*
+PutServiceServiceIDUnauthorized describes a response with status code 401, with default header values.
+
+Unauthorized
+*/
+type PutServiceServiceIDUnauthorized struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this put service service Id unauthorized response has a 2xx status code
+func (o *PutServiceServiceIDUnauthorized) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this put service service Id unauthorized response has a 3xx status code
+func (o *PutServiceServiceIDUnauthorized) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this put service service Id unauthorized response has a 4xx status code
+func (o *PutServiceServiceIDUnauthorized) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this put service service Id unauthorized response has a 5xx status code
+func (o *PutServiceServiceIDUnauthorized) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this put service service Id unauthorized response a status code equal to that given
+func (o *PutServiceServiceIDUnauthorized) IsCode(code int) bool {
+	return code == 401
+}
+
+// Code gets the status code for the put service service Id unauthorized response
+func (o *PutServiceServiceIDUnauthorized) Code() int {
+	return 401
+}
+
+func (o *PutServiceServiceIDUnauthorized) Error() string {
+	return fmt.Sprintf("[PUT /service/{service_id}][%d] putServiceServiceIdUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *PutServiceServiceIDUnauthorized) String() string {
+	return fmt.Sprintf("[PUT /service/{service_id}][%d] putServiceServiceIdUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *PutServiceServiceIDUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *PutServiceServiceIDUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

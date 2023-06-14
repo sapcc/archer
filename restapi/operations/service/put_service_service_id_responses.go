@@ -72,6 +72,51 @@ func (o *PutServiceServiceIDOK) WriteResponse(rw http.ResponseWriter, producer r
 	}
 }
 
+// PutServiceServiceIDUnauthorizedCode is the HTTP code returned for type PutServiceServiceIDUnauthorized
+const PutServiceServiceIDUnauthorizedCode int = 401
+
+/*
+PutServiceServiceIDUnauthorized Unauthorized
+
+swagger:response putServiceServiceIdUnauthorized
+*/
+type PutServiceServiceIDUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewPutServiceServiceIDUnauthorized creates PutServiceServiceIDUnauthorized with default headers values
+func NewPutServiceServiceIDUnauthorized() *PutServiceServiceIDUnauthorized {
+
+	return &PutServiceServiceIDUnauthorized{}
+}
+
+// WithPayload adds the payload to the put service service Id unauthorized response
+func (o *PutServiceServiceIDUnauthorized) WithPayload(payload *models.Error) *PutServiceServiceIDUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the put service service Id unauthorized response
+func (o *PutServiceServiceIDUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *PutServiceServiceIDUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // PutServiceServiceIDForbiddenCode is the HTTP code returned for type PutServiceServiceIDForbidden
 const PutServiceServiceIDForbiddenCode int = 403
 

@@ -142,6 +142,12 @@ func init() {
               "$ref": "#/definitions/Error"
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           },
@@ -183,6 +189,12 @@ func init() {
               "$ref": "#/definitions/Error"
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           },
@@ -207,6 +219,12 @@ func init() {
             "description": "An endpoint detail.",
             "schema": {
               "$ref": "#/definitions/Endpoint"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
             }
           },
           "403": {
@@ -264,6 +282,12 @@ func init() {
               "$ref": "#/definitions/Endpoint"
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden",
             "schema": {
@@ -293,6 +317,12 @@ func init() {
         "responses": {
           "202": {
             "description": "Delete request successfully accepted."
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           },
           "403": {
             "description": "Forbidden",
@@ -366,6 +396,12 @@ func init() {
               }
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           },
@@ -413,6 +449,12 @@ func init() {
               }
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           },
@@ -444,6 +486,12 @@ func init() {
                   "$ref": "#/definitions/QuotaUsage"
                 }
               ]
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
             }
           },
           "403": {
@@ -480,6 +528,12 @@ func init() {
               "$ref": "#/definitions/Quota"
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           },
@@ -506,6 +560,12 @@ func init() {
         "responses": {
           "204": {
             "description": "Resource successfully reset"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           },
           "403": {
             "description": "Forbidden"
@@ -583,6 +643,12 @@ func init() {
               "$ref": "#/definitions/Error"
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           },
@@ -618,6 +684,12 @@ func init() {
               "$ref": "#/definitions/RBACPolicy"
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           },
@@ -651,6 +723,12 @@ func init() {
             "description": "RBAC Policy",
             "schema": {
               "$ref": "#/definitions/RBACPolicy"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
             }
           },
           "403": {
@@ -694,6 +772,12 @@ func init() {
               "$ref": "#/definitions/RBACPolicy"
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           },
@@ -726,6 +810,12 @@ func init() {
         "responses": {
           "204": {
             "description": "RBAC policy successfully deleted."
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           },
           "403": {
             "description": "Forbidden"
@@ -819,6 +909,12 @@ func init() {
               "$ref": "#/definitions/Error"
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           },
@@ -854,6 +950,12 @@ func init() {
               "$ref": "#/definitions/Service"
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           },
@@ -884,6 +986,12 @@ func init() {
             "description": "Service",
             "schema": {
               "$ref": "#/definitions/Service"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
             }
           },
           "403": {
@@ -927,6 +1035,12 @@ func init() {
               "$ref": "#/definitions/Service"
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           },
@@ -960,6 +1074,12 @@ func init() {
         "responses": {
           "202": {
             "description": "Delete request successfully accepted."
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           },
           "403": {
             "description": "Forbidden"
@@ -1026,6 +1146,12 @@ func init() {
           },
           "400": {
             "description": "Must declare at least one, endpoint_id(s) or project_id(s)",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -1108,6 +1234,12 @@ func init() {
               "$ref": "#/definitions/Error"
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           },
@@ -1167,6 +1299,12 @@ func init() {
           },
           "400": {
             "description": "Must declare at least one, endpoint_id(s) or project_id(s)",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -1980,6 +2118,12 @@ func init() {
               "$ref": "#/definitions/Error"
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           },
@@ -2021,6 +2165,12 @@ func init() {
               "$ref": "#/definitions/Error"
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           },
@@ -2045,6 +2195,12 @@ func init() {
             "description": "An endpoint detail.",
             "schema": {
               "$ref": "#/definitions/Endpoint"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
             }
           },
           "403": {
@@ -2102,6 +2258,12 @@ func init() {
               "$ref": "#/definitions/Endpoint"
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden",
             "schema": {
@@ -2131,6 +2293,12 @@ func init() {
         "responses": {
           "202": {
             "description": "Delete request successfully accepted."
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           },
           "403": {
             "description": "Forbidden",
@@ -2189,6 +2357,12 @@ func init() {
               }
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           },
@@ -2236,6 +2410,12 @@ func init() {
               }
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           },
@@ -2267,6 +2447,12 @@ func init() {
                   "$ref": "#/definitions/QuotaUsage"
                 }
               ]
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
             }
           },
           "403": {
@@ -2303,6 +2489,12 @@ func init() {
               "$ref": "#/definitions/Quota"
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           },
@@ -2329,6 +2521,12 @@ func init() {
         "responses": {
           "204": {
             "description": "Resource successfully reset"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           },
           "403": {
             "description": "Forbidden"
@@ -2419,6 +2617,12 @@ func init() {
               "$ref": "#/definitions/Error"
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           },
@@ -2454,6 +2658,12 @@ func init() {
               "$ref": "#/definitions/RBACPolicy"
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           },
@@ -2487,6 +2697,12 @@ func init() {
             "description": "RBAC Policy",
             "schema": {
               "$ref": "#/definitions/RBACPolicy"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
             }
           },
           "403": {
@@ -2530,6 +2746,12 @@ func init() {
               "$ref": "#/definitions/RBACPolicy"
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           },
@@ -2562,6 +2784,12 @@ func init() {
         "responses": {
           "204": {
             "description": "RBAC policy successfully deleted."
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           },
           "403": {
             "description": "Forbidden"
@@ -2697,6 +2925,12 @@ func init() {
               "$ref": "#/definitions/Error"
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           },
@@ -2732,6 +2966,12 @@ func init() {
               "$ref": "#/definitions/Service"
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           },
@@ -2762,6 +3002,12 @@ func init() {
             "description": "Service",
             "schema": {
               "$ref": "#/definitions/Service"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
             }
           },
           "403": {
@@ -2805,6 +3051,12 @@ func init() {
               "$ref": "#/definitions/Service"
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           },
@@ -2838,6 +3090,12 @@ func init() {
         "responses": {
           "202": {
             "description": "Delete request successfully accepted."
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           },
           "403": {
             "description": "Forbidden"
@@ -2904,6 +3162,12 @@ func init() {
           },
           "400": {
             "description": "Must declare at least one, endpoint_id(s) or project_id(s)",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2999,6 +3263,12 @@ func init() {
               "$ref": "#/definitions/Error"
             }
           },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "403": {
             "description": "Forbidden"
           },
@@ -3058,6 +3328,12 @@ func init() {
           },
           "400": {
             "description": "Must declare at least one, endpoint_id(s) or project_id(s)",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
             "schema": {
               "$ref": "#/definitions/Error"
             }

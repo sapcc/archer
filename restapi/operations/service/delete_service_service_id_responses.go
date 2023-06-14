@@ -52,6 +52,51 @@ func (o *DeleteServiceServiceIDAccepted) WriteResponse(rw http.ResponseWriter, p
 	rw.WriteHeader(202)
 }
 
+// DeleteServiceServiceIDUnauthorizedCode is the HTTP code returned for type DeleteServiceServiceIDUnauthorized
+const DeleteServiceServiceIDUnauthorizedCode int = 401
+
+/*
+DeleteServiceServiceIDUnauthorized Unauthorized
+
+swagger:response deleteServiceServiceIdUnauthorized
+*/
+type DeleteServiceServiceIDUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDeleteServiceServiceIDUnauthorized creates DeleteServiceServiceIDUnauthorized with default headers values
+func NewDeleteServiceServiceIDUnauthorized() *DeleteServiceServiceIDUnauthorized {
+
+	return &DeleteServiceServiceIDUnauthorized{}
+}
+
+// WithPayload adds the payload to the delete service service Id unauthorized response
+func (o *DeleteServiceServiceIDUnauthorized) WithPayload(payload *models.Error) *DeleteServiceServiceIDUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the delete service service Id unauthorized response
+func (o *DeleteServiceServiceIDUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DeleteServiceServiceIDUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // DeleteServiceServiceIDForbiddenCode is the HTTP code returned for type DeleteServiceServiceIDForbidden
 const DeleteServiceServiceIDForbiddenCode int = 403
 

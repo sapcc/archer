@@ -53,6 +53,12 @@ func (o *GetEndpointReader) ReadResponse(response runtime.ClientResponse, consum
 			return nil, err
 		}
 		return nil, result
+	case 401:
+		result := NewGetEndpointUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 403:
 		result := NewGetEndpointForbidden()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -195,6 +201,74 @@ func (o *GetEndpointBadRequest) GetPayload() *models.Error {
 }
 
 func (o *GetEndpointBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetEndpointUnauthorized creates a GetEndpointUnauthorized with default headers values
+func NewGetEndpointUnauthorized() *GetEndpointUnauthorized {
+	return &GetEndpointUnauthorized{}
+}
+
+/*
+GetEndpointUnauthorized describes a response with status code 401, with default header values.
+
+Unauthorized
+*/
+type GetEndpointUnauthorized struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this get endpoint unauthorized response has a 2xx status code
+func (o *GetEndpointUnauthorized) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this get endpoint unauthorized response has a 3xx status code
+func (o *GetEndpointUnauthorized) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this get endpoint unauthorized response has a 4xx status code
+func (o *GetEndpointUnauthorized) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this get endpoint unauthorized response has a 5xx status code
+func (o *GetEndpointUnauthorized) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this get endpoint unauthorized response a status code equal to that given
+func (o *GetEndpointUnauthorized) IsCode(code int) bool {
+	return code == 401
+}
+
+// Code gets the status code for the get endpoint unauthorized response
+func (o *GetEndpointUnauthorized) Code() int {
+	return 401
+}
+
+func (o *GetEndpointUnauthorized) Error() string {
+	return fmt.Sprintf("[GET /endpoint][%d] getEndpointUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *GetEndpointUnauthorized) String() string {
+	return fmt.Sprintf("[GET /endpoint][%d] getEndpointUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *GetEndpointUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetEndpointUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

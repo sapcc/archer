@@ -43,6 +43,12 @@ func (o *GetServiceServiceIDReader) ReadResponse(response runtime.ClientResponse
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewGetServiceServiceIDUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 403:
 		result := NewGetServiceServiceIDForbidden()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -125,6 +131,74 @@ func (o *GetServiceServiceIDOK) GetPayload() *models.Service {
 func (o *GetServiceServiceIDOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Service)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetServiceServiceIDUnauthorized creates a GetServiceServiceIDUnauthorized with default headers values
+func NewGetServiceServiceIDUnauthorized() *GetServiceServiceIDUnauthorized {
+	return &GetServiceServiceIDUnauthorized{}
+}
+
+/*
+GetServiceServiceIDUnauthorized describes a response with status code 401, with default header values.
+
+Unauthorized
+*/
+type GetServiceServiceIDUnauthorized struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this get service service Id unauthorized response has a 2xx status code
+func (o *GetServiceServiceIDUnauthorized) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this get service service Id unauthorized response has a 3xx status code
+func (o *GetServiceServiceIDUnauthorized) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this get service service Id unauthorized response has a 4xx status code
+func (o *GetServiceServiceIDUnauthorized) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this get service service Id unauthorized response has a 5xx status code
+func (o *GetServiceServiceIDUnauthorized) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this get service service Id unauthorized response a status code equal to that given
+func (o *GetServiceServiceIDUnauthorized) IsCode(code int) bool {
+	return code == 401
+}
+
+// Code gets the status code for the get service service Id unauthorized response
+func (o *GetServiceServiceIDUnauthorized) Code() int {
+	return 401
+}
+
+func (o *GetServiceServiceIDUnauthorized) Error() string {
+	return fmt.Sprintf("[GET /service/{service_id}][%d] getServiceServiceIdUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *GetServiceServiceIDUnauthorized) String() string {
+	return fmt.Sprintf("[GET /service/{service_id}][%d] getServiceServiceIdUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *GetServiceServiceIDUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetServiceServiceIDUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

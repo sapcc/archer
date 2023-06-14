@@ -22,7 +22,6 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
 
-	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/models"
 )
 
@@ -30,8 +29,7 @@ type fixedIP struct {
 	SubnetID string `json:"subnet_id"`
 }
 
-func (c *Controller) AllocateNeutronEndpointPort(target *models.EndpointTarget, endpoint *models.Endpoint,
-	projectID string) (*ports.Port, error) {
+func (c *Controller) AllocateNeutronEndpointPort(target *models.EndpointTarget, endpoint *models.Endpoint, projectID string, host string) (*ports.Port, error) {
 	if target.Port != nil {
 		port, err := ports.Get(c.neutron, target.Port.String()).Extract()
 		if err != nil {
@@ -81,7 +79,7 @@ func (c *Controller) AllocateNeutronEndpointPort(target *models.EndpointTarget, 
 			TenantID:    projectID,
 			FixedIPs:    fixedIPs,
 		},
-		HostID: config.Global.Default.Host,
+		HostID: host,
 	}
 
 	res, err := ports.Create(c.neutron, port).Extract()
@@ -106,13 +104,13 @@ func (c *Controller) AllocateSNATNeutronPort(service *models.Service) (*ports.Po
 	port := portsbinding.CreateOptsExt{
 		CreateOptsBuilder: ports.CreateOpts{
 			Name:        fmt.Sprintf("endpoint-service-snat-%s", service.Name),
-			DeviceOwner: "network:archer-snat",
+			DeviceOwner: "network:f5snat",
 			DeviceID:    service.ID.String(),
 			NetworkID:   service.NetworkID.String(),
 			TenantID:    string(service.ProjectID),
 			FixedIPs:    fixedIPs,
 		},
-		HostID: config.Global.Default.Host,
+		HostID: *service.Host,
 	}
 
 	res, err := ports.Create(c.neutron, port).Extract()

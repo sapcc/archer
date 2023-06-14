@@ -43,6 +43,12 @@ func (o *PostServiceReader) ReadResponse(response runtime.ClientResponse, consum
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewPostServiceUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 403:
 		result := NewPostServiceForbidden()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -125,6 +131,74 @@ func (o *PostServiceCreated) GetPayload() *models.Service {
 func (o *PostServiceCreated) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Service)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewPostServiceUnauthorized creates a PostServiceUnauthorized with default headers values
+func NewPostServiceUnauthorized() *PostServiceUnauthorized {
+	return &PostServiceUnauthorized{}
+}
+
+/*
+PostServiceUnauthorized describes a response with status code 401, with default header values.
+
+Unauthorized
+*/
+type PostServiceUnauthorized struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this post service unauthorized response has a 2xx status code
+func (o *PostServiceUnauthorized) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this post service unauthorized response has a 3xx status code
+func (o *PostServiceUnauthorized) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this post service unauthorized response has a 4xx status code
+func (o *PostServiceUnauthorized) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this post service unauthorized response has a 5xx status code
+func (o *PostServiceUnauthorized) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this post service unauthorized response a status code equal to that given
+func (o *PostServiceUnauthorized) IsCode(code int) bool {
+	return code == 401
+}
+
+// Code gets the status code for the post service unauthorized response
+func (o *PostServiceUnauthorized) Code() int {
+	return 401
+}
+
+func (o *PostServiceUnauthorized) Error() string {
+	return fmt.Sprintf("[POST /service][%d] postServiceUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *PostServiceUnauthorized) String() string {
+	return fmt.Sprintf("[POST /service][%d] postServiceUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *PostServiceUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *PostServiceUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

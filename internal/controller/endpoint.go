@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-openapi/strfmt"
+	"github.com/sapcc/archer/internal"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/v2/pgxscan"
@@ -132,7 +133,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 	// Insert endpoint
 	sql, args = db.Insert("endpoint").
 		Columns("service_id", "project_id", "tags").
-		Values(params.Body.ServiceID, params.Body.ProjectID, Unique(params.Body.Tags)).
+		Values(params.Body.ServiceID, params.Body.ProjectID, internal.Unique(params.Body.Tags)).
 		Suffix("RETURNING id, service_id, project_id, tags, created_at, updated_at, status").
 		MustSql()
 	if err = pgxscan.Get(ctx, tx, &endpointResponse, sql, args...); err != nil {
@@ -155,7 +156,8 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 		panic(err)
 	}
 
-	port, err := c.AllocateNeutronEndpointPort(&params.Body.Target, &endpointResponse, string(params.Body.ProjectID))
+	port, err := c.AllocateNeutronEndpointPort(&params.Body.Target, &endpointResponse, string(params.Body.ProjectID),
+		host)
 	if err != nil {
 		if errors.Is(err, ErrPortNotFound) {
 			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
@@ -246,7 +248,7 @@ func (c *Controller) PutEndpointEndpointIDHandler(params endpoint.PutEndpointEnd
 		"service.name AS service_name").
 		PrefixExpr(db.Update("endpoint").
 			Prefix("WITH endpoint AS (").
-			Set("tags", Unique(params.Body.Tags)).
+			Set("tags", internal.Unique(params.Body.Tags)).
 			Where("id = ?", params.EndpointID).
 			Suffix("RETURNING *)")).
 		From("endpoint").

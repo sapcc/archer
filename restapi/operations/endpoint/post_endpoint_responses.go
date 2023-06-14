@@ -117,6 +117,51 @@ func (o *PostEndpointBadRequest) WriteResponse(rw http.ResponseWriter, producer 
 	}
 }
 
+// PostEndpointUnauthorizedCode is the HTTP code returned for type PostEndpointUnauthorized
+const PostEndpointUnauthorizedCode int = 401
+
+/*
+PostEndpointUnauthorized Unauthorized
+
+swagger:response postEndpointUnauthorized
+*/
+type PostEndpointUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewPostEndpointUnauthorized creates PostEndpointUnauthorized with default headers values
+func NewPostEndpointUnauthorized() *PostEndpointUnauthorized {
+
+	return &PostEndpointUnauthorized{}
+}
+
+// WithPayload adds the payload to the post endpoint unauthorized response
+func (o *PostEndpointUnauthorized) WithPayload(payload *models.Error) *PostEndpointUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the post endpoint unauthorized response
+func (o *PostEndpointUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *PostEndpointUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // PostEndpointForbiddenCode is the HTTP code returned for type PostEndpointForbidden
 const PostEndpointForbiddenCode int = 403
 

@@ -82,16 +82,18 @@ type Audit struct {
 }
 
 type Agent struct {
-	Devices                []string      `long:"devices" ini-name:"devices" description:"F5 BigIP Hostnames"`
-	ValidateCert           bool          `long:"validate-certificates" ini-name:"validate_certificates" description:"Validate HTTPS Certificate."`
-	PhysicalNetwork        string        `long:"physical-network" ini-name:"physical_network" description:"Physical Network"`
-	PendingSyncInterval    time.Duration `long:"pending-sync-interval" ini-name:"sync-interval" default:"120s" description:"Interval for pending sync scans, supports suffix (e.g. 10s)."`
-	CreateService          bool          `long:"create-service" ini-name:"create_service" description:"Auto-create Service for network injection agent."`
-	ServiceName            string        `long:"service-name" ini-name:"service_name" description:"Service name for auto-created service."`
-	ServicePort            int           `long:"service-port" ini-name:"service_port" description:"Service port for auto-created service."`
-	ServiceRequireApproval bool          `long:"service-require-approval" ini-name:"service_require_approval" description:"Service requires approval."`
-	ServiceUpstreamHost    string        `long:"service-upstream-host" ini-name:"service_upstream_host" description:"Service upstream host."`
-	ServiceProxyPath       string        `long:"service-proxy-path" ini-name:"service_proxy_path" description:"Service proxy path." default:"/var/run/socat-proxy/proxy.sock"`
+	Devices                  []string      `long:"device" ini-name:"device[]" description:"F5 BigIP Hostnames"`
+	VCMPs                    []string      `long:"vcmp" ini-name:"vcmp[]" description:"F5 BigIP VCMP Hostnames"`
+	ValidateCert             bool          `long:"validate-certificates" ini-name:"validate_certificates" description:"Validate HTTPS Certificate."`
+	PhysicalNetwork          string        `long:"physical-network" ini-name:"physical_network" description:"Physical Network"`
+	PhyiscalInterfaceMapping string        `long:"physical-interface-mapping" ini-name:"physical_interface_mapping" description:"Physical Interface Mapping"`
+	PendingSyncInterval      time.Duration `long:"pending-sync-interval" ini-name:"sync-interval" default:"120s" description:"Interval for pending sync scans, supports suffix (e.g. 10s)."`
+	CreateService            bool          `long:"create-service" ini-name:"create_service" description:"Auto-create Service for network injection agent."`
+	ServiceName              string        `long:"service-name" ini-name:"service_name" description:"Service name for auto-created service."`
+	ServicePort              int           `long:"service-port" ini-name:"service_port" description:"Service port for auto-created service."`
+	ServiceRequireApproval   bool          `long:"service-require-approval" ini-name:"service_require_approval" description:"Service requires approval."`
+	ServiceUpstreamHost      string        `long:"service-upstream-host" ini-name:"service_upstream_host" description:"Service upstream host."`
+	ServiceProxyPath         string        `long:"service-proxy-path" ini-name:"service_proxy_path" description:"Service proxy path." default:"/var/run/socat-proxy/proxy.sock"`
 }
 
 type AuthInfo struct {

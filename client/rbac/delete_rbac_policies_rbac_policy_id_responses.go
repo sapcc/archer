@@ -43,6 +43,12 @@ func (o *DeleteRbacPoliciesRbacPolicyIDReader) ReadResponse(response runtime.Cli
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewDeleteRbacPoliciesRbacPolicyIDUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 403:
 		result := NewDeleteRbacPoliciesRbacPolicyIDForbidden()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -118,6 +124,74 @@ func (o *DeleteRbacPoliciesRbacPolicyIDNoContent) String() string {
 }
 
 func (o *DeleteRbacPoliciesRbacPolicyIDNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewDeleteRbacPoliciesRbacPolicyIDUnauthorized creates a DeleteRbacPoliciesRbacPolicyIDUnauthorized with default headers values
+func NewDeleteRbacPoliciesRbacPolicyIDUnauthorized() *DeleteRbacPoliciesRbacPolicyIDUnauthorized {
+	return &DeleteRbacPoliciesRbacPolicyIDUnauthorized{}
+}
+
+/*
+DeleteRbacPoliciesRbacPolicyIDUnauthorized describes a response with status code 401, with default header values.
+
+Unauthorized
+*/
+type DeleteRbacPoliciesRbacPolicyIDUnauthorized struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this delete rbac policies rbac policy Id unauthorized response has a 2xx status code
+func (o *DeleteRbacPoliciesRbacPolicyIDUnauthorized) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this delete rbac policies rbac policy Id unauthorized response has a 3xx status code
+func (o *DeleteRbacPoliciesRbacPolicyIDUnauthorized) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this delete rbac policies rbac policy Id unauthorized response has a 4xx status code
+func (o *DeleteRbacPoliciesRbacPolicyIDUnauthorized) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this delete rbac policies rbac policy Id unauthorized response has a 5xx status code
+func (o *DeleteRbacPoliciesRbacPolicyIDUnauthorized) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this delete rbac policies rbac policy Id unauthorized response a status code equal to that given
+func (o *DeleteRbacPoliciesRbacPolicyIDUnauthorized) IsCode(code int) bool {
+	return code == 401
+}
+
+// Code gets the status code for the delete rbac policies rbac policy Id unauthorized response
+func (o *DeleteRbacPoliciesRbacPolicyIDUnauthorized) Code() int {
+	return 401
+}
+
+func (o *DeleteRbacPoliciesRbacPolicyIDUnauthorized) Error() string {
+	return fmt.Sprintf("[DELETE /rbac-policies/{rbac_policy_id}][%d] deleteRbacPoliciesRbacPolicyIdUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *DeleteRbacPoliciesRbacPolicyIDUnauthorized) String() string {
+	return fmt.Sprintf("[DELETE /rbac-policies/{rbac_policy_id}][%d] deleteRbacPoliciesRbacPolicyIdUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *DeleteRbacPoliciesRbacPolicyIDUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DeleteRbacPoliciesRbacPolicyIDUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

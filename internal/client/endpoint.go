@@ -40,9 +40,9 @@ func (*EndpointList) Execute(_ []string) error {
 		return err
 	}
 
-	Table.AppendHeader(table.Row{"ID", "Service", "Port", "Status", "Project"})
+	Table.AppendHeader(table.Row{"ID", "Service ID", "Service Name", "Port", "Status", "Project"})
 	for _, ep := range resp.Payload.Items {
-		Table.AppendRow(table.Row{ep.ID, ep.ServiceName, ep.Target.Port, ep.Status, ep.ProjectID})
+		Table.AppendRow(table.Row{ep.ID, ep.ServiceID, ep.ServiceName, ep.Target.Port, ep.Status, ep.ProjectID})
 	}
 	Table.Render()
 	return nil

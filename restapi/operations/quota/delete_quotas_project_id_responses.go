@@ -52,6 +52,51 @@ func (o *DeleteQuotasProjectIDNoContent) WriteResponse(rw http.ResponseWriter, p
 	rw.WriteHeader(204)
 }
 
+// DeleteQuotasProjectIDUnauthorizedCode is the HTTP code returned for type DeleteQuotasProjectIDUnauthorized
+const DeleteQuotasProjectIDUnauthorizedCode int = 401
+
+/*
+DeleteQuotasProjectIDUnauthorized Unauthorized
+
+swagger:response deleteQuotasProjectIdUnauthorized
+*/
+type DeleteQuotasProjectIDUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDeleteQuotasProjectIDUnauthorized creates DeleteQuotasProjectIDUnauthorized with default headers values
+func NewDeleteQuotasProjectIDUnauthorized() *DeleteQuotasProjectIDUnauthorized {
+
+	return &DeleteQuotasProjectIDUnauthorized{}
+}
+
+// WithPayload adds the payload to the delete quotas project Id unauthorized response
+func (o *DeleteQuotasProjectIDUnauthorized) WithPayload(payload *models.Error) *DeleteQuotasProjectIDUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the delete quotas project Id unauthorized response
+func (o *DeleteQuotasProjectIDUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DeleteQuotasProjectIDUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // DeleteQuotasProjectIDForbiddenCode is the HTTP code returned for type DeleteQuotasProjectIDForbidden
 const DeleteQuotasProjectIDForbiddenCode int = 403
 

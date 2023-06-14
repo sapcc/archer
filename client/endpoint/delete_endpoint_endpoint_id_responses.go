@@ -43,6 +43,12 @@ func (o *DeleteEndpointEndpointIDReader) ReadResponse(response runtime.ClientRes
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewDeleteEndpointEndpointIDUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 403:
 		result := NewDeleteEndpointEndpointIDForbidden()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -118,6 +124,74 @@ func (o *DeleteEndpointEndpointIDAccepted) String() string {
 }
 
 func (o *DeleteEndpointEndpointIDAccepted) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewDeleteEndpointEndpointIDUnauthorized creates a DeleteEndpointEndpointIDUnauthorized with default headers values
+func NewDeleteEndpointEndpointIDUnauthorized() *DeleteEndpointEndpointIDUnauthorized {
+	return &DeleteEndpointEndpointIDUnauthorized{}
+}
+
+/*
+DeleteEndpointEndpointIDUnauthorized describes a response with status code 401, with default header values.
+
+Unauthorized
+*/
+type DeleteEndpointEndpointIDUnauthorized struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this delete endpoint endpoint Id unauthorized response has a 2xx status code
+func (o *DeleteEndpointEndpointIDUnauthorized) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this delete endpoint endpoint Id unauthorized response has a 3xx status code
+func (o *DeleteEndpointEndpointIDUnauthorized) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this delete endpoint endpoint Id unauthorized response has a 4xx status code
+func (o *DeleteEndpointEndpointIDUnauthorized) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this delete endpoint endpoint Id unauthorized response has a 5xx status code
+func (o *DeleteEndpointEndpointIDUnauthorized) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this delete endpoint endpoint Id unauthorized response a status code equal to that given
+func (o *DeleteEndpointEndpointIDUnauthorized) IsCode(code int) bool {
+	return code == 401
+}
+
+// Code gets the status code for the delete endpoint endpoint Id unauthorized response
+func (o *DeleteEndpointEndpointIDUnauthorized) Code() int {
+	return 401
+}
+
+func (o *DeleteEndpointEndpointIDUnauthorized) Error() string {
+	return fmt.Sprintf("[DELETE /endpoint/{endpoint_id}][%d] deleteEndpointEndpointIdUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *DeleteEndpointEndpointIDUnauthorized) String() string {
+	return fmt.Sprintf("[DELETE /endpoint/{endpoint_id}][%d] deleteEndpointEndpointIdUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *DeleteEndpointEndpointIDUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *DeleteEndpointEndpointIDUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

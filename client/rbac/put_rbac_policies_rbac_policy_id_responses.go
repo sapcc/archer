@@ -43,6 +43,12 @@ func (o *PutRbacPoliciesRbacPolicyIDReader) ReadResponse(response runtime.Client
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewPutRbacPoliciesRbacPolicyIDUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 403:
 		result := NewPutRbacPoliciesRbacPolicyIDForbidden()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -131,6 +137,74 @@ func (o *PutRbacPoliciesRbacPolicyIDOK) GetPayload() *models.Rbacpolicy {
 func (o *PutRbacPoliciesRbacPolicyIDOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Rbacpolicy)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewPutRbacPoliciesRbacPolicyIDUnauthorized creates a PutRbacPoliciesRbacPolicyIDUnauthorized with default headers values
+func NewPutRbacPoliciesRbacPolicyIDUnauthorized() *PutRbacPoliciesRbacPolicyIDUnauthorized {
+	return &PutRbacPoliciesRbacPolicyIDUnauthorized{}
+}
+
+/*
+PutRbacPoliciesRbacPolicyIDUnauthorized describes a response with status code 401, with default header values.
+
+Unauthorized
+*/
+type PutRbacPoliciesRbacPolicyIDUnauthorized struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this put rbac policies rbac policy Id unauthorized response has a 2xx status code
+func (o *PutRbacPoliciesRbacPolicyIDUnauthorized) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this put rbac policies rbac policy Id unauthorized response has a 3xx status code
+func (o *PutRbacPoliciesRbacPolicyIDUnauthorized) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this put rbac policies rbac policy Id unauthorized response has a 4xx status code
+func (o *PutRbacPoliciesRbacPolicyIDUnauthorized) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this put rbac policies rbac policy Id unauthorized response has a 5xx status code
+func (o *PutRbacPoliciesRbacPolicyIDUnauthorized) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this put rbac policies rbac policy Id unauthorized response a status code equal to that given
+func (o *PutRbacPoliciesRbacPolicyIDUnauthorized) IsCode(code int) bool {
+	return code == 401
+}
+
+// Code gets the status code for the put rbac policies rbac policy Id unauthorized response
+func (o *PutRbacPoliciesRbacPolicyIDUnauthorized) Code() int {
+	return 401
+}
+
+func (o *PutRbacPoliciesRbacPolicyIDUnauthorized) Error() string {
+	return fmt.Sprintf("[PUT /rbac-policies/{rbac_policy_id}][%d] putRbacPoliciesRbacPolicyIdUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *PutRbacPoliciesRbacPolicyIDUnauthorized) String() string {
+	return fmt.Sprintf("[PUT /rbac-policies/{rbac_policy_id}][%d] putRbacPoliciesRbacPolicyIdUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *PutRbacPoliciesRbacPolicyIDUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *PutRbacPoliciesRbacPolicyIDUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

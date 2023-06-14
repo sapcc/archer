@@ -43,6 +43,12 @@ func (o *PostRbacPoliciesReader) ReadResponse(response runtime.ClientResponse, c
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewPostRbacPoliciesUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 403:
 		result := NewPostRbacPoliciesForbidden()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -131,6 +137,74 @@ func (o *PostRbacPoliciesCreated) GetPayload() *models.Rbacpolicy {
 func (o *PostRbacPoliciesCreated) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Rbacpolicy)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewPostRbacPoliciesUnauthorized creates a PostRbacPoliciesUnauthorized with default headers values
+func NewPostRbacPoliciesUnauthorized() *PostRbacPoliciesUnauthorized {
+	return &PostRbacPoliciesUnauthorized{}
+}
+
+/*
+PostRbacPoliciesUnauthorized describes a response with status code 401, with default header values.
+
+Unauthorized
+*/
+type PostRbacPoliciesUnauthorized struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this post rbac policies unauthorized response has a 2xx status code
+func (o *PostRbacPoliciesUnauthorized) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this post rbac policies unauthorized response has a 3xx status code
+func (o *PostRbacPoliciesUnauthorized) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this post rbac policies unauthorized response has a 4xx status code
+func (o *PostRbacPoliciesUnauthorized) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this post rbac policies unauthorized response has a 5xx status code
+func (o *PostRbacPoliciesUnauthorized) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this post rbac policies unauthorized response a status code equal to that given
+func (o *PostRbacPoliciesUnauthorized) IsCode(code int) bool {
+	return code == 401
+}
+
+// Code gets the status code for the post rbac policies unauthorized response
+func (o *PostRbacPoliciesUnauthorized) Code() int {
+	return 401
+}
+
+func (o *PostRbacPoliciesUnauthorized) Error() string {
+	return fmt.Sprintf("[POST /rbac-policies][%d] postRbacPoliciesUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *PostRbacPoliciesUnauthorized) String() string {
+	return fmt.Sprintf("[POST /rbac-policies][%d] postRbacPoliciesUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *PostRbacPoliciesUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *PostRbacPoliciesUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

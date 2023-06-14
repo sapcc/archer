@@ -46,6 +46,12 @@ func (o *GetQuotasProjectIDReader) ReadResponse(response runtime.ClientResponse,
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewGetQuotasProjectIDUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 403:
 		result := NewGetQuotasProjectIDForbidden()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -122,6 +128,74 @@ func (o *GetQuotasProjectIDOK) GetPayload() *GetQuotasProjectIDOKBody {
 func (o *GetQuotasProjectIDOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(GetQuotasProjectIDOKBody)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetQuotasProjectIDUnauthorized creates a GetQuotasProjectIDUnauthorized with default headers values
+func NewGetQuotasProjectIDUnauthorized() *GetQuotasProjectIDUnauthorized {
+	return &GetQuotasProjectIDUnauthorized{}
+}
+
+/*
+GetQuotasProjectIDUnauthorized describes a response with status code 401, with default header values.
+
+Unauthorized
+*/
+type GetQuotasProjectIDUnauthorized struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this get quotas project Id unauthorized response has a 2xx status code
+func (o *GetQuotasProjectIDUnauthorized) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this get quotas project Id unauthorized response has a 3xx status code
+func (o *GetQuotasProjectIDUnauthorized) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this get quotas project Id unauthorized response has a 4xx status code
+func (o *GetQuotasProjectIDUnauthorized) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this get quotas project Id unauthorized response has a 5xx status code
+func (o *GetQuotasProjectIDUnauthorized) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this get quotas project Id unauthorized response a status code equal to that given
+func (o *GetQuotasProjectIDUnauthorized) IsCode(code int) bool {
+	return code == 401
+}
+
+// Code gets the status code for the get quotas project Id unauthorized response
+func (o *GetQuotasProjectIDUnauthorized) Code() int {
+	return 401
+}
+
+func (o *GetQuotasProjectIDUnauthorized) Error() string {
+	return fmt.Sprintf("[GET /quotas/{project_id}][%d] getQuotasProjectIdUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *GetQuotasProjectIDUnauthorized) String() string {
+	return fmt.Sprintf("[GET /quotas/{project_id}][%d] getQuotasProjectIdUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *GetQuotasProjectIDUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetQuotasProjectIDUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

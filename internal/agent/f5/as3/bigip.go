@@ -16,15 +16,19 @@ package as3
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/sapcc/archer/models"
 	"net"
 	"net/url"
+	"strings"
 
 	"github.com/f5devcentral/go-bigip"
 	"github.com/go-openapi/strfmt"
+	"github.com/sapcc/go-bits/logg"
 
+	"github.com/sapcc/archer/internal"
 	"github.com/sapcc/archer/internal/config"
+	"github.com/sapcc/archer/models"
 )
 
 const iRuleTemplate = `
@@ -33,8 +37,48 @@ when CLIENT_ACCEPTED {
 }
 `
 
-func GetBigIPSession() (*bigip.BigIP, error) {
-	parsedURL, err := url.Parse(config.Global.Agent.Devices[0])
+func GetBigIPDevice(big *bigip.BigIP, hostname string) *bigip.Device {
+	devices, err := big.GetDevices()
+	if err != nil {
+		logg.Fatal(err.Error())
+	}
+	for _, device := range devices {
+		if strings.HasSuffix(hostname, device.Hostname) {
+			logg.Info("Connected to %s, %s (%s %s), %s", device.MarketingName, device.Name, device.Version,
+				device.Edition, device.FailoverState)
+			return &device
+		}
+	}
+	return nil
+}
+
+type VcmpGuests struct {
+	Guests []bigip.VcmpGuest `json:"items,omitempty"`
+}
+
+func GetVCMPGuests(big *bigip.BigIP) (*VcmpGuests, error) {
+	var guests VcmpGuests
+
+	req := &bigip.APIRequest{
+		Method:      "get",
+		URL:         "vcmp/guest",
+		ContentType: "application/json",
+	}
+	resp, err := big.APICall(req)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(resp, &guests)
+	if err != nil {
+		return nil, err
+	}
+
+	return &guests, nil
+}
+
+func GetBigIPSession(rawURL string) (*bigip.BigIP, error) {
+	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, err
 	}
@@ -252,7 +296,25 @@ func EnsureRouteDomain(big *bigip.BigIP, segmentId int) error {
 	return nil
 }
 
-func EnsureVLAN(big *bigip.BigIP, segmentId int) error {
+func EnsureGuestVlan(big *bigip.BigIP, segmentId int) error {
+	guests, err := GetVCMPGuests(big)
+	if err != nil {
+		return err
+	}
+
+	for _, guest := range guests.Guests {
+		for _, deviceHost := range config.Global.Agent.Devices {
+			if strings.HasSuffix(deviceHost, guest.Hostname) {
+				newGuest := bigip.VcmpGuest{Vlans: internal.Unique(append(guest.Vlans, fmt.Sprintf("/Common/vlan-%d", segmentId)))}
+				return big.UpdateVcmpGuest(guest.Name, &newGuest)
+			}
+		}
+	}
+
+	return errors.New("no VCMP guest found")
+}
+
+func EnsureVLAN(big *bigip.BigIP, segmentId int, iface string) error {
 	vlans, err := big.Vlans()
 	if err != nil {
 		return err
@@ -279,7 +341,11 @@ func EnsureVLAN(big *bigip.BigIP, segmentId int) error {
 		return err
 	}
 
-	//a.bigip.AddInterfaceToVlan()
+	if iface != "" {
+		if err := big.AddInterfaceToVlan(vlan.Name, iface, true); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

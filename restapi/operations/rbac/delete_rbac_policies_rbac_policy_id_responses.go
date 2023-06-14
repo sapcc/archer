@@ -52,6 +52,51 @@ func (o *DeleteRbacPoliciesRbacPolicyIDNoContent) WriteResponse(rw http.Response
 	rw.WriteHeader(204)
 }
 
+// DeleteRbacPoliciesRbacPolicyIDUnauthorizedCode is the HTTP code returned for type DeleteRbacPoliciesRbacPolicyIDUnauthorized
+const DeleteRbacPoliciesRbacPolicyIDUnauthorizedCode int = 401
+
+/*
+DeleteRbacPoliciesRbacPolicyIDUnauthorized Unauthorized
+
+swagger:response deleteRbacPoliciesRbacPolicyIdUnauthorized
+*/
+type DeleteRbacPoliciesRbacPolicyIDUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewDeleteRbacPoliciesRbacPolicyIDUnauthorized creates DeleteRbacPoliciesRbacPolicyIDUnauthorized with default headers values
+func NewDeleteRbacPoliciesRbacPolicyIDUnauthorized() *DeleteRbacPoliciesRbacPolicyIDUnauthorized {
+
+	return &DeleteRbacPoliciesRbacPolicyIDUnauthorized{}
+}
+
+// WithPayload adds the payload to the delete rbac policies rbac policy Id unauthorized response
+func (o *DeleteRbacPoliciesRbacPolicyIDUnauthorized) WithPayload(payload *models.Error) *DeleteRbacPoliciesRbacPolicyIDUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the delete rbac policies rbac policy Id unauthorized response
+func (o *DeleteRbacPoliciesRbacPolicyIDUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *DeleteRbacPoliciesRbacPolicyIDUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // DeleteRbacPoliciesRbacPolicyIDForbiddenCode is the HTTP code returned for type DeleteRbacPoliciesRbacPolicyIDForbidden
 const DeleteRbacPoliciesRbacPolicyIDForbiddenCode int = 403
 

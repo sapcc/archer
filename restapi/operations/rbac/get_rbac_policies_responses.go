@@ -117,6 +117,51 @@ func (o *GetRbacPoliciesBadRequest) WriteResponse(rw http.ResponseWriter, produc
 	}
 }
 
+// GetRbacPoliciesUnauthorizedCode is the HTTP code returned for type GetRbacPoliciesUnauthorized
+const GetRbacPoliciesUnauthorizedCode int = 401
+
+/*
+GetRbacPoliciesUnauthorized Unauthorized
+
+swagger:response getRbacPoliciesUnauthorized
+*/
+type GetRbacPoliciesUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetRbacPoliciesUnauthorized creates GetRbacPoliciesUnauthorized with default headers values
+func NewGetRbacPoliciesUnauthorized() *GetRbacPoliciesUnauthorized {
+
+	return &GetRbacPoliciesUnauthorized{}
+}
+
+// WithPayload adds the payload to the get rbac policies unauthorized response
+func (o *GetRbacPoliciesUnauthorized) WithPayload(payload *models.Error) *GetRbacPoliciesUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get rbac policies unauthorized response
+func (o *GetRbacPoliciesUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetRbacPoliciesUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // GetRbacPoliciesForbiddenCode is the HTTP code returned for type GetRbacPoliciesForbidden
 const GetRbacPoliciesForbiddenCode int = 403
 

@@ -17,6 +17,7 @@ package controller
 import (
 	"context"
 	"errors"
+	"github.com/sapcc/archer/internal"
 	"net/http"
 
 	sq "github.com/Masterminds/squirrel"
@@ -104,23 +105,22 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 	var port *ports.Port
 	var host string
 	if err := pgx.BeginFunc(context.Background(), c.pool, func(tx pgx.Tx) error {
-		var az string
-		if params.Body.AvailabilityZone != nil {
-			az = *params.Body.AvailabilityZone
-		}
 		// schedule
-		sql, args, err := db.Select("agents.host", "COUNT(service.id) AS usage").
+		q := db.Select("agents.host", "COUNT(service.id) AS usage").
 			From("agents").
-			Join("service ON service.host = agents.host").
+			LeftJoin("service ON service.host = agents.host").
 			Where(sq.And{
-				sq.Eq{"agents.availability_zone": az},
 				sq.Eq{"agents.enabled": true},
 				sq.Eq{"agents.provider": params.Body.Provider},
 			}).
 			OrderBy("usage ASC", "agents.updated_at DESC").
 			GroupBy("agents.host").
-			Limit(1).
-			ToSql()
+			Limit(1)
+
+		if params.Body.AvailabilityZone != nil {
+			q.Where("agents.availability_zone = ?", *params.Body.AvailabilityZone)
+		}
+		sql, args, err := q.ToSql()
 		if err != nil {
 			return err
 		}
@@ -130,8 +130,8 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 			return err
 		}
 
-		logg.Info("Found host '%s' (usage=%d) for service request (provider=%s, az=%s)", host, usage,
-			params.Body.Provider, az)
+		logg.Info("Found host '%s' (usage=%d) for service request (provider=%s)", host, usage,
+			params.Body.Provider)
 		params.Body.Host = &host
 
 		sql, args, err = db.Insert("service").
@@ -140,7 +140,7 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 			Values(params.Body.Enabled, params.Body.Name, params.Body.Description, params.Body.NetworkID,
 				params.Body.IPAddresses, params.Body.RequireApproval, params.Body.Visibility,
 				params.Body.AvailabilityZone, params.Body.ProxyProtocol, params.Body.ProjectID,
-				params.Body.Port, Unique(params.Body.Tags), params.Body.Provider, params.Body.Host).
+				params.Body.Port, internal.Unique(params.Body.Tags), params.Body.Provider, params.Body.Host).
 			Suffix("RETURNING *").ToSql()
 		if err != nil {
 			return err
@@ -241,7 +241,7 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 		Set("proxy_protocol", sq.Expr("COALESCE(?, proxy_protocol)", params.Body.ProxyProtocol)).
 		Set("port", sq.Expr("COALESCE(?, port)", params.Body.Port)).
 		Set("ip_addresses", sq.Expr("COALESCE(?, ip_addresses)", params.Body.IPAddresses)).
-		Set("tags", sq.Expr("COALESCE(?, tags)", Unique(params.Body.Tags))).
+		Set("tags", sq.Expr("COALESCE(?, tags)", internal.Unique(params.Body.Tags))).
 		Set("status", "PENDING_UPDATE").
 		Where("id = ?", params.ServiceID).
 		Suffix("RETURNING *")

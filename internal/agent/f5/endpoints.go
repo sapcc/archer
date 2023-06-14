@@ -16,20 +16,21 @@ package f5
 
 import (
 	"context"
-	as32 "github.com/sapcc/archer/internal/agent/f5/as3"
-	"github.com/sapcc/archer/internal/agent/neutron"
-	"github.com/sapcc/archer/internal/db"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/pagination"
 	"github.com/jackc/pgx/v5"
-	"github.com/sapcc/archer/models"
 	"github.com/sapcc/go-bits/logg"
+
+	"github.com/sapcc/archer/internal/agent/f5/as3"
+	"github.com/sapcc/archer/internal/agent/neutron"
+	"github.com/sapcc/archer/internal/db"
+	"github.com/sapcc/archer/models"
 )
 
-func (a *Agent) populateEndpointPorts(segmentId int, endpoints []*as32.ExtendedEndpoint) error {
+func (a *Agent) populateEndpointPorts(segmentId int, endpoints []*as3.ExtendedEndpoint) error {
 	// Fetch ports from neutron
 	var opts neutron.PortListOpts
 	for _, endpoint := range endpoints {
@@ -58,7 +59,7 @@ func (a *Agent) populateEndpointPorts(segmentId int, endpoints []*as32.ExtendedE
 }
 
 func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) error {
-	var endpoints []*as32.ExtendedEndpoint
+	var endpoints []*as3.ExtendedEndpoint
 	var networkID strfmt.UUID
 
 	tx, err := a.pool.Begin(ctx)
@@ -110,10 +111,10 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		}
 
 		// Ensure VLAN and Route Domain
-		if err := as32.EnsureVLAN(a.bigip, segmentId); err != nil {
+		if err := as3.EnsureVLAN(a.bigip, segmentId, ""); err != nil {
 			return err
 		}
-		if err := as32.EnsureRouteDomain(a.bigip, segmentId); err != nil {
+		if err := as3.EnsureRouteDomain(a.bigip, segmentId); err != nil {
 			return err
 		}
 		if err := a.populateEndpointPorts(segmentId, endpoints); err != nil {
@@ -121,17 +122,25 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		}
 	}
 
-	tenantName := as32.GetEndpointTenantName(networkID)
-	data := as32.GetAS3Declaration(map[string]as32.Tenant{
-		tenantName: as32.GetEndpointTenants(endpoints),
+	tenantName := as3.GetEndpointTenantName(networkID)
+	data := as3.GetAS3Declaration(map[string]as3.Tenant{
+		tenantName: as3.GetEndpointTenants(endpoints),
 	})
 
-	if err := as32.PostBigIP(a.bigip, &data, tenantName); err != nil {
+	if err := as3.PostBigIP(a.bigip, &data, tenantName); err != nil {
 		return err
 	}
 
 	for _, endpoint := range endpoints {
 		if endpoint.Status == models.EndpointStatusPENDINGDELETE {
+			// TODO: check if archer owns the port
+			if err := neutron.DeletePort(a.neutron, endpoint.Target.Port); err != nil {
+				return err
+			}
+			if _, err := tx.Exec(ctx, `DELETE FROM endpoint_port WHERE endpoint_id = $1`,
+				endpoint.ID); err != nil {
+				return err
+			}
 			if _, err := tx.Exec(ctx, `DELETE FROM endpoint WHERE id = $1 AND status = 'PENDING_DELETE';`,
 				endpoint.ID); err != nil {
 				return err

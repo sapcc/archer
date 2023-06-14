@@ -72,6 +72,51 @@ func (o *GetRbacPoliciesRbacPolicyIDOK) WriteResponse(rw http.ResponseWriter, pr
 	}
 }
 
+// GetRbacPoliciesRbacPolicyIDUnauthorizedCode is the HTTP code returned for type GetRbacPoliciesRbacPolicyIDUnauthorized
+const GetRbacPoliciesRbacPolicyIDUnauthorizedCode int = 401
+
+/*
+GetRbacPoliciesRbacPolicyIDUnauthorized Unauthorized
+
+swagger:response getRbacPoliciesRbacPolicyIdUnauthorized
+*/
+type GetRbacPoliciesRbacPolicyIDUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetRbacPoliciesRbacPolicyIDUnauthorized creates GetRbacPoliciesRbacPolicyIDUnauthorized with default headers values
+func NewGetRbacPoliciesRbacPolicyIDUnauthorized() *GetRbacPoliciesRbacPolicyIDUnauthorized {
+
+	return &GetRbacPoliciesRbacPolicyIDUnauthorized{}
+}
+
+// WithPayload adds the payload to the get rbac policies rbac policy Id unauthorized response
+func (o *GetRbacPoliciesRbacPolicyIDUnauthorized) WithPayload(payload *models.Error) *GetRbacPoliciesRbacPolicyIDUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get rbac policies rbac policy Id unauthorized response
+func (o *GetRbacPoliciesRbacPolicyIDUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetRbacPoliciesRbacPolicyIDUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // GetRbacPoliciesRbacPolicyIDForbiddenCode is the HTTP code returned for type GetRbacPoliciesRbacPolicyIDForbidden
 const GetRbacPoliciesRbacPolicyIDForbiddenCode int = 403
 

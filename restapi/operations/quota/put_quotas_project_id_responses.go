@@ -72,6 +72,51 @@ func (o *PutQuotasProjectIDOK) WriteResponse(rw http.ResponseWriter, producer ru
 	}
 }
 
+// PutQuotasProjectIDUnauthorizedCode is the HTTP code returned for type PutQuotasProjectIDUnauthorized
+const PutQuotasProjectIDUnauthorizedCode int = 401
+
+/*
+PutQuotasProjectIDUnauthorized Unauthorized
+
+swagger:response putQuotasProjectIdUnauthorized
+*/
+type PutQuotasProjectIDUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewPutQuotasProjectIDUnauthorized creates PutQuotasProjectIDUnauthorized with default headers values
+func NewPutQuotasProjectIDUnauthorized() *PutQuotasProjectIDUnauthorized {
+
+	return &PutQuotasProjectIDUnauthorized{}
+}
+
+// WithPayload adds the payload to the put quotas project Id unauthorized response
+func (o *PutQuotasProjectIDUnauthorized) WithPayload(payload *models.Error) *PutQuotasProjectIDUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the put quotas project Id unauthorized response
+func (o *PutQuotasProjectIDUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *PutQuotasProjectIDUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // PutQuotasProjectIDForbiddenCode is the HTTP code returned for type PutQuotasProjectIDForbidden
 const PutQuotasProjectIDForbiddenCode int = 403
 

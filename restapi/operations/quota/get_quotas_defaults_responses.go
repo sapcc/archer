@@ -72,6 +72,51 @@ func (o *GetQuotasDefaultsOK) WriteResponse(rw http.ResponseWriter, producer run
 	}
 }
 
+// GetQuotasDefaultsUnauthorizedCode is the HTTP code returned for type GetQuotasDefaultsUnauthorized
+const GetQuotasDefaultsUnauthorizedCode int = 401
+
+/*
+GetQuotasDefaultsUnauthorized Unauthorized
+
+swagger:response getQuotasDefaultsUnauthorized
+*/
+type GetQuotasDefaultsUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetQuotasDefaultsUnauthorized creates GetQuotasDefaultsUnauthorized with default headers values
+func NewGetQuotasDefaultsUnauthorized() *GetQuotasDefaultsUnauthorized {
+
+	return &GetQuotasDefaultsUnauthorized{}
+}
+
+// WithPayload adds the payload to the get quotas defaults unauthorized response
+func (o *GetQuotasDefaultsUnauthorized) WithPayload(payload *models.Error) *GetQuotasDefaultsUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get quotas defaults unauthorized response
+func (o *GetQuotasDefaultsUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetQuotasDefaultsUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // GetQuotasDefaultsForbiddenCode is the HTTP code returned for type GetQuotasDefaultsForbidden
 const GetQuotasDefaultsForbiddenCode int = 403
 

@@ -48,6 +48,12 @@ func (o *PutEndpointEndpointIDReader) ReadResponse(response runtime.ClientRespon
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewPutEndpointEndpointIDUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 403:
 		result := NewPutEndpointEndpointIDForbidden()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -130,6 +136,74 @@ func (o *PutEndpointEndpointIDOK) GetPayload() *models.Endpoint {
 func (o *PutEndpointEndpointIDOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Endpoint)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewPutEndpointEndpointIDUnauthorized creates a PutEndpointEndpointIDUnauthorized with default headers values
+func NewPutEndpointEndpointIDUnauthorized() *PutEndpointEndpointIDUnauthorized {
+	return &PutEndpointEndpointIDUnauthorized{}
+}
+
+/*
+PutEndpointEndpointIDUnauthorized describes a response with status code 401, with default header values.
+
+Unauthorized
+*/
+type PutEndpointEndpointIDUnauthorized struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this put endpoint endpoint Id unauthorized response has a 2xx status code
+func (o *PutEndpointEndpointIDUnauthorized) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this put endpoint endpoint Id unauthorized response has a 3xx status code
+func (o *PutEndpointEndpointIDUnauthorized) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this put endpoint endpoint Id unauthorized response has a 4xx status code
+func (o *PutEndpointEndpointIDUnauthorized) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this put endpoint endpoint Id unauthorized response has a 5xx status code
+func (o *PutEndpointEndpointIDUnauthorized) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this put endpoint endpoint Id unauthorized response a status code equal to that given
+func (o *PutEndpointEndpointIDUnauthorized) IsCode(code int) bool {
+	return code == 401
+}
+
+// Code gets the status code for the put endpoint endpoint Id unauthorized response
+func (o *PutEndpointEndpointIDUnauthorized) Code() int {
+	return 401
+}
+
+func (o *PutEndpointEndpointIDUnauthorized) Error() string {
+	return fmt.Sprintf("[PUT /endpoint/{endpoint_id}][%d] putEndpointEndpointIdUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *PutEndpointEndpointIDUnauthorized) String() string {
+	return fmt.Sprintf("[PUT /endpoint/{endpoint_id}][%d] putEndpointEndpointIdUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *PutEndpointEndpointIDUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *PutEndpointEndpointIDUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

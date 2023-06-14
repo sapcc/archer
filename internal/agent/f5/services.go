@@ -16,103 +16,39 @@ package f5
 
 import (
 	"context"
-
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
-	"github.com/sapcc/go-bits/logg"
-
 	"github.com/sapcc/archer/internal/agent/f5/as3"
 	"github.com/sapcc/archer/internal/agent/neutron"
 	"github.com/sapcc/archer/internal/config"
+	"github.com/sapcc/archer/internal/db"
 	"github.com/sapcc/archer/models"
+	"golang.org/x/sync/errgroup"
 )
 
-func processSNATPort(a *Agent, ctx context.Context, tx pgx.Tx, service *as3.ExtendedService) error {
-	var err error
-
-	if service.Status == "PENDING_DELETE" {
-		// Handle service in pending deletion, cleanup SNAT port
-		if service.SnatPortId != nil {
-			if err = neutron.DeleteSNATPort(a.neutron, service.SnatPortId); err != nil {
-				logg.Error("Failed deleting SNAT Port: %s", err.Error())
-			}
-			if _, err = tx.Exec(ctx, `DELETE FROM service_snat_port WHERE port_id = $1`,
-				service.SnatPort.ID); err != nil {
-				return err
-			}
-		} else {
-			logg.Other("WARNING",
-				"Service pending for deletion '%s' has no SNAT port allocated", service.ID)
-		}
-
-		return nil
-	}
-
-	// Ensure SNAT port
-	if service.SnatPortId != nil {
-		service.SnatPort, err = neutron.GetSNATPort(a.neutron, service.SnatPortId)
-		if err != nil {
+func processVCMP(a *Agent, service *as3.ExtendedService) error {
+	for _, vcmp := range a.vcmps {
+		if err := as3.EnsureVLAN(vcmp, service.SegmentId, a.iface); err != nil {
 			return err
 		}
-	} else {
-		service.SnatPort, err = neutron.AllocateSNATPort(a.neutron, service)
-		if err != nil {
-			return err
-		}
-		// set allocated flag, for deletion during rollback
-		service.TXAllocated = true
 
-		if _, err = tx.Exec(ctx, `INSERT INTO service_snat_port(service_id, port_id) VALUES ($1, $2)`,
-			service.ID, service.SnatPort.ID); err != nil {
+		if err := as3.EnsureGuestVlan(vcmp, service.SegmentId); err != nil {
 			return err
 		}
 	}
-
-	// Fetch segment ID from neutron
-	service.SegmentId, err = neutron.GetNetworkSegment(a.cache, a.neutron, service.NetworkID.String())
-	if err != nil {
-		return err
-	}
-	if err := as3.EnsureVLAN(a.bigip, service.SegmentId); err != nil {
-		return err
-	}
-	if err := as3.EnsureRouteDomain(a.bigip, service.SegmentId); err != nil {
-		return err
-	}
-
 	return nil
 }
 
-func doProcessing(a *Agent, ctx context.Context, tx pgx.Tx, services []*as3.ExtendedService) error {
-	// Ensure SNAT neutron ports and segment ids
-	for _, service := range services {
-		if err := processSNATPort(a, ctx, tx, service); err != nil {
-			return err
-		}
+func processSNATPort(a *Agent, service *as3.ExtendedService) error {
+	var err error
+
+	if err = as3.EnsureVLAN(a.bigip, service.SegmentId, ""); err != nil {
+		return err
 	}
-
-	data := as3.GetAS3Declaration(map[string]as3.Tenant{
-		"Common": as3.GetServiceTenants(services),
-	})
-
-	if err := as3.PostBigIP(a.bigip, &data, "Common"); err != nil {
+	if err = as3.EnsureRouteDomain(a.bigip, service.SegmentId); err != nil {
 		return err
 	}
 
-	// Successfully updated the tenant
-	for _, service := range services {
-		if service.Status == models.ServiceStatusPENDINGDELETE {
-			if _, err := tx.Exec(ctx, `DELETE FROM service WHERE id = $1 AND status = 'PENDING_DELETE';`,
-				service.ID); err != nil {
-				return err
-			}
-		} else {
-			if _, err := tx.Exec(ctx, `UPDATE service SET status = 'AVAILABLE', updated_at = NOW() WHERE id = $1;`,
-				service.ID); err != nil {
-				return err
-			}
-		}
-	}
 	return nil
 }
 
@@ -120,29 +56,84 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 	var services []*as3.ExtendedService
 
 	// We need to fetch all services of this host since the AS3 tenant is shared
-	if err := pgxscan.Select(ctx, a.pool, &services,
-		`SELECT id, status, enabled, network_id, proxy_protocol, port, ip_addresses, sap.port_id AS snat_port_id
-              FROM service 
-                  LEFT JOIN service_snat_port sap ON service.id = sap.service_id 
-              WHERE host = $1 and provider = 'tenant'`,
-		config.Global.Default.Host,
-	); err != nil {
-		return err
-	}
-
+	sql, args := db.Select("id", "status", "enabled", "network_id", "proxy_protocol", "port", "ip_addresses",
+		"sap.port_id AS snat_port_id").
+		From("service").
+		LeftJoin("service_snat_port sap ON service.id = sap.service_id").
+		Where("host = ?", config.Global.Default.Host).
+		Where("provider = 'tenant'").
+		Suffix("FOR UPDATE OF service").
+		MustSql()
 	if err := pgx.BeginFunc(context.Background(), a.pool, func(tx pgx.Tx) error {
-		return doProcessing(a, context.Background(), tx, services)
-	}); err != nil {
-		// delete ports that have been created in this transaction
+		if err := pgxscan.Select(ctx, tx, &services, sql, args...); err != nil {
+			return err
+		}
+
+		g, _ := errgroup.WithContext(ctx)
+		var err error
+
 		for _, service := range services {
-			if service.TXAllocated {
-				logg.Error("Orphaned neutron SNAT port due rollback, deleting '%s'", service.SnatPortId)
-				if err := neutron.DeleteSNATPort(a.neutron, service.SnatPortId); err != nil {
-					logg.Error(err.Error())
-				}
+			// Fetch SNAT port
+			g.Go(func() error {
+				service.SnatPort, err = neutron.GetSNATPort(a.neutron, service.SnatPortId)
+				return err
+			})
+
+			// Fetch segment ID from neutron
+			g.Go(func() error {
+				service.SegmentId, err = neutron.GetNetworkSegment(a.cache, a.neutron, service.NetworkID.String())
+				return err
+			})
+
+			if err = g.Wait(); err != nil {
+				return err
+			}
+
+			service := service
+			// Ensure VCMP segment port configuration, parallelize
+			g.Go(func() error {
+				return processVCMP(a, service)
+			})
+
+			// Ensure SNAT neutron ports and segment ids on VCMP guests
+			g.Go(func() error {
+				return processSNATPort(a, service)
+			})
+
+			if err = g.Wait(); err != nil {
+				return err
 			}
 		}
 
+		// Post final declaration
+		data := as3.GetAS3Declaration(map[string]as3.Tenant{
+			"Common": as3.GetServiceTenants(services),
+		})
+
+		if err := as3.PostBigIP(a.bigip, &data, "Common"); err != nil {
+			return err
+		}
+
+		// Successfully updated the tenant
+		for _, service := range services {
+			if service.Status == models.ServiceStatusPENDINGDELETE {
+				if err = neutron.DeletePort(a.neutron, service.SnatPortId); err != nil {
+					return err
+				}
+
+				if _, err = tx.Exec(ctx, `DELETE FROM service WHERE id = $1 AND status = 'PENDING_DELETE';`,
+					service.ID); err != nil {
+					return err
+				}
+			} else {
+				if _, err = tx.Exec(ctx, `UPDATE service SET status = 'AVAILABLE', updated_at = NOW() WHERE id = $1;`,
+					service.ID); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}); err != nil {
 		return err
 	}
 

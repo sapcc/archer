@@ -43,6 +43,12 @@ func (o *PutQuotasProjectIDReader) ReadResponse(response runtime.ClientResponse,
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewPutQuotasProjectIDUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 403:
 		result := NewPutQuotasProjectIDForbidden()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -125,6 +131,74 @@ func (o *PutQuotasProjectIDOK) GetPayload() *models.Quota {
 func (o *PutQuotasProjectIDOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Quota)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewPutQuotasProjectIDUnauthorized creates a PutQuotasProjectIDUnauthorized with default headers values
+func NewPutQuotasProjectIDUnauthorized() *PutQuotasProjectIDUnauthorized {
+	return &PutQuotasProjectIDUnauthorized{}
+}
+
+/*
+PutQuotasProjectIDUnauthorized describes a response with status code 401, with default header values.
+
+Unauthorized
+*/
+type PutQuotasProjectIDUnauthorized struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this put quotas project Id unauthorized response has a 2xx status code
+func (o *PutQuotasProjectIDUnauthorized) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this put quotas project Id unauthorized response has a 3xx status code
+func (o *PutQuotasProjectIDUnauthorized) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this put quotas project Id unauthorized response has a 4xx status code
+func (o *PutQuotasProjectIDUnauthorized) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this put quotas project Id unauthorized response has a 5xx status code
+func (o *PutQuotasProjectIDUnauthorized) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this put quotas project Id unauthorized response a status code equal to that given
+func (o *PutQuotasProjectIDUnauthorized) IsCode(code int) bool {
+	return code == 401
+}
+
+// Code gets the status code for the put quotas project Id unauthorized response
+func (o *PutQuotasProjectIDUnauthorized) Code() int {
+	return 401
+}
+
+func (o *PutQuotasProjectIDUnauthorized) Error() string {
+	return fmt.Sprintf("[PUT /quotas/{project_id}][%d] putQuotasProjectIdUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *PutQuotasProjectIDUnauthorized) String() string {
+	return fmt.Sprintf("[PUT /quotas/{project_id}][%d] putQuotasProjectIdUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *PutQuotasProjectIDUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *PutQuotasProjectIDUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

@@ -47,8 +47,11 @@ type Agent struct {
 	jobQueue *JobChan
 	pool     *pgxpool.Pool // thread safe
 	neutron  *gophercloud.ServiceClient
-	bigip    *bigip.BigIP
+	bigips   []*bigip.BigIP
+	vcmps    []*bigip.BigIP
+	bigip    *bigip.BigIP // active target
 	cache    *lru.Cache[string, int]
+	iface    string
 }
 
 func NewAgent() *Agent {
@@ -103,18 +106,40 @@ func NewAgent() *Agent {
 	logg.Info("Connected to PostgreSQL host=%s, max_conns=%d, health_check_period=%s",
 		dbConfig.ConnConfig.Host, dbConfig.MaxConns, dbConfig.HealthCheckPeriod)
 
-	agent.bigip, err = as3.GetBigIPSession()
-	if err != nil {
-		logg.Fatal("BigIP session: %v", err)
+	// physical network/interface
+	physMap := strings.SplitN(config.Global.Agent.PhyiscalInterfaceMapping, ":", 2)
+	if len(physMap) == 2 {
+		config.Global.Agent.PhysicalNetwork = physMap[0]
+		agent.iface = physMap[1]
+	} else {
+		agent.iface = "portchannel1"
+	}
+	logg.Info("Phyiscal Interface Mapping: physical_network=%s, interface=%s",
+		config.Global.Agent.PhysicalNetwork, agent.iface)
+
+	// bigips
+	for _, url := range config.Global.Agent.Devices {
+		var big *bigip.BigIP
+		big, err = as3.GetBigIPSession(url)
+		if err != nil {
+			logg.Fatal("BigIP session: %v", err)
+		}
+		agent.bigips = append(agent.bigips, big)
+		if as3.GetBigIPDevice(big, url).FailoverState == "active" {
+			agent.bigip = big
+		}
 	}
 
-	devices, err := agent.bigip.GetDevices()
-	if err != nil {
-		logg.Fatal(err.Error())
-	}
-	for _, device := range devices {
-		logg.Info("Connected to %s, %s (%s)", device.MarketingName, device.Name, device.Version)
-		logg.Info("%v", device.ActiveModules)
+	// vcmps
+	for _, url := range config.Global.Agent.VCMPs {
+		var big *bigip.BigIP
+		big, err = as3.GetBigIPSession(url)
+		if err != nil {
+			logg.Fatal("BigIP session: %v", err)
+		}
+
+		as3.GetBigIPDevice(big, url)
+		agent.vcmps = append(agent.vcmps, big)
 	}
 
 	authInfo := clientconfig.AuthInfo(config.Global.ServiceAuth)

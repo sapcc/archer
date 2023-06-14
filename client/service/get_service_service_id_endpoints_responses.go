@@ -53,6 +53,12 @@ func (o *GetServiceServiceIDEndpointsReader) ReadResponse(response runtime.Clien
 			return nil, err
 		}
 		return nil, result
+	case 401:
+		result := NewGetServiceServiceIDEndpointsUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 403:
 		result := NewGetServiceServiceIDEndpointsForbidden()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -201,6 +207,74 @@ func (o *GetServiceServiceIDEndpointsBadRequest) GetPayload() *models.Error {
 }
 
 func (o *GetServiceServiceIDEndpointsBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetServiceServiceIDEndpointsUnauthorized creates a GetServiceServiceIDEndpointsUnauthorized with default headers values
+func NewGetServiceServiceIDEndpointsUnauthorized() *GetServiceServiceIDEndpointsUnauthorized {
+	return &GetServiceServiceIDEndpointsUnauthorized{}
+}
+
+/*
+GetServiceServiceIDEndpointsUnauthorized describes a response with status code 401, with default header values.
+
+Unauthorized
+*/
+type GetServiceServiceIDEndpointsUnauthorized struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this get service service Id endpoints unauthorized response has a 2xx status code
+func (o *GetServiceServiceIDEndpointsUnauthorized) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this get service service Id endpoints unauthorized response has a 3xx status code
+func (o *GetServiceServiceIDEndpointsUnauthorized) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this get service service Id endpoints unauthorized response has a 4xx status code
+func (o *GetServiceServiceIDEndpointsUnauthorized) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this get service service Id endpoints unauthorized response has a 5xx status code
+func (o *GetServiceServiceIDEndpointsUnauthorized) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this get service service Id endpoints unauthorized response a status code equal to that given
+func (o *GetServiceServiceIDEndpointsUnauthorized) IsCode(code int) bool {
+	return code == 401
+}
+
+// Code gets the status code for the get service service Id endpoints unauthorized response
+func (o *GetServiceServiceIDEndpointsUnauthorized) Code() int {
+	return 401
+}
+
+func (o *GetServiceServiceIDEndpointsUnauthorized) Error() string {
+	return fmt.Sprintf("[GET /service/{service_id}/endpoints][%d] getServiceServiceIdEndpointsUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *GetServiceServiceIDEndpointsUnauthorized) String() string {
+	return fmt.Sprintf("[GET /service/{service_id}/endpoints][%d] getServiceServiceIdEndpointsUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *GetServiceServiceIDEndpointsUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetServiceServiceIDEndpointsUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Error)
 

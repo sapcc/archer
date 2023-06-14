@@ -17,10 +17,9 @@
 package auth
 
 import (
-	"errors"
-	"github.com/sapcc/archer/internal/policy"
 	"net/http"
 
+	"github.com/go-openapi/errors"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/tokens"
@@ -28,10 +27,11 @@ import (
 	"github.com/sapcc/go-bits/logg"
 
 	"github.com/sapcc/archer/internal/config"
+	"github.com/sapcc/archer/internal/policy"
 )
 
 var (
-	ErrForbidden = errors.New("forbidden")
+	ErrForbidden = errors.Unauthenticated("invalid credentials")
 )
 
 type Keystone struct {

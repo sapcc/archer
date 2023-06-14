@@ -47,6 +47,12 @@ func (o *GetQuotasReader) ReadResponse(response runtime.ClientResponse, consumer
 			return nil, err
 		}
 		return result, nil
+	case 401:
+		result := NewGetQuotasUnauthorized()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 403:
 		result := NewGetQuotasForbidden()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -129,6 +135,74 @@ func (o *GetQuotasOK) GetPayload() *GetQuotasOKBody {
 func (o *GetQuotasOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(GetQuotasOKBody)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewGetQuotasUnauthorized creates a GetQuotasUnauthorized with default headers values
+func NewGetQuotasUnauthorized() *GetQuotasUnauthorized {
+	return &GetQuotasUnauthorized{}
+}
+
+/*
+GetQuotasUnauthorized describes a response with status code 401, with default header values.
+
+Unauthorized
+*/
+type GetQuotasUnauthorized struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this get quotas unauthorized response has a 2xx status code
+func (o *GetQuotasUnauthorized) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this get quotas unauthorized response has a 3xx status code
+func (o *GetQuotasUnauthorized) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this get quotas unauthorized response has a 4xx status code
+func (o *GetQuotasUnauthorized) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this get quotas unauthorized response has a 5xx status code
+func (o *GetQuotasUnauthorized) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this get quotas unauthorized response a status code equal to that given
+func (o *GetQuotasUnauthorized) IsCode(code int) bool {
+	return code == 401
+}
+
+// Code gets the status code for the get quotas unauthorized response
+func (o *GetQuotasUnauthorized) Code() int {
+	return 401
+}
+
+func (o *GetQuotasUnauthorized) Error() string {
+	return fmt.Sprintf("[GET /quotas][%d] getQuotasUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *GetQuotasUnauthorized) String() string {
+	return fmt.Sprintf("[GET /quotas][%d] getQuotasUnauthorized  %+v", 401, o.Payload)
+}
+
+func (o *GetQuotasUnauthorized) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *GetQuotasUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

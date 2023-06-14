@@ -22,15 +22,10 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/dns"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/portsbinding"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/provider"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	lru "github.com/hashicorp/golang-lru/v2"
-	"github.com/sapcc/go-bits/logg"
-
-	"github.com/sapcc/archer/internal/agent/f5/as3"
 	"github.com/sapcc/archer/internal/config"
 )
 
@@ -76,27 +71,7 @@ func GetSNATPort(c *gophercloud.ServiceClient, portId *strfmt.UUID) (*ports.Port
 	return portResult.Extract()
 }
 
-func AllocateSNATPort(c *gophercloud.ServiceClient, service *as3.ExtendedService) (*ports.Port, error) {
-	logg.Debug("Creating SNATPool Neutron port for service '%s' in network '%s'",
-		service.ID, service.NetworkID)
-	port := dns.PortCreateOptsExt{
-		CreateOptsBuilder: portsbinding.CreateOptsExt{
-			CreateOptsBuilder: ports.CreateOpts{
-				Name:        fmt.Sprintf("archer snatpool %s", service.ID),
-				DeviceOwner: "network:archer",
-				DeviceID:    service.ID.String(),
-				NetworkID:   service.NetworkID.String(),
-				TenantID:    string(service.ProjectID),
-			},
-			HostID: "TODO",
-		},
-		DNSName: "TODO",
-	}
-	r := ports.Create(c, port)
-	return r.Extract()
-}
-
-func DeleteSNATPort(c *gophercloud.ServiceClient, portId *strfmt.UUID) error {
+func DeletePort(c *gophercloud.ServiceClient, portId *strfmt.UUID) error {
 	return ports.Delete(c, portId.String()).Err
 }
 

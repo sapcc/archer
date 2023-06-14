@@ -120,6 +120,51 @@ func (o *PutServiceServiceIDAcceptEndpointsBadRequest) WriteResponse(rw http.Res
 	}
 }
 
+// PutServiceServiceIDAcceptEndpointsUnauthorizedCode is the HTTP code returned for type PutServiceServiceIDAcceptEndpointsUnauthorized
+const PutServiceServiceIDAcceptEndpointsUnauthorizedCode int = 401
+
+/*
+PutServiceServiceIDAcceptEndpointsUnauthorized Unauthorized
+
+swagger:response putServiceServiceIdAcceptEndpointsUnauthorized
+*/
+type PutServiceServiceIDAcceptEndpointsUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewPutServiceServiceIDAcceptEndpointsUnauthorized creates PutServiceServiceIDAcceptEndpointsUnauthorized with default headers values
+func NewPutServiceServiceIDAcceptEndpointsUnauthorized() *PutServiceServiceIDAcceptEndpointsUnauthorized {
+
+	return &PutServiceServiceIDAcceptEndpointsUnauthorized{}
+}
+
+// WithPayload adds the payload to the put service service Id accept endpoints unauthorized response
+func (o *PutServiceServiceIDAcceptEndpointsUnauthorized) WithPayload(payload *models.Error) *PutServiceServiceIDAcceptEndpointsUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the put service service Id accept endpoints unauthorized response
+func (o *PutServiceServiceIDAcceptEndpointsUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *PutServiceServiceIDAcceptEndpointsUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // PutServiceServiceIDAcceptEndpointsForbiddenCode is the HTTP code returned for type PutServiceServiceIDAcceptEndpointsForbidden
 const PutServiceServiceIDAcceptEndpointsForbiddenCode int = 403
 

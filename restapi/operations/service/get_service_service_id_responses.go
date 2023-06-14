@@ -72,6 +72,51 @@ func (o *GetServiceServiceIDOK) WriteResponse(rw http.ResponseWriter, producer r
 	}
 }
 
+// GetServiceServiceIDUnauthorizedCode is the HTTP code returned for type GetServiceServiceIDUnauthorized
+const GetServiceServiceIDUnauthorizedCode int = 401
+
+/*
+GetServiceServiceIDUnauthorized Unauthorized
+
+swagger:response getServiceServiceIdUnauthorized
+*/
+type GetServiceServiceIDUnauthorized struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewGetServiceServiceIDUnauthorized creates GetServiceServiceIDUnauthorized with default headers values
+func NewGetServiceServiceIDUnauthorized() *GetServiceServiceIDUnauthorized {
+
+	return &GetServiceServiceIDUnauthorized{}
+}
+
+// WithPayload adds the payload to the get service service Id unauthorized response
+func (o *GetServiceServiceIDUnauthorized) WithPayload(payload *models.Error) *GetServiceServiceIDUnauthorized {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get service service Id unauthorized response
+func (o *GetServiceServiceIDUnauthorized) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *GetServiceServiceIDUnauthorized) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(401)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // GetServiceServiceIDForbiddenCode is the HTTP code returned for type GetServiceServiceIDForbidden
 const GetServiceServiceIDForbiddenCode int = 403
 
