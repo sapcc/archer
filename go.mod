@@ -31,7 +31,7 @@ require (
 	github.com/prometheus/client_golang v1.15.1
 	github.com/rs/cors v1.9.0
 	github.com/sapcc/go-api-declarations v1.6.0
-	github.com/sapcc/go-bits v0.0.0-20230609124502-ada8add2e99b
+	github.com/sapcc/go-bits v0.0.0-20230621125803-0a954333b062
 	github.com/stretchr/testify v1.8.4
 	github.com/vishvananda/netlink v1.1.0
 	github.com/vishvananda/netns v0.0.4
