@@ -16,6 +16,7 @@ package neutron
 
 import (
 	"fmt"
+	"github.com/sapcc/archer/internal/config"
 	"net/url"
 	"time"
 
@@ -26,7 +27,6 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	lru "github.com/hashicorp/golang-lru/v2"
-	"github.com/sapcc/archer/internal/config"
 )
 
 func ConnectToNeutron(providerClient *gophercloud.ProviderClient) (*gophercloud.ServiceClient, error) {
@@ -58,9 +58,8 @@ func GetNetworkSegment(cache *lru.Cache[string, int], c *gophercloud.ServiceClie
 		}
 	}
 
-	return 0, fmt.Errorf("Could not find physical-network %s for network '%s'",
-		config.Global.Agent.PhysicalNetwork,
-		networkId)
+	return 0, fmt.Errorf("could not find physical-network %s for network '%s'",
+		config.Global.Agent.PhysicalNetwork, networkId)
 }
 
 func GetSNATPort(c *gophercloud.ServiceClient, portId *strfmt.UUID) (*ports.Port, error) {

@@ -48,6 +48,7 @@ func (c *Controller) GetServiceHandler(params service.GetServiceParams, principa
 		q = q.Where(
 			sq.Or{
 				sq.Eq{"project_id": projectId},
+				sq.Eq{"visibility": "public"},
 				db.Select("1").
 					Prefix("EXISTS(").
 					From("rbac r").
@@ -156,7 +157,7 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 				return err
 			}
 
-			sql, args, err = db.Insert("service_snat_port").
+			sql, args, err = db.Insert("service_port").
 				Columns("service_id", "port_id").
 				Values(serviceResponse.ID, port.ID).
 				ToSql()
@@ -241,6 +242,7 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 		Set("proxy_protocol", sq.Expr("COALESCE(?, proxy_protocol)", params.Body.ProxyProtocol)).
 		Set("port", sq.Expr("COALESCE(?, port)", params.Body.Port)).
 		Set("ip_addresses", sq.Expr("COALESCE(?, ip_addresses)", params.Body.IPAddresses)).
+		Set("visibility", sq.Expr("COALESCE(?, visibility)", params.Body.Visibility)).
 		Set("tags", sq.Expr("COALESCE(?, tags)", internal.Unique(params.Body.Tags))).
 		Set("status", "PENDING_UPDATE").
 		Where("id = ?", params.ServiceID).

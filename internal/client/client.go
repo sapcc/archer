@@ -31,7 +31,6 @@ import (
 	"github.com/jedib0t/go-pretty/table"
 	"github.com/jessevdk/go-flags"
 	"github.com/jmoiron/sqlx/reflectx"
-	"github.com/sapcc/go-bits/logg"
 
 	"github.com/sapcc/archer/client"
 )
@@ -140,7 +139,6 @@ func SetupClient() {
 		if fe, ok := err.(*flags.Error); ok && fe.Type == flags.ErrHelp {
 			os.Exit(0)
 		}
-		logg.Fatal(err.Error())
 		os.Exit(1)
 	}
 }

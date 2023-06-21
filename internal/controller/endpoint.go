@@ -17,17 +17,18 @@ package controller
 import (
 	"errors"
 	"fmt"
-	"github.com/go-openapi/strfmt"
-	"github.com/sapcc/archer/internal"
+	"github.com/gophercloud/gophercloud"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/strfmt"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/sapcc/go-bits/logg"
 
+	"github.com/sapcc/archer/internal"
 	"github.com/sapcc/archer/internal/auth"
 	"github.com/sapcc/archer/internal/db"
 	"github.com/sapcc/archer/models"
@@ -39,7 +40,7 @@ func (c *Controller) GetEndpointHandler(params endpoint.GetEndpointParams, princ
 	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
 		return endpoint.NewGetEndpointForbidden()
 	} else if projectId != "" {
-		q = q.Where("project_id = ?", projectId)
+		q = q.Where("endpoint.project_id = ?", projectId)
 	}
 
 	pagination := db.Pagination(params)
@@ -116,6 +117,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 				}).
 				Suffix(")"), // RBAC subquery
 		}).
+		Where("id = ?", params.Body.ServiceID).
 		Suffix("FOR UPDATE"). // Lock service/rbac row in this transaction
 		MustSql()
 
@@ -175,6 +177,12 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
 				Code:    400,
 				Message: "target_port needs at least one IP address.",
+			})
+		}
+		if gopherCloudErr, ok := err.(gophercloud.StatusCodeError); ok {
+			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
+				Code:    int64(gopherCloudErr.GetStatusCode()),
+				Message: gopherCloudErr.Error(),
 			})
 		}
 		panic(err)

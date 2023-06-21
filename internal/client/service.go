@@ -17,6 +17,7 @@
 package client
 
 import (
+	"errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/jedib0t/go-pretty/table"
 
@@ -130,6 +131,10 @@ func (*ServiceSet) Execute(_ []string) error {
 			WithServiceID(ServiceOptions.ServiceSet.Positional.Service)
 		resp, err := ArcherClient.Service.GetServiceServiceID(params, nil)
 		if err != nil {
+			if _, ok := err.(*service.GetServiceServiceIDNotFound); ok {
+				return errors.New("Not Found")
+			}
+
 			return err
 		}
 

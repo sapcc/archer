@@ -16,13 +16,15 @@ package f5
 
 import (
 	"context"
-
+	"fmt"
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/strfmt"
+	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/pagination"
 	"github.com/jackc/pgx/v5"
 	"github.com/sapcc/go-bits/logg"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/sapcc/archer/internal/agent/f5/as3"
 	"github.com/sapcc/archer/internal/agent/neutron"
@@ -30,7 +32,7 @@ import (
 	"github.com/sapcc/archer/models"
 )
 
-func (a *Agent) populateEndpointPorts(segmentId int, endpoints []*as3.ExtendedEndpoint) error {
+func (a *Agent) populateEndpointPorts(endpoints []*as3.ExtendedEndpoint) error {
 	// Fetch ports from neutron
 	var opts neutron.PortListOpts
 	for _, endpoint := range endpoints {
@@ -46,11 +48,14 @@ func (a *Agent) populateEndpointPorts(segmentId int, endpoints []*as3.ExtendedEn
 	if err != nil {
 		return err
 	}
+
+	if len(endpointPorts) == 0 {
+		return fmt.Errorf("no neutron ports found for endpoint(s) %s", opts.IDs)
+	}
 	for _, port := range endpointPorts {
 		for _, endpoint := range endpoints {
 			if endpoint.Target.Port.String() == port.ID {
 				endpoint.Port = &port
-				endpoint.SegmentId = segmentId
 			}
 		}
 	}
@@ -61,10 +66,13 @@ func (a *Agent) populateEndpointPorts(segmentId int, endpoints []*as3.ExtendedEn
 func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) error {
 	var endpoints []*as3.ExtendedEndpoint
 	var networkID strfmt.UUID
+	var tx pgx.Tx
 
-	tx, err := a.pool.Begin(ctx)
-	if err != nil {
-		return err
+	{
+		var err error
+		if tx, err = a.pool.Begin(ctx); err != nil {
+			return err
+		}
 	}
 
 	defer func(tx pgx.Tx, ctx context.Context) {
@@ -77,22 +85,24 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		From("endpoint_port").
 		Where("endpoint_id = ?", endpointID).
 		MustSql()
-	if err = tx.QueryRow(ctx, sql, args...).Scan(&networkID); err != nil {
+	if err := tx.QueryRow(ctx, sql, args...).Scan(&networkID); err != nil {
 		return err
 	}
 
 	sql, args = db.Select("endpoint.*",
 		"service.port AS service_port_nr",
 		"service.proxy_protocol",
+		"service.network_id AS service_network_id",
 		`endpoint_port.port_id AS "target.port"`,
 		`endpoint_port.network AS "target.network"`,
 		`endpoint_port.subnet AS "target.subnet"`).
 		From("endpoint").
-		InnerJoin("service ON service_id = service.id").
+		InnerJoin("service ON endpoint.service_id = service.id").
 		Join("endpoint_port ON endpoint_id = endpoint.id").
 		Where("network = ?", networkID).
+		Suffix("FOR UPDATE of endpoint").
 		MustSql()
-	if err = pgxscan.Select(ctx, tx, &endpoints, sql, args...); err != nil {
+	if err := pgxscan.Select(ctx, tx, &endpoints, sql, args...); err != nil {
 		return err
 	}
 
@@ -103,43 +113,128 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		}
 	}
 
-	if !deleteAll {
-		// Fetch segment ID from neutron
-		segmentId, err := neutron.GetNetworkSegment(a.cache, a.neutron, networkID.String())
-		if err != nil {
-			return err
-		}
+	var endpointSegmentID, serviceSegmentID int
+	g, _ := errgroup.WithContext(ctx)
 
-		// Ensure VLAN and Route Domain
-		if err := as3.EnsureVLAN(a.bigip, segmentId, ""); err != nil {
-			return err
+	g.Go(func() (err error) {
+		// Fetch segment ID from neutron
+		endpointSegmentID, err = neutron.GetNetworkSegment(a.cache, a.neutron,
+			networkID.String())
+		return
+	})
+	g.Go(func() (err error) {
+		serviceSegmentID, err = neutron.GetNetworkSegment(a.cache, a.neutron,
+			endpoints[0].ServiceNetworkId.String())
+		return
+	})
+	g.Go(func() error {
+		if err := a.populateEndpointPorts(endpoints); err != nil && deleteAll {
+			// ignore missing ports if all endpoints are about to be deleted, print error instead
+			logg.Error(err.Error())
 		}
-		if err := as3.EnsureRouteDomain(a.bigip, segmentId); err != nil {
-			return err
-		}
-		if err := a.populateEndpointPorts(segmentId, endpoints); err != nil {
+		return nil
+	})
+
+	// Wait for populating endpoints struct
+	if err := g.Wait(); err != nil {
+		return err
+	}
+	for _, ep := range endpoints {
+		ep.SegmentId = endpointSegmentID
+	}
+
+	/* ==================================================
+	   Layer 2 VCMP + Guest configuration
+	   ================================================== */
+	if !deleteAll {
+		// VCMP configuration
+		g.Go(func() error {
+			for _, vcmp := range a.vcmps {
+				if err := vcmp.EnsureVLAN(endpointSegmentID); err != nil {
+					return err
+				}
+				if err := vcmp.EnsureInterfaceVlan(endpointSegmentID); err != nil {
+					return err
+				}
+				if err := vcmp.EnsureGuestVlan(endpointSegmentID); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+
+		// Guest configuration
+		g.Go(func() error {
+			// Ensure VLAN and Route Domain
+			if err := a.bigip.EnsureVLAN(endpointSegmentID); err != nil {
+				return err
+			}
+			if err := a.bigip.EnsureRouteDomain(endpointSegmentID, &serviceSegmentID); err != nil {
+				return err
+			}
+			return nil
+		})
+
+		// Wait for L2 configuration done
+		if err := g.Wait(); err != nil {
 			return err
 		}
 	}
 
+	/* ==================================================
+	   Post AS3 Declaration to active BigIP
+	   ================================================== */
 	tenantName := as3.GetEndpointTenantName(networkID)
 	data := as3.GetAS3Declaration(map[string]as3.Tenant{
 		tenantName: as3.GetEndpointTenants(endpoints),
 	})
 
-	if err := as3.PostBigIP(a.bigip, &data, tenantName); err != nil {
+	if err := a.bigip.PostBigIP(&data, tenantName); err != nil {
 		return err
+	}
+
+	/* ==================================================
+	   Layer 2 VCMP + Guest cleanup
+	   ================================================== */
+	if deleteAll {
+		// Cleanup VCMP
+		g.Go(func() error {
+			for _, vcmp := range a.vcmps {
+				if err := vcmp.CleanupGuestVlan(endpointSegmentID); err != nil {
+					logg.Error(err.Error())
+				}
+				if err := vcmp.CleanupVLAN(endpointSegmentID); err != nil {
+					logg.Error(err.Error())
+				}
+			}
+			return nil
+		})
+
+		// Cleanup Guest
+		g.Go(func() error {
+			if err := a.bigip.CleanupRouteDomain(endpointSegmentID); err != nil {
+				logg.Error(err.Error())
+			}
+			if err := a.bigip.CleanupVLAN(endpointSegmentID); err != nil {
+				logg.Error(err.Error())
+			}
+			return nil
+		})
+
+		// Wait for L2 configuration done
+		if err := g.Wait(); err != nil {
+			return err
+		}
 	}
 
 	for _, endpoint := range endpoints {
 		if endpoint.Status == models.EndpointStatusPENDINGDELETE {
 			// TODO: check if archer owns the port
 			if err := neutron.DeletePort(a.neutron, endpoint.Target.Port); err != nil {
-				return err
-			}
-			if _, err := tx.Exec(ctx, `DELETE FROM endpoint_port WHERE endpoint_id = $1`,
-				endpoint.ID); err != nil {
-				return err
+				if _, ok := err.(gophercloud.ErrDefault404); !ok {
+					return err
+				}
+				logg.Error(err.Error())
 			}
 			if _, err := tx.Exec(ctx, `DELETE FROM endpoint WHERE id = $1 AND status = 'PENDING_DELETE';`,
 				endpoint.ID); err != nil {

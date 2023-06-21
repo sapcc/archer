@@ -24,6 +24,9 @@ import (
 
 	"github.com/f5devcentral/go-bigip"
 	"github.com/go-openapi/strfmt"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
 	"github.com/sapcc/go-bits/logg"
 
 	"github.com/sapcc/archer/internal"
@@ -36,89 +39,6 @@ when CLIENT_ACCEPTED {
     set proxyheader "PROXY TCP[IP::version] [getfield [IP::remote_addr] "%" 1] [getfield [IP::local_addr] "%" 1] [TCP::remote_port] [TCP::local_port]\r\n"
 }
 `
-
-func GetBigIPDevice(big *bigip.BigIP, hostname string) *bigip.Device {
-	devices, err := big.GetDevices()
-	if err != nil {
-		logg.Fatal(err.Error())
-	}
-	for _, device := range devices {
-		if strings.HasSuffix(hostname, device.Hostname) {
-			logg.Info("Connected to %s, %s (%s %s), %s", device.MarketingName, device.Name, device.Version,
-				device.Edition, device.FailoverState)
-			return &device
-		}
-	}
-	return nil
-}
-
-type VcmpGuests struct {
-	Guests []bigip.VcmpGuest `json:"items,omitempty"`
-}
-
-func GetVCMPGuests(big *bigip.BigIP) (*VcmpGuests, error) {
-	var guests VcmpGuests
-
-	req := &bigip.APIRequest{
-		Method:      "get",
-		URL:         "vcmp/guest",
-		ContentType: "application/json",
-	}
-	resp, err := big.APICall(req)
-	if err != nil {
-		return nil, err
-	}
-
-	err = json.Unmarshal(resp, &guests)
-	if err != nil {
-		return nil, err
-	}
-
-	return &guests, nil
-}
-
-func GetBigIPSession(rawURL string) (*bigip.BigIP, error) {
-	parsedURL, err := url.Parse(rawURL)
-	if err != nil {
-		return nil, err
-	}
-
-	// check for password
-	pw, ok := parsedURL.User.Password()
-	if !ok {
-		return nil, fmt.Errorf("password required for host '%s'", parsedURL.Hostname())
-	}
-
-	session, err := bigip.NewTokenSession(&bigip.Config{
-		Address:           parsedURL.Host,
-		Username:          parsedURL.User.Username(),
-		Password:          pw,
-		LoginReference:    "tmos",
-		CertVerifyDisable: !config.Global.Agent.ValidateCert,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return session, nil
-}
-
-func PostBigIP(bigip *bigip.BigIP, as3 *AS3, tenant string) error {
-	data, err := json.MarshalIndent(as3, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	if config.IsDebug() {
-		fmt.Printf("-------------------> %s\n%s\n-------------------\n", bigip.Host, data)
-	}
-
-	err, _, _ = bigip.PostAs3Bigip(string(data), tenant)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
 
 func GetServiceSnatPoolName(Id strfmt.UUID) string {
 	return fmt.Sprintf("snatpool-%s", Id)
@@ -219,13 +139,12 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 		iRuleName := fmt.Sprintf("irule-%s", endpoint.ID)
 		pool := fmt.Sprintf("/Common/Shared/%s", GetServicePoolName(endpoint.ServiceID))
 		snat := fmt.Sprintf("/Common/Shared/%s", GetServiceSnatPoolName(endpoint.ServiceID))
-		virtualAddresses := []string{fmt.Sprintf("0.0.0.0%%%d/0", endpoint.SegmentId)}
+		var virtualAddresses []string
 		for _, fixedIP := range endpoint.Port.FixedIPs {
 			virtualAddresses = append(virtualAddresses,
 				fmt.Sprintf("%s%%%d", fixedIP.IPAddress, endpoint.SegmentId),
 			)
 		}
-
 		iRules := make([]Pointer, 0)
 		if endpoint.ProxyProtocol {
 			services[iRuleName] = IRule{
@@ -256,6 +175,12 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 		}
 	}
 
+	if len(services) == 0 {
+		return Tenant{
+			Class: "Tenant",
+		}
+	}
+
 	return Tenant{
 		Class: "Tenant",
 		Applications: map[string]Application{
@@ -268,15 +193,153 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 	}
 }
 
-func EnsureRouteDomain(big *bigip.BigIP, segmentId int) error {
+// BigIP Wrapper
+type BigIP struct {
+	*bigip.BigIP
+}
+
+func GetBigIPSession(rawURL string) (*BigIP, error) {
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		return nil, err
+	}
+
+	// check for password
+	pw, ok := parsedURL.User.Password()
+	if !ok {
+		return nil, fmt.Errorf("password required for host '%s'", parsedURL.Hostname())
+	}
+
+	session := bigip.NewSession(&bigip.Config{
+		Address:           parsedURL.Host,
+		Username:          parsedURL.User.Username(),
+		Password:          pw,
+		LoginReference:    "tmos",
+		CertVerifyDisable: !config.Global.Agent.ValidateCert,
+	})
+	return &BigIP{session}, nil
+}
+
+func (big *BigIP) PostBigIP(as3 *AS3, tenant string) error {
+	data, err := json.MarshalIndent(as3, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	if config.IsDebug() {
+		fmt.Printf("-------------------> %s\n%s\n-------------------\n", big.Host, data)
+	}
+
+	err, _, _ = big.PostAs3Bigip(string(data), tenant)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (big *BigIP) GetBigIPDevice(hostname string) *bigip.Device {
+	devices, err := big.GetDevices()
+	if err != nil {
+		logg.Fatal(err.Error())
+	}
+	for _, device := range devices {
+		if strings.HasSuffix(hostname, device.Hostname) {
+			logg.Info("Connected to %s, %s (%s %s), %s", device.MarketingName, device.Name, device.Version,
+				device.Edition, device.FailoverState)
+			return &device
+		}
+	}
+	return nil
+}
+
+type VcmpGuests struct {
+	Guests []bigip.VcmpGuest `json:"items,omitempty"`
+}
+
+func (big *BigIP) GetVCMPGuests() (*VcmpGuests, error) {
+	var guests VcmpGuests
+
+	req := &bigip.APIRequest{
+		Method:      "get",
+		URL:         "vcmp/guest",
+		ContentType: "application/json",
+	}
+	resp, err := big.APICall(req)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(resp, &guests)
+	if err != nil {
+		return nil, err
+	}
+
+	return &guests, nil
+}
+
+func (big *BigIP) EnsureSelfIP(neutron *gophercloud.ServiceClient, segmentId int, port *ports.Port) error {
+	name := fmt.Sprint("selfip-", port.ID)
+	selfIPs, err := big.SelfIPs()
+	if err != nil {
+		return err
+	}
+	for _, selfIP := range selfIPs.SelfIPs {
+		if selfIP.Name == name {
+			return nil
+		}
+	}
+
+	// Fetch netmask
+	subnet, err := subnets.Get(neutron, port.FixedIPs[0].SubnetID).Extract()
+	if err != nil {
+		return err
+	}
+	_, ipNet, err := net.ParseCIDR(subnet.CIDR)
+	if err != nil {
+		return err
+	}
+	mask, _ := ipNet.Mask.Size()
+	selfIP := bigip.SelfIP{
+		Name:    name,
+		Address: fmt.Sprint(port.FixedIPs[0].IPAddress, "%", segmentId, "/", mask),
+		Vlan:    fmt.Sprint("/Common/vlan-", segmentId),
+	}
+	if err := big.CreateSelfIP(&selfIP); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (big *BigIP) CleanupSelfIP(port *ports.Port) error {
+	name := fmt.Sprint("selfip-", port.ID)
+	selfIPs, err := big.SelfIPs()
+	if err != nil {
+		return err
+	}
+	for _, selfIP := range selfIPs.SelfIPs {
+		if selfIP.Name == name {
+			return big.DeleteSelfIP(selfIP.Name)
+		}
+	}
+
+	return errors.New("not found")
+}
+
+type routeDomain struct {
+	bigip.RouteDomain
+	Parent string `json:"parent,omitempty"`
+}
+
+func (big *BigIP) EnsureRouteDomain(segmentId int, parent *int) error {
 	routeDomains, err := big.RouteDomains()
 	if err != nil {
 		return err
 	}
 
 	var found bool
-	for _, routeDomain := range routeDomains.RouteDomains {
-		if routeDomain.ID == segmentId {
+	for _, rd := range routeDomains.RouteDomains {
+		if rd.ID == segmentId {
 			found = true
 			break
 		}
@@ -286,18 +349,42 @@ func EnsureRouteDomain(big *bigip.BigIP, segmentId int) error {
 		return nil
 	}
 
-	// Create route domain
-	if err := big.CreateRouteDomain(
-		fmt.Sprintf("vlan-%d", segmentId), segmentId,
-		true, fmt.Sprintf("/Common/vlan-%d", segmentId)); err != nil {
+	c := &routeDomain{
+		RouteDomain: bigip.RouteDomain{
+			Name:   fmt.Sprintf("vlan-%d", segmentId),
+			ID:     segmentId,
+			Strict: "enabled",
+			Vlans:  []string{fmt.Sprintf("/Common/vlan-%d", segmentId)},
+		},
+	}
+	if parent != nil {
+		c.Parent = fmt.Sprintf("vlan-%d", *parent)
+	}
+
+	m, err := json.Marshal(c)
+	if err != nil {
 		return err
 	}
 
+	req := &bigip.APIRequest{
+		Method:      "post",
+		URL:         "net/route-domain",
+		Body:        strings.TrimRight(string(m), "\n"),
+		ContentType: "application/json",
+	}
+
+	if _, err = big.APICall(req); err != nil {
+		return err
+	}
 	return nil
 }
 
-func EnsureGuestVlan(big *bigip.BigIP, segmentId int) error {
-	guests, err := GetVCMPGuests(big)
+func (big *BigIP) CleanupRouteDomain(segmentId int) error {
+	return big.DeleteRouteDomain(fmt.Sprintf("vlan-%d", segmentId))
+}
+
+func (big *BigIP) EnsureGuestVlan(segmentId int) error {
+	guests, err := big.GetVCMPGuests()
 	if err != nil {
 		return err
 	}
@@ -305,7 +392,14 @@ func EnsureGuestVlan(big *bigip.BigIP, segmentId int) error {
 	for _, guest := range guests.Guests {
 		for _, deviceHost := range config.Global.Agent.Devices {
 			if strings.HasSuffix(deviceHost, guest.Hostname) {
-				newGuest := bigip.VcmpGuest{Vlans: internal.Unique(append(guest.Vlans, fmt.Sprintf("/Common/vlan-%d", segmentId)))}
+				vlanName := fmt.Sprintf("/Common/vlan-%d", segmentId)
+				for _, vlan := range guest.Vlans {
+					if vlan == vlanName {
+						// found, nothing to do
+						return nil
+					}
+				}
+				newGuest := bigip.VcmpGuest{Vlans: internal.Unique(append(guest.Vlans, vlanName))}
 				return big.UpdateVcmpGuest(guest.Name, &newGuest)
 			}
 		}
@@ -314,7 +408,31 @@ func EnsureGuestVlan(big *bigip.BigIP, segmentId int) error {
 	return errors.New("no VCMP guest found")
 }
 
-func EnsureVLAN(big *bigip.BigIP, segmentId int, iface string) error {
+func (big *BigIP) CleanupGuestVlan(segmentId int) error {
+	guests, err := big.GetVCMPGuests()
+	if err != nil {
+		return err
+	}
+
+	for _, guest := range guests.Guests {
+		for _, deviceHost := range config.Global.Agent.Devices {
+			if strings.HasSuffix(deviceHost, guest.Hostname) {
+				var vlans []string
+				for _, vlan := range guest.Vlans {
+					if vlan != fmt.Sprintf("/Common/vlan-%d", segmentId) {
+						vlans = append(vlans, vlan)
+					}
+				}
+				newGuest := bigip.VcmpGuest{Vlans: vlans}
+				return big.UpdateVcmpGuest(guest.Name, &newGuest)
+			}
+		}
+	}
+
+	return errors.New("no VCMP guest found")
+}
+
+func (big *BigIP) EnsureVLAN(segmentId int) error {
 	vlans, err := big.Vlans()
 	if err != nil {
 		return err
@@ -337,15 +455,27 @@ func EnsureVLAN(big *bigip.BigIP, segmentId int, iface string) error {
 		Name: fmt.Sprintf("vlan-%d", segmentId),
 		Tag:  segmentId,
 	}
-	if err := big.CreateVlan(&vlan); err != nil {
+	return big.CreateVlan(&vlan)
+}
+
+func (big *BigIP) EnsureInterfaceVlan(segmentId int) error {
+	name := fmt.Sprintf("vlan-%d", segmentId)
+
+	vlanInterfaces, err := big.GetVlanInterfaces(name)
+	if err != nil {
 		return err
 	}
 
-	if iface != "" {
-		if err := big.AddInterfaceToVlan(vlan.Name, iface, true); err != nil {
-			return err
+	for _, iface := range vlanInterfaces.VlanInterfaces {
+		if iface.Name == config.Global.Agent.PhysicalInterface {
+			// found, nothing to do
+			return nil
 		}
 	}
 
-	return nil
+	return big.AddInterfaceToVlan(name, config.Global.Agent.PhysicalInterface, true)
+}
+
+func (big *BigIP) CleanupVLAN(segmentId int) error {
+	return big.DeleteVlan(fmt.Sprintf("vlan-%d", segmentId))
 }

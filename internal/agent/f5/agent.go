@@ -21,7 +21,6 @@ import (
 
 	"github.com/IBM/pgxpoolprometheus"
 	sq "github.com/Masterminds/squirrel"
-	"github.com/f5devcentral/go-bigip"
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/utils/openstack/clientconfig"
@@ -47,11 +46,10 @@ type Agent struct {
 	jobQueue *JobChan
 	pool     *pgxpool.Pool // thread safe
 	neutron  *gophercloud.ServiceClient
-	bigips   []*bigip.BigIP
-	vcmps    []*bigip.BigIP
-	bigip    *bigip.BigIP // active target
+	bigips   []*as3.BigIP
+	vcmps    []*as3.BigIP
+	bigip    *as3.BigIP // active target
 	cache    *lru.Cache[string, int]
-	iface    string
 }
 
 func NewAgent() *Agent {
@@ -107,38 +105,31 @@ func NewAgent() *Agent {
 		dbConfig.ConnConfig.Host, dbConfig.MaxConns, dbConfig.HealthCheckPeriod)
 
 	// physical network/interface
-	physMap := strings.SplitN(config.Global.Agent.PhyiscalInterfaceMapping, ":", 2)
-	if len(physMap) == 2 {
-		config.Global.Agent.PhysicalNetwork = physMap[0]
-		agent.iface = physMap[1]
-	} else {
-		agent.iface = "portchannel1"
-	}
 	logg.Info("Phyiscal Interface Mapping: physical_network=%s, interface=%s",
-		config.Global.Agent.PhysicalNetwork, agent.iface)
+		config.Global.Agent.PhysicalNetwork, config.Global.Agent.PhysicalInterface)
 
 	// bigips
 	for _, url := range config.Global.Agent.Devices {
-		var big *bigip.BigIP
+		var big *as3.BigIP
 		big, err = as3.GetBigIPSession(url)
 		if err != nil {
 			logg.Fatal("BigIP session: %v", err)
 		}
 		agent.bigips = append(agent.bigips, big)
-		if as3.GetBigIPDevice(big, url).FailoverState == "active" {
+		if big.GetBigIPDevice(url).FailoverState == "active" {
 			agent.bigip = big
 		}
 	}
 
 	// vcmps
 	for _, url := range config.Global.Agent.VCMPs {
-		var big *bigip.BigIP
+		var big *as3.BigIP
 		big, err = as3.GetBigIPSession(url)
 		if err != nil {
 			logg.Fatal("BigIP session: %v", err)
 		}
 
-		as3.GetBigIPDevice(big, url)
+		big, err = as3.GetBigIPSession(url)
 		agent.vcmps = append(agent.vcmps, big)
 	}
 
@@ -183,11 +174,9 @@ func (a *Agent) PendingSyncLoop(context.Context, prometheus.Labels) error {
 	logg.Debug("pending sync scan")
 	sql, args := db.Select("1").
 		From("service").
-		Where(sq.And{
-			sq.Like{"status": "PENDING_%"},
-			sq.Eq{"host": config.Global.Default.Host},
-			sq.Eq{"provider": "tenant"},
-		}).
+		Where("provider = 'tenant'").
+		Where(sq.Like{"status": "PENDING_%"}).
+		Where("host = ?", config.Global.Default.Host).
 		MustSql()
 	ret, err = a.pool.Exec(context.Background(), sql, args...)
 	if err != nil {

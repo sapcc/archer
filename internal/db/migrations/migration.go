@@ -74,6 +74,18 @@ var Migrations = mgx.Migrations(
 		}
 
 		if _, err := commands.Exec(ctx, `
+				CREATE TABLE service_port
+				(
+					service_id UUID NOT NULL,
+					port_id    UUID NOT NULL,
+					UNIQUE(port_id),
+					CONSTRAINT fk_service FOREIGN KEY(service_id) REFERENCES service(id) ON DELETE CASCADE
+				);`,
+		); err != nil {
+			return err
+		}
+
+		if _, err := commands.Exec(ctx, `
 				CREATE TABLE endpoint_status
 				(
 					name VARCHAR(16) PRIMARY KEY
@@ -125,18 +137,6 @@ var Migrations = mgx.Migrations(
 					ip_address  INET NOT NULL,
 					UNIQUE(endpoint_id),
 					CONSTRAINT fk_port FOREIGN KEY(endpoint_id) REFERENCES endpoint(id) ON DELETE CASCADE
-				);`,
-		); err != nil {
-			return err
-		}
-
-		if _, err := commands.Exec(ctx, `
-				CREATE TABLE service_port
-				(
-					service_id UUID NOT NULL,
-					port_id    UUID NOT NULL,
-					UNIQUE(port_id),
-					CONSTRAINT fk_service FOREIGN KEY(service_id) REFERENCES service(id) ON DELETE CASCADE
 				);`,
 		); err != nil {
 			return err

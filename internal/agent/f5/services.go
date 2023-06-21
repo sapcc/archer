@@ -26,40 +26,59 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func processVCMP(a *Agent, service *as3.ExtendedService) error {
-	for _, vcmp := range a.vcmps {
-		if err := as3.EnsureVLAN(vcmp, service.SegmentId, a.iface); err != nil {
+func processVCMP(vcmp *as3.BigIP, service *as3.ExtendedService) error {
+	if service.Status != "PENDING_DELETE" {
+		if err := vcmp.EnsureVLAN(service.SegmentId); err != nil {
 			return err
 		}
-
-		if err := as3.EnsureGuestVlan(vcmp, service.SegmentId); err != nil {
+		if err := vcmp.EnsureGuestVlan(service.SegmentId); err != nil {
+			return err
+		}
+	} else {
+		if err := vcmp.CleanupGuestVlan(service.SegmentId); err != nil {
+			return err
+		}
+		if err := vcmp.CleanupVLAN(service.SegmentId); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func processSNATPort(a *Agent, service *as3.ExtendedService) error {
-	var err error
-
-	if err = as3.EnsureVLAN(a.bigip, service.SegmentId, ""); err != nil {
+func cleanupSNATPort(a *Agent, service *as3.ExtendedService) error {
+	if err := a.bigip.CleanupSelfIP(service.SnatPort); err != nil {
 		return err
 	}
-	if err = as3.EnsureRouteDomain(a.bigip, service.SegmentId); err != nil {
+	if err := a.bigip.CleanupRouteDomain(service.SegmentId); err != nil {
 		return err
 	}
+	return a.bigip.CleanupVLAN(service.SegmentId)
+}
 
-	return nil
+func ensureSNATPort(a *Agent, service *as3.ExtendedService) error {
+	if err := a.bigip.EnsureVLAN(service.SegmentId); err != nil {
+		return err
+	}
+	if err := a.bigip.EnsureRouteDomain(service.SegmentId, nil); err != nil {
+		return err
+	}
+	return a.bigip.EnsureSelfIP(a.neutron, service.SegmentId, service.SnatPort)
 }
 
 func (a *Agent) ProcessServices(ctx context.Context) error {
 	var services []*as3.ExtendedService
 
 	// We need to fetch all services of this host since the AS3 tenant is shared
-	sql, args := db.Select("id", "status", "enabled", "network_id", "proxy_protocol", "port", "ip_addresses",
+	sql, args := db.Select("id",
+		"status",
+		"enabled",
+		"network_id",
+		"proxy_protocol",
+		"port",
+		"ip_addresses",
 		"sap.port_id AS snat_port_id").
 		From("service").
-		LeftJoin("service_snat_port sap ON service.id = sap.service_id").
+		LeftJoin("service_port sap ON service.id = sap.service_id").
 		Where("host = ?", config.Global.Default.Host).
 		Where("provider = 'tenant'").
 		Suffix("FOR UPDATE OF service").
@@ -72,7 +91,11 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 		g, _ := errgroup.WithContext(ctx)
 		var err error
 
+		/* ==================================================
+		   Populate ExtendedService instance
+		   ================================================== */
 		for _, service := range services {
+			service := service
 			// Fetch SNAT port
 			g.Go(func() error {
 				service.SnatPort, err = neutron.GetSNATPort(a.neutron, service.SnatPortId)
@@ -84,33 +107,58 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 				service.SegmentId, err = neutron.GetNetworkSegment(a.cache, a.neutron, service.NetworkID.String())
 				return err
 			})
-
-			if err = g.Wait(); err != nil {
-				return err
-			}
-
-			service := service
-			// Ensure VCMP segment port configuration, parallelize
-			g.Go(func() error {
-				return processVCMP(a, service)
-			})
-
-			// Ensure SNAT neutron ports and segment ids on VCMP guests
-			g.Go(func() error {
-				return processSNATPort(a, service)
-			})
-
-			if err = g.Wait(); err != nil {
-				return err
-			}
+		}
+		if err = g.Wait(); err != nil {
+			return err
 		}
 
-		// Post final declaration
+		/* ==================================================
+		   L2 Configuration
+		   ================================================== */
+		for _, service := range services {
+			service := service
+			// Ensure VCMP segment port configuration, parallelize
+			for _, vcmp := range a.vcmps {
+				vcmp := vcmp
+				g.Go(func() error {
+					return processVCMP(vcmp, service)
+				})
+			}
+
+			if service.Status != "PENDING_DELETE" {
+				// Ensure SNAT neutron ports and segment ids on VCMP guests
+				g.Go(func() error {
+					return ensureSNATPort(a, service)
+				})
+			}
+		}
+		if err = g.Wait(); err != nil {
+			return err
+		}
+
+		/* ==================================================
+		   Post AS3 Declaration to active BigIP
+		   ================================================== */
 		data := as3.GetAS3Declaration(map[string]as3.Tenant{
 			"Common": as3.GetServiceTenants(services),
 		})
 
-		if err := as3.PostBigIP(a.bigip, &data, "Common"); err != nil {
+		if err = a.bigip.PostBigIP(&data, "Common"); err != nil {
+			return err
+		}
+
+		/* ==================================================
+		   L2 Configuration Cleanup
+		   ================================================== */
+		for _, service := range services {
+			if service.Status == "PENDING_DELETE" {
+				service := service
+				g.Go(func() error {
+					return cleanupSNATPort(a, service)
+				})
+			}
+		}
+		if err = g.Wait(); err != nil {
 			return err
 		}
 

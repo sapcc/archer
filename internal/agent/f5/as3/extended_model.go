@@ -33,8 +33,9 @@ type ExtendedService struct {
 // ExtendedEndpoint is an endpoint with additional fields...
 type ExtendedEndpoint struct {
 	models.Endpoint
-	Port          *ports.Port
-	ServicePortNr int32
-	SegmentId     int
-	ProxyProtocol bool
+	Port             *ports.Port
+	ServicePortNr    int32
+	ServiceNetworkId strfmt.UUID
+	SegmentId        int
+	ProxyProtocol    bool
 }
