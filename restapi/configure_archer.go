@@ -19,7 +19,7 @@ package restapi
 import (
 	"context"
 	"crypto/tls"
-	"github.com/sapcc/archer/internal/agent/neutron"
+	"github.com/sapcc/archer/internal/neutron"
 	"net/http"
 	"time"
 

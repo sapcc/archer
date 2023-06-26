@@ -12,21 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package controller
+package errors
 
-import (
-	"github.com/go-openapi/loads"
-	"github.com/jackc/pgx/v5/pgxpool"
+import "errors"
 
-	"github.com/sapcc/archer/internal/neutron"
+var (
+	ErrBadRequest       = errors.New("bad request")
+	ErrPortNotFound     = errors.New("port not found")
+	ErrProjectMismatch  = errors.New("project mismatch")
+	ErrMissingIPAddress = errors.New("missing ip address")
+	ErrMissingSubnets   = errors.New("network has no subnets")
+	ErrNoSelfIP         = errors.New("no self ip found")
+	ErrNoVCMPFound      = errors.New("no VCMP guest found")
 )
-
-type Controller struct {
-	spec    *loads.Document
-	pool    *pgxpool.Pool
-	neutron *neutron.NeutronClient
-}
-
-func NewController(pool *pgxpool.Pool, spec *loads.Document, client *neutron.NeutronClient) *Controller {
-	return &Controller{pool: pool, spec: spec, neutron: client}
-}

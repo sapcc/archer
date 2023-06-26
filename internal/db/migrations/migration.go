@@ -208,4 +208,8 @@ var Migrations = mgx.Migrations(
 
 		return nil
 	}),
+	mgx.NewMigration("add_quota_error", func(ctx context.Context, commands mgx.Commands) error {
+		_, err := commands.Exec(ctx, "INSERT INTO service_status(name) VALUES ('ERROR_QUOTA');")
+		return err
+	}),
 )

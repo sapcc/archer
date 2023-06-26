@@ -15,123 +15,160 @@
 package f5
 
 import (
+	"bytes"
 	"context"
+	"errors"
+	"strings"
+
 	"github.com/georgysavva/scany/v2/pgxscan"
+	"github.com/go-openapi/strfmt"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/jackc/pgx/v5"
+	"github.com/sapcc/go-bits/logg"
+	"golang.org/x/sync/errgroup"
+
 	"github.com/sapcc/archer/internal/agent/f5/as3"
-	"github.com/sapcc/archer/internal/agent/neutron"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
+	aerr "github.com/sapcc/archer/internal/errors"
 	"github.com/sapcc/archer/models"
-	"golang.org/x/sync/errgroup"
 )
 
-func processVCMP(vcmp *as3.BigIP, service *as3.ExtendedService) error {
-	if service.Status != "PENDING_DELETE" {
-		if err := vcmp.EnsureVLAN(service.SegmentId); err != nil {
-			return err
-		}
-		if err := vcmp.EnsureGuestVlan(service.SegmentId); err != nil {
-			return err
-		}
-	} else {
-		if err := vcmp.CleanupGuestVlan(service.SegmentId); err != nil {
-			return err
-		}
-		if err := vcmp.CleanupVLAN(service.SegmentId); err != nil {
-			return err
-		}
+func (a *Agent) fetchOrAllocateSNATPorts(ctx context.Context, tx pgx.Tx, service *as3.ExtendedService) error {
+	sql, args := db.Select("port_id").
+		From("service_port").
+		Where("service_id = ?", service.ID).
+		MustSql()
+	rows, err := tx.Query(ctx, sql, args...)
+	if err != nil {
+		return err
 	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var portID strfmt.UUID
+		err = rows.Scan(&portID)
+		if err != nil {
+			return err
+		}
+
+		port, err := a.neutron.GetPort(portID.String())
+		if err != nil {
+			// todo: handle missing port
+			return err
+		}
+		hostname := strings.TrimPrefix(port.Name, "endpoint-service-snat-")
+		service.SnatPorts[hostname] = port
+	}
+
+	if rows.Err() != nil {
+		return err
+	}
+
+	if service.Status == "PENDING_DELETE" {
+		// done if service is being deleted
+		return nil
+	}
+
+	for _, bigip := range a.bigips {
+		hostname := bigip.GetHostname()
+		if _, ok := service.SnatPorts[hostname]; ok {
+			// already allocated, nothing to do
+			continue
+		}
+
+		// No SNAT ports allocated yet, allocate them
+		var port *ports.Port
+		if port, err = a.neutron.AllocateSNATNeutronPort(&service.Service, hostname); err != nil {
+			return err
+		}
+
+		sql, args, err = db.Insert("service_port").
+			Columns("service_id", "port_id").
+			Values(service.ID, port.ID).
+			ToSql()
+		if err != nil {
+			return err
+		}
+		if _, err = tx.Exec(ctx, sql, args...); err != nil {
+			return err
+		}
+
+		service.SnatPorts[hostname] = port
+	}
+
 	return nil
-}
-
-func cleanupSNATPort(a *Agent, service *as3.ExtendedService) error {
-	if err := a.bigip.CleanupSelfIP(service.SnatPort); err != nil {
-		return err
-	}
-	if err := a.bigip.CleanupRouteDomain(service.SegmentId); err != nil {
-		return err
-	}
-	return a.bigip.CleanupVLAN(service.SegmentId)
-}
-
-func ensureSNATPort(a *Agent, service *as3.ExtendedService) error {
-	if err := a.bigip.EnsureVLAN(service.SegmentId); err != nil {
-		return err
-	}
-	if err := a.bigip.EnsureRouteDomain(service.SegmentId, nil); err != nil {
-		return err
-	}
-	return a.bigip.EnsureSelfIP(a.neutron, service.SegmentId, service.SnatPort)
 }
 
 func (a *Agent) ProcessServices(ctx context.Context) error {
 	var services []*as3.ExtendedService
-
-	// We need to fetch all services of this host since the AS3 tenant is shared
-	sql, args := db.Select("id",
-		"status",
-		"enabled",
-		"network_id",
-		"proxy_protocol",
-		"port",
-		"ip_addresses",
-		"sap.port_id AS snat_port_id").
-		From("service").
-		LeftJoin("service_port sap ON service.id = sap.service_id").
-		Where("host = ?", config.Global.Default.Host).
-		Where("provider = 'tenant'").
-		Suffix("FOR UPDATE OF service").
-		MustSql()
 	if err := pgx.BeginFunc(context.Background(), a.pool, func(tx pgx.Tx) error {
+		// We need to fetch all services of this host since the AS3 tenant is shared
+		sql, args := db.Select("*").
+			From("service").
+			Where("host = ?", config.Global.Default.Host).
+			Where("provider = 'tenant'").
+			Suffix("FOR UPDATE OF service").
+			MustSql()
 		if err := pgxscan.Select(ctx, tx, &services, sql, args...); err != nil {
 			return err
 		}
-
-		g, _ := errgroup.WithContext(ctx)
-		var err error
 
 		/* ==================================================
 		   Populate ExtendedService instance
 		   ================================================== */
 		for _, service := range services {
-			service := service
-			// Fetch SNAT port
-			g.Go(func() error {
-				service.SnatPort, err = neutron.GetSNATPort(a.neutron, service.SnatPortId)
+			// Fetch SNAT ports from neutron
+			service.SnatPorts = make(map[string]*ports.Port, len(a.bigips))
+			err := a.fetchOrAllocateSNATPorts(ctx, tx, service)
+			if err != nil {
+				var gerr gophercloud.ErrUnexpectedResponseCode
+				if errors.As(err, &gerr) && gerr.Actual == 409 && bytes.Contains(gerr.Body, []byte("OverQuota")) {
+					logg.Info("Service %s: %s", service.ID, gerr.Body)
+					if _, err := tx.Exec(ctx, `UPDATE service SET status = 'ERROR_QUOTA', updated_at = NOW() WHERE id = $1;`,
+						service.ID); err != nil {
+						return err
+					}
+					return nil
+				}
 				return err
-			})
+			}
 
-			// Fetch segment ID from neutron
-			g.Go(func() error {
-				service.SegmentId, err = neutron.GetNetworkSegment(a.cache, a.neutron, service.NetworkID.String())
-				return err
-			})
-		}
-		if err = g.Wait(); err != nil {
-			return err
+			if len(service.SnatPorts) > 0 {
+				// we only expect a valid segment if we have at least one SNAT port
+				service.SegmentId, err = a.neutron.GetNetworkSegment(service.NetworkID.String())
+				if err != nil {
+					return err
+				}
+			}
 		}
 
 		/* ==================================================
 		   L2 Configuration
 		   ================================================== */
+		g, _ := errgroup.WithContext(ctx)
 		for _, service := range services {
 			service := service
 			// Ensure VCMP segment port configuration, parallelize
 			for _, vcmp := range a.vcmps {
 				vcmp := vcmp
 				g.Go(func() error {
-					return processVCMP(vcmp, service)
+					return service.ProcessVCMP(vcmp)
 				})
 			}
 
 			if service.Status != "PENDING_DELETE" {
 				// Ensure SNAT neutron ports and segment ids on VCMP guests
-				g.Go(func() error {
-					return ensureSNATPort(a, service)
-				})
+				for _, bigip := range a.bigips {
+					bigip := bigip
+					g.Go(func() error {
+						return service.EnsureSNATPort(bigip, a.neutron)
+					})
+				}
 			}
 		}
+		var err error
 		if err = g.Wait(); err != nil {
 			return err
 		}
@@ -153,9 +190,20 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 		for _, service := range services {
 			if service.Status == "PENDING_DELETE" {
 				service := service
-				g.Go(func() error {
-					return cleanupSNATPort(a, service)
-				})
+
+				for _, bigip := range a.bigips {
+					bigip := bigip
+					g.Go(func() error {
+						if err := service.CleanupSNATPorts(bigip); err != nil {
+							if err == aerr.ErrPortNotFound || err == aerr.ErrNoSelfIP {
+								logg.Info(err.Error())
+								return nil
+							}
+							return err
+						}
+						return nil
+					})
+				}
 			}
 		}
 		if err = g.Wait(); err != nil {
@@ -165,8 +213,10 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 		// Successfully updated the tenant
 		for _, service := range services {
 			if service.Status == models.ServiceStatusPENDINGDELETE {
-				if err = neutron.DeletePort(a.neutron, service.SnatPortId); err != nil {
-					return err
+				for _, snatPort := range service.SnatPorts {
+					if err = a.neutron.DeletePort(snatPort.ID); err != nil {
+						logg.Error(err.Error())
+					}
 				}
 
 				if _, err = tx.Exec(ctx, `DELETE FROM service WHERE id = $1 AND status = 'PENDING_DELETE';`,

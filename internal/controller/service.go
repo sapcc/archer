@@ -17,7 +17,6 @@ package controller
 import (
 	"context"
 	"errors"
-	"github.com/sapcc/archer/internal"
 	"net/http"
 
 	sq "github.com/Masterminds/squirrel"
@@ -25,6 +24,7 @@ import (
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
+	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
@@ -33,8 +33,10 @@ import (
 	"github.com/sapcc/go-bits/gopherpolicy"
 	"github.com/sapcc/go-bits/logg"
 
+	"github.com/sapcc/archer/internal"
 	"github.com/sapcc/archer/internal/auth"
 	"github.com/sapcc/archer/internal/db"
+	aerr "github.com/sapcc/archer/internal/errors"
 	"github.com/sapcc/archer/models"
 	"github.com/sapcc/archer/restapi/operations/service"
 )
@@ -151,28 +153,38 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 			return err
 		}
 
+		/* // done by agent
 		if *params.Body.Provider == "tenant" {
-			// Allocate SNAT port for provider 'tenant' (F5)
-			if port, err = c.AllocateSNATNeutronPort(&serviceResponse); err != nil {
-				return err
-			}
+			for _, device := range config.Global.Agent.Devices {
+				// Allocate SNAT port for provider 'tenant' (F5)
+				if port, err = c.AllocateSNATNeutronPort(&serviceResponse, device); err != nil {
+					return err
+				}
 
-			sql, args, err = db.Insert("service_port").
-				Columns("service_id", "port_id").
-				Values(serviceResponse.ID, port.ID).
-				ToSql()
-			if err != nil {
-				return err
+				sql, args, err = db.Insert("service_port").
+					Columns("service_id", "port_id").
+					Values(serviceResponse.ID, port.ID).
+					ToSql()
+				if err != nil {
+					return err
+				}
+				if _, err = tx.Exec(ctx, sql, args...); err != nil {
+					return err
+				}
 			}
-			if _, err = tx.Exec(ctx, sql, args...); err != nil {
-				return err
-			}
-		}
+		}*/
 
 		return nil
 	}); err != nil {
 		if port != nil {
-			logg.Info("Deallocating snat-port due to error %s: %s", port.ID, c.DeallocateNeutronPort(port.ID))
+			logg.Info("Deallocating snat-port due to error %s: %s", port.ID, c.neutron.DeletePort(port.ID))
+		}
+
+		if gopherCloudErr, ok := err.(gophercloud.StatusCodeError); ok {
+			return service.NewPostServiceConflict().WithPayload(&models.Error{
+				Code:    int64(gopherCloudErr.GetStatusCode()),
+				Message: gopherCloudErr.Error(),
+			})
 		}
 
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -388,7 +400,7 @@ func (c *Controller) PutServiceServiceIDAcceptEndpointsHandler(params service.Pu
 	switch err {
 	case auth.ErrForbidden:
 		return service.NewPutServiceServiceIDAcceptEndpointsForbidden()
-	case ErrBadRequest:
+	case aerr.ErrBadRequest:
 		return service.NewPutServiceServiceIDAcceptEndpointsBadRequest().WithPayload(
 			&models.Error{
 				Code:    400,
@@ -406,7 +418,7 @@ func (c *Controller) PutServiceServiceIDRejectEndpointsHandler(params service.Pu
 	switch err {
 	case auth.ErrForbidden:
 		return service.NewPutServiceServiceIDRejectEndpointsForbidden()
-	case ErrBadRequest:
+	case aerr.ErrBadRequest:
 		return service.NewPutServiceServiceIDRejectEndpointsBadRequest().WithPayload(
 			&models.Error{
 				Code:    400,
@@ -453,7 +465,7 @@ func commonEndpointsActionHandler(pool *pgxpool.Pool, body any, principal any) (
 	}
 
 	if len(consumerList.EndpointIds) == 0 && len(consumerList.ProjectIds) == 0 {
-		return nil, ErrBadRequest
+		return nil, aerr.ErrBadRequest
 	}
 
 	q = q.Where(sq.Or{

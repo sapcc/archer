@@ -17,6 +17,7 @@ package f5
 import (
 	"context"
 	"fmt"
+
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud"
@@ -27,8 +28,8 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/sapcc/archer/internal/agent/f5/as3"
-	"github.com/sapcc/archer/internal/agent/neutron"
 	"github.com/sapcc/archer/internal/db"
+	"github.com/sapcc/archer/internal/neutron"
 	"github.com/sapcc/archer/models"
 )
 
@@ -40,7 +41,7 @@ func (a *Agent) populateEndpointPorts(endpoints []*as3.ExtendedEndpoint) error {
 	}
 
 	var pages pagination.Page
-	pages, err := ports.List(a.neutron, opts).AllPages()
+	pages, err := ports.List(a.neutron.ServiceClient, opts).AllPages()
 	if err != nil {
 		return err
 	}
@@ -118,13 +119,11 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 
 	g.Go(func() (err error) {
 		// Fetch segment ID from neutron
-		endpointSegmentID, err = neutron.GetNetworkSegment(a.cache, a.neutron,
-			networkID.String())
+		endpointSegmentID, err = a.neutron.GetNetworkSegment(networkID.String())
 		return
 	})
 	g.Go(func() (err error) {
-		serviceSegmentID, err = neutron.GetNetworkSegment(a.cache, a.neutron,
-			endpoints[0].ServiceNetworkId.String())
+		serviceSegmentID, err = a.neutron.GetNetworkSegment(endpoints[0].ServiceNetworkId.String())
 		return
 	})
 	g.Go(func() error {
@@ -230,11 +229,13 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	for _, endpoint := range endpoints {
 		if endpoint.Status == models.EndpointStatusPENDINGDELETE {
 			// TODO: check if archer owns the port
-			if err := neutron.DeletePort(a.neutron, endpoint.Target.Port); err != nil {
-				if _, ok := err.(gophercloud.ErrDefault404); !ok {
-					return err
+			if endpoint.Target.Port != nil {
+				if err := a.neutron.DeletePort(endpoint.Target.Port.String()); err != nil {
+					if _, ok := err.(gophercloud.ErrDefault404); !ok {
+						return err
+					}
+					logg.Error(err.Error())
 				}
-				logg.Error(err.Error())
 			}
 			if _, err := tx.Exec(ctx, `DELETE FROM endpoint WHERE id = $1 AND status = 'PENDING_DELETE';`,
 				endpoint.ID); err != nil {

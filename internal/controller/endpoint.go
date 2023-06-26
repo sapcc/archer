@@ -17,22 +17,23 @@ package controller
 import (
 	"errors"
 	"fmt"
-	"github.com/gophercloud/gophercloud"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
+	"github.com/gophercloud/gophercloud"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/sapcc/go-bits/logg"
 
 	"github.com/sapcc/archer/internal"
 	"github.com/sapcc/archer/internal/auth"
 	"github.com/sapcc/archer/internal/db"
+	aerr "github.com/sapcc/archer/internal/errors"
 	"github.com/sapcc/archer/models"
 	"github.com/sapcc/archer/restapi/operations/endpoint"
+	"github.com/sapcc/go-bits/logg"
 )
 
 func (c *Controller) GetEndpointHandler(params endpoint.GetEndpointParams, principal any) middleware.Responder {
@@ -158,22 +159,22 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 		panic(err)
 	}
 
-	port, err := c.AllocateNeutronEndpointPort(&params.Body.Target, &endpointResponse, string(params.Body.ProjectID),
+	port, err := c.neutron.AllocateNeutronEndpointPort(&params.Body.Target, &endpointResponse, string(params.Body.ProjectID),
 		host)
 	if err != nil {
-		if errors.Is(err, ErrPortNotFound) {
+		if errors.Is(err, aerr.ErrPortNotFound) {
 			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
 				Code:    400,
 				Message: "target_port unknown.",
 			})
 		}
-		if errors.Is(err, ErrProjectMismatch) {
+		if errors.Is(err, aerr.ErrProjectMismatch) {
 			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
 				Code:    400,
 				Message: "target_port needs to be in the same project.",
 			})
 		}
-		if errors.Is(err, ErrMissingIPAddress) {
+		if errors.Is(err, aerr.ErrMissingIPAddress) {
 			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
 				Code:    400,
 				Message: "target_port needs at least one IP address.",
@@ -196,7 +197,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 	row := tx.QueryRow(params.HTTPRequest.Context(), sql, args...)
 	if err := row.Scan(&endpointResponse.Target.Port, &endpointResponse.Target.Subnet,
 		&endpointResponse.Target.Network); err != nil {
-		logg.Error("Deallocating port %s: %s", port.ID, c.DeallocateNeutronPort(port.ID))
+		logg.Error("Deallocating port %s: %s", port.ID, c.neutron.DeletePort(port.ID))
 		panic(err)
 	}
 
@@ -205,13 +206,13 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 		Where("id = ?", endpointResponse.ServiceID).
 		MustSql()
 	if err := tx.QueryRow(params.HTTPRequest.Context(), sql, args...).Scan(&endpointResponse.ServiceName); err != nil {
-		logg.Error("Deallocating port %s: %s", port.ID, c.DeallocateNeutronPort(port.ID))
+		logg.Error("Deallocating port %s: %s", port.ID, c.neutron.DeletePort(port.ID))
 		panic(err)
 	}
 
 	// done and done
 	if err := tx.Commit(ctx); err != nil {
-		logg.Error("Deallocating port %s: %s", port.ID, c.DeallocateNeutronPort(port.ID))
+		logg.Error("Deallocating port %s: %s", port.ID, c.neutron.DeletePort(port.ID))
 		panic(err)
 	}
 

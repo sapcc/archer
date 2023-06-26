@@ -16,7 +16,6 @@ package as3
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -24,13 +23,14 @@ import (
 
 	"github.com/f5devcentral/go-bigip"
 	"github.com/go-openapi/strfmt"
-	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
 	"github.com/sapcc/go-bits/logg"
 
 	"github.com/sapcc/archer/internal"
 	"github.com/sapcc/archer/internal/config"
+	"github.com/sapcc/archer/internal/errors"
+	"github.com/sapcc/archer/internal/neutron"
 	"github.com/sapcc/archer/models"
 )
 
@@ -81,9 +81,11 @@ func GetServiceTenants(endpointServices []*ExtendedService) Tenant {
 		}
 
 		var snatAddresses []string
-		for _, fixedIP := range service.SnatPort.FixedIPs {
-			snatAddresses = append(snatAddresses,
-				fmt.Sprintf("%s%%%d", fixedIP.IPAddress, service.SegmentId))
+		for _, snatPort := range service.SnatPorts {
+			for _, fixedIP := range snatPort.FixedIPs {
+				snatAddresses = append(snatAddresses,
+					fmt.Sprintf("%s%%%d", fixedIP.IPAddress, service.SegmentId))
+			}
 		}
 
 		services[GetServiceSnatPoolName(service.ID)] = SnatPool{
@@ -198,6 +200,15 @@ type BigIP struct {
 	*bigip.BigIP
 }
 
+func (b *BigIP) GetHostname() string {
+	deviceURL, err := url.Parse(b.Host)
+	if err != nil {
+		panic(err)
+	}
+
+	return deviceURL.Hostname()
+}
+
 func GetBigIPSession(rawURL string) (*BigIP, error) {
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
@@ -278,7 +289,12 @@ func (big *BigIP) GetVCMPGuests() (*VcmpGuests, error) {
 	return &guests, nil
 }
 
-func (big *BigIP) EnsureSelfIP(neutron *gophercloud.ServiceClient, segmentId int, port *ports.Port) error {
+func (big *BigIP) EnsureSelfIP(neutron *neutron.NeutronClient, service *ExtendedService) error {
+	port, ok := service.SnatPorts[big.Host]
+	if !ok {
+		return fmt.Errorf("EnsureSelfIP: no port for service '%s' found on bigip '%s'", service.ID, big.Host)
+	}
+
 	name := fmt.Sprint("selfip-", port.ID)
 	selfIPs, err := big.SelfIPs()
 	if err != nil {
@@ -291,7 +307,7 @@ func (big *BigIP) EnsureSelfIP(neutron *gophercloud.ServiceClient, segmentId int
 	}
 
 	// Fetch netmask
-	subnet, err := subnets.Get(neutron, port.FixedIPs[0].SubnetID).Extract()
+	subnet, err := subnets.Get(neutron.ServiceClient, port.FixedIPs[0].SubnetID).Extract()
 	if err != nil {
 		return err
 	}
@@ -302,8 +318,8 @@ func (big *BigIP) EnsureSelfIP(neutron *gophercloud.ServiceClient, segmentId int
 	mask, _ := ipNet.Mask.Size()
 	selfIP := bigip.SelfIP{
 		Name:    name,
-		Address: fmt.Sprint(port.FixedIPs[0].IPAddress, "%", segmentId, "/", mask),
-		Vlan:    fmt.Sprint("/Common/vlan-", segmentId),
+		Address: fmt.Sprint(port.FixedIPs[0].IPAddress, "%", service.SegmentId, "/", mask),
+		Vlan:    fmt.Sprint("/Common/vlan-", service.SegmentId),
 	}
 	if err := big.CreateSelfIP(&selfIP); err != nil {
 		return err
@@ -323,7 +339,7 @@ func (big *BigIP) CleanupSelfIP(port *ports.Port) error {
 		}
 	}
 
-	return errors.New("not found")
+	return errors.ErrNoSelfIP
 }
 
 type routeDomain struct {
@@ -404,8 +420,7 @@ func (big *BigIP) EnsureGuestVlan(segmentId int) error {
 			}
 		}
 	}
-
-	return errors.New("no VCMP guest found")
+	return errors.ErrNoVCMPFound
 }
 
 func (big *BigIP) CleanupGuestVlan(segmentId int) error {
@@ -428,8 +443,7 @@ func (big *BigIP) CleanupGuestVlan(segmentId int) error {
 			}
 		}
 	}
-
-	return errors.New("no VCMP guest found")
+	return errors.ErrNoVCMPFound
 }
 
 func (big *BigIP) EnsureVLAN(segmentId int) error {

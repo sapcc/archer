@@ -22,9 +22,7 @@ import (
 	"github.com/IBM/pgxpoolprometheus"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/go-openapi/strfmt"
-	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/utils/openstack/clientconfig"
-	"github.com/hashicorp/golang-lru/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -36,20 +34,19 @@ import (
 
 	common "github.com/sapcc/archer/internal/agent"
 	"github.com/sapcc/archer/internal/agent/f5/as3"
-	"github.com/sapcc/archer/internal/agent/neutron"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
+	"github.com/sapcc/archer/internal/neutron"
 )
 
 type Agent struct {
 	jobLoop  jobloop.Job
 	jobQueue *JobChan
 	pool     *pgxpool.Pool // thread safe
-	neutron  *gophercloud.ServiceClient
+	neutron  *neutron.NeutronClient
 	bigips   []*as3.BigIP
 	vcmps    []*as3.BigIP
 	bigip    *as3.BigIP // active target
-	cache    *lru.Cache[string, int]
 }
 
 func NewAgent() *Agent {
@@ -74,11 +71,6 @@ func NewAgent() *Agent {
 	agent.jobLoop = jl.Setup(nil)
 	jobQueue := make(JobChan, 100)
 	agent.jobQueue = &jobQueue
-
-	var err error
-	if agent.cache, err = lru.New[string, int](128); err != nil {
-		logg.Fatal(err.Error())
-	}
 
 	// Connect to database
 	connConfig, err := pgxpool.ParseConfig(config.Global.Database.Connection)

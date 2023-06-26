@@ -21,15 +21,6 @@ import (
 	"github.com/sapcc/archer/models"
 )
 
-// ExtendedService is a service with additional fields for snatpool ports etc.
-type ExtendedService struct {
-	models.Service
-	SnatPortId  *strfmt.UUID
-	SnatPort    *ports.Port
-	TXAllocated bool
-	SegmentId   int
-}
-
 // ExtendedEndpoint is an endpoint with additional fields...
 type ExtendedEndpoint struct {
 	models.Endpoint
