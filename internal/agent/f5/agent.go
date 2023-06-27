@@ -121,7 +121,6 @@ func NewAgent() *Agent {
 			logg.Fatal("BigIP session: %v", err)
 		}
 
-		big, err = as3.GetBigIPSession(url)
 		agent.vcmps = append(agent.vcmps, big)
 	}
 

@@ -166,7 +166,7 @@ func (n *NeutronClient) AllocateSNATNeutronPort(service *models.Service, hostnam
 	// allocate neutron port
 	port := portsbinding.CreateOptsExt{
 		CreateOptsBuilder: ports.CreateOpts{
-			Name:        fmt.Sprintf("endpoint-service-snat-%s", hostname),
+			Name:        fmt.Sprintf("local-%s", hostname),
 			DeviceOwner: "network:f5snat",
 			DeviceID:    service.ID.String(),
 			NetworkID:   service.NetworkID.String(),

@@ -290,7 +290,7 @@ func (big *BigIP) GetVCMPGuests() (*VcmpGuests, error) {
 }
 
 func (big *BigIP) EnsureSelfIP(neutron *neutron.NeutronClient, service *ExtendedService) error {
-	port, ok := service.SnatPorts[big.Host]
+	port, ok := service.SnatPorts[big.GetHostname()]
 	if !ok {
 		return fmt.Errorf("EnsureSelfIP: no port for service '%s' found on bigip '%s'", service.ID, big.Host)
 	}

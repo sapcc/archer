@@ -15,12 +15,10 @@
 package as3
 
 import (
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
-	"github.com/sapcc/archer/internal/errors"
-	"github.com/sapcc/archer/internal/neutron"
-	"github.com/sapcc/go-bits/logg"
 	"strings"
 
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
+	"github.com/sapcc/archer/internal/neutron"
 	"github.com/sapcc/archer/models"
 )
 
@@ -33,21 +31,6 @@ type ExtendedService struct {
 }
 
 func (es *ExtendedService) ProcessVCMP(vcmp *BigIP) error {
-	if es.Status != "PENDING_DELETE" {
-		if err := vcmp.EnsureVLAN(es.SegmentId); err != nil {
-			return err
-		}
-		if err := vcmp.EnsureGuestVlan(es.SegmentId); err != nil {
-			return err
-		}
-	} else if es.SegmentId != 0 {
-		if err := vcmp.CleanupGuestVlan(es.SegmentId); err != nil {
-			logg.Error("failed to cleanup guest vlan on vcmp host %s: %s", vcmp.GetHostname(), err)
-		}
-		if err := vcmp.CleanupVLAN(es.SegmentId); err != nil {
-			logg.Error("failed to cleanup vlan on vcmp host %s: %s", vcmp.GetHostname(), err)
-		}
-	}
 	return nil
 }
 
@@ -68,19 +51,4 @@ func (es *ExtendedService) EnsureSNATPort(bigip *BigIP, client *neutron.NeutronC
 		return err
 	}
 	return bigip.EnsureSelfIP(client, es)
-}
-
-func (es *ExtendedService) CleanupSNATPorts(bigip *BigIP) error {
-	port, ok := es.SnatPorts[bigip.GetHostname()]
-	if !ok {
-		return errors.ErrPortNotFound
-	}
-
-	if err := bigip.CleanupSelfIP(port); err != nil {
-		return err
-	}
-	if err := bigip.CleanupRouteDomain(es.SegmentId); err != nil {
-		return err
-	}
-	return bigip.CleanupVLAN(es.SegmentId)
 }

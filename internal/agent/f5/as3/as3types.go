@@ -139,7 +139,7 @@ type ServiceL4 struct {
 	PersistanceMethods  []string  `json:"persistenceMethods"`
 	Pool                Pointer   `json:"pool"`
 	ProfileL4           Pointer   `json:"profileL4"`
-	Snat                Pointer   `json:"snat"`
+	Snat                any       `json:"snat,omitempty"`
 	VirtualAddresses    []string  `json:"virtualAddresses"`
 	TranslateServerPort bool      `json:"translateServerPort"`
 	VirtualPort         int32     `json:"virtualPort"`

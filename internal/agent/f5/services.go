@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
@@ -31,7 +32,6 @@ import (
 	"github.com/sapcc/archer/internal/agent/f5/as3"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
-	aerr "github.com/sapcc/archer/internal/errors"
 	"github.com/sapcc/archer/models"
 )
 
@@ -58,7 +58,7 @@ func (a *Agent) fetchOrAllocateSNATPorts(ctx context.Context, tx pgx.Tx, service
 			// todo: handle missing port
 			return err
 		}
-		hostname := strings.TrimPrefix(port.Name, "endpoint-service-snat-")
+		hostname := strings.TrimPrefix(port.Name, "local-")
 		service.SnatPorts[hostname] = port
 	}
 
@@ -136,7 +136,7 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 			}
 
 			if len(service.SnatPorts) > 0 {
-				// we only expect a valid segment if we have at least one SNAT port
+				// we only expect a valid segment if we have at least one SNAT port bound
 				service.SegmentId, err = a.neutron.GetNetworkSegment(service.NetworkID.String())
 				if err != nil {
 					return err
@@ -150,12 +150,8 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 		g, _ := errgroup.WithContext(ctx)
 		for _, service := range services {
 			service := service
-			// Ensure VCMP segment port configuration, parallelize
-			for _, vcmp := range a.vcmps {
-				vcmp := vcmp
-				g.Go(func() error {
-					return service.ProcessVCMP(vcmp)
-				})
+			if err := a.EnsureL2(ctx, service.SegmentId, nil); err != nil {
+				return err
 			}
 
 			if service.Status != "PENDING_DELETE" {
@@ -194,20 +190,47 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 				for _, bigip := range a.bigips {
 					bigip := bigip
 					g.Go(func() error {
-						if err := service.CleanupSNATPorts(bigip); err != nil {
-							if err == aerr.ErrPortNotFound || err == aerr.ErrNoSelfIP {
-								logg.Info(err.Error())
-								return nil
+						port, ok := service.SnatPorts[bigip.GetHostname()]
+						if ok {
+							if err := bigip.CleanupSelfIP(port); err != nil {
+								return fmt.Errorf("CleanupSelfIP(port=%s): %s", port.ID, err.Error())
 							}
-							return err
+						} else {
+							logg.Info("CleanupSelfIP: No SelfIP registered for %s", bigip.GetHostname())
 						}
 						return nil
 					})
 				}
+
+				if err = g.Wait(); err != nil {
+					return err
+				}
+
+				// Ensure L2 configuration is no longer needed
+				var skipCleanup bool
+				for _, s := range services {
+					// check if other service uses the same segment
+					if s.ID != service.ID && s.Status != "PENDING_DELETE" && s.SegmentId == service.SegmentId {
+						skipCleanup = true
+					}
+				}
+				// Check if there are still endpoints using the same segment
+				ct, err := tx.Exec(ctx, "SELECT 1 FROM endpoint_port WHERE network = $1", service.NetworkID)
+				if err != nil {
+					return err
+				}
+				if ct.RowsAffected() > 0 {
+					skipCleanup = true
+				}
+
+				if !skipCleanup {
+					if err := a.CleanupL2(ctx, service.SegmentId); err != nil {
+						logg.Error("CleanupL2(vlan=%d): %s", service.SegmentId, err.Error())
+					}
+				} else {
+					logg.Info("Skipping CleanupL2(vlan=%d) since it is still in use", service.SegmentId)
+				}
 			}
-		}
-		if err = g.Wait(); err != nil {
-			return err
 		}
 
 		// Successfully updated the tenant
@@ -215,7 +238,11 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 			if service.Status == models.ServiceStatusPENDINGDELETE {
 				for _, snatPort := range service.SnatPorts {
 					if err = a.neutron.DeletePort(snatPort.ID); err != nil {
-						logg.Error(err.Error())
+						if _, ok := err.(gophercloud.ErrDefault404); !ok {
+							return err
+						} else {
+							logg.Error("Port '%s' already deleted: %s", snatPort.ID, err.Error())
+						}
 					}
 				}
 

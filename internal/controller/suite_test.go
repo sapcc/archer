@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	th "github.com/gophercloud/gophercloud/testhelper"
+	"github.com/sapcc/archer/internal/neutron"
 	"net/http"
 	"testing"
 
@@ -119,7 +120,7 @@ func (t *SuiteTest) SetupSuite() {
 		th.TestMethod(t.T(), r, "DELETE")
 		w.WriteHeader(http.StatusNoContent)
 	})
-	t.c = NewController(pool, spec, fake.ServiceClient())
+	t.c = NewController(pool, spec, &neutron.NeutronClient{ServiceClient: fake.ServiceClient()})
 
 	// Run migration
 	migrator, err := mgx.New(migrations.Migrations)

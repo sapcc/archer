@@ -147,35 +147,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	   ================================================== */
 	if !deleteAll {
 		// VCMP configuration
-		g.Go(func() error {
-			for _, vcmp := range a.vcmps {
-				if err := vcmp.EnsureVLAN(endpointSegmentID); err != nil {
-					return err
-				}
-				if err := vcmp.EnsureInterfaceVlan(endpointSegmentID); err != nil {
-					return err
-				}
-				if err := vcmp.EnsureGuestVlan(endpointSegmentID); err != nil {
-					return err
-				}
-			}
-			return nil
-		})
-
-		// Guest configuration
-		g.Go(func() error {
-			// Ensure VLAN and Route Domain
-			if err := a.bigip.EnsureVLAN(endpointSegmentID); err != nil {
-				return err
-			}
-			if err := a.bigip.EnsureRouteDomain(endpointSegmentID, &serviceSegmentID); err != nil {
-				return err
-			}
-			return nil
-		})
-
-		// Wait for L2 configuration done
-		if err := g.Wait(); err != nil {
+		if err := a.EnsureL2(ctx, endpointSegmentID, &serviceSegmentID); err != nil {
 			return err
 		}
 	}
@@ -196,33 +168,34 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	   Layer 2 VCMP + Guest cleanup
 	   ================================================== */
 	if deleteAll {
-		// Cleanup VCMP
-		g.Go(func() error {
-			for _, vcmp := range a.vcmps {
-				if err := vcmp.CleanupGuestVlan(endpointSegmentID); err != nil {
-					logg.Error(err.Error())
-				}
-				if err := vcmp.CleanupVLAN(endpointSegmentID); err != nil {
-					logg.Error(err.Error())
-				}
-			}
-			return nil
-		})
-
-		// Cleanup Guest
-		g.Go(func() error {
-			if err := a.bigip.CleanupRouteDomain(endpointSegmentID); err != nil {
-				logg.Error(err.Error())
-			}
-			if err := a.bigip.CleanupVLAN(endpointSegmentID); err != nil {
-				logg.Error(err.Error())
-			}
-			return nil
-		})
-
-		// Wait for L2 configuration done
-		if err := g.Wait(); err != nil {
+		// Ensure L2 configuration is no longer needed
+		var skipCleanup bool
+		// check if other service uses the same segment
+		ct, err := tx.Exec(ctx, "SELECT 1 FROM service WHERE network_id = $1 AND status != 'PENDING_DELETE'",
+			networkID)
+		if err != nil {
 			return err
+		}
+		if ct.RowsAffected() > 0 {
+			skipCleanup = true
+		}
+
+		// Check if there are still endpoints using the same segment
+		ct, err = tx.Exec(ctx, "SELECT 1 FROM endpoint_port WHERE network = $1 AND endpoint_id != $2",
+			networkID, endpointID)
+		if err != nil {
+			return err
+		}
+		if ct.RowsAffected() > 0 {
+			skipCleanup = true
+		}
+
+		if !skipCleanup {
+			if err := a.CleanupL2(ctx, endpointSegmentID); err != nil {
+				logg.Error("CleanupL2(vlan=%d): %s", endpointSegmentID, err.Error())
+			}
+		} else {
+			logg.Info("Skipping CleanupL2(vlan=%d) since it is still in use", endpointSegmentID)
 		}
 	}
 
@@ -233,8 +206,9 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 				if err := a.neutron.DeletePort(endpoint.Target.Port.String()); err != nil {
 					if _, ok := err.(gophercloud.ErrDefault404); !ok {
 						return err
+					} else {
+						logg.Error("Port '%s' already deleted: %s", endpoint.Target.Port.String(), err.Error())
 					}
-					logg.Error(err.Error())
 				}
 			}
 			if _, err := tx.Exec(ctx, `DELETE FROM endpoint WHERE id = $1 AND status = 'PENDING_DELETE';`,
