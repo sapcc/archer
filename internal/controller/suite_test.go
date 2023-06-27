@@ -131,6 +131,12 @@ func (t *SuiteTest) SetupSuite() {
 	if err := migrator.Migrate(context.Background(), t.c.pool); err != nil {
 		t.FailNow("Failed migration", err)
 	}
+
+	sql := `INSERT INTO agents (host, availability_zone) VALUES ('test-host', '')`
+	if _, err := t.c.pool.Exec(context.Background(), sql); err != nil {
+		t.FailNow("Failed inserting test host", err)
+	}
+
 }
 
 // Run After All Test Done
