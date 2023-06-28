@@ -212,4 +212,11 @@ var Migrations = mgx.Migrations(
 		_, err := commands.Exec(ctx, "INSERT INTO service_status(name) VALUES ('ERROR_QUOTA');")
 		return err
 	}),
+	mgx.NewMigration("adapt_constraint", func(ctx context.Context, commands mgx.Commands) error {
+		_, err := commands.Exec(ctx, `
+			ALTER TABLE service DROP CONSTRAINT service_network_id_ip_addresses_availability_zone_key;
+			ALTER TABLE service ADD CONSTRAINT service_const UNIQUE (host, network_id, ip_addresses, availability_zone);
+		`)
+		return err
+	}),
 )
