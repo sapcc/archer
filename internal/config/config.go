@@ -44,7 +44,7 @@ type Archer struct {
 
 type Default struct {
 	Debug            bool   `short:"d" long:"debug" description:"Show debug information"`
-	AvailabilityZone string `long:"availability-zone" ini-name:"availability_zone" description:"Availability zone of this node."`
+	AvailabilityZone string `long:"availability-zone" ini-name:"availability_zone" description:"Availability zone of this node." env:"AVAILABILITY_ZONE"`
 	Host             string `long:"hostname" ini-name:"host" description:"Hostname used by the server/agent. Defaults to auto-discovery."`
 	Prometheus       bool   `long:"prometheus" description:"Enable prometheus exporter."`
 	PrometheusListen string `long:"prometheus-listen" ini-name:"prometheus_listen" default:"127.0.0.1:9090" description:"Prometheus listen TCP network address."`
