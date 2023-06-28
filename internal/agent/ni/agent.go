@@ -81,7 +81,7 @@ func NewAgent() *Agent {
 		logg.Fatal(err.Error())
 	}
 
-	common.RegisterAgent(agent.pool)
+	common.RegisterAgent(agent.pool, "cp")
 	return agent
 }
 

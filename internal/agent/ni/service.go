@@ -53,7 +53,8 @@ func (a *Agent) discoverService() error {
 					"availability_zone",
 					"project_id",
 					"port",
-					"host").
+					"host",
+					"ip_addresses").
 				Values("Created by Network Injection agent",
 					"00000000-0000-0000-0000-000000000000",
 					"AVAILABLE",
@@ -65,7 +66,8 @@ func (a *Agent) discoverService() error {
 					config.Global.Default.AvailabilityZone,
 					config.Global.ServiceAuth.ProjectID,
 					config.Global.Agent.ServicePort,
-					config.Global.Default.Host).
+					config.Global.Default.Host,
+					[]string{}).
 				Suffix("RETURNING id").
 				ToSql()
 			if err != nil {

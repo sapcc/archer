@@ -136,7 +136,7 @@ func NewAgent() *Agent {
 	}
 	logg.Info("Connected to Neutron %s", agent.neutron.Endpoint)
 
-	common.RegisterAgent(agent.pool)
+	common.RegisterAgent(agent.pool, "tenant")
 	return agent
 }
 

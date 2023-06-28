@@ -24,10 +24,10 @@ import (
 	"github.com/sapcc/archer/internal/db"
 )
 
-func RegisterAgent(pool *pgxpool.Pool) {
+func RegisterAgent(pool *pgxpool.Pool, provider string) {
 	sql, args := db.Insert("agents").
-		Columns("host", "availability_zone").
-		Values(config.Global.Default.Host, config.Global.Default.AvailabilityZone).
+		Columns("host", "availability_zone", "provider").
+		Values(config.Global.Default.Host, config.Global.Default.AvailabilityZone, provider).
 		Suffix("ON CONFLICT (host) DO UPDATE SET").
 		SuffixExpr(sq.Expr("availability_zone = ?,", config.Global.Default.AvailabilityZone)).
 		Suffix("updated_at = now()").
