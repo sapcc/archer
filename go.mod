@@ -8,7 +8,7 @@ require (
 	github.com/bcicen/go-haproxy v0.0.0-20210728173702-412d077dabc1
 	github.com/didip/tollbooth/v7 v7.0.1
 	github.com/dre1080/recovr v1.0.3
-	github.com/f5devcentral/go-bigip v0.0.0-20230601082507-5c7c54edf454
+	github.com/f5devcentral/go-bigip v0.0.0-20230629161824-6ac8bd4b0a16
 	github.com/georgysavva/scany/v2 v2.0.0
 	github.com/getsentry/sentry-go v0.22.0
 	github.com/go-openapi/errors v0.20.4
