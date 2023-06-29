@@ -77,6 +77,10 @@ func NewAgent() *Agent {
 	}
 	logg.Info("Connected to Neutron host=%s", agent.neutron.Endpoint)
 
+	if config.Global.Default.AvailabilityZone != "" {
+		logg.Info("Availability zone: %s", config.Global.Default.AvailabilityZone)
+	}
+
 	if err := agent.discoverService(); err != nil {
 		logg.Fatal(err.Error())
 	}

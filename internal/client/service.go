@@ -42,9 +42,13 @@ func (*ServiceList) Execute(_ []string) error {
 		return err
 	}
 
-	Table.AppendHeader(table.Row{"ID", "Name", "Port", "Enabled", "Provider", "Status", "Project"})
+	Table.AppendHeader(table.Row{"ID", "Name", "Port", "Enabled", "Provider", "Status", "Availability Zone", "Project"})
 	for _, sv := range resp.Payload.Items {
-		Table.AppendRow(table.Row{sv.ID, sv.Name, sv.Port, *sv.Enabled, *sv.Provider, sv.Status, sv.ProjectID})
+		var az string
+		if sv.AvailabilityZone != nil {
+			az = *sv.AvailabilityZone
+		}
+		Table.AppendRow(table.Row{sv.ID, sv.Name, sv.Port, *sv.Enabled, *sv.Provider, sv.Status, az, sv.ProjectID})
 	}
 	Table.Render()
 	return nil
