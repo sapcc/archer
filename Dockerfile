@@ -13,6 +13,6 @@ RUN make -C /src
 FROM alpine:3.18
 LABEL source_repository="https://github.com/sapcc/archer"
 
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates haproxy
 COPY --from=builder /src/bin/ /usr/bin/
 ENTRYPOINT [ "/usr/bin/archer-server" ]
