@@ -96,7 +96,7 @@ func (a *Agent) Run() error {
 	}
 
 	// initial run
-	if err := a.periodicInjectionLoop(context.Background(), nil); err != nil {
+	if err := a.PendingSyncLoop(context.Background(), nil); err != nil {
 		logg.Error(err.Error())
 	}
 
@@ -115,22 +115,29 @@ func (e *Agent) EventTranslationJob(registerer prometheus.Registerer) jobloop.Jo
 			CounterLabels:   nil,
 		},
 		Interval: 240 * time.Second,
-		Task:     e.periodicInjectionLoop,
+		Task:     e.PendingSyncLoop,
 	}).Setup(registerer)
 }
 
-func (e *Agent) periodicInjectionLoop(ctx context.Context, _ prometheus.Labels) error {
-	sql, args, err := db.Select("e.id", "e.status", "ep.port_id", "ep.network", "ep.ip_address", "s.port").
+func (e *Agent) PendingSyncLoop(ctx context.Context, _ prometheus.Labels) error {
+	var items []*ServiceInjection
+	var err error
+	logg.Debug("pending sync scan")
+
+	// Cleanup pending delete services
+	sql, args := db.Delete("service").
+		Where("status = 'PENDING_DELETE'").
+		MustSql()
+	if _, err = e.pool.Exec(ctx, sql, args...); err != nil {
+		return err
+	}
+
+	sql, args = db.Select("e.id", "e.status", "ep.port_id", "ep.network", "ep.ip_address", "s.port").
 		From("endpoint e").
 		Join("endpoint_port ep ON ep.endpoint_id = e.id").
 		Join("service s ON s.id = service_id").
 		Where("s.id = ?", e.serviceID).
-		ToSql()
-	if err != nil {
-		return err
-	}
-
-	var items []*ServiceInjection
+		MustSql()
 	if err = pgxscan.Select(ctx, e.pool, &items, sql, args...); err != nil {
 		return err
 	}
