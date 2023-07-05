@@ -50,6 +50,7 @@ type Default struct {
 	PrometheusListen string `long:"prometheus-listen" ini-name:"prometheus_listen" default:"127.0.0.1:9090" description:"Prometheus listen TCP network address."`
 	Sentry           bool   `long:"sentry" ini-name:"sentry" description:"Enable Sentry"`
 	SentryDSN        string `long:"sentry-dsn" ini-name:"sentry_dsn" description:"Sentry Data Source Name."`
+	EndpointType     string `ini-name:"endpoint_type" default:"public"`
 }
 
 type ApiSettings struct {

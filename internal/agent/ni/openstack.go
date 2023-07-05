@@ -49,7 +49,19 @@ func (o *Agent) SetupOpenStack() error {
 		logg.Fatal(err.Error())
 	}
 
-	if o.neutron, err = openstack.NewNetworkV2(providerClient, gophercloud.EndpointOpts{}); err != nil {
+	var availability gophercloud.Availability
+	switch config.Global.Default.EndpointType {
+	case "public":
+		availability = gophercloud.AvailabilityPublic
+	case "internal":
+		availability = gophercloud.AvailabilityInternal
+	case "admin":
+		availability = gophercloud.AvailabilityAdmin
+	default:
+		logg.Fatal("Invalid endpoint type: %s", config.Global.Default.EndpointType)
+	}
+	eo := gophercloud.EndpointOpts{Availability: availability}
+	if o.neutron, err = openstack.NewNetworkV2(providerClient, eo); err != nil {
 		return err
 	}
 	// Set timeout to 10 secs

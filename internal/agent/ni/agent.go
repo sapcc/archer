@@ -127,6 +127,7 @@ func (e *Agent) PendingSyncLoop(ctx context.Context, _ prometheus.Labels) error 
 	// Cleanup pending delete services
 	sql, args := db.Delete("service").
 		Where("status = 'PENDING_DELETE'").
+		Where("provider = 'cp'").
 		MustSql()
 	if _, err = e.pool.Exec(ctx, sql, args...); err != nil {
 		return err
