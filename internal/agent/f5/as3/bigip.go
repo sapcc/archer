@@ -342,11 +342,6 @@ func (big *BigIP) CleanupSelfIP(port *ports.Port) error {
 	return errors.ErrNoSelfIP
 }
 
-type routeDomain struct {
-	bigip.RouteDomain
-	Parent string `json:"parent,omitempty"`
-}
-
 func (big *BigIP) EnsureRouteDomain(segmentId int, parent *int) error {
 	routeDomains, err := big.RouteDomains()
 	if err != nil {
@@ -356,6 +351,9 @@ func (big *BigIP) EnsureRouteDomain(segmentId int, parent *int) error {
 	var found bool
 	for _, rd := range routeDomains.RouteDomains {
 		if rd.ID == segmentId {
+			if parent != nil && rd.Parent != fmt.Sprintf("/Common/vlan-%d", *parent) {
+				continue
+			}
 			found = true
 			break
 		}
@@ -377,22 +375,7 @@ func (big *BigIP) EnsureRouteDomain(segmentId int, parent *int) error {
 		c.Parent = fmt.Sprintf("vlan-%d", *parent)
 	}
 
-	m, err := json.Marshal(c)
-	if err != nil {
-		return err
-	}
-
-	req := &bigip.APIRequest{
-		Method:      "post",
-		URL:         "net/route-domain",
-		Body:        strings.TrimRight(string(m), "\n"),
-		ContentType: "application/json",
-	}
-
-	if _, err = big.APICall(req); err != nil {
-		return err
-	}
-	return nil
+	return c.Update(big)
 }
 
 func (big *BigIP) CleanupRouteDomain(segmentId int) error {
