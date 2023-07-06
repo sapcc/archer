@@ -100,7 +100,7 @@ func (a *Agent) Run() {
 
 	// inital run
 	go func() {
-		if err := a.PendingSyncLoop(context.Background(), nil); err != nil {
+		if err := a.InitalSync(context.Background()); err != nil {
 			logg.Error(err.Error())
 		}
 	}()
@@ -188,19 +188,36 @@ func (e *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
 	})
 }
 
+func (e *Agent) InitalSync(ctx context.Context) error {
+	var id strfmt.UUID
+
+	logg.Debug("inital sync")
+	sql, args := db.Select("id").
+		From("endpoint").
+		Where("status != 'REJECTED'").
+		Where("service_id = ?", e.serviceID).
+		MustSql()
+	rows, err := e.pool.Query(ctx, sql, args...)
+	if err != nil {
+		return err
+	}
+	_, err = pgx.ForEachRow(rows, []any{&id}, func() error {
+		if err = e.jobQueue.Enqueue("endpoint", id); err != nil {
+			return err
+		}
+		return nil
+	})
+	return err
+}
+
 func (e *Agent) PendingSyncLoop(ctx context.Context, _ prometheus.Labels) error {
 	var id strfmt.UUID
 
 	logg.Debug("pending sync scan")
 	sql, args := db.Select("id").
 		From("endpoint").
-		Where("status != 'REJECTED'").
-		Where(
-			db.Select("1").
-				Prefix("EXISTS(").
-				From("service").
-				Where("service.id = ?", e.serviceID).
-				Suffix(")")).
+		Where("status IN ('PENDING_CREATE', 'PENDING_REJECTED', 'PENDING_DELETE', 'FAILED')").
+		Where("service_id = ?", e.serviceID).
 		MustSql()
 	rows, err := e.pool.Query(ctx, sql, args...)
 	if err != nil {
