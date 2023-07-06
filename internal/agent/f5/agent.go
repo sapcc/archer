@@ -128,13 +128,13 @@ func NewAgent() *Agent {
 func (a *Agent) Run() {
 	go common.WorkerThread(context.Background(), a)
 	go common.DBNotificationThread(context.Background(), a.pool, a.jobQueue)
-	common.CronJob(a).Run(context.Background())
 	common.RunPrometheus()
 
 	// inital run
 	go func() {
 		_ = a.PendingSyncLoop(context.Background(), nil)
 	}()
+	common.CronJob(a).Run(context.Background())
 }
 
 func (a *Agent) PendingSyncLoop(context.Context, prometheus.Labels) error {

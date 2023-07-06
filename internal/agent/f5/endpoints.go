@@ -17,6 +17,7 @@ package f5
 import (
 	"context"
 	"fmt"
+	"github.com/sapcc/archer/internal/config"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/strfmt"
@@ -101,6 +102,8 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		InnerJoin("service ON endpoint.service_id = service.id").
 		Join("endpoint_port ON endpoint_id = endpoint.id").
 		Where("network = ?", networkID).
+		Where("service.host = ?", config.Global.Default.Host).
+		Where("service.provider = 'tenant'").
 		Suffix("FOR UPDATE of endpoint").
 		MustSql()
 	if err := pgxscan.Select(ctx, tx, &endpoints, sql, args...); err != nil {
