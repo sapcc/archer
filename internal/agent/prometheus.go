@@ -12,18 +12,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package f5
+package agent
 
-import "github.com/prometheus/client_golang/prometheus"
+import (
+	"net/http"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/sapcc/go-bits/logg"
+
+	"github.com/sapcc/archer/internal/config"
+)
 
 var (
 	processJobCount = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "archer_job_processed",
+		Name: "job_processed",
 		Help: "The total number of processed jobs",
 	}, []string{"model", "outcome"})
 )
 
-func initalizePrometheus() {
+func InitalizePrometheus() {
 	prometheus.DefaultRegisterer.MustRegister(processJobCount)
 	processJobCount.WithLabelValues("service", "unknown").Add(0)
+}
+
+func RunPrometheus() {
+	if config.Global.Default.Prometheus {
+		http.Handle("/metrics", promhttp.Handler())
+		logg.Info("Serving prometheus metrics to %s/metrics", config.Global.Default.PrometheusListen)
+		go prometheusListenerThread()
+	}
+}
+
+func prometheusListenerThread() {
+	if err := http.ListenAndServe(config.Global.Default.PrometheusListen, nil); err != nil {
+		logg.Fatal(err.Error())
+	}
 }

@@ -17,7 +17,6 @@ package f5
 import (
 	"context"
 	"net/http"
-	"strings"
 
 	"github.com/IBM/pgxpoolprometheus"
 	sq "github.com/Masterminds/squirrel"
@@ -28,8 +27,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/tracelog"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/sapcc/go-bits/jobloop"
 	"github.com/sapcc/go-bits/logg"
 
 	common "github.com/sapcc/archer/internal/agent"
@@ -40,8 +37,7 @@ import (
 )
 
 type Agent struct {
-	jobLoop  jobloop.Job
-	jobQueue *JobChan
+	jobQueue *common.JobChan
 	pool     *pgxpool.Pool // thread safe
 	neutron  *neutron.NeutronClient
 	bigips   []*as3.BigIP
@@ -49,27 +45,16 @@ type Agent struct {
 	bigip    *as3.BigIP // active target
 }
 
+func (a *Agent) GetJobQueue() *common.JobChan {
+	return a.jobQueue
+}
+
 func NewAgent() *Agent {
 	config.ResolveHost()
-	initalizePrometheus()
+	common.InitalizePrometheus()
+
 	agent := new(Agent)
-
-	jl := jobloop.CronJob{
-		Metadata: jobloop.JobMetadata{
-			ReadableName:    "Sync Loop",
-			ConcurrencySafe: false,
-			CounterOpts: prometheus.CounterOpts{
-				Name: "archer_sync_counter",
-				Help: "The total number of sync events",
-			},
-			CounterLabels: nil,
-		},
-		Interval: config.Global.Agent.PendingSyncInterval,
-		Task:     agent.PendingSyncLoop,
-	}
-
-	agent.jobLoop = jl.Setup(nil)
-	jobQueue := make(JobChan, 100)
+	jobQueue := make(common.JobChan, 100)
 	agent.jobQueue = &jobQueue
 
 	// Connect to database
@@ -140,20 +125,16 @@ func NewAgent() *Agent {
 	return agent
 }
 
-func (a *Agent) Run() error {
-	if config.Global.Default.Prometheus {
-		http.Handle("/metrics", promhttp.Handler())
-		go a.PrometheusListenerThread()
-	}
-	go a.DBNotificationThread(context.Background())
-	go a.WorkerThread(context.Background())
+func (a *Agent) Run() {
+	go common.WorkerThread(context.Background(), a)
+	go common.DBNotificationThread(context.Background(), a.pool, a.jobQueue)
+	common.CronJob(a).Run(context.Background())
+	common.RunPrometheus()
+
+	// inital run
 	go func() {
-		// run pending sync scan immediately
 		_ = a.PendingSyncLoop(context.Background(), nil)
 	}()
-	a.jobLoop.Run(context.Background(), nil)
-
-	return nil
 }
 
 func (a *Agent) PendingSyncLoop(context.Context, prometheus.Labels) error {
@@ -175,7 +156,7 @@ func (a *Agent) PendingSyncLoop(context.Context, prometheus.Labels) error {
 	}
 
 	if ret.RowsAffected() > 0 {
-		if err := a.jobQueue.Enqueue(job{model: "service"}); err != nil {
+		if err := a.jobQueue.Enqueue("service", ""); err != nil {
 			return err
 		}
 	}
@@ -198,7 +179,7 @@ func (a *Agent) PendingSyncLoop(context.Context, prometheus.Labels) error {
 		return err
 	}
 	if _, err = pgx.ForEachRow(rows, []any{&id}, func() error {
-		if err := a.jobQueue.Enqueue(job{model: "endpoint", id: id}); err != nil {
+		if err := a.jobQueue.Enqueue("endpoint", id); err != nil {
 			return err
 		}
 		return nil
@@ -209,77 +190,9 @@ func (a *Agent) PendingSyncLoop(context.Context, prometheus.Labels) error {
 	return nil
 }
 
-func (a *Agent) DBNotificationThread(ctx context.Context) {
-	// Acquire one Connection for listen events
-	conn, err := a.pool.Acquire(ctx)
-	if err != nil {
-		logg.Fatal(err.Error())
-	}
-
-	sql := "LISTEN service; LISTEN endpoint;"
-	if _, err := conn.Exec(ctx, sql); err != nil {
-		logg.Fatal(err.Error())
-	}
-
-	logg.Info("DBNotificationThread: Listening to service and endpoint notifications")
-
-	for {
-		notification, err := conn.Conn().WaitForNotification(ctx)
-		if err != nil {
-			if !pgconn.Timeout(err) {
-				logg.Fatal(err.Error())
-			}
-			continue
-		}
-
-		logg.Debug("Received notification, channel=%s, payload=%s", notification.Channel, notification.Payload)
-		j := job{model: notification.Channel}
-		s := strings.SplitN(notification.Payload, ":", 2)
-		if len(s) < 1 {
-			logg.Error("Received invalid notification payload: %s", notification.Payload)
-			continue
-		}
-
-		if s[0] != config.Global.Default.Host {
-			continue
-		}
-		if len(s) > 1 {
-			j.id = strfmt.UUID(s[1])
-		}
-
-		if err := a.jobQueue.Enqueue(j); err != nil {
-			logg.Error(err.Error())
-		}
-	}
-}
-
 func (a *Agent) PrometheusListenerThread() {
 	logg.Info("Serving prometheus metrics to %s/metrics", config.Global.Default.PrometheusListen)
 	if err := http.ListenAndServe(config.Global.Default.PrometheusListen, nil); err != nil {
 		logg.Fatal(err.Error())
-	}
-}
-
-func (a *Agent) WorkerThread(ctx context.Context) {
-	for job := range *a.jobQueue {
-		var err error
-		logg.Debug("received message %v", job)
-
-		switch job.model {
-		case "service":
-			if err = a.ProcessServices(ctx); err != nil {
-				logg.Error(err.Error())
-			}
-		case "endpoint":
-			if err = a.ProcessEndpoint(ctx, job.id); err != nil {
-				logg.Error(err.Error())
-			}
-		}
-
-		outcome := "success"
-		if err != nil {
-			outcome = "failure"
-		}
-		processJobCount.WithLabelValues(job.model, outcome).Inc()
 	}
 }

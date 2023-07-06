@@ -45,7 +45,5 @@ func main() {
 
 	logg.ShowDebug = config.Global.Default.Debug
 	a := ni.NewAgent()
-	if err := a.Run(); err != nil {
-		logg.Fatal(err.Error())
-	}
+	a.Run()
 }

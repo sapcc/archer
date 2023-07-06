@@ -16,19 +16,16 @@ package ni
 
 import (
 	"context"
-	"net/http"
-	"time"
 
 	"github.com/IBM/pgxpoolprometheus"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/tracelog"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/sapcc/go-bits/jobloop"
 	"github.com/sapcc/go-bits/logg"
 
 	common "github.com/sapcc/archer/internal/agent"
@@ -37,17 +34,24 @@ import (
 )
 
 type Agent struct {
+	jobQueue  *common.JobChan
 	pool      *pgxpool.Pool // thread safe
 	neutron   *gophercloud.ServiceClient
 	haproxy   *HAProxyController
 	serviceID strfmt.UUID
 }
 
+func (a *Agent) GetJobQueue() *common.JobChan {
+	return a.jobQueue
+}
+
 func NewAgent() *Agent {
 	config.ResolveHost()
-	agent := new(Agent)
+	common.InitalizePrometheus()
 
-	var err error
+	agent := new(Agent)
+	jobQueue := make(common.JobChan, 100)
+	agent.jobQueue = &jobQueue
 
 	// Connect to database
 	connConfig, err := pgxpool.ParseConfig(config.Global.Database.Connection)
@@ -89,66 +93,62 @@ func NewAgent() *Agent {
 	return agent
 }
 
-func (a *Agent) Run() error {
-	if config.Global.Default.Prometheus {
-		http.Handle("/metrics", promhttp.Handler())
-		go a.PrometheusListenerThread()
-	}
+func (a *Agent) Run() {
+	go common.WorkerThread(context.Background(), a)
+	go common.DBNotificationThread(context.Background(), a.pool, a.jobQueue)
+	common.RunPrometheus()
 
-	// initial run
-	if err := a.PendingSyncLoop(context.Background(), nil); err != nil {
-		logg.Error(err.Error())
-	}
+	// inital run
+	go func() {
+		if err := a.PendingSyncLoop(context.Background(), nil); err != nil {
+			logg.Error(err.Error())
+		}
+	}()
 
-	// periodic sync
-	jl := a.EventTranslationJob(prometheus.DefaultRegisterer)
-	jl.Run(context.Background())
-	return nil
+	common.CronJob(a).Run(context.Background())
 }
 
-func (e *Agent) EventTranslationJob(registerer prometheus.Registerer) jobloop.Job {
-	return (&jobloop.CronJob{
-		Metadata: jobloop.JobMetadata{
-			ReadableName:    "periodic_injection_loop",
-			ConcurrencySafe: false,
-			CounterOpts:     prometheus.CounterOpts{Name: "periodic_injection_loop"},
-			CounterLabels:   nil,
-		},
-		Interval: 240 * time.Second,
-		Task:     e.PendingSyncLoop,
-	}).Setup(registerer)
-}
-
-func (e *Agent) PendingSyncLoop(ctx context.Context, _ prometheus.Labels) error {
-	var items []*ServiceInjection
-	var err error
-	logg.Debug("pending sync scan")
-
+func (e *Agent) ProcessServices(ctx context.Context) error {
 	// Cleanup pending delete services
 	sql, args := db.Delete("service").
 		Where("status = 'PENDING_DELETE'").
 		Where("provider = 'cp'").
 		MustSql()
-	if _, err = e.pool.Exec(ctx, sql, args...); err != nil {
-		return err
-	}
+	_, err := e.pool.Exec(ctx, sql, args...)
+	return err
+}
 
-	sql, args = db.Select("e.id", "e.status", "ep.port_id", "ep.network", "ep.ip_address", "s.port").
-		From("endpoint e").
-		Join("endpoint_port ep ON ep.endpoint_id = e.id").
-		Join("service s ON s.id = service_id").
-		Where("s.id = ?", e.serviceID).
-		MustSql()
-	if err = pgxscan.Select(ctx, e.pool, &items, sql, args...); err != nil {
-		return err
-	}
+func (e *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
+	return pgx.BeginFunc(context.Background(), e.pool, func(tx pgx.Tx) error {
+		var si ServiceInjection
+		var err error
 
-	for _, si := range items {
+		sql, args := db.Select("e.id", "e.status", "ep.port_id", "ep.network", "ep.ip_address", "s.port").
+			From("endpoint e").
+			Join("endpoint_port ep ON ep.endpoint_id = e.id").
+			Join("service s ON s.id = service_id").
+			Where("e.id = ?", id).
+			Suffix("FOR UPDATE OF e").
+			MustSql()
+		if err = pgxscan.Get(ctx, tx, &si, sql, args...); err != nil {
+			return err
+		}
+
 		switch si.Status {
 		case "PENDING_REJECTED":
-			fallthrough
+			if err = e.DisableInjection(&si); err != nil {
+				return err
+			}
+			sql, args = db.Update("endpoint").
+				Set("status", "REJECTED").
+				Set("updated_at", sq.Expr("NOW()")).
+				Where("id = ?", si.Id).
+				MustSql()
+			if _, err = tx.Exec(ctx, sql, args...); err != nil {
+				return err
+			}
 		case "PENDING_DELETE":
-			if err = e.DisableInjection(si); err != nil {
+			if err = e.DisableInjection(&si); err != nil {
 				return err
 			}
 			sql, args, err = db.Delete("endpoint").
@@ -161,7 +161,7 @@ func (e *Agent) PendingSyncLoop(ctx context.Context, _ prometheus.Labels) error 
 				return err
 			}
 		case "AVAILABLE":
-			if err = e.EnableInjection(si); err != nil {
+			if err = e.EnableInjection(&si); err != nil {
 				return err
 			}
 		case "PENDING_UPDATE":
@@ -169,7 +169,7 @@ func (e *Agent) PendingSyncLoop(ctx context.Context, _ prometheus.Labels) error 
 		case "FAILED":
 			fallthrough
 		case "PENDING_CREATE":
-			if err = e.EnableInjection(si); err != nil {
+			if err = e.EnableInjection(&si); err != nil {
 				return err
 			}
 			sql, args, err = db.Update("endpoint").
@@ -180,17 +180,37 @@ func (e *Agent) PendingSyncLoop(ctx context.Context, _ prometheus.Labels) error 
 			if err != nil {
 				return err
 			}
-			if _, err = e.pool.Exec(ctx, sql, args...); err != nil {
+			if _, err = tx.Exec(ctx, sql, args...); err != nil {
 				return err
 			}
 		}
-	}
-	return nil
+		return nil
+	})
 }
 
-func (a *Agent) PrometheusListenerThread() {
-	logg.Info("Serving prometheus metrics to %s/metrics", config.Global.Default.PrometheusListen)
-	if err := http.ListenAndServe(config.Global.Default.PrometheusListen, nil); err != nil {
-		logg.Fatal(err.Error())
+func (e *Agent) PendingSyncLoop(ctx context.Context, _ prometheus.Labels) error {
+	var id strfmt.UUID
+
+	logg.Debug("pending sync scan")
+	sql, args := db.Select("id").
+		From("endpoint").
+		Where("status != 'REJECTED'").
+		Where(
+			db.Select("1").
+				Prefix("EXISTS(").
+				From("service").
+				Where("service.id = ?", e.serviceID).
+				Suffix(")")).
+		MustSql()
+	rows, err := e.pool.Query(ctx, sql, args...)
+	if err != nil {
+		return err
 	}
+	_, err = pgx.ForEachRow(rows, []any{&id}, func() error {
+		if err = e.jobQueue.Enqueue("endpoint", id); err != nil {
+			return err
+		}
+		return nil
+	})
+	return err
 }
