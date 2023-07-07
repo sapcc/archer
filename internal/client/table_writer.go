@@ -143,7 +143,7 @@ func getIndexMap(v reflect.Value) ([][]int, []any, error) {
 	return indexes, header, nil
 }
 
-// WriteTableFromStruct scans a struct and prints content via Table writer
+// WriteTable scans a struct and prints content via Table writer
 func WriteTable(data any) error {
 	v := reflect.ValueOf(data)
 

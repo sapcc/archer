@@ -17,9 +17,13 @@
 package client
 
 import (
+	"context"
+	"errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/sapcc/archer/client/endpoint"
 	"github.com/sapcc/archer/models"
+	"github.com/sethvargo/go-retry"
+	"time"
 )
 
 var EndpointOptions struct {
@@ -63,6 +67,7 @@ type EndpointCreate struct {
 	Network    *strfmt.UUID `long:"network" description:"Endpoint network (ID)"`
 	Port       *strfmt.UUID `long:"port" description:"Endpoint port (ID)"`
 	Subnet     *strfmt.UUID `long:"subnet" description:"Endpoint subnet (ID)"`
+	Wait       bool         `long:"wait" description:"Wait for endpoint to be ready"`
 	Positional struct {
 		Service strfmt.UUID `positional-arg-name:"service" description:"Service to reference (ID)"`
 	} `positional-args:"yes" required:"yes"`
@@ -82,7 +87,14 @@ func (*EndpointCreate) Execute(_ []string) error {
 	if err != nil {
 		return err
 	}
-	return WriteTable(resp.GetPayload())
+	var res *models.Endpoint
+	res = resp.GetPayload()
+	if EndpointOptions.EndpointCreate.Wait {
+		if res, err = waitForEndpoint(res.ID); err != nil {
+			return err
+		}
+	}
+	return WriteTable(res)
 }
 
 type EndpointDelete struct {
@@ -105,6 +117,7 @@ type EndpointSet struct {
 	} `positional-args:"yes" required:"yes"`
 	NoTags bool     `long:"no-tag" description:"Clear tags associated with the endpoint. Specify both --tag and --no-tag to overwrite current tags"`
 	Tags   []string `long:"tag" description:"Tag to be added to the endpoint (repeat option to set multiple tags)"`
+	Wait   bool     `long:"wait" description:"Wait for endpoint to be ready"`
 }
 
 func (*EndpointSet) Execute(_ []string) error {
@@ -131,8 +144,14 @@ func (*EndpointSet) Execute(_ []string) error {
 	if err != nil {
 		return err
 	}
-
-	return WriteTable(resp.GetPayload())
+	var res *models.Endpoint
+	res = resp.GetPayload()
+	if EndpointOptions.EndpointSet.Wait {
+		if res, err = waitForEndpoint(res.ID); err != nil {
+			return err
+		}
+	}
+	return WriteTable(res)
 }
 
 func init() {
@@ -140,4 +159,26 @@ func init() {
 		"Endpoint Commands.", &EndpointOptions); err != nil {
 		panic(err)
 	}
+}
+
+func waitForEndpoint(id strfmt.UUID) (*models.Endpoint, error) {
+	var res *models.Endpoint
+	b := retry.NewConstant(1 * time.Second)
+	b = retry.WithMaxDuration(60*time.Second, b)
+	if err := retry.Do(context.Background(), b, func(ctx context.Context) error {
+		params := endpoint.NewGetEndpointEndpointIDParams().WithEndpointID(id)
+		r, err := ArcherClient.Endpoint.GetEndpointEndpointID(params, nil)
+		if err != nil {
+			return err
+		}
+
+		res = r.GetPayload()
+		if res.Status != "AVAILABLE" {
+			return retry.RetryableError(errors.New("endpoint not ready"))
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return res, nil
 }

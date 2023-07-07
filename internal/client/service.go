@@ -17,9 +17,13 @@
 package client
 
 import (
+	"context"
 	"errors"
+	"time"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/sethvargo/go-retry"
 
 	"github.com/sapcc/archer/client/service"
 	"github.com/sapcc/archer/models"
@@ -74,6 +78,7 @@ type ServiceCreate struct {
 	RequireApproval bool          `long:"require-approval" description:"Require explicit project approval for the service owner."`
 	Tags            []string      `long:"tag" description:"Tag to be added to the service (repeat option to set multiple tags)"`
 	Visibility      *string       `long:"visibility" description:"Set global visibility of the service. For private visibility, RBAC policies can extend the visibility to specific projects" choice:"private" choice:"public"`
+	Wait            bool          `long:"wait" description:"Wait for service to be ready"`
 }
 
 func (*ServiceCreate) Execute(_ []string) error {
@@ -96,7 +101,15 @@ func (*ServiceCreate) Execute(_ []string) error {
 	if err != nil {
 		return err
 	}
-	return WriteTable(resp.GetPayload())
+
+	var res *models.Service
+	res = resp.GetPayload()
+	if ServiceOptions.ServiceCreate.Wait {
+		if res, err = waitForService(res.ID); err != nil {
+			return err
+		}
+	}
+	return WriteTable(res)
 }
 
 type ServiceSet struct {
@@ -114,6 +127,7 @@ type ServiceSet struct {
 	ProxyProtocol   *bool         `long:"proxy-protocol" description:"Enable proxy protocol v2."`
 	RequireApproval *bool         `long:"require-approval" description:"Require explicit project approval for the service owner."`
 	Visibility      *string       `long:"visibility" description:"Set global visibility of the service. For private visibility, RBAC policies can extend the visibility to specific projects" choice:"private" choice:"public"`
+	Wait            bool          `long:"wait" description:"Wait for service to be ready"`
 }
 
 func (*ServiceSet) Execute(_ []string) error {
@@ -165,7 +179,14 @@ func (*ServiceSet) Execute(_ []string) error {
 		return err
 	}
 
-	return WriteTable(resp.GetPayload())
+	var res *models.Service
+	res = resp.GetPayload()
+	if ServiceOptions.ServiceSet.Wait {
+		if res, err = waitForService(res.ID); err != nil {
+			return err
+		}
+	}
+	return WriteTable(res)
 }
 
 type ServiceDelete struct {
@@ -277,4 +298,27 @@ func init() {
 		"Service Commands.", &ServiceOptions); err != nil {
 		panic(err)
 	}
+}
+
+func waitForService(id strfmt.UUID) (*models.Service, error) {
+	var res *models.Service
+
+	b := retry.NewConstant(1 * time.Second)
+	b = retry.WithMaxDuration(60*time.Second, b)
+	if err := retry.Do(context.Background(), b, func(ctx context.Context) error {
+		params := service.NewGetServiceServiceIDParams().WithServiceID(id)
+		r, err := ArcherClient.Service.GetServiceServiceID(params, nil)
+		if err != nil {
+			return err
+		}
+
+		res = r.GetPayload()
+		if res.Status != "AVAILABLE" {
+			return retry.RetryableError(errors.New("service not ready"))
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return res, nil
 }

@@ -32,6 +32,7 @@ require (
 	github.com/rs/cors v1.9.0
 	github.com/sapcc/go-api-declarations v1.7.0
 	github.com/sapcc/go-bits v0.0.0-20230706125105-e29c088132b0
+	github.com/sethvargo/go-retry v0.2.4
 	github.com/stretchr/testify v1.8.4
 	github.com/vishvananda/netlink v1.1.0
 	github.com/vishvananda/netns v0.0.4
