@@ -193,7 +193,6 @@ func WriteTable(data any) error {
 
 	switch opts.Formatters.Format {
 	case "table":
-		Table.SetStyle(table.StyleLight)
 		Table.Render()
 	case "csv":
 		Table.RenderCSV()
