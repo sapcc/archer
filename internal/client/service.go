@@ -19,7 +19,7 @@ package client
 import (
 	"errors"
 	"github.com/go-openapi/strfmt"
-	"github.com/jedib0t/go-pretty/table"
+	"github.com/jedib0t/go-pretty/v6/table"
 
 	"github.com/sapcc/archer/client/service"
 	"github.com/sapcc/archer/models"
@@ -41,17 +41,8 @@ func (*ServiceList) Execute(_ []string) error {
 	if err != nil {
 		return err
 	}
-
-	Table.AppendHeader(table.Row{"ID", "Name", "Port", "Enabled", "Provider", "Status", "Availability Zone", "Project"})
-	for _, sv := range resp.Payload.Items {
-		var az string
-		if sv.AvailabilityZone != nil {
-			az = *sv.AvailabilityZone
-		}
-		Table.AppendRow(table.Row{sv.ID, sv.Name, sv.Port, *sv.Enabled, *sv.Provider, sv.Status, az, sv.ProjectID})
-	}
-	Table.Render()
-	return nil
+	DefaultColumns = []string{"id", "name", "port", "enabled", "provider", "status", "availability_zone", "project_id"}
+	return WriteTable(resp.GetPayload().Items)
 }
 
 type ServiceShow struct {

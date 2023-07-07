@@ -81,7 +81,7 @@ func CronJob(w Worker) jobloop.Job {
 			ReadableName:    "pending_sync_loop",
 			ConcurrencySafe: false,
 			CounterOpts: prometheus.CounterOpts{
-				Name: "pending_sync_loop_total",
+				Name: "archer_pending_sync_loop_total",
 				Help: "Total number of pending sync loops",
 			},
 			CounterLabels: nil,

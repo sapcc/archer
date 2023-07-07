@@ -17,8 +17,9 @@ package as3
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/f5devcentral/go-bigip"
 	"strings"
+
+	"github.com/f5devcentral/go-bigip"
 )
 
 type routeDomain struct {

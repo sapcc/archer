@@ -18,6 +18,12 @@ package client
 
 import (
 	"fmt"
+	"net/http"
+	"net/url"
+	"os"
+	"os/exec"
+	"strings"
+
 	"github.com/go-openapi/runtime"
 	runtimeclient "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
@@ -25,14 +31,9 @@ import (
 	"github.com/gophercloud/gophercloud/openstack"
 	osclient "github.com/gophercloud/utils/client"
 	"github.com/gophercloud/utils/openstack/clientconfig"
-	"github.com/jedib0t/go-pretty/table"
+	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jessevdk/go-flags"
 	"github.com/jmoiron/sqlx/reflectx"
-	"net/http"
-	"net/url"
-	"os"
-	"os/exec"
-	"strings"
 
 	"github.com/sapcc/archer/client"
 )
@@ -48,6 +49,7 @@ type outputFormatters struct {
 	Format     string   `short:"f" long:"format" description:"The output format, defaults to table" choice:"table" choice:"csv" choice:"markdown" choice:"html" choice:"value" default:"table"`
 	Columns    []string `short:"c" long:"column" description:"specify the column(s) to include, can be repeated to show multiple columns"`
 	SortColumn []string `long:"sort-column" description:"specify the column(s) to sort the data (columns specified first have a priority, non-existing columns are ignored), can be repeated"`
+	Long       bool     `long:"long" description:"Show all columns in output"`
 }
 
 var opts struct {

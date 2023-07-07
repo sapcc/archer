@@ -26,7 +26,7 @@ import (
 
 var (
 	processJobCount = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "job_processed",
+		Name: "archer_job_processed",
 		Help: "The total number of processed jobs",
 	}, []string{"model", "outcome"})
 )
@@ -36,16 +36,12 @@ func InitalizePrometheus() {
 	processJobCount.WithLabelValues("service", "unknown").Add(0)
 }
 
-func RunPrometheus() {
+func PrometheusListenerThread() {
 	if config.Global.Default.Prometheus {
 		http.Handle("/metrics", promhttp.Handler())
 		logg.Info("Serving prometheus metrics to %s/metrics", config.Global.Default.PrometheusListen)
-		go prometheusListenerThread()
-	}
-}
-
-func prometheusListenerThread() {
-	if err := http.ListenAndServe(config.Global.Default.PrometheusListen, nil); err != nil {
-		logg.Fatal(err.Error())
+		if err := http.ListenAndServe(config.Global.Default.PrometheusListen, nil); err != nil {
+			logg.Fatal(err.Error())
+		}
 	}
 }

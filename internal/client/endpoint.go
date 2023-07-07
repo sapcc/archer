@@ -18,8 +18,6 @@ package client
 
 import (
 	"github.com/go-openapi/strfmt"
-	"github.com/jedib0t/go-pretty/table"
-
 	"github.com/sapcc/archer/client/endpoint"
 	"github.com/sapcc/archer/models"
 )
@@ -40,12 +38,8 @@ func (*EndpointList) Execute(_ []string) error {
 		return err
 	}
 
-	Table.AppendHeader(table.Row{"ID", "Service ID", "Service Name", "Port", "Status", "Project"})
-	for _, ep := range resp.Payload.Items {
-		Table.AppendRow(table.Row{ep.ID, ep.ServiceID, ep.ServiceName, ep.Target.Port, ep.Status, ep.ProjectID})
-	}
-	Table.Render()
-	return nil
+	DefaultColumns = []string{"id", "service_id", "service_name", "target.port", "status", "project_id"}
+	return WriteTable(resp.GetPayload().Items)
 }
 
 type EndpointShow struct {

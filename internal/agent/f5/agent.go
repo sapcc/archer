@@ -128,7 +128,7 @@ func NewAgent() *Agent {
 func (a *Agent) Run() {
 	go common.WorkerThread(context.Background(), a)
 	go common.DBNotificationThread(context.Background(), a.pool, a.jobQueue)
-	common.RunPrometheus()
+	go common.PrometheusListenerThread()
 
 	// inital run
 	go func() {

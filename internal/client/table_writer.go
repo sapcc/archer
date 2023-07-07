@@ -18,10 +18,15 @@ package client
 
 import (
 	"fmt"
-	"github.com/jedib0t/go-pretty/table"
 	"reflect"
 	"sort"
+	"time"
+
+	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jmoiron/sqlx/reflectx"
 )
+
+var DefaultColumns []string
 
 func formatValue(v reflect.Value) string {
 	switch kind := v.Kind(); kind {
@@ -32,27 +37,32 @@ func formatValue(v reflect.Value) string {
 			return "Null"
 		}
 		return formatValue(v.Elem())
+	case reflect.Struct:
+		if v.Type().String() == "time.Time" {
+			return v.Interface().(time.Time).In(time.Local).Format(time.RFC850)
+		}
+		fallthrough
 	default:
 		return fmt.Sprintf("%+v", v)
 	}
 }
 
-func getRow(row reflect.Value, iMap []int) table.Row {
+func getRow(row reflect.Value, iMap [][]int) table.Row {
 	if row.Kind() == reflect.Ptr {
 		row = row.Elem()
 	}
 
 	r := make([]any, 0)
 	for i := 0; i < len(iMap); i++ {
-		r = append(r, formatValue(row.Field(iMap[i])))
+		r = append(r, formatValue(reflectx.FieldByIndexes(row, iMap[i])))
 	}
 	return r
 }
 
-func addSortedHeader(v reflect.Value) ([]int, error) {
+func getIndexMap(v reflect.Value) ([][]int, []any, error) {
 	type IndexMap struct {
 		Header string
-		Index  int
+		Index  []int
 	}
 
 	if v.Kind() == reflect.Ptr {
@@ -60,18 +70,33 @@ func addSortedHeader(v reflect.Value) ([]int, error) {
 	}
 
 	header := make([]any, 0)
-	var indexes []int
+	var indexes [][]int
+	var filterColumns []string
+
+	if !opts.Formatters.Long {
+		filterColumns = DefaultColumns
+	}
 	if len(opts.Formatters.Columns) > 0 {
+		filterColumns = opts.Formatters.Columns
+	}
+
+	if len(filterColumns) > 0 {
 		// Filter columns
-		for _, column := range opts.Formatters.Columns {
+		for _, column := range filterColumns {
 			header = append(header, column)
 		}
-		for column, index := range Mapper.TraversalsByName(v.Type(), opts.Formatters.Columns) {
+		for column, index := range Mapper.TraversalsByName(v.Type(), filterColumns) {
 			if len(index) == 0 {
-				err := fmt.Errorf("column '%s' is not a valid column filter", opts.Formatters.Columns[column])
-				return nil, err
+				// Get all columns
+				var names []string
+				for tagName := range Mapper.TypeMap(v.Type()).Names {
+					names = append(names, tagName)
+				}
+				err := fmt.Errorf("column '%s' is not a valid column filter, possbile filters: %+v",
+					filterColumns[column], names)
+				return nil, nil, err
 			}
-			indexes = append(indexes, index[0])
+			indexes = append(indexes, index)
 		}
 	} else {
 		var indexMap []IndexMap
@@ -79,7 +104,10 @@ func addSortedHeader(v reflect.Value) ([]int, error) {
 		// Get all columns
 		tm := Mapper.TypeMap(v.Type())
 		for tagName, fi := range tm.Names {
-			indexMap = append(indexMap, IndexMap{tagName, fi.Index[0]})
+			if fi.Field.Type.Kind() == reflect.Struct && fi.Field.Type.String() != "time.Time" {
+				continue
+			}
+			indexMap = append(indexMap, IndexMap{tagName, fi.Index})
 		}
 
 		// Stable sort
@@ -102,7 +130,7 @@ func addSortedHeader(v reflect.Value) ([]int, error) {
 			} else if indexMap[j].Header == "created_at" {
 				return true
 			} else {
-				return indexMap[i].Index < indexMap[j].Index
+				return indexMap[i].Index[0] < indexMap[j].Index[0]
 			}
 		})
 
@@ -112,10 +140,7 @@ func addSortedHeader(v reflect.Value) ([]int, error) {
 		}
 	}
 
-	if opts.Formatters.Format != "value" {
-		Table.AppendHeader(header)
-	}
-	return indexes, nil
+	return indexes, header, nil
 }
 
 // WriteTableFromStruct scans a struct and prints content via Table writer
@@ -128,9 +153,13 @@ func WriteTable(data any) error {
 	}
 
 	if v.Kind() == reflect.Slice && v.Len() > 0 {
-		indexMap, err := addSortedHeader(v.Index(0))
+		indexMap, header, err := getIndexMap(v.Index(0))
 		if err != nil {
 			return err
+		}
+
+		if opts.Formatters.Format != "value" {
+			Table.AppendHeader(header)
 		}
 		for i := 0; i < v.Len(); i++ {
 			Table.AppendRow(getRow(v.Index(i), indexMap))
@@ -139,20 +168,14 @@ func WriteTable(data any) error {
 
 	if v.Kind() == reflect.Struct {
 		// For struct, we transpose the key-value to rows
-		for key, field := range Mapper.FieldMap(v) {
-			if opts.Formatters.Columns == nil {
-				Table.AppendRow(table.Row{key, formatValue(field)})
-				continue
-			}
-
-			for _, column := range opts.Formatters.Columns {
-				if column == key {
-					Table.AppendRow(table.Row{key, formatValue(field)})
-					continue
-				}
-			}
+		indexMap, header, err := getIndexMap(v)
+		if err != nil {
+			return err
 		}
-		Table.SortBy([]table.SortBy{{Number: 1, Mode: table.Asc}})
+
+		for i, index := range indexMap {
+			Table.AppendRow([]any{header[i], formatValue(reflectx.FieldByIndexes(v, index))})
+		}
 	}
 
 	// Sort Columns
