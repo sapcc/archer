@@ -52,7 +52,7 @@ func (*EndpointList) Execute(_ []string) error {
 		return err
 	}
 
-	DefaultColumns = []string{"id", "service_id", "service_name", "target.port", "status", "project_id"}
+	DefaultColumns = []string{"id", "service_id", "target.port", "status", "project_id"}
 	return WriteTable(resp.GetPayload().Items)
 }
 
