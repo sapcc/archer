@@ -257,6 +257,7 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 		Set("visibility", sq.Expr("COALESCE(?, visibility)", params.Body.Visibility)).
 		Set("tags", sq.Expr("COALESCE(?, tags)", internal.Unique(params.Body.Tags))).
 		Set("status", "PENDING_UPDATE").
+		Set("updated_at", sq.Expr("NOW()")).
 		Where("id = ?", params.ServiceID).
 		Suffix("RETURNING *")
 
@@ -436,6 +437,7 @@ func commonEndpointsActionHandler(pool *pgxpool.Pool, body any, principal any) (
 	var consumerList *models.EndpointConsumerList
 
 	q := db.Update("endpoint").
+		Set("updated_at", sq.Expr("NOW()")).
 		From("service").
 		Suffix("RETURNING endpoint.id, endpoint.status, endpoint.project_id")
 

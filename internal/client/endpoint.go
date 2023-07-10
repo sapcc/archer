@@ -57,7 +57,7 @@ func (*EndpointList) Execute(_ []string) error {
 		return err
 	}
 
-	DefaultColumns = []string{"id", "service_id", "target.port", "status", "project_id"}
+	DefaultColumns = []string{"id", "name", "service_id", "target.port", "status", "project_id"}
 	return WriteTable(resp.GetPayload().Items)
 }
 
@@ -92,20 +92,24 @@ func (*EndpointShow) Execute(_ []string) error {
 }
 
 type EndpointCreate struct {
-	Tags       []string     `long:"tag" description:"Tag to be added to the endpoint (repeat option to set multiple tags)"`
-	Network    *strfmt.UUID `long:"network" description:"Endpoint network (ID)"`
-	Port       *strfmt.UUID `long:"port" description:"Endpoint port (ID)"`
-	Subnet     *strfmt.UUID `long:"subnet" description:"Endpoint subnet (ID)"`
-	Wait       bool         `long:"wait" description:"Wait for endpoint to be ready"`
-	Positional struct {
+	Name        string       `short:"n" long:"name" description:"New endpoint name"`
+	Description string       `long:"description" description:"Set endpoint description"`
+	Tags        []string     `long:"tag" description:"Tag to be added to the endpoint (repeat option to set multiple tags)"`
+	Network     *strfmt.UUID `long:"network" description:"Endpoint network (ID)"`
+	Port        *strfmt.UUID `long:"port" description:"Endpoint port (ID)"`
+	Subnet      *strfmt.UUID `long:"subnet" description:"Endpoint subnet (ID)"`
+	Wait        bool         `long:"wait" description:"Wait for endpoint to be ready"`
+	Positional  struct {
 		Service strfmt.UUID `positional-arg-name:"service" description:"Service to reference (ID)"`
 	} `positional-args:"yes" required:"yes"`
 }
 
 func (*EndpointCreate) Execute(_ []string) error {
 	sv := models.Endpoint{
-		ServiceID: EndpointOptions.EndpointCreate.Positional.Service,
-		Tags:      EndpointOptions.EndpointCreate.Tags,
+		Name:        EndpointOptions.EndpointCreate.Name,
+		Description: EndpointOptions.EndpointCreate.Description,
+		ServiceID:   EndpointOptions.EndpointCreate.Positional.Service,
+		Tags:        EndpointOptions.EndpointCreate.Tags,
 		Target: models.EndpointTarget{
 			Network: EndpointOptions.Network,
 			Port:    EndpointOptions.Port,
@@ -154,9 +158,11 @@ type EndpointSet struct {
 	Positional struct {
 		Endpoint strfmt.UUID `positional-arg-name:"endpoint" description:"Endpoint to set (ID)"`
 	} `positional-args:"yes" required:"yes"`
-	NoTags bool     `long:"no-tag" description:"Clear tags associated with the endpoint. Specify both --tag and --no-tag to overwrite current tags"`
-	Tags   []string `long:"tag" description:"Tag to be added to the endpoint (repeat option to set multiple tags)"`
-	Wait   bool     `long:"wait" description:"Wait for endpoint to be ready"`
+	Name        *string  `short:"n" long:"name" description:"New endpoint name"`
+	Description *string  `long:"description" description:"Set endpoint description"`
+	NoTags      bool     `long:"no-tag" description:"Clear tags associated with the endpoint. Specify both --tag and --no-tag to overwrite current tags"`
+	Tags        []string `long:"tag" description:"Tag to be added to the endpoint (repeat option to set multiple tags)"`
+	Wait        bool     `long:"wait" description:"Wait for endpoint to be ready"`
 }
 
 func (*EndpointSet) Execute(_ []string) error {
@@ -178,7 +184,11 @@ func (*EndpointSet) Execute(_ []string) error {
 	params := endpoint.
 		NewPutEndpointEndpointIDParams().
 		WithEndpointID(EndpointOptions.EndpointSet.Positional.Endpoint).
-		WithBody(endpoint.PutEndpointEndpointIDBody{Tags: tags})
+		WithBody(endpoint.PutEndpointEndpointIDBody{
+			Name:        EndpointOptions.EndpointSet.Name,
+			Description: EndpointOptions.EndpointSet.Description,
+			Tags:        tags,
+		})
 	resp, err := ArcherClient.Endpoint.PutEndpointEndpointID(params, nil)
 	if err != nil {
 		return err

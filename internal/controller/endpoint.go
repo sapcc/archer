@@ -133,9 +133,10 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 
 	// Insert endpoint
 	sql, args = db.Insert("endpoint").
-		Columns("service_id", "project_id", "tags").
-		Values(params.Body.ServiceID, params.Body.ProjectID, internal.Unique(params.Body.Tags)).
-		Suffix("RETURNING id, service_id, project_id, tags, created_at, updated_at, status").
+		Columns("service_id", "project_id", "tags", "name", "description").
+		Values(params.Body.ServiceID, params.Body.ProjectID, internal.Unique(params.Body.Tags),
+			params.Body.Name, params.Body.Description).
+		Suffix("RETURNING id, name, description, service_id, project_id, tags, created_at, updated_at, status").
 		MustSql()
 	if err = pgxscan.Get(ctx, tx, &endpointResponse, sql, args...); err != nil {
 		var pe *pgconn.PgError
@@ -243,7 +244,10 @@ func (c *Controller) PutEndpointEndpointIDHandler(params endpoint.PutEndpointEnd
 		`endpoint_port.subnet AS "target.subnet"`).
 		PrefixExpr(db.Update("endpoint").
 			Prefix("WITH endpoint AS (").
-			Set("tags", internal.Unique(params.Body.Tags)).
+			Set("tags", sq.Expr("COALESCE(?, tags)", internal.Unique(params.Body.Tags))).
+			Set("name", sq.Expr("COALESCE(?, name)", params.Body.Name)).
+			Set("description", sq.Expr("COALESCE(?, description)", params.Body.Description)).
+			Set("updated_at", sq.Expr("NOW()")).
 			Where("id = ?", params.EndpointID).
 			Suffix("RETURNING *)")).
 		From("endpoint").

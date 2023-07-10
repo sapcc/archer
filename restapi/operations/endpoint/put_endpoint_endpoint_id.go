@@ -93,6 +93,16 @@ func (o *PutEndpointEndpointID) ServeHTTP(rw http.ResponseWriter, r *http.Reques
 // swagger:model PutEndpointEndpointIDBody
 type PutEndpointEndpointIDBody struct {
 
+	// Description of the endpoint.
+	// Example: An example of an endpoint.
+	// Max Length: 255
+	Description *string `json:"description,omitempty"`
+
+	// Name of the endpoint.
+	// Example: Example endpoint.
+	// Max Length: 64
+	Name *string `json:"name,omitempty"`
+
 	// The list of tags on the resource.
 	// Required: true
 	Tags []string `json:"tags"`
@@ -102,6 +112,14 @@ type PutEndpointEndpointIDBody struct {
 func (o *PutEndpointEndpointIDBody) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := o.validateDescription(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := o.validateName(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := o.validateTags(formats); err != nil {
 		res = append(res, err)
 	}
@@ -109,6 +127,30 @@ func (o *PutEndpointEndpointIDBody) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (o *PutEndpointEndpointIDBody) validateDescription(formats strfmt.Registry) error {
+	if swag.IsZero(o.Description) { // not required
+		return nil
+	}
+
+	if err := validate.MaxLength("body"+"."+"description", "body", *o.Description, 255); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (o *PutEndpointEndpointIDBody) validateName(formats strfmt.Registry) error {
+	if swag.IsZero(o.Name) { // not required
+		return nil
+	}
+
+	if err := validate.MaxLength("body"+"."+"name", "body", *o.Name, 64); err != nil {
+		return err
+	}
+
 	return nil
 }
 

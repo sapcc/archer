@@ -262,6 +262,20 @@ func init() {
                 "tags"
               ],
               "properties": {
+                "description": {
+                  "description": "Description of the endpoint.",
+                  "type": "string",
+                  "maxLength": 255,
+                  "x-nullable": true,
+                  "example": "An example of an endpoint."
+                },
+                "name": {
+                  "description": "Name of the endpoint.",
+                  "type": "string",
+                  "maxLength": 64,
+                  "x-nullable": true,
+                  "example": "Example endpoint."
+                },
                 "tags": {
                   "description": "The list of tags on the resource.",
                   "type": "array",
@@ -1346,11 +1360,25 @@ func init() {
         "created_at": {
           "$ref": "#/definitions/Timestamp"
         },
+        "description": {
+          "description": "Description of the endpoint.",
+          "type": "string",
+          "maxLength": 255,
+          "x-omitempty": false,
+          "example": "An example of an endpoint."
+        },
         "id": {
           "description": "The ID of the resource.",
           "type": "string",
           "format": "uuid",
           "readOnly": true
+        },
+        "name": {
+          "description": "Name of the endpoint.",
+          "type": "string",
+          "maxLength": 64,
+          "x-omitempty": false,
+          "example": "Example endpoint."
         },
         "project_id": {
           "$ref": "#/definitions/Project"
@@ -2232,6 +2260,20 @@ func init() {
                 "tags"
               ],
               "properties": {
+                "description": {
+                  "description": "Description of the endpoint.",
+                  "type": "string",
+                  "maxLength": 255,
+                  "x-nullable": true,
+                  "example": "An example of an endpoint."
+                },
+                "name": {
+                  "description": "Name of the endpoint.",
+                  "type": "string",
+                  "maxLength": 64,
+                  "x-nullable": true,
+                  "example": "Example endpoint."
+                },
                 "tags": {
                   "description": "The list of tags on the resource.",
                   "type": "array",
@@ -3369,11 +3411,25 @@ func init() {
         "created_at": {
           "$ref": "#/definitions/Timestamp"
         },
+        "description": {
+          "description": "Description of the endpoint.",
+          "type": "string",
+          "maxLength": 255,
+          "x-omitempty": false,
+          "example": "An example of an endpoint."
+        },
         "id": {
           "description": "The ID of the resource.",
           "type": "string",
           "format": "uuid",
           "readOnly": true
+        },
+        "name": {
+          "description": "Name of the endpoint.",
+          "type": "string",
+          "maxLength": 64,
+          "x-omitempty": false,
+          "example": "Example endpoint."
         },
         "project_id": {
           "$ref": "#/definitions/Project"

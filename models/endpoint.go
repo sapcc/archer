@@ -38,10 +38,20 @@ type Endpoint struct {
 	// created at
 	CreatedAt time.Time `json:"created_at,omitempty"`
 
+	// Description of the endpoint.
+	// Example: An example of an endpoint.
+	// Max Length: 255
+	Description string `json:"description"`
+
 	// The ID of the resource.
 	// Read Only: true
 	// Format: uuid
 	ID strfmt.UUID `json:"id,omitempty"`
+
+	// Name of the endpoint.
+	// Example: Example endpoint.
+	// Max Length: 64
+	Name string `json:"name"`
 
 	// project id
 	ProjectID Project `json:"project_id"`
@@ -71,7 +81,15 @@ func (m *Endpoint) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateDescription(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateID(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateName(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -113,12 +131,36 @@ func (m *Endpoint) validateCreatedAt(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *Endpoint) validateDescription(formats strfmt.Registry) error {
+	if swag.IsZero(m.Description) { // not required
+		return nil
+	}
+
+	if err := validate.MaxLength("description", "body", m.Description, 255); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (m *Endpoint) validateID(formats strfmt.Registry) error {
 	if swag.IsZero(m.ID) { // not required
 		return nil
 	}
 
 	if err := validate.FormatOf("id", "body", "uuid", m.ID.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Endpoint) validateName(formats strfmt.Registry) error {
+	if swag.IsZero(m.Name) { // not required
+		return nil
+	}
+
+	if err := validate.MaxLength("name", "body", m.Name, 64); err != nil {
 		return err
 	}
 

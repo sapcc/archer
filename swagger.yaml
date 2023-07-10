@@ -635,6 +635,18 @@ paths:
                 items:
                   type: string
                   maxLength: 64
+              name:
+                type: string
+                description: Name of the endpoint.
+                example: Example endpoint.
+                maxLength: 64
+                x-nullable: true
+              description:
+                type: string
+                description: Description of the endpoint.
+                example: An example of an endpoint.
+                maxLength: 255
+                x-nullable: true
       responses:
         200:
           description: Endpoint
@@ -1275,6 +1287,18 @@ definitions:
         type: string
         format: uuid
         description: The ID of the service.
+      name:
+        type: string
+        description: Name of the endpoint.
+        example: Example endpoint.
+        maxLength: 64
+        x-omitempty: false
+      description:
+        type: string
+        description: Description of the endpoint.
+        example: An example of an endpoint.
+        maxLength: 255
+        x-omitempty: false
       target:
         type: object
         description: Endpoint target

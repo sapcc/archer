@@ -219,4 +219,11 @@ var Migrations = mgx.Migrations(
 		`)
 		return err
 	}),
+	mgx.NewMigration("add_endpoint_name", func(ctx context.Context, commands mgx.Commands) error {
+		_, err := commands.Exec(ctx, `
+			ALTER TABLE endpoint ADD COLUMN name VARCHAR(64) NOT NULL DEFAULT '';
+			ALTER TABLE endpoint ADD COLUMN description VARCHAR(255) NOT NULL DEFAULT '';
+		`)
+		return err
+	}),
 )
