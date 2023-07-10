@@ -434,7 +434,6 @@ type PutEndpointEndpointIDBody struct {
 	Name *string `json:"name,omitempty"`
 
 	// The list of tags on the resource.
-	// Required: true
 	Tags []string `json:"tags"`
 }
 
@@ -485,9 +484,8 @@ func (o *PutEndpointEndpointIDBody) validateName(formats strfmt.Registry) error 
 }
 
 func (o *PutEndpointEndpointIDBody) validateTags(formats strfmt.Registry) error {
-
-	if err := validate.Required("body"+"."+"tags", "body", o.Tags); err != nil {
-		return err
+	if swag.IsZero(o.Tags) { // not required
+		return nil
 	}
 
 	for i := 0; i < len(o.Tags); i++ {

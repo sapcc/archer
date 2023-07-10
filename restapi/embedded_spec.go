@@ -258,9 +258,6 @@ func init() {
             "required": true,
             "schema": {
               "type": "object",
-              "required": [
-                "tags"
-              ],
               "properties": {
                 "description": {
                   "description": "Description of the endpoint.",
@@ -2256,9 +2253,6 @@ func init() {
             "required": true,
             "schema": {
               "type": "object",
-              "required": [
-                "tags"
-              ],
               "properties": {
                 "description": {
                   "description": "Description of the endpoint.",
