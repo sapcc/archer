@@ -34,10 +34,20 @@ var EndpointOptions struct {
 	EndpointDelete `command:"delete" description:"Delete Endpoint"`
 }
 
-type EndpointList struct{}
+type EndpointList struct {
+	Tags       []string `long:"tags" description:"List endpoints which have all given tag(s) (repeat option for multiple tags)"`
+	AnyTags    []string `long:"any-tags" description:"List endpoints which have any given tag(s) (repeat option for multiple tags)"`
+	NotTags    []string `long:"not-tags" description:"Exclude endpoints which have all given tag(s) (repeat option for multiple tags)"`
+	NotAnyTags []string `long:"not-any-tags" description:"Exclude endpoints which have any given tag(s) (repeat option for multiple tags)"`
+}
 
 func (*EndpointList) Execute(_ []string) error {
-	resp, err := ArcherClient.Endpoint.GetEndpoint(nil, nil)
+	params := endpoint.NewGetEndpointParams().
+		WithTags(EndpointOptions.EndpointList.Tags).
+		WithTagsAny(EndpointOptions.EndpointList.AnyTags).
+		WithNotTags(EndpointOptions.EndpointList.NotTags).
+		WithNotTagsAny(EndpointOptions.EndpointList.NotAnyTags)
+	resp, err := ArcherClient.Endpoint.GetEndpoint(params, nil)
 	if err != nil {
 		return err
 	}

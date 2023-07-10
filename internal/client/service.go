@@ -38,10 +38,20 @@ var ServiceOptions struct {
 	ServiceDelete   `command:"delete" description:"Delete Service"`
 }
 
-type ServiceList struct{}
+type ServiceList struct {
+	Tags       []string `long:"tags" description:"List endpoints which have all given tag(s) (repeat option for multiple tags)"`
+	AnyTags    []string `long:"any-tags" description:"List endpoints which have any given tag(s) (repeat option for multiple tags)"`
+	NotTags    []string `long:"not-tags" description:"Exclude endpoints which have all given tag(s) (repeat option for multiple tags)"`
+	NotAnyTags []string `long:"not-any-tags" description:"Exclude endpoints which have any given tag(s) (repeat option for multiple tags)"`
+}
 
 func (*ServiceList) Execute(_ []string) error {
-	resp, err := ArcherClient.Service.GetService(nil, nil)
+	params := service.NewGetServiceParams().
+		WithTags(ServiceOptions.ServiceList.Tags).
+		WithTagsAny(ServiceOptions.ServiceList.AnyTags).
+		WithNotTags(ServiceOptions.ServiceList.NotTags).
+		WithNotTagsAny(ServiceOptions.ServiceList.NotAnyTags)
+	resp, err := ArcherClient.Service.GetService(params, nil)
 	if err != nil {
 		return err
 	}
