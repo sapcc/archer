@@ -19,12 +19,12 @@ package client
 import (
 	"context"
 	"errors"
-	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"time"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/sethvargo/go-retry"
 
 	"github.com/sapcc/archer/client/endpoint"
@@ -119,7 +119,7 @@ func (*EndpointCreate) Execute(_ []string) error {
 	var res *models.Endpoint
 	res = resp.GetPayload()
 	if EndpointOptions.EndpointCreate.Wait {
-		if res, err = waitForEndpoint(res.ID); err != nil {
+		if res, err = waitForEndpoint(res.ID, false); err != nil {
 			return err
 		}
 	}
@@ -130,6 +130,7 @@ type EndpointDelete struct {
 	Positional struct {
 		Endpoint strfmt.UUID `description:"Endpoint to set (ID)"`
 	} `positional-args:"yes" required:"yes"`
+	Wait bool `long:"wait" description:"Wait for endpoint to be deleted"`
 }
 
 func (*EndpointDelete) Execute(_ []string) error {
@@ -137,6 +138,15 @@ func (*EndpointDelete) Execute(_ []string) error {
 		NewDeleteEndpointEndpointIDParams().
 		WithEndpointID(EndpointOptions.EndpointDelete.Positional.Endpoint)
 	_, err := ArcherClient.Endpoint.DeleteEndpointEndpointID(params, nil)
+	if err != nil {
+		return err
+	}
+
+	if EndpointOptions.EndpointDelete.Wait {
+		if _, err = waitForEndpoint(params.EndpointID, true); err != nil {
+			return err
+		}
+	}
 	return err
 }
 
@@ -176,7 +186,7 @@ func (*EndpointSet) Execute(_ []string) error {
 	var res *models.Endpoint
 	res = resp.GetPayload()
 	if EndpointOptions.EndpointSet.Wait {
-		if res, err = waitForEndpoint(res.ID); err != nil {
+		if res, err = waitForEndpoint(res.ID, false); err != nil {
 			return err
 		}
 	}
@@ -190,7 +200,7 @@ func init() {
 	}
 }
 
-func waitForEndpoint(id strfmt.UUID) (*models.Endpoint, error) {
+func waitForEndpoint(id strfmt.UUID, deleted bool) (*models.Endpoint, error) {
 	var res *models.Endpoint
 	b := retry.NewConstant(1 * time.Second)
 	b = retry.WithMaxDuration(60*time.Second, b)
@@ -198,12 +208,16 @@ func waitForEndpoint(id strfmt.UUID) (*models.Endpoint, error) {
 		params := endpoint.NewGetEndpointEndpointIDParams().WithEndpointID(id)
 		r, err := ArcherClient.Endpoint.GetEndpointEndpointID(params, nil)
 		if err != nil {
+			if _, ok := err.(*endpoint.GetEndpointEndpointIDNotFound); ok && deleted {
+				// endpoint deleted
+				return nil
+			}
 			return err
 		}
 
 		res = r.GetPayload()
-		if res.Status != "AVAILABLE" {
-			return retry.RetryableError(errors.New("endpoint not ready"))
+		if deleted || res.Status != "AVAILABLE" {
+			return retry.RetryableError(errors.New("endpoint not processed"))
 		}
 		return nil
 	}); err != nil {

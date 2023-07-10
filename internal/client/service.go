@@ -115,7 +115,7 @@ func (*ServiceCreate) Execute(_ []string) error {
 	var res *models.Service
 	res = resp.GetPayload()
 	if ServiceOptions.ServiceCreate.Wait {
-		if res, err = waitForService(res.ID); err != nil {
+		if res, err = waitForService(res.ID, false); err != nil {
 			return err
 		}
 	}
@@ -192,7 +192,7 @@ func (*ServiceSet) Execute(_ []string) error {
 	var res *models.Service
 	res = resp.GetPayload()
 	if ServiceOptions.ServiceSet.Wait {
-		if res, err = waitForService(res.ID); err != nil {
+		if res, err = waitForService(res.ID, false); err != nil {
 			return err
 		}
 	}
@@ -203,6 +203,7 @@ type ServiceDelete struct {
 	Positional struct {
 		Service strfmt.UUID `description:"Service to delete (ID)"`
 	} `positional-args:"yes" required:"yes"`
+	Wait bool `long:"wait" description:"Wait for endpoint to be deleted"`
 }
 
 func (*ServiceDelete) Execute(_ []string) error {
@@ -210,6 +211,15 @@ func (*ServiceDelete) Execute(_ []string) error {
 		NewDeleteServiceServiceIDParams().
 		WithServiceID(ServiceOptions.ServiceDelete.Positional.Service)
 	_, err := ArcherClient.Service.DeleteServiceServiceID(params, nil)
+	if err != nil {
+		return err
+	}
+
+	if ServiceOptions.ServiceDelete.Wait {
+		if _, err = waitForService(params.ServiceID, true); err != nil {
+			return err
+		}
+	}
 	return err
 }
 
@@ -310,7 +320,7 @@ func init() {
 	}
 }
 
-func waitForService(id strfmt.UUID) (*models.Service, error) {
+func waitForService(id strfmt.UUID, deleted bool) (*models.Service, error) {
 	var res *models.Service
 
 	b := retry.NewConstant(1 * time.Second)
@@ -319,12 +329,15 @@ func waitForService(id strfmt.UUID) (*models.Service, error) {
 		params := service.NewGetServiceServiceIDParams().WithServiceID(id)
 		r, err := ArcherClient.Service.GetServiceServiceID(params, nil)
 		if err != nil {
+			if _, ok := err.(*service.GetServiceServiceIDNotFound); ok && deleted {
+				return nil
+			}
 			return err
 		}
 
 		res = r.GetPayload()
-		if res.Status != "AVAILABLE" {
-			return retry.RetryableError(errors.New("service not ready"))
+		if deleted || res.Status != "AVAILABLE" {
+			return retry.RetryableError(errors.New("service not processed"))
 		}
 		return nil
 	}); err != nil {
