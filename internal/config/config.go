@@ -28,7 +28,9 @@ import (
 )
 
 var (
-	Global Archer
+	Version   string
+	BuildTime string
+	Global    Archer
 )
 
 type Archer struct {
@@ -141,6 +143,8 @@ func ParseConfig(parser *flags.Parser) {
 			logg.Fatal(err.Error())
 		}
 	}
+
+	logg.Info("Running Archer @%s (%s)", Version, BuildTime)
 }
 
 func InitSentry() {
@@ -149,7 +153,8 @@ func InitSentry() {
 			Dsn:              Global.Default.SentryDSN,
 			AttachStacktrace: true,
 			Debug:            IsDebug(),
-			Release:          "TODO Version",
+			EnableTracing:    IsDebug(),
+			Release:          Version,
 		}); err != nil {
 			logg.Fatal("Sentry initialization failed: %v", err)
 		}
