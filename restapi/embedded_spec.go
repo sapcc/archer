@@ -1360,12 +1360,6 @@ func init() {
           "type": "string",
           "format": "uuid"
         },
-        "service_name": {
-          "description": "The name of the service.",
-          "type": "string",
-          "readOnly": true,
-          "example": "Example Service"
-        },
         "status": {
           "$ref": "#/definitions/EndpointStatus"
         },
@@ -3388,12 +3382,6 @@ func init() {
           "description": "The ID of the service.",
           "type": "string",
           "format": "uuid"
-        },
-        "service_name": {
-          "description": "The name of the service.",
-          "type": "string",
-          "readOnly": true,
-          "example": "Example Service"
         },
         "status": {
           "$ref": "#/definitions/EndpointStatus"

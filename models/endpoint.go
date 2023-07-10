@@ -50,11 +50,6 @@ type Endpoint struct {
 	// Format: uuid
 	ServiceID strfmt.UUID `json:"service_id,omitempty"`
 
-	// The name of the service.
-	// Example: Example Service
-	// Read Only: true
-	ServiceName string `json:"service_name,omitempty"`
-
 	// status
 	Status EndpointStatus `json:"status,omitempty"`
 
@@ -229,10 +224,6 @@ func (m *Endpoint) ContextValidate(ctx context.Context, formats strfmt.Registry)
 		res = append(res, err)
 	}
 
-	if err := m.contextValidateServiceName(ctx, formats); err != nil {
-		res = append(res, err)
-	}
-
 	if err := m.contextValidateStatus(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -264,15 +255,6 @@ func (m *Endpoint) contextValidateProjectID(ctx context.Context, formats strfmt.
 		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("project_id")
 		}
-		return err
-	}
-
-	return nil
-}
-
-func (m *Endpoint) contextValidateServiceName(ctx context.Context, formats strfmt.Registry) error {
-
-	if err := validate.ReadOnly(ctx, "service_name", "body", string(m.ServiceName)); err != nil {
 		return err
 	}
 

@@ -49,11 +49,9 @@ func (c *Controller) GetEndpointHandler(params endpoint.GetEndpointParams, princ
 		Select("endpoint.*",
 			`endpoint_port.port_id AS "target.port"`,
 			`endpoint_port.network AS "target.network"`,
-			`endpoint_port.subnet AS "target.subnet"`,
-			"service.name AS service_name").
+			`endpoint_port.subnet AS "target.subnet"`).
 		From("endpoint").
-		Join("endpoint_port ON endpoint_port.endpoint_id = endpoint.id").
-		Join("service ON service.id = endpoint.service_id"))
+		Join("endpoint_port ON endpoint_port.endpoint_id = endpoint.id"))
 	if err != nil {
 		panic(err)
 	}
@@ -201,15 +199,6 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 		panic(err)
 	}
 
-	sql, args = db.Select("name AS service_name").
-		From("service").
-		Where("id = ?", endpointResponse.ServiceID).
-		MustSql()
-	if err := tx.QueryRow(params.HTTPRequest.Context(), sql, args...).Scan(&endpointResponse.ServiceName); err != nil {
-		logg.Error("Deallocating port %s: %s", port.ID, c.neutron.DeletePort(port.ID))
-		panic(err)
-	}
-
 	// done and done
 	if err := tx.Commit(ctx); err != nil {
 		logg.Error("Deallocating port %s: %s", port.ID, c.neutron.DeletePort(port.ID))
@@ -224,11 +213,9 @@ func (c *Controller) GetEndpointEndpointIDHandler(params endpoint.GetEndpointEnd
 	q := db.Select("endpoint.*",
 		`endpoint_port.port_id AS "target.port"`,
 		`endpoint_port.network AS "target.network"`,
-		`endpoint_port.subnet AS "target.subnet"`,
-		"service.name AS service_name").
+		`endpoint_port.subnet AS "target.subnet"`).
 		From("endpoint").
 		Join("endpoint_port ON endpoint_port.endpoint_id = endpoint.id").
-		Join("service ON service.id = endpoint.service_id").
 		Where("endpoint.id = ?", params.EndpointID)
 
 	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
@@ -253,16 +240,14 @@ func (c *Controller) PutEndpointEndpointIDHandler(params endpoint.PutEndpointEnd
 	q := db.Select("endpoint.*",
 		`endpoint_port.port_id AS "target.port"`,
 		`endpoint_port.network AS "target.network"`,
-		`endpoint_port.subnet AS "target.subnet"`,
-		"service.name AS service_name").
+		`endpoint_port.subnet AS "target.subnet"`).
 		PrefixExpr(db.Update("endpoint").
 			Prefix("WITH endpoint AS (").
 			Set("tags", internal.Unique(params.Body.Tags)).
 			Where("id = ?", params.EndpointID).
 			Suffix("RETURNING *)")).
 		From("endpoint").
-		Join("endpoint_port ON endpoint_port.endpoint_id = endpoint.id").
-		Join("service ON service.id = endpoint.service_id")
+		Join("endpoint_port ON endpoint_port.endpoint_id = endpoint.id")
 
 	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
 		return endpoint.NewPutEndpointEndpointIDForbidden()

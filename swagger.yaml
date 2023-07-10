@@ -1275,11 +1275,6 @@ definitions:
         type: string
         format: uuid
         description: The ID of the service.
-      service_name:
-        type: string
-        example: Example Service
-        description: The name of the service.
-        readOnly: true
       target:
         type: object
         description: Endpoint target
