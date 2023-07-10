@@ -58,9 +58,9 @@ func ConnectToNeutron(providerClient *gophercloud.ProviderClient) (*NeutronClien
 }
 
 func (n *NeutronClient) GetNetworkSegment(networkId string) (int, error) {
-	if segment, ok := n.cache.Get(networkId); ok {
+	/*if segment, ok := n.cache.Get(networkId); ok {
 		return segment, nil
-	}
+	}*/
 
 	var network provider.NetworkProviderExt
 	r := networks.Get(n.ServiceClient, networkId)
