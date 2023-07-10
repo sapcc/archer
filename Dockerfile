@@ -4,7 +4,7 @@ ENV CGO_ENABLED=0
 ARG TARGETOS
 ARG TARGETARCH
 
-RUN apk add --no-cache make
+RUN apk add --no-cache make git
 COPY . /src
 RUN make -C /src
 
