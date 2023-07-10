@@ -17,6 +17,7 @@ limitations under the License.
 package ni
 
 import (
+	"os"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -140,6 +141,10 @@ func (o *Agent) DisableInjection(si *ServiceInjection) error {
 	}
 
 	if err := DeleteNetworkNamespace(injectorPort.NetworkID); err != nil {
+		// namespace does not exist
+		if os.IsNotExist(err) {
+			return nil
+		}
 		return err
 	}
 	return nil
