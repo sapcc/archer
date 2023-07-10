@@ -154,7 +154,7 @@ func InitSentry() {
 			AttachStacktrace: true,
 			Debug:            IsDebug(),
 			EnableTracing:    IsDebug(),
-			SampleRate:       0.25,
+			TracesSampleRate: 0.25,
 			Release:          Version,
 		}); err != nil {
 			logg.Fatal("Sentry initialization failed: %v", err)
