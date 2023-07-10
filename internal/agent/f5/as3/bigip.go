@@ -247,7 +247,7 @@ func (big *BigIP) PostBigIP(as3 *AS3, tenant string) error {
 	r := retry.WithMaxRetries(3, retry.NewExponential(3*time.Second))
 	err = retry.Do(context.Background(), r, func(ctx context.Context) error {
 		err, _, _ = big.PostAs3Bigip(string(data), tenant)
-		return err
+		return retry.RetryableError(err)
 	})
 	return err
 }
