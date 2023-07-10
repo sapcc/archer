@@ -15,17 +15,20 @@
 package as3
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/f5devcentral/go-bigip"
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
 	"github.com/sapcc/go-bits/logg"
+	"github.com/sethvargo/go-retry"
 
 	"github.com/sapcc/archer/internal"
 	"github.com/sapcc/archer/internal/config"
@@ -241,12 +244,12 @@ func (big *BigIP) PostBigIP(as3 *AS3, tenant string) error {
 		fmt.Printf("-------------------> %s\n%s\n-------------------\n", big.Host, data)
 	}
 
-	err, _, _ = big.PostAs3Bigip(string(data), tenant)
-	if err != nil {
+	r := retry.WithMaxRetries(3, retry.NewExponential(3*time.Second))
+	err = retry.Do(context.Background(), r, func(ctx context.Context) error {
+		err, _, _ = big.PostAs3Bigip(string(data), tenant)
 		return err
-	}
-
-	return nil
+	})
+	return err
 }
 
 func (big *BigIP) GetBigIPDevice(hostname string) *bigip.Device {
