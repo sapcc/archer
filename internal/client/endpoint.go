@@ -19,11 +19,16 @@ package client
 import (
 	"context"
 	"errors"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
+	"time"
+
 	"github.com/go-openapi/strfmt"
+	"github.com/sethvargo/go-retry"
+
 	"github.com/sapcc/archer/client/endpoint"
 	"github.com/sapcc/archer/models"
-	"github.com/sethvargo/go-retry"
-	"time"
 )
 
 var EndpointOptions struct {
@@ -63,13 +68,27 @@ type EndpointShow struct {
 }
 
 func (*EndpointShow) Execute(_ []string) error {
+	type extendedEndpoint struct {
+		*models.Endpoint
+		IPAddress string `json:"target.ip_address"`
+	}
+
 	params := endpoint.NewGetEndpointEndpointIDParams().WithEndpointID(EndpointOptions.EndpointShow.Positional.Endpoint)
 	resp, err := ArcherClient.Endpoint.GetEndpointEndpointID(params, nil)
 	if err != nil {
 		return err
 	}
+	ep := resp.GetPayload()
 
-	return WriteTable(resp.GetPayload())
+	network, err := openstack.NewNetworkV2(Provider, gophercloud.EndpointOpts{})
+	if err != nil {
+		return err
+	}
+	port, err := ports.Get(network, resp.GetPayload().Target.Port.String()).Extract()
+	if err != nil {
+		return err
+	}
+	return WriteTable(extendedEndpoint{ep, port.FixedIPs[0].IPAddress})
 }
 
 type EndpointCreate struct {

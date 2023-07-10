@@ -43,6 +43,7 @@ var (
 	Table        = table.NewWriter()
 	Mapper       = reflectx.NewMapper("json")
 	ArcherClient = client.Default
+	Provider     *gophercloud.ProviderClient
 )
 
 type outputFormatters struct {
@@ -100,12 +101,12 @@ func SetupClient() {
 			return err
 		}
 
-		provider, err := openstack.NewClient(opts.OSAuthUrl)
+		Provider, err = openstack.NewClient(opts.OSAuthUrl)
 		if err != nil {
 			return err
 		}
 		if opts.Debug {
-			provider.HTTPClient = http.Client{
+			Provider.HTTPClient = http.Client{
 				Transport: &osclient.RoundTripper{
 					Rt:     &http.Transport{},
 					Logger: &osclient.DefaultLogger{},
@@ -113,7 +114,7 @@ func SetupClient() {
 			}
 		}
 
-		err = openstack.Authenticate(provider, *ao)
+		err = openstack.Authenticate(Provider, *ao)
 		if err != nil {
 			return err
 		}
@@ -127,7 +128,7 @@ func SetupClient() {
 		if opts.OSEndpoint != "" {
 			endpoint = opts.OSEndpoint
 		} else {
-			if endpoint, err = provider.EndpointLocator(endpointOpts); err != nil {
+			if endpoint, err = Provider.EndpointLocator(endpointOpts); err != nil {
 				return err
 			}
 		}
@@ -140,7 +141,7 @@ func SetupClient() {
 		rt := runtimeclient.New(uri.Host, uri.Path, []string{uri.Scheme})
 		rt.SetDebug(opts.Debug)
 		rt.DefaultAuthentication = runtime.ClientAuthInfoWriterFunc(func(req runtime.ClientRequest, reg strfmt.Registry) error {
-			if err := req.SetHeaderParam("X-Auth-Token", provider.Token()); err != nil {
+			if err := req.SetHeaderParam("X-Auth-Token", Provider.Token()); err != nil {
 				return err
 			}
 			return nil
