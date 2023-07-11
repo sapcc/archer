@@ -101,11 +101,11 @@ func (arw *auditResponseWriter) WriteHeader(code int) {
 	arw.ResponseWriter.WriteHeader(code)
 
 	mr := middleware.MatchedRouteFrom(arw.request)
-	resource := strings.Split(policy.RuleFromHTTPRequest(arw.request), ":")[1]
+	resource := strings.Split(policy.RuleFromHTTPRequest(arw.request), ":")[0]
 	uprinc := middleware.SecurityPrincipalFrom(arw.request)
 	user := uprinc.(audittools.UserInfo)
-	if user != nil {
-		logg.Error("missing token")
+	if user == nil {
+		logg.Error("Audit Middleware WriteHeader: missing token")
 		return
 	}
 

@@ -192,6 +192,7 @@ func configureServer(s *http.Server, scheme, addr string) {
 // The middleware executes after routing but before authentication, binding and validation.
 func setupMiddlewares(handler http.Handler) http.Handler {
 	if rl := config.Global.ApiSettings.RateLimit; rl > .0 {
+		logg.Info("Initializing rate limit middleware")
 		limiter := tollbooth.NewLimiter(rl, nil)
 		limiter.SetHeader("X-Auth-Token", nil)
 		limiter.SetMethods([]string{"GET", "POST", "PUT", "DELETE"})
@@ -199,6 +200,7 @@ func setupMiddlewares(handler http.Handler) http.Handler {
 	}
 
 	if config.Global.Audit.Enabled {
+		logg.Info("Initializing audit middleware")
 		auditMiddleware := middlewares.NewAuditController()
 		handler = auditMiddleware.AuditHandler(handler)
 	}

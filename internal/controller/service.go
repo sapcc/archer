@@ -133,7 +133,7 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 			return err
 		}
 
-		logg.Info("Found host '%s' (usage=%d) for service request (provider=%s)", host, usage,
+		logg.Info("Found host '%s' (usage=%d) for service request (provider=%+v)", host, usage,
 			params.Body.Provider)
 		params.Body.Host = &host
 

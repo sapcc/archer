@@ -75,6 +75,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 	ctx := params.HTTPRequest.Context()
 	var endpointResponse models.Endpoint
 	var host string
+	var requireApproval bool
 
 	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
 		return endpoint.NewGetEndpointForbidden()
@@ -102,7 +103,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	// Check if service is accessible
-	sql, args := db.Select("host").
+	sql, args := db.Select("host", "require_approval").
 		From("service").
 		Where(sq.Or{
 			sq.Eq{"visibility": "public"},              // public service?
@@ -120,7 +121,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 		Suffix("FOR UPDATE"). // Lock service/rbac row in this transaction
 		MustSql()
 
-	if err = tx.QueryRow(ctx, sql, args...).Scan(&host); err != nil {
+	if err = tx.QueryRow(ctx, sql, args...).Scan(&host, &requireApproval); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
 				Code: 400,
@@ -131,11 +132,16 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 		panic(err)
 	}
 
+	status := "PENDING_CREATE"
+	if requireApproval {
+		status = "PENDING_APPROVAL"
+	}
+
 	// Insert endpoint
 	sql, args = db.Insert("endpoint").
-		Columns("service_id", "project_id", "tags", "name", "description").
+		Columns("service_id", "project_id", "tags", "name", "description", "status").
 		Values(params.Body.ServiceID, params.Body.ProjectID, internal.Unique(params.Body.Tags),
-			params.Body.Name, params.Body.Description).
+			params.Body.Name, params.Body.Description, status).
 		Suffix("RETURNING id, name, description, service_id, project_id, tags, created_at, updated_at, status").
 		MustSql()
 	if err = pgxscan.Get(ctx, tx, &endpointResponse, sql, args...); err != nil {
