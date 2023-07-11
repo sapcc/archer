@@ -150,11 +150,11 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 		g, _ := errgroup.WithContext(ctx)
 		for _, service := range services {
 			service := service
-			if err := a.EnsureL2(ctx, service.SegmentId, nil); err != nil {
-				return err
-			}
-
 			if service.Status != "PENDING_DELETE" {
+				if err := a.EnsureL2(ctx, service.SegmentId, nil); err != nil {
+					return err
+				}
+
 				// Ensure SNAT neutron ports and segment ids on VCMP guests
 				for _, bigip := range a.bigips {
 					bigip := bigip
