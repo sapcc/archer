@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
@@ -193,10 +192,12 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 						port, ok := service.SnatPorts[bigip.GetHostname()]
 						if ok {
 							if err := bigip.CleanupSelfIP(port); err != nil {
-								return fmt.Errorf("CleanupSelfIP(port=%s): %s", port.ID, err.Error())
+								logg.Info("CleanupSelfIP(service=%s,port=%s): %s", service.ID, port.ID,
+									err.Error())
 							}
 						} else {
-							logg.Info("CleanupSelfIP: No SelfIP registered for %s", bigip.GetHostname())
+							logg.Info("CleanupSelfIP(service=%s): No SelfIP registered for %",
+								service.ID, bigip.GetHostname())
 						}
 						return nil
 					})
@@ -223,12 +224,17 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 					skipCleanup = true
 				}
 
+				if service.SegmentId == 0 {
+					skipCleanup = true
+				}
+
 				if !skipCleanup {
 					if err := a.CleanupL2(ctx, service.SegmentId); err != nil {
-						logg.Error("CleanupL2(vlan=%d): %s", service.SegmentId, err.Error())
+						logg.Error("CleanupL2(service=%s,vlan=%d): %s", service.ID, service.SegmentId,
+							err.Error())
 					}
 				} else {
-					logg.Info("Skipping CleanupL2(vlan=%d) since it is still in use", service.SegmentId)
+					logg.Info("Skipping CleanupL2(service=%s,vlan=%d)", service.ID, service.SegmentId)
 				}
 			}
 		}

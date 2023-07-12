@@ -152,10 +152,8 @@ func InitSentry() {
 		if err := sentry.Init(sentry.ClientOptions{
 			Dsn:              Global.Default.SentryDSN,
 			AttachStacktrace: true,
-			Debug:            IsDebug(),
-			/*EnableTracing:    IsDebug(),
-			TracesSampleRate: 0.25,*/
-			Release: Version,
+			Release:          Version,
+			ServerName:       Global.Default.Host,
 		}); err != nil {
 			logg.Fatal("Sentry initialization failed: %v", err)
 		}
