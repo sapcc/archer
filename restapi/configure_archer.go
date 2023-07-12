@@ -19,7 +19,6 @@ package restapi
 import (
 	"context"
 	"crypto/tls"
-	"github.com/sapcc/archer/internal/neutron"
 	"net/http"
 	"time"
 
@@ -38,6 +37,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
+	"github.com/sapcc/go-bits/gopherpolicy"
 	"github.com/sapcc/go-bits/logg"
 
 	"github.com/sapcc/archer/internal/auth"
@@ -45,6 +45,8 @@ import (
 	"github.com/sapcc/archer/internal/controller"
 	"github.com/sapcc/archer/internal/db"
 	"github.com/sapcc/archer/internal/middlewares"
+	"github.com/sapcc/archer/internal/neutron"
+	"github.com/sapcc/archer/internal/policy"
 	"github.com/sapcc/archer/restapi/operations"
 	"github.com/sapcc/archer/restapi/operations/endpoint"
 	"github.com/sapcc/archer/restapi/operations/quota"
@@ -124,15 +126,29 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 		if err != nil {
 			logg.Fatal(err.Error())
 		}
+	} else {
+		logg.Info("Warning: authentication disabled (noop)")
 	}
 
-	// Applies when the "X-Auth-Token" header is set
-	api.XAuthTokenAuth = func(token string) (interface{}, error) {
-		if keystone != nil {
+	if keystone != nil {
+		// Applies when the "X-Auth-Token" header is set
+		api.XAuthTokenAuth = func(token string) (interface{}, error) {
 			return keystone.AuthenticateToken(token)
 		}
 
-		return "", nil
+		api.APIAuthorizer = runtime.AuthorizerFunc(func(r *http.Request, p interface{}) error {
+			if t, ok := p.(*gopherpolicy.Token); ok {
+				rule := policy.RuleFromHTTPRequest(r)
+				if t.Check(rule + "-global") {
+					return nil
+				}
+				if t.Check(rule) {
+					r.Header.Set("X-Project-Id", t.ProjectScopeUUID())
+					return nil
+				}
+			}
+			return errors.New(401, "Unauthorized")
+		})
 	}
 
 	c := controller.NewController(pool, SwaggerSpec, neutronClient)

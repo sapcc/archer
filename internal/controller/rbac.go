@@ -31,13 +31,11 @@ import (
 	"github.com/sapcc/archer/restapi/operations/rbac"
 )
 
-func (c *Controller) GetRbacPoliciesHandler(params rbac.GetRbacPoliciesParams, principal any) middleware.Responder {
+func (c *Controller) GetRbacPoliciesHandler(params rbac.GetRbacPoliciesParams, _ any) middleware.Responder {
 	q := db.Select("id", "target_project AS target", "'project' AS target_type", "service_id",
 		"created_at", "updated_at", "project_id").
 		From("rbac")
-	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
-		return rbac.NewGetRbacPoliciesForbidden()
-	} else if projectId != "" {
+	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
 		q = q.Where("project_id = ?", projectId)
 	}
 
@@ -69,13 +67,11 @@ func (c *Controller) GetRbacPoliciesHandler(params rbac.GetRbacPoliciesParams, p
 	return rbac.NewGetRbacPoliciesOK().WithPayload(&rbac.GetRbacPoliciesOKBody{Items: items, Links: links})
 }
 
-func (c *Controller) PostRbacPoliciesHandler(params rbac.PostRbacPoliciesParams, principal any) middleware.Responder {
+func (c *Controller) PostRbacPoliciesHandler(params rbac.PostRbacPoliciesParams, _ any) middleware.Responder {
 	ctx := params.HTTPRequest.Context()
 	var rbacResponse models.Rbacpolicy
 
-	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
-		return rbac.NewPostRbacPoliciesForbidden()
-	} else if projectId != "" {
+	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
 		params.Body.ProjectID = models.Project(projectId)
 	}
 
@@ -107,16 +103,14 @@ func (c *Controller) PostRbacPoliciesHandler(params rbac.PostRbacPoliciesParams,
 	return rbac.NewPostRbacPoliciesCreated().WithPayload(&rbacResponse)
 }
 
-func (c *Controller) GetRbacPoliciesRbacPolicyIDHandler(params rbac.GetRbacPoliciesRbacPolicyIDParams, principal any) middleware.Responder {
+func (c *Controller) GetRbacPoliciesRbacPolicyIDHandler(params rbac.GetRbacPoliciesRbacPolicyIDParams, _ any) middleware.Responder {
 	q := db.
 		Select("id", "target_project AS target", "'project' AS target_type", "service_id", "created_at",
 			"updated_at", "project_id").
 		From("rbac").
 		Where("id = ?", params.RbacPolicyID)
 
-	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
-		return rbac.NewGetRbacPoliciesRbacPolicyIDForbidden()
-	} else if projectId != "" {
+	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
 		q.Where("project_id = ?", projectId)
 	}
 
@@ -133,12 +127,10 @@ func (c *Controller) GetRbacPoliciesRbacPolicyIDHandler(params rbac.GetRbacPolic
 
 }
 
-func (c *Controller) PutRbacPoliciesRbacPolicyIDHandler(params rbac.PutRbacPoliciesRbacPolicyIDParams, principal any) middleware.Responder {
+func (c *Controller) PutRbacPoliciesRbacPolicyIDHandler(params rbac.PutRbacPoliciesRbacPolicyIDParams, _ any) middleware.Responder {
 	q := db.Update("rbac").Where("id = ?", params.RbacPolicyID)
 
-	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
-		return rbac.NewPutRbacPoliciesRbacPolicyIDForbidden()
-	} else if projectId != "" {
+	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
 		q.Where("project_id = ?", projectId)
 	}
 
@@ -164,13 +156,11 @@ func (c *Controller) PutRbacPoliciesRbacPolicyIDHandler(params rbac.PutRbacPolic
 	return rbac.NewPutRbacPoliciesRbacPolicyIDOK().WithPayload(&rbacResponse)
 }
 
-func (c *Controller) DeleteRbacPoliciesRbacPolicyIDHandler(params rbac.DeleteRbacPoliciesRbacPolicyIDParams, principal any) middleware.Responder {
+func (c *Controller) DeleteRbacPoliciesRbacPolicyIDHandler(params rbac.DeleteRbacPoliciesRbacPolicyIDParams, _ any) middleware.Responder {
 	q := db.Delete("rbac").
 		Where("id = ?", params.RbacPolicyID)
 
-	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
-		return rbac.NewDeleteRbacPoliciesRbacPolicyIDForbidden()
-	} else if projectId != "" {
+	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
 		q.Where("project_id = ?", projectId)
 	}
 

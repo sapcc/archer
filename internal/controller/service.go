@@ -41,11 +41,10 @@ import (
 	"github.com/sapcc/archer/restapi/operations/service"
 )
 
-func (c *Controller) GetServiceHandler(params service.GetServiceParams, principal any) middleware.Responder {
+func (c *Controller) GetServiceHandler(params service.GetServiceParams, _ any) middleware.Responder {
 	q := db.Select("*").From("service")
-	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
-		return service.NewGetServiceForbidden()
-	} else if projectId != "" {
+	projectId := auth.GetProjectID(params.HTTPRequest)
+	if projectId != "" {
 		// RBAC support
 		q = q.Where(
 			sq.Or{
@@ -86,9 +85,8 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 	ctx := params.HTTPRequest.Context()
 	var serviceResponse models.Service
 
-	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
-		return service.NewPostServiceForbidden()
-	} else if projectId != "" {
+	projectId := auth.GetProjectID(params.HTTPRequest)
+	if projectId != "" {
 		params.Body.ProjectID = models.Project(projectId)
 	}
 
@@ -208,12 +206,10 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 	return service.NewPostServiceCreated().WithPayload(&serviceResponse)
 }
 
-func (c *Controller) GetServiceServiceIDHandler(params service.GetServiceServiceIDParams, principal any) middleware.Responder {
+func (c *Controller) GetServiceServiceIDHandler(params service.GetServiceServiceIDParams, _ any) middleware.Responder {
 	q := db.Select("*").From("service").Where("id = ?", params.ServiceID)
 
-	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
-		return service.NewGetServiceServiceIDForbidden()
-	} else if projectId != "" {
+	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
 		// RBAC support
 		q = q.Where(
 			sq.Or{
@@ -238,12 +234,10 @@ func (c *Controller) GetServiceServiceIDHandler(params service.GetServiceService
 	return service.NewGetServiceServiceIDOK().WithPayload(&servicesResponse)
 }
 
-func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceServiceIDParams, principal any) middleware.Responder {
+func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceServiceIDParams, _ any) middleware.Responder {
 	upd := db.Update("service")
 
-	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
-		return service.NewPutServiceServiceIDForbidden()
-	} else if projectId != "" {
+	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
 		upd = upd.Where("project_id = ?", projectId)
 	}
 
@@ -282,16 +276,14 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 	return service.NewPutServiceServiceIDOK().WithPayload(&serviceResponse)
 }
 
-func (c *Controller) DeleteServiceServiceIDHandler(params service.DeleteServiceServiceIDParams, principal any) middleware.Responder {
+func (c *Controller) DeleteServiceServiceIDHandler(params service.DeleteServiceServiceIDParams, _ any) middleware.Responder {
 	var host string
 	q := db.Select("host").
 		From("service").
 		Where("id = ?", params.ServiceID).
 		Suffix("FOR UPDATE")
 
-	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
-		return service.NewDeleteServiceServiceIDForbidden()
-	} else if projectId != "" {
+	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
 		q.Where("project_id = ?", projectId)
 	}
 
@@ -338,14 +330,12 @@ func (c *Controller) DeleteServiceServiceIDHandler(params service.DeleteServiceS
 	return service.NewDeleteServiceServiceIDAccepted()
 }
 
-func (c *Controller) GetServiceServiceIDEndpointsHandler(params service.GetServiceServiceIDEndpointsParams, principal any) middleware.Responder {
+func (c *Controller) GetServiceServiceIDEndpointsHandler(params service.GetServiceServiceIDEndpointsParams, _ any) middleware.Responder {
 	q := db.Select("1").
 		From("service").
 		Where("id = ?", params.ServiceID)
 
-	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
-		return service.NewGetServiceServiceIDEndpointsForbidden()
-	} else if projectId != "" {
+	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
 		q.Where("project_id = ?", projectId)
 	}
 
@@ -431,7 +421,7 @@ func (c *Controller) PutServiceServiceIDRejectEndpointsHandler(params service.Pu
 	return service.NewPutServiceServiceIDRejectEndpointsOK().WithPayload(endpointConsumers)
 }
 
-func commonEndpointsActionHandler(pool *pgxpool.Pool, body any, principal any) ([]*models.EndpointConsumer, error) {
+func commonEndpointsActionHandler(pool *pgxpool.Pool, body any, _ any) ([]*models.EndpointConsumer, error) {
 	var serviceId strfmt.UUID
 	var httpRequest *http.Request
 	var consumerList *models.EndpointConsumerList
@@ -454,9 +444,7 @@ func commonEndpointsActionHandler(pool *pgxpool.Pool, body any, principal any) (
 		consumerList = params.Body
 	}
 
-	if projectId, ok := auth.AuthenticatePrincipal(httpRequest, principal); !ok {
-		return nil, auth.ErrForbidden
-	} else if projectId != "" {
+	if projectId := auth.GetProjectID(httpRequest); projectId != "" {
 		q = q.Where(db.Select("1").
 			Prefix("EXISTS(").
 			From("service").

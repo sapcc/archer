@@ -36,11 +36,9 @@ import (
 	"github.com/sapcc/go-bits/logg"
 )
 
-func (c *Controller) GetEndpointHandler(params endpoint.GetEndpointParams, principal any) middleware.Responder {
+func (c *Controller) GetEndpointHandler(params endpoint.GetEndpointParams, _ any) middleware.Responder {
 	q := db.StmtBuilder
-	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
-		return endpoint.NewGetEndpointForbidden()
-	} else if projectId != "" {
+	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
 		q = q.Where("endpoint.project_id = ?", projectId)
 	}
 
@@ -71,15 +69,13 @@ func (c *Controller) GetEndpointHandler(params endpoint.GetEndpointParams, princ
 	return endpoint.NewGetEndpointOK().WithPayload(&endpoint.GetEndpointOKBody{Items: items, Links: links})
 }
 
-func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, principal any) middleware.Responder {
+func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, _ any) middleware.Responder {
 	ctx := params.HTTPRequest.Context()
 	var endpointResponse models.Endpoint
 	var host string
 	var requireApproval bool
 
-	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
-		return endpoint.NewGetEndpointForbidden()
-	} else if projectId != "" {
+	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
 		params.Body.ProjectID = models.Project(projectId)
 	}
 
@@ -216,7 +212,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, pri
 	return endpoint.NewPostEndpointCreated().WithPayload(&endpointResponse)
 }
 
-func (c *Controller) GetEndpointEndpointIDHandler(params endpoint.GetEndpointEndpointIDParams, principal any) middleware.Responder {
+func (c *Controller) GetEndpointEndpointIDHandler(params endpoint.GetEndpointEndpointIDParams, _ any) middleware.Responder {
 	q := db.Select("endpoint.*",
 		`endpoint_port.port_id AS "target.port"`,
 		`endpoint_port.network AS "target.network"`,
@@ -225,9 +221,7 @@ func (c *Controller) GetEndpointEndpointIDHandler(params endpoint.GetEndpointEnd
 		Join("endpoint_port ON endpoint_port.endpoint_id = endpoint.id").
 		Where("endpoint.id = ?", params.EndpointID)
 
-	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
-		return endpoint.NewGetEndpointEndpointIDForbidden()
-	} else if projectId != "" {
+	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
 		q.Where("project_id = ?", projectId)
 	}
 
@@ -243,7 +237,7 @@ func (c *Controller) GetEndpointEndpointIDHandler(params endpoint.GetEndpointEnd
 	return endpoint.NewGetEndpointEndpointIDOK().WithPayload(&endpointResponse)
 }
 
-func (c *Controller) PutEndpointEndpointIDHandler(params endpoint.PutEndpointEndpointIDParams, principal any) middleware.Responder {
+func (c *Controller) PutEndpointEndpointIDHandler(params endpoint.PutEndpointEndpointIDParams, _ any) middleware.Responder {
 	q := db.Select("endpoint.*",
 		`endpoint_port.port_id AS "target.port"`,
 		`endpoint_port.network AS "target.network"`,
@@ -259,9 +253,7 @@ func (c *Controller) PutEndpointEndpointIDHandler(params endpoint.PutEndpointEnd
 		From("endpoint").
 		Join("endpoint_port ON endpoint_port.endpoint_id = endpoint.id")
 
-	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
-		return endpoint.NewPutEndpointEndpointIDForbidden()
-	} else if projectId != "" {
+	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
 		q.Where("project_id = ?", projectId)
 	}
 
@@ -285,7 +277,7 @@ func (c *Controller) PutEndpointEndpointIDHandler(params endpoint.PutEndpointEnd
 	return endpoint.NewPutEndpointEndpointIDOK().WithPayload(&endpointResponse)
 }
 
-func (c *Controller) DeleteEndpointEndpointIDHandler(params endpoint.DeleteEndpointEndpointIDParams, principal any) middleware.Responder {
+func (c *Controller) DeleteEndpointEndpointIDHandler(params endpoint.DeleteEndpointEndpointIDParams, _ any) middleware.Responder {
 	var serviceID strfmt.UUID
 	var host string
 
@@ -294,9 +286,7 @@ func (c *Controller) DeleteEndpointEndpointIDHandler(params endpoint.DeleteEndpo
 		Where("id = ?", params.EndpointID).
 		Suffix("RETURNING service_id")
 
-	if projectId, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
-		return endpoint.NewDeleteEndpointEndpointIDForbidden()
-	} else if projectId != "" {
+	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
 		q.Where("project_id = ?", projectId)
 	}
 

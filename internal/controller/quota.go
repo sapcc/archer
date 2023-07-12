@@ -21,18 +21,13 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/sapcc/archer/internal/auth"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
 	"github.com/sapcc/archer/models"
 	"github.com/sapcc/archer/restapi/operations/quota"
 )
 
-func (c *Controller) GetQuotasHandler(params quota.GetQuotasParams, principal any) middleware.Responder {
-	if _, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
-		return quota.NewGetQuotasForbidden()
-	}
-
+func (c *Controller) GetQuotasHandler(params quota.GetQuotasParams, _ any) middleware.Responder {
 	q := db.Select("quota.*", "COUNT(DISTINCT s.id) AS in_use_service", "COUNT(DISTINCT e.id) AS in_use_endpoint").
 		From("quota").
 		InnerJoin("service s ON quota.project_id = s.project_id").
@@ -52,11 +47,7 @@ func (c *Controller) GetQuotasHandler(params quota.GetQuotasParams, principal an
 	return quota.NewGetQuotasOK().WithPayload(&quota.GetQuotasOKBody{Quotas: quotas})
 }
 
-func (c *Controller) GetQuotasDefaultsHandler(params quota.GetQuotasDefaultsParams, principal any) middleware.Responder {
-	if _, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
-		return quota.NewGetQuotasDefaultsForbidden()
-	}
-
+func (c *Controller) GetQuotasDefaultsHandler(_ quota.GetQuotasDefaultsParams, _ any) middleware.Responder {
 	return quota.NewGetQuotasDefaultsOK().WithPayload(&quota.GetQuotasDefaultsOKBody{
 		Quota: &models.Quota{
 			Endpoint: config.Global.Quota.DefaultQuotaEndpoint,
@@ -102,11 +93,7 @@ func insertDefaultQuota(ctx context.Context, tx pgx.Tx, projectID string) error 
 	return err
 }
 
-func (c *Controller) GetQuotasProjectIDHandler(params quota.GetQuotasProjectIDParams, principal any) middleware.Responder {
-	if _, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
-		return quota.NewGetQuotasForbidden()
-	}
-
+func (c *Controller) GetQuotasProjectIDHandler(params quota.GetQuotasProjectIDParams, _ any) middleware.Responder {
 	q := quota.GetQuotasProjectIDOKBody{
 		Quota:      models.Quota{},
 		QuotaUsage: models.QuotaUsage{},
@@ -132,11 +119,7 @@ func (c *Controller) GetQuotasProjectIDHandler(params quota.GetQuotasProjectIDPa
 	return quota.NewGetQuotasProjectIDOK().WithPayload(&q)
 }
 
-func (c *Controller) PutQuotasProjectIDHandler(params quota.PutQuotasProjectIDParams, principal any) middleware.Responder {
-	if _, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
-		return quota.NewPutQuotasProjectIDForbidden()
-	}
-
+func (c *Controller) PutQuotasProjectIDHandler(params quota.PutQuotasProjectIDParams, _ any) middleware.Responder {
 	sql, args := db.Insert("quota").
 		Columns("service", "endpoint", "project_id").
 		Values(params.Body.Service, params.Body.Endpoint, params.ProjectID).
@@ -153,11 +136,7 @@ func (c *Controller) PutQuotasProjectIDHandler(params quota.PutQuotasProjectIDPa
 	return quota.NewPutQuotasProjectIDOK().WithPayload(&quotaResponse)
 }
 
-func (c *Controller) DeleteQuotasProjectIDHandler(params quota.DeleteQuotasProjectIDParams, principal any) middleware.Responder {
-	if _, ok := auth.AuthenticatePrincipal(params.HTTPRequest, principal); !ok {
-		return quota.NewDeleteQuotasProjectIDForbidden()
-	}
-
+func (c *Controller) DeleteQuotasProjectIDHandler(params quota.DeleteQuotasProjectIDParams, _ any) middleware.Responder {
 	sql, args := db.Delete("quota").Where("project_id = ?", params.ProjectID).MustSql()
 	if ct, err := c.pool.Exec(params.HTTPRequest.Context(), sql, args...); err != nil {
 		panic(err)

@@ -27,7 +27,6 @@ import (
 	"github.com/sapcc/go-bits/logg"
 
 	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/internal/policy"
 )
 
 var (
@@ -70,17 +69,6 @@ func (k *Keystone) AuthenticateToken(tokenStr string) (any, error) {
 	return token, nil
 }
 
-func AuthenticatePrincipal(r *http.Request, principal any) (string, bool) {
-	if t, ok := principal.(*gopherpolicy.Token); ok {
-		rule := policy.RuleFromHTTPRequest(r)
-		if t.Check(rule + "-global") {
-			return "", true
-		} else if t.Check(rule) {
-			return t.ProjectScopeUUID(), true
-		} else {
-			return "", false
-		}
-	}
-
-	return "", true
+func GetProjectID(r *http.Request) string {
+	return r.Header.Get("X-Project-Id")
 }
