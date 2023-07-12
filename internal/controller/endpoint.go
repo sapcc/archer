@@ -75,6 +75,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, _ a
 	var endpointResponse models.Endpoint
 	var host string
 	var requireApproval bool
+	var serviceNetwork string
 
 	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
 		params.Body.ProjectID = models.Project(projectId)
@@ -108,7 +109,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, _ a
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	// Check if service is accessible
-	sql, args := db.Select("host", "require_approval").
+	sql, args := db.Select("host", "require_approval", "network_id").
 		From("service").
 		Where(sq.Or{
 			sq.Eq{"visibility": "public"},              // public service?
@@ -126,7 +127,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, _ a
 		Suffix("FOR UPDATE"). // Lock service/rbac row in this transaction
 		MustSql()
 
-	if err = tx.QueryRow(ctx, sql, args...).Scan(&host, &requireApproval); err != nil {
+	if err = tx.QueryRow(ctx, sql, args...).Scan(&host, &requireApproval, &serviceNetwork); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
 				Code: 400,
@@ -199,6 +200,14 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, _ a
 		panic(err)
 	}
 
+	if serviceNetwork == port.NetworkID {
+		logg.Info("Deallocating port %s: %+v", port.ID, c.neutron.DeletePort(port.ID))
+		return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
+			Code:    400,
+			Message: "target_port needs to be in a different network than the service.",
+		})
+	}
+
 	sql, args = db.Insert("endpoint_port").
 		Columns("endpoint_id", "port_id", "subnet", "network", "ip_address").
 		Values(endpointResponse.ID, port.ID, port.FixedIPs[0].SubnetID, port.NetworkID, port.FixedIPs[0].IPAddress).
@@ -207,13 +216,13 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, _ a
 	row := tx.QueryRow(params.HTTPRequest.Context(), sql, args...)
 	if err := row.Scan(&endpointResponse.Target.Port, &endpointResponse.Target.Subnet,
 		&endpointResponse.Target.Network); err != nil {
-		logg.Error("Deallocating port %s: %s", port.ID, c.neutron.DeletePort(port.ID))
+		logg.Error("Deallocating port %s: %+v", port.ID, c.neutron.DeletePort(port.ID))
 		panic(err)
 	}
 
 	// done and done
 	if err := tx.Commit(ctx); err != nil {
-		logg.Error("Deallocating port %s: %s", port.ID, c.neutron.DeletePort(port.ID))
+		logg.Error("Deallocating port %s: %+v", port.ID, c.neutron.DeletePort(port.ID))
 		panic(err)
 	}
 

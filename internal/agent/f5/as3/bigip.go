@@ -37,12 +37,6 @@ import (
 	"github.com/sapcc/archer/models"
 )
 
-const iRuleTemplate = `
-when CLIENT_ACCEPTED {
-    set proxyheader "PROXY TCP[IP::version] [getfield [IP::remote_addr] "%" 1] [getfield [IP::local_addr] "%" 1] [TCP::remote_port] [TCP::local_port]\r\n"
-}
-`
-
 func GetServiceSnatPoolName(Id strfmt.UUID) string {
 	return fmt.Sprintf("snatpool-%s", Id)
 }
@@ -155,7 +149,7 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 			services[iRuleName] = IRule{
 				Label: fmt.Sprint("irule-", endpointName),
 				Class: "iRule",
-				IRule: iRuleTemplate,
+				IRule: IRuleBase64{pp2},
 			}
 			iRules = append(iRules, Pointer{
 				Use: iRuleName,
@@ -171,7 +165,7 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 			Pool:                Pointer{BigIP: pool},
 			ProfileL4:           Pointer{BigIP: "/Common/cc_fastL4_profile"},
 			Snat:                Pointer{BigIP: snat},
-			TranslateServerPort: false,
+			TranslateServerPort: true,
 			VirtualPort:         endpoint.ServicePortNr,
 			AllowVlans: []string{
 				fmt.Sprintf("/Common/vlan-%d", endpoint.SegmentId),

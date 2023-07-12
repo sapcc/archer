@@ -15,6 +15,7 @@
 package as3
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -145,11 +146,21 @@ type ServiceL4 struct {
 	VirtualPort         int32     `json:"virtualPort"`
 }
 
+// transpared IRule container that emits base64
+
+type IRuleBase64 struct {
+	Base64 string `json:"base64"`
+}
+
+func (i IRuleBase64) MarshalJSON() ([]byte, error) {
+	return json.Marshal(IRuleBase64{Base64: base64.StdEncoding.EncodeToString([]byte(i.Base64))})
+}
+
 type IRule struct {
 	Label  string `json:"label,omitempty"`
 	Remark string `json:"remark,omitempty"`
 	Class  string `json:"class"`
-	IRule  string `json:"iRule"`
+	IRule  any    `json:"iRule"`
 }
 
 // Generic Pointer

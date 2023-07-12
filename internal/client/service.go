@@ -55,7 +55,7 @@ func (*ServiceList) Execute(_ []string) error {
 	if err != nil {
 		return err
 	}
-	DefaultColumns = []string{"id", "name", "port", "enabled", "provider", "status", "availability_zone", "project_id"}
+	DefaultColumns = []string{"id", "name", "port", "enabled", "provider", "status", "visibility", "availability_zone", "project_id"}
 	return WriteTable(resp.GetPayload().Items)
 }
 

@@ -178,28 +178,6 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 		if err = pgxscan.Get(ctx, tx, &serviceResponse, sql, args...); err != nil {
 			return err
 		}
-
-		/* // done by agent
-		if *params.Body.Provider == "tenant" {
-			for _, device := range config.Global.Agent.Devices {
-				// Allocate SNAT port for provider 'tenant' (F5)
-				if port, err = c.AllocateSNATNeutronPort(&serviceResponse, device); err != nil {
-					return err
-				}
-
-				sql, args, err = db.Insert("service_port").
-					Columns("service_id", "port_id").
-					Values(serviceResponse.ID, port.ID).
-					ToSql()
-				if err != nil {
-					return err
-				}
-				if _, err = tx.Exec(ctx, sql, args...); err != nil {
-					return err
-				}
-			}
-		}*/
-
 		return nil
 	}); err != nil {
 		if port != nil {
