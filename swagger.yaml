@@ -244,6 +244,8 @@ paths:
             $ref: "#/definitions/Error"
         403:
           description: Forbidden
+          schema:
+            $ref: "#/definitions/Error"
         409:
           description: Duplicate entry
           schema:
@@ -577,6 +579,8 @@ paths:
             $ref: "#/definitions/Error"
         403:
           description: Forbidden
+          schema:
+            $ref: "#/definitions/Error"
         422:
           description: Unprocessable Content
           schema:

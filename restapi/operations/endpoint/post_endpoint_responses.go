@@ -171,6 +171,11 @@ PostEndpointForbidden Forbidden
 swagger:response postEndpointForbidden
 */
 type PostEndpointForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
 }
 
 // NewPostEndpointForbidden creates PostEndpointForbidden with default headers values
@@ -179,12 +184,27 @@ func NewPostEndpointForbidden() *PostEndpointForbidden {
 	return &PostEndpointForbidden{}
 }
 
+// WithPayload adds the payload to the post endpoint forbidden response
+func (o *PostEndpointForbidden) WithPayload(payload *models.Error) *PostEndpointForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the post endpoint forbidden response
+func (o *PostEndpointForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
 // WriteResponse to the client
 func (o *PostEndpointForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
 	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
 }
 
 // PostEndpointUnprocessableEntityCode is the HTTP code returned for type PostEndpointUnprocessableEntity

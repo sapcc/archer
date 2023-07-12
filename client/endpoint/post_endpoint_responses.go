@@ -287,6 +287,7 @@ PostEndpointForbidden describes a response with status code 403, with default he
 Forbidden
 */
 type PostEndpointForbidden struct {
+	Payload *models.Error
 }
 
 // IsSuccess returns true when this post endpoint forbidden response has a 2xx status code
@@ -320,14 +321,25 @@ func (o *PostEndpointForbidden) Code() int {
 }
 
 func (o *PostEndpointForbidden) Error() string {
-	return fmt.Sprintf("[POST /endpoint][%d] postEndpointForbidden ", 403)
+	return fmt.Sprintf("[POST /endpoint][%d] postEndpointForbidden  %+v", 403, o.Payload)
 }
 
 func (o *PostEndpointForbidden) String() string {
-	return fmt.Sprintf("[POST /endpoint][%d] postEndpointForbidden ", 403)
+	return fmt.Sprintf("[POST /endpoint][%d] postEndpointForbidden  %+v", 403, o.Payload)
+}
+
+func (o *PostEndpointForbidden) GetPayload() *models.Error {
+	return o.Payload
 }
 
 func (o *PostEndpointForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

@@ -17,6 +17,7 @@ package controller
 import (
 	"errors"
 	"fmt"
+	"net/http"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/v2/pgxscan"
@@ -77,8 +78,16 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, _ a
 
 	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
 		params.Body.ProjectID = models.Project(projectId)
+		if err := db.CheckQuota(c.pool, params.HTTPRequest); err != nil {
+			if errors.Is(err, aerr.ErrQuotaExceeded) {
+				return endpoint.NewPostEndpointForbidden().WithPayload(&models.Error{
+					Code:    http.StatusForbidden,
+					Message: "Quota has been met for Resource: service",
+				})
+			}
+			panic(err)
+		}
 	}
-
 	// Set default values
 	if err := c.SetModelDefaults(params.Body); err != nil {
 		panic(err)

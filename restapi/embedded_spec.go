@@ -196,7 +196,10 @@ func init() {
             }
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           },
           "422": {
             "description": "Unprocessable Content",
@@ -968,7 +971,10 @@ func init() {
             }
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           },
           "409": {
             "description": "Duplicate entry",
@@ -2191,7 +2197,10 @@ func init() {
             }
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           },
           "422": {
             "description": "Unprocessable Content",
@@ -3003,7 +3012,10 @@ func init() {
             }
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
           },
           "409": {
             "description": "Duplicate entry",

@@ -219,6 +219,7 @@ PostServiceForbidden describes a response with status code 403, with default hea
 Forbidden
 */
 type PostServiceForbidden struct {
+	Payload *models.Error
 }
 
 // IsSuccess returns true when this post service forbidden response has a 2xx status code
@@ -252,14 +253,25 @@ func (o *PostServiceForbidden) Code() int {
 }
 
 func (o *PostServiceForbidden) Error() string {
-	return fmt.Sprintf("[POST /service][%d] postServiceForbidden ", 403)
+	return fmt.Sprintf("[POST /service][%d] postServiceForbidden  %+v", 403, o.Payload)
 }
 
 func (o *PostServiceForbidden) String() string {
-	return fmt.Sprintf("[POST /service][%d] postServiceForbidden ", 403)
+	return fmt.Sprintf("[POST /service][%d] postServiceForbidden  %+v", 403, o.Payload)
+}
+
+func (o *PostServiceForbidden) GetPayload() *models.Error {
+	return o.Payload
 }
 
 func (o *PostServiceForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

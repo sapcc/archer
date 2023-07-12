@@ -14,7 +14,9 @@
 
 package errors
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
 	ErrBadRequest       = errors.New("bad request")
@@ -24,4 +26,5 @@ var (
 	ErrMissingSubnets   = errors.New("network has no subnets")
 	ErrNoSelfIP         = errors.New("no self ip found")
 	ErrNoVCMPFound      = errors.New("no VCMP guest found")
+	ErrQuotaExceeded    = errors.New("quota has been met")
 )

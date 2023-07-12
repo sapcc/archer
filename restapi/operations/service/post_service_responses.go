@@ -126,6 +126,11 @@ PostServiceForbidden Forbidden
 swagger:response postServiceForbidden
 */
 type PostServiceForbidden struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
 }
 
 // NewPostServiceForbidden creates PostServiceForbidden with default headers values
@@ -134,12 +139,27 @@ func NewPostServiceForbidden() *PostServiceForbidden {
 	return &PostServiceForbidden{}
 }
 
+// WithPayload adds the payload to the post service forbidden response
+func (o *PostServiceForbidden) WithPayload(payload *models.Error) *PostServiceForbidden {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the post service forbidden response
+func (o *PostServiceForbidden) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
 // WriteResponse to the client
 func (o *PostServiceForbidden) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
 	rw.WriteHeader(403)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
 }
 
 // PostServiceConflictCode is the HTTP code returned for type PostServiceConflict

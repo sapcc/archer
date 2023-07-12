@@ -17,6 +17,7 @@ package controller
 import (
 	"context"
 	"errors"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	"net/http"
 
 	sq "github.com/Masterminds/squirrel"
@@ -87,7 +88,34 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 
 	projectId := auth.GetProjectID(params.HTTPRequest)
 	if projectId != "" {
+		if err := db.CheckQuota(c.pool, params.HTTPRequest); err != nil {
+			if errors.Is(err, aerr.ErrQuotaExceeded) {
+				return service.NewPostServiceForbidden().WithPayload(&models.Error{
+					Code:    http.StatusForbidden,
+					Message: "Quota has been met for Resource: service",
+				})
+			}
+			panic(err)
+		}
+
 		params.Body.ProjectID = models.Project(projectId)
+		if params.Body.NetworkID != nil {
+			if network, err := networks.Get(c.neutron.ServiceClient, string(*params.Body.NetworkID)).Extract(); err != nil {
+				if _, ok := err.(gophercloud.ErrDefault404); ok {
+					return service.NewPostServiceConflict().WithPayload(&models.Error{
+						Code:    http.StatusConflict,
+						Message: "Network not found.",
+					})
+				}
+				panic(err)
+			} else if network.ProjectID != projectId {
+				// TODO: check if network is shared
+				return service.NewPostServiceConflict().WithPayload(&models.Error{
+					Code:    http.StatusConflict,
+					Message: "Network not accessible.",
+				})
+			}
+		}
 	}
 
 	// Set default values
