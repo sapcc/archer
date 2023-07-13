@@ -146,7 +146,7 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 		}
 		iRules := make([]Pointer, 0)
 		class := "Service_L4"
-		var l4profile Pointer
+		var l4profile *Pointer
 		if endpoint.ProxyProtocol {
 			services[iRuleName] = IRule{
 				Label: fmt.Sprint("irule-", endpointName),
@@ -157,7 +157,7 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 				Use: iRuleName,
 			})
 			class = "Service_TCP"
-			l4profile = Pointer{BigIP: "/Common/cc_fastL4_profile"}
+			l4profile = &Pointer{BigIP: "/Common/cc_fastL4_profile"}
 		}
 
 		services[endpointName] = ServiceL4{
