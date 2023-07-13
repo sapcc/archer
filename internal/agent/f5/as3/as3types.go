@@ -139,7 +139,7 @@ type ServiceL4 struct {
 	Mirroring           string    `json:"mirroring"`
 	PersistanceMethods  []string  `json:"persistenceMethods"`
 	Pool                Pointer   `json:"pool"`
-	ProfileL4           Pointer   `json:"profileL4"`
+	ProfileL4           Pointer   `json:"profileL4,omitempty"`
 	Snat                any       `json:"snat,omitempty"`
 	VirtualAddresses    []string  `json:"virtualAddresses"`
 	TranslateServerPort bool      `json:"translateServerPort"`
@@ -149,11 +149,15 @@ type ServiceL4 struct {
 // transpared IRule container that emits base64
 
 type IRuleBase64 struct {
-	Base64 string `json:"base64"`
+	Value string
 }
 
 func (i IRuleBase64) MarshalJSON() ([]byte, error) {
-	return json.Marshal(IRuleBase64{Base64: base64.StdEncoding.EncodeToString([]byte(i.Base64))})
+	value := base64.StdEncoding.EncodeToString([]byte(i.Value))
+	body := map[string]string{
+		"base64": value,
+	}
+	return json.Marshal(body)
 }
 
 type IRule struct {
