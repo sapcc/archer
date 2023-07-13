@@ -104,7 +104,6 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		Where("network = ?", networkID).
 		Where("service.host = ?", config.Global.Default.Host).
 		Where("service.provider = 'tenant'").
-		Suffix("FOR UPDATE of endpoint").
 		MustSql()
 	if err := pgxscan.Select(ctx, tx, &endpoints, sql, args...); err != nil {
 		return err
