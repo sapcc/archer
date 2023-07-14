@@ -128,9 +128,9 @@ type Pool struct {
 	Monitors []Pointer    `json:"monitors"`
 }
 
-// Application Service_L4
+// Application Service
 
-type ServiceL4 struct {
+type Service struct {
 	Label               string    `json:"label,omitempty"`
 	Remark              string    `json:"remark,omitempty"`
 	Class               string    `json:"class"`
@@ -140,6 +140,7 @@ type ServiceL4 struct {
 	PersistanceMethods  []string  `json:"persistenceMethods"`
 	Pool                Pointer   `json:"pool"`
 	ProfileL4           *Pointer  `json:"profileL4,omitempty"`
+	ProfileTCP          *Pointer  `json:"profileTCP,omitempty"`
 	Snat                any       `json:"snat,omitempty"`
 	VirtualAddresses    []string  `json:"virtualAddresses"`
 	TranslateServerPort bool      `json:"translateServerPort"`

@@ -96,7 +96,7 @@ func (n *NeutronClient) AllocateNeutronEndpointPort(target *models.EndpointTarge
 	if target.Port != nil {
 		port, err := ports.Get(n.ServiceClient, target.Port.String()).Extract()
 		if err != nil {
-			return nil, errors.ErrPortNotFound
+			return nil, err
 		}
 
 		if port.ProjectID != projectID {

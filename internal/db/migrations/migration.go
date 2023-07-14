@@ -226,4 +226,16 @@ var Migrations = mgx.Migrations(
 		`)
 		return err
 	}),
+	mgx.NewMigration("unique_endpoint_port", func(ctx context.Context, commands mgx.Commands) error {
+		_, err := commands.Exec(ctx, `
+			ALTER TABLE endpoint_port ADD CONSTRAINT endpoint_port_uniq UNIQUE (port_id);
+		`)
+		return err
+	}),
+	mgx.NewMigration("add_endpoint_port_ownership", func(ctx context.Context, commands mgx.Commands) error {
+		_, err := commands.Exec(ctx, `
+			ALTER TABLE endpoint_port ADD COLUMN owned BOOLEAN NOT NULL DEFAULT true;
+		`)
+		return err
+	}),
 )

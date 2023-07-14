@@ -79,7 +79,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, _ a
 
 	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
 		params.Body.ProjectID = models.Project(projectId)
-		if err := db.CheckQuota(c.pool, params.HTTPRequest); err != nil {
+		if err := db.CheckQuota(c.pool, params.HTTPRequest, "endpoint"); err != nil {
 			if errors.Is(err, aerr.ErrQuotaExceeded) {
 				return endpoint.NewPostEndpointForbidden().WithPayload(&models.Error{
 					Code:    http.StatusForbidden,
@@ -151,34 +151,12 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, _ a
 		Suffix("RETURNING id, name, description, service_id, project_id, tags, created_at, updated_at, status").
 		MustSql()
 	if err = pgxscan.Get(ctx, tx, &endpointResponse, sql, args...); err != nil {
-		var pe *pgconn.PgError
-		if errors.As(err, &pe) {
-			if pgerrcode.UniqueViolation == pe.Code {
-				return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
-					Code: 400,
-					Message: fmt.Sprintf("Port '%s' is already used by another endpoint.",
-						params.Body.Target.Port),
-				})
-			} else if pgerrcode.ForeignKeyViolation == pe.Code {
-				return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
-					Code: 400,
-					Message: fmt.Sprintf("Service '%s' is not accessible.",
-						params.Body.ServiceID),
-				})
-			}
-		}
 		panic(err)
 	}
 
 	port, err := c.neutron.AllocateNeutronEndpointPort(&params.Body.Target, &endpointResponse, string(params.Body.ProjectID),
 		host)
 	if err != nil {
-		if errors.Is(err, aerr.ErrPortNotFound) {
-			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
-				Code:    400,
-				Message: "target_port unknown.",
-			})
-		}
 		if errors.Is(err, aerr.ErrProjectMismatch) {
 			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
 				Code:    400,
@@ -208,21 +186,36 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, _ a
 		})
 	}
 
+	owned := true
+	if params.Body.Target.Port != nil {
+		owned = false
+	}
+
 	sql, args = db.Insert("endpoint_port").
-		Columns("endpoint_id", "port_id", "subnet", "network", "ip_address").
-		Values(endpointResponse.ID, port.ID, port.FixedIPs[0].SubnetID, port.NetworkID, port.FixedIPs[0].IPAddress).
+		Columns("endpoint_id", "port_id", "subnet", "network", "ip_address", "owned").
+		Values(endpointResponse.ID, port.ID, port.FixedIPs[0].SubnetID, port.NetworkID, port.FixedIPs[0].IPAddress, owned).
 		Suffix("RETURNING port_id, subnet, network").
 		MustSql()
 	row := tx.QueryRow(params.HTTPRequest.Context(), sql, args...)
-	if err := row.Scan(&endpointResponse.Target.Port, &endpointResponse.Target.Subnet,
-		&endpointResponse.Target.Network); err != nil {
-		logg.Error("Deallocating port %s: %+v", port.ID, c.neutron.DeletePort(port.ID))
+	if err = row.Scan(&endpointResponse.Target.Port, &endpointResponse.Target.Subnet, &endpointResponse.Target.Network); err != nil {
+		var pe *pgconn.PgError
+		if errors.As(err, &pe) && pe.Code == pgerrcode.UniqueViolation {
+			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
+				Code:    400,
+				Message: fmt.Sprintf("Port '%s' is already used by another endpoint.", port.ID),
+			})
+		}
+		if owned {
+			logg.Error("Deallocating port %s: %+v", port.ID, c.neutron.DeletePort(port.ID))
+		}
 		panic(err)
 	}
 
 	// done and done
 	if err := tx.Commit(ctx); err != nil {
-		logg.Error("Deallocating port %s: %+v", port.ID, c.neutron.DeletePort(port.ID))
+		if owned {
+			logg.Error("Deallocating port %s: %+v", port.ID, c.neutron.DeletePort(port.ID))
+		}
 		panic(err)
 	}
 
@@ -325,6 +318,7 @@ func (c *Controller) DeleteEndpointEndpointIDHandler(params endpoint.DeleteEndpo
 		if errors.Is(err, pgx.ErrNoRows) {
 			return endpoint.NewDeleteEndpointEndpointIDNotFound()
 		}
+		panic(err)
 	}
 
 	c.notifyEndpoint(host, params.EndpointID)

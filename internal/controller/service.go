@@ -17,7 +17,6 @@ package controller
 import (
 	"context"
 	"errors"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	"net/http"
 
 	sq "github.com/Masterminds/squirrel"
@@ -26,11 +25,11 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sapcc/go-bits/gopherpolicy"
 	"github.com/sapcc/go-bits/logg"
 
@@ -88,7 +87,7 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 
 	projectId := auth.GetProjectID(params.HTTPRequest)
 	if projectId != "" {
-		if err := db.CheckQuota(c.pool, params.HTTPRequest); err != nil {
+		if err := db.CheckQuota(c.pool, params.HTTPRequest, "service"); err != nil {
 			if errors.Is(err, aerr.ErrQuotaExceeded) {
 				return service.NewPostServiceForbidden().WithPayload(&models.Error{
 					Code:    http.StatusForbidden,
@@ -220,6 +219,7 @@ func (c *Controller) GetServiceServiceIDHandler(params service.GetServiceService
 		q = q.Where(
 			sq.Or{
 				sq.Eq{"project_id": projectId},
+				sq.Eq{"visibility": "public"},
 				db.Select("1").
 					Prefix("EXISTS(").
 					From("rbac r").
@@ -427,7 +427,7 @@ func (c *Controller) PutServiceServiceIDRejectEndpointsHandler(params service.Pu
 	return service.NewPutServiceServiceIDRejectEndpointsOK().WithPayload(endpointConsumers)
 }
 
-func commonEndpointsActionHandler(pool *pgxpool.Pool, body any, _ any) ([]*models.EndpointConsumer, error) {
+func commonEndpointsActionHandler(pool db.PgxIface, body any, _ any) ([]*models.EndpointConsumer, error) {
 	var serviceId strfmt.UUID
 	var httpRequest *http.Request
 	var consumerList *models.EndpointConsumerList

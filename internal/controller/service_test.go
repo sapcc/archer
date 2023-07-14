@@ -25,17 +25,21 @@ import (
 )
 
 var (
-	networkId = strfmt.UUID("7e0be670-deb6-45d2-af1a-f8ca524f5ac4")
-)
-
-func (t *SuiteTest) createService() strfmt.UUID {
-	s := models.Service{
+	networkId      = strfmt.UUID("7e0be670-deb6-45d2-af1a-f8ca524f5ac4")
+	testProject1   = models.Project("test-project-1")
+	testProject2   = models.Project("test-project-2")
+	headerProject1 = http.Request{Header: http.Header{"X-Project-Id": []string{string(testProject1)}}}
+	headerProject2 = http.Request{Header: http.Header{"X-Project-Id": []string{string(testProject2)}}}
+	testService    = models.Service{
 		Name:        "test",
 		NetworkID:   &networkId,
 		IPAddresses: []strfmt.IPv4{"1.2.3.4"},
+		ProjectID:   testProject1,
 	}
+)
 
-	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &http.Request{}, Body: &s},
+func (t *SuiteTest) createService() strfmt.UUID {
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &http.Request{}, Body: &testService},
 		nil)
 
 	assert.NotNil(t.T(), res)
@@ -43,6 +47,15 @@ func (t *SuiteTest) createService() strfmt.UUID {
 	payload := res.(*service.PostServiceCreated).Payload
 	assert.Equal(t.T(), networkId, *payload.NetworkID)
 	return payload.ID
+}
+
+func (t *SuiteTest) createCustomService(header *http.Request, body *models.Service) strfmt.UUID {
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: header, Body: body},
+		nil)
+
+	assert.NotNil(t.T(), res)
+	assert.IsType(t.T(), &service.PostServiceCreated{}, res)
+	return res.(*service.PostServiceCreated).Payload.ID
 }
 
 func (t *SuiteTest) TestServiceEmptyGet() {
@@ -63,6 +76,39 @@ func (t *SuiteTest) TestServicePost() {
 
 	res := t.c.GetServiceServiceIDHandler(
 		service.GetServiceServiceIDParams{HTTPRequest: &http.Request{}, ServiceID: serviceId},
+		nil)
+	assert.IsType(t.T(), &service.GetServiceServiceIDOK{}, res)
+}
+
+func (t *SuiteTest) TestServicePostScoped() {
+	// post and get
+	serviceId := t.createService()
+
+	res := t.c.GetServiceServiceIDHandler(
+		service.GetServiceServiceIDParams{HTTPRequest: &http.Request{}, ServiceID: serviceId},
+		nil)
+	assert.IsType(t.T(), &service.GetServiceServiceIDOK{}, res)
+}
+
+func (t *SuiteTest) TestServiceScopedGetFromOtherProject() {
+	// post and get
+	serviceId := t.createService()
+
+	res := t.c.GetServiceServiceIDHandler(
+		service.GetServiceServiceIDParams{HTTPRequest: &headerProject2, ServiceID: serviceId},
+		nil)
+	assert.IsType(t.T(), &service.GetServiceServiceIDNotFound{}, res)
+
+	// change visibility to public
+	visibility := models.ServiceVisibilityPublic
+	res = t.c.PutServiceServiceIDHandler(
+		service.PutServiceServiceIDParams{HTTPRequest: &headerProject1, ServiceID: serviceId,
+			Body: &models.ServiceUpdatable{Visibility: &visibility}},
+		nil)
+	assert.IsType(t.T(), &service.PutServiceServiceIDOK{}, res)
+
+	res = t.c.GetServiceServiceIDHandler(
+		service.GetServiceServiceIDParams{HTTPRequest: &headerProject2, ServiceID: serviceId},
 		nil)
 	assert.IsType(t.T(), &service.GetServiceServiceIDOK{}, res)
 }

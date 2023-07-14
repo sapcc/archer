@@ -68,6 +68,7 @@ func (a *Agent) populateEndpointPorts(endpoints []*as3.ExtendedEndpoint) error {
 func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) error {
 	var endpoints []*as3.ExtendedEndpoint
 	var networkID strfmt.UUID
+	var owned bool
 	var tx pgx.Tx
 
 	{
@@ -83,11 +84,11 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		_ = tx.Rollback(ctx)
 	}(tx, ctx)
 
-	sql, args := db.Select("network").
+	sql, args := db.Select("network", "owned").
 		From("endpoint_port").
 		Where("endpoint_id = ?", endpointID).
 		MustSql()
-	if err := tx.QueryRow(ctx, sql, args...).Scan(&networkID); err != nil {
+	if err := tx.QueryRow(ctx, sql, args...).Scan(&networkID, &owned); err != nil {
 		return err
 	}
 
@@ -204,8 +205,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 
 	for _, endpoint := range endpoints {
 		if endpoint.Status == models.EndpointStatusPENDINGDELETE {
-			// TODO: check if archer owns the port
-			if endpoint.Target.Port != nil {
+			if endpoint.Target.Port != nil && owned {
 				if err := a.neutron.DeletePort(endpoint.Target.Port.String()); err != nil {
 					if _, ok := err.(gophercloud.ErrDefault404); !ok {
 						return err

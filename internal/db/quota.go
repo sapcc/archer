@@ -15,32 +15,20 @@
 package db
 
 import (
-	"fmt"
 	"net/http"
-	"strings"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sapcc/go-bits/logg"
 
 	"github.com/sapcc/archer/internal/auth"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/errors"
-	"github.com/sapcc/archer/internal/policy"
 )
 
-func CheckQuota(pool *pgxpool.Pool, r *http.Request) error {
+func CheckQuota(pool PgxIface, r *http.Request, resource string) error {
 	if !config.Global.Quota.Enabled {
 		return nil
 	}
-
-	target := strings.Split(policy.RuleFromHTTPRequest(r), ":")
-	if len(target) != 2 {
-		panic(fmt.Sprint("invalid amount of segments in target rule for request: ", target))
-	}
-
-	// resource is a sql-safe resource name from swagger spec
-	resource := target[0]
 
 	// Get project scope
 	project := auth.GetProjectID(r)

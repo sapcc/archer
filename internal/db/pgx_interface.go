@@ -12,21 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package controller
+package db
 
 import (
-	"github.com/go-openapi/loads"
+	"context"
 
-	"github.com/sapcc/archer/internal/db"
-	"github.com/sapcc/archer/internal/neutron"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
-type Controller struct {
-	spec    *loads.Document
-	pool    db.PgxIface
-	neutron *neutron.NeutronClient
-}
-
-func NewController(pool db.PgxIface, spec *loads.Document, client *neutron.NeutronClient) *Controller {
-	return &Controller{pool: pool, spec: spec, neutron: client}
+type PgxIface interface {
+	Begin(context.Context) (pgx.Tx, error)
+	BeginTx(ctx context.Context, txOptions pgx.TxOptions) (pgx.Tx, error)
+	Exec(context.Context, string, ...interface{}) (pgconn.CommandTag, error)
+	Query(context.Context, string, ...interface{}) (pgx.Rows, error)
+	QueryRow(context.Context, string, ...interface{}) pgx.Row
 }
