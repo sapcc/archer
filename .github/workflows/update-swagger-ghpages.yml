@@ -1,0 +1,28 @@
+name: update-swagger-ghpages
+
+on:
+  push:
+    tags:
+      - v*
+    branches: [ main ]
+  pull_request:
+jobs:
+  build-documentation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: gh-pages
+      - name: get swagger.yaml
+        run: |
+          curl https://raw.githubusercontent.com/sapcc/archer/main/swagger.yaml -o swagger.yaml
+      - name: redoc-cli generate index.html
+        uses: seeebiii/redoc-cli-github-action@v10
+        with:
+          args: 'bundle swagger.yaml -o index.html'
+      - name: Commit documentation
+        run: |
+          git config --global user.name 'GitHub Pages Bot'
+          git config --global user.email 'gh-pages@users.noreply.github.com'
+          git commit -am "Update swagger.yml" || true
+          git push
