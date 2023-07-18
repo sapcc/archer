@@ -29,7 +29,7 @@ func (t *SuiteTest) TestVersion() {
 	res := t.c.GetVersionHandler(version.GetParams{HTTPRequest: &http.Request{}})
 	assert.IsType(t.T(), &version.GetOK{}, res)
 	payload := res.(*version.GetOK).Payload
-	assert.Equal(t.T(), t.c.spec.Spec().Info.Version, payload.Version)
+	assert.Equal(t.T(), config.Version, payload.Version)
 	assert.Contains(t.T(), payload.Capabilities, "pagination_max=1000")
 	assert.Contains(t.T(), payload.Capabilities, "pagination")
 	assert.Contains(t.T(), payload.Capabilities, "sorting")
