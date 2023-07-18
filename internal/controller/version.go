@@ -52,7 +52,7 @@ func (c *Controller) GetVersionHandler(params version.GetParams) middleware.Resp
 			Href: config.GetApiBaseUrl(params.HTTPRequest),
 			Rel:  "self",
 		}},
-		Updated: "now", // TODO: build time
-		Version: c.spec.Spec().Info.Version,
+		Updated: config.BuildTime,
+		Version: config.Version,
 	})
 }
