@@ -4,7 +4,7 @@ Archer is an API service that can privately connect services from one private [O
 
 Archer implements an *OpenStack* like API and integrates with *OpenStack Keystone* and *OpenStack Neutron*.
 
-### Architecture
+## Architecture
 There are two types of resources: **services** and **endpoints**
 
 * **Services** are private or public services that are manually configured in *Archer*. They can be accessed by creating an endpoint.
@@ -15,14 +15,69 @@ There are two types of resources: **services** and **endpoints**
 * OpenStack `policy.json` access policy support
 * Prometheus Exporter
 * Rate limiting
+* CORS
+* CADF compatible audit tracing
+* Sentry support
+* CLI Client `archerctl`
 
 ### Supported Backends
 * F5 BigIP
+* Network Injection agent (together with `openvswitch-agent` or `linuxbridge-agent`)
 
 ### Requirements
 * PostgreSQL Database
+* OpenStack Keystone
+* OpenStack Neutron
 
-### API
+## CLI Client
+`archerctl` provides a OpenStack-like CLI client for interacting with the Archer API Service. It supports common OpenStack environment setting as set by the OpenStack RC File.
+
+```sh
+# archerctl --help
+Usage:
+  archerctl [OPTIONS] <command>
+
+Application Options:
+      --debug                                  Show verbose debug information
+      --os-endpoint=                           The endpoint that will always be used [$OS_ENDPOINT]
+      --os-auth-url=                           Authentication URL [$OS_AUTH_URL]
+      --os-password=                           User's password to use with [$OS_PASSWORD]
+      --os-username=                           User's username to use with [$OS_USERNAME]
+      --os-project-domain-name=                Domain name containing project [$OS_PROJECT_DOMAIN_NAME]
+      --os-project-name=                       Project name to scope to [$OS_PROJECT_NAME]
+      --os-region-name=                        Authentication region name [$OS_REGION_NAME]
+      --os-user-domain-name=                   User's domain name [$OS_USER_DOMAIN_NAME]
+      --os-pw-cmd=                             Derive user's password from command [$OS_PW_CMD]
+
+Output formatters:
+  -f, --format=[table|csv|markdown|html|value] The output format, defaults to table (default: table)
+  -c, --column=                                specify the column(s) to include, can be repeated to show multiple columns
+      --sort-column=                           specify the column(s) to sort the data (columns specified first have a priority, non-existing columns are ignored), can be repeated
+      --long                                   Show all columns in output
+
+Help Options:
+  -h, --help                                   Show this help message
+
+Available commands:
+  endpoint  Endpoints
+  quota     Quotas
+  rbac      RBACs
+  service   Services
+  version   Version
+```
+
+
+#### Example
+```sh
+# archerctl service list
++--------------------------------------+------+------+---------+----------+-----------+-------------------+
+| ID                                   | NAME | PORT | ENABLED | PROVIDER | STATUS    | AVAILABILITY_ZONE |
++--------------------------------------+------+------+---------+----------+-----------+-------------------+
+| 3c8ab870-a409-46f2-b19a-f5672e793705 | test | 80   | true    | tenant   | AVAILABLE |                   |
++--------------------------------------+------+------+---------+----------+-----------+-------------------+
+```
+
+## API
 This section describes properties of the Archer API. It uses a ReSTful HTTP API.
 
 #### Request format
@@ -32,7 +87,7 @@ The Archer API only accepts requests with the JSON data serialization format. Th
 The Archer API always response with JSON data serialization format. The Content-Type header is always `Content-Type: application/json`.
 
 #### Authentication and authorization
-The **Archer API** uses the OpenStack Identity service as the default authentication service. When Keystone is enabled, users that submit requests to the OpenStack Networking service must provide an authentication token in `X-Auth-Token` request header. 
+The **Archer API** uses the OpenStack Identity service as the default authentication service. When Keystone is enabled, users that submit requests to the OpenStack Networking service must provide an authentication token in `X-Auth-Token` request header.
 You obtain the token by authenticating to the Keystone endpoint.
 
 When Keystone is enabled, the `project_id` attribute is not required in create requests because the project ID is derived from the authentication token.
@@ -43,12 +98,12 @@ To reduce load on the service, list operations will return a maximum number of i
 ```
 ?limit=100&marker=1234&page_reverse=False
 ```
-    
-The `marker` parameter is the ID of the last item in the previous list. The `limit` parameter sets the page size. The `page_reverse` parameter sets the page direction. 
-These parameters are optional. 
+
+The `marker` parameter is the ID of the last item in the previous list. The `limit` parameter sets the page size. The `page_reverse` parameter sets the page direction.
+These parameters are optional.
 If the client requests a limit beyond the maximum limit configured by the deployment, the server returns the maximum limit number of items.
 
-For convenience, list responses contain atom **next** links and **previous** links. The last page in the list requested with `page_reverse=False` will not contain **next** link, and the last page in the list requested with `page_reverse=True` will not contain **previous** link. 
+For convenience, list responses contain atom **next** links and **previous** links. The last page in the list requested with `page_reverse=False` will not contain **next** link, and the last page in the list requested with `page_reverse=True` will not contain **previous** link.
 
 To determine if pagination is supported, a user can check whether the `pagination` capability is available through the Archer API detail endpoint.
 
@@ -56,7 +111,7 @@ To determine if pagination is supported, a user can check whether the `paginatio
 You can use the `sort` parameter to sort the results of list operations.
 The sort parameter contains a comma-separated list of sort keys, in order of the sort priority. Each sort key can be optionally prepended with a minus **-** character to reverse default sort direction (ascending).
 
-For example: 
+For example:
 
 ```
 ?sort=key1,-key2,key3
