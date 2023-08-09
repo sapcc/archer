@@ -171,6 +171,8 @@ github.com/hashicorp/go-uuid v1.0.3 h1:2gKiV6YVmrJ1i2CKKa9obLvRieoRGviZFL26PcT/C
 github.com/hashicorp/go-uuid v1.0.3/go.mod h1:6SBZvOh/SIDV7/2o3Jml5SYk/TvGqwFJ/bN7x4byOro=
 github.com/hashicorp/golang-lru/v2 v2.0.4 h1:7GHuZcgid37q8o5i3QI9KMT4nCWQQ3Kx3Ov6bb9MfK0=
 github.com/hashicorp/golang-lru/v2 v2.0.4/go.mod h1:QeFd9opnmA6QUJc5vARoKUSoFhyfM2/ZepoAG6RGpeM=
+github.com/hashicorp/golang-lru/v2 v2.0.5 h1:wW7h1TG88eUIJ2i69gaE3uNVtEPIagzhGvHgwfx2Vm4=
+github.com/hashicorp/golang-lru/v2 v2.0.5/go.mod h1:QeFd9opnmA6QUJc5vARoKUSoFhyfM2/ZepoAG6RGpeM=
 github.com/hashicorp/hcl v1.0.0/go.mod h1:E5yfLk+7swimpb2L/Alb/PJmXilQ/rhwaUYs4T20WEQ=
 github.com/iancoleman/strcase v0.3.0 h1:nTXanmYxhfFAMjZL34Ov6gkzEsSJZ5DbhxWjvSASxEI=
 github.com/iancoleman/strcase v0.3.0/go.mod h1:iwCmte+B7n89clKwxIoIXy/HfoL7AsD47ZCWhYzw7ho=
@@ -308,6 +310,8 @@ github.com/sapcc/go-api-declarations v1.7.0 h1:fABKw/dw300ZQ5TKEjVnKPqMSH5aCOSbJ
 github.com/sapcc/go-api-declarations v1.7.0/go.mod h1:3OCDo75YJwpytM/I0SjwcZJf1ZNu89KeAZ55kdOTSqE=
 github.com/sapcc/go-bits v0.0.0-20230714164034-847bf6682d87 h1:ppSuC8bMkGSmvX5waZLwUrXIt1amgKyQ8etyaZO7b/c=
 github.com/sapcc/go-bits v0.0.0-20230714164034-847bf6682d87/go.mod h1:J/Q/o/JysipZxYy4p4Os1FZhxgKw53Dw68Y5e6c4IbE=
+github.com/sapcc/go-bits v0.0.0-20230809145704-87e8e6f6b6ff h1:YnWMhDwRE3zjoXwzrQF57oZe/Nerevn1v7Ic5t8a4is=
+github.com/sapcc/go-bits v0.0.0-20230809145704-87e8e6f6b6ff/go.mod h1:GGAnoQk5gf/BWMy9HX55t9vZ02w6tkFTDEo0xnz53/o=
 github.com/sergi/go-diff v1.3.1 h1:xkr+Oxo4BOQKmkn/B9eMK0g5Kg/983T9DqqPHwYqD+8=
 github.com/sergi/go-diff v1.3.1/go.mod h1:aMJSSKb2lpPvRNec0+w3fl7LP9IOFzdc9Pa4NFbPK1I=
 github.com/sethvargo/go-retry v0.2.4 h1:T+jHEQy/zKJf5s95UkguisicE0zuF9y7+/vgz08Ocec=
