@@ -19,12 +19,13 @@ jobs:
             goos: windows
     steps:
       - uses: actions/checkout@v3
+      - run: go mod edit -json | jq -r .Go | echo "GO_VERSION_FROM_PROJECT=$(cut -d' ' -f2)" >>${GITHUB_ENV}
       - uses: wangyoucao577/go-release-action@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           goos: ${{ matrix.goos }}
           goarch: ${{ matrix.goarch }}
-          goversion: "1.20"
+          goversion: ${{ env.GO_VERSION_FROM_PROJECT }}"
           binary_name: archerctl
           project_path: "./cmd/archerctl"
           extra_files: LICENSE README.md
