@@ -9,7 +9,7 @@ require (
 	github.com/databus23/goslo.policy v0.0.0-20210929125152-81bf2876dbdb
 	github.com/didip/tollbooth/v7 v7.0.1
 	github.com/dre1080/recovr v1.0.3
-	github.com/f5devcentral/go-bigip v0.0.0-20230824164833-0e0156dbe878
+	github.com/f5devcentral/go-bigip v0.0.0-20230825175646-ebe63e33298c
 	github.com/georgysavva/scany/v2 v2.0.0
 	github.com/getsentry/sentry-go v0.20.0
 	github.com/go-openapi/errors v0.20.4

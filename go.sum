@@ -49,6 +49,8 @@ github.com/f5devcentral/go-bigip v0.0.0-20230629161824-6ac8bd4b0a16 h1:sC/B7pKpb
 github.com/f5devcentral/go-bigip v0.0.0-20230629161824-6ac8bd4b0a16/go.mod h1:JZj/iVxDmEnGPyEwuNj7x0fuH2CtUBbD2J48MMp/SE8=
 github.com/f5devcentral/go-bigip v0.0.0-20230824164833-0e0156dbe878 h1:+n4ejONpTYfIkRsnKSpR7sEoYWknBRuZKfRmJp0mWCc=
 github.com/f5devcentral/go-bigip v0.0.0-20230824164833-0e0156dbe878/go.mod h1:JZj/iVxDmEnGPyEwuNj7x0fuH2CtUBbD2J48MMp/SE8=
+github.com/f5devcentral/go-bigip v0.0.0-20230825175646-ebe63e33298c h1:T9+v2O4pFkDjASOoPhSOoBKU5BhqIDg1ndZg1sGjLxs=
+github.com/f5devcentral/go-bigip v0.0.0-20230825175646-ebe63e33298c/go.mod h1:JZj/iVxDmEnGPyEwuNj7x0fuH2CtUBbD2J48MMp/SE8=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
 github.com/georgysavva/scany/v2 v2.0.0 h1:RGXqxDv4row7/FYoK8MRXAZXqoWF/NM+NP0q50k3DKU=
 github.com/georgysavva/scany/v2 v2.0.0/go.mod h1:sigOdh+0qb/+aOs3TVhehVT10p8qJL7K/Zhyz8vWo38=
