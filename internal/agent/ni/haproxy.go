@@ -89,7 +89,7 @@ var (
 		Name: "haproxy_curr_conns",
 		Help: "Current number of connections",
 	}, []string{"network"})
-	metricScrapse = promauto.NewCounterVec(prometheus.CounterOpts{
+	metricScrape = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "haproxy_scraped",
 		Help: "Counter of haproxy metric scrapes",
 	}, []string{"network"})
@@ -115,7 +115,7 @@ func (h *HAProxyController) collectStats() {
 		}
 		totalBytesOut.WithLabelValues(networkID).Set(float64(info.TotalBytesOut))
 		currConns.WithLabelValues(networkID).Set(float64(info.CurrConns))
-		metricScrapse.WithLabelValues(networkID).Inc()
+		metricScrape.WithLabelValues(networkID).Inc()
 	}
 }
 

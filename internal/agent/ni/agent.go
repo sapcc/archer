@@ -213,6 +213,8 @@ func (e *Agent) InitialSync(ctx context.Context) error {
 func (e *Agent) PendingSyncLoop(ctx context.Context, _ prometheus.Labels) error {
 	var id strfmt.UUID
 
+	e.CollectStats()
+
 	logg.Debug("pending sync scan")
 	sql, args := db.Select("id").
 		From("endpoint").
