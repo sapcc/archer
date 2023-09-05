@@ -30,7 +30,7 @@ require (
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/pashagolub/pgxmock/v2 v2.12.0
 	github.com/prometheus/client_golang v1.16.0
-	github.com/rs/cors v1.9.0
+	github.com/rs/cors v1.10.0
 	github.com/sapcc/go-api-declarations v1.8.1
 	github.com/sapcc/go-bits v0.0.0-20230831095729-1bcecc1483c4
 	github.com/sethvargo/go-retry v0.2.4
