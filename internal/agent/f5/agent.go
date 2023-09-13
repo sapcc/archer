@@ -132,6 +132,9 @@ func (a *Agent) Run() {
 		DoWithJobDetails(a.PendingSyncLoop); err != nil {
 		log.Fatal(err)
 	}
+	if _, err := s.Every(24).Hours().Do(a.cleanOrphanSelfIPs); err != nil {
+		log.WithField("cron", "cleanupOrphanSelfIPs").Error(err)
+	}
 	s.StartBlocking()
 }
 
