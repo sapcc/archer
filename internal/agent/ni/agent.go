@@ -26,7 +26,6 @@ import (
 	"github.com/gophercloud/gophercloud"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5/tracelog"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 
@@ -60,13 +59,8 @@ func NewAgent() *Agent {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	if config.Global.Database.Trace {
-		logger := tracelog.TraceLog{
-			Logger:   db.NewLogger(),
-			LogLevel: tracelog.LogLevelDebug,
-		}
-		connConfig.ConnConfig.Tracer = &logger
-	}
+	connConfig.ConnConfig.Tracer = db.GetTracer()
+	connConfig.ConnConfig.RuntimeParams["application_name"] = "archer-ni-agent"
 	if agent.pool, err = pgxpool.NewWithConfig(context.Background(), connConfig); err != nil {
 		log.Fatal(err.Error())
 	}
@@ -195,7 +189,10 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
 }
 
 func (a *Agent) PendingSyncLoop(job gocron.Job) error {
-	log.Debugf("pending sync loop,#%d, next at %s", job.RunCount(), job.NextRun().String())
+	log.WithFields(log.Fields{
+		"run_count": job.RunCount(),
+		"next_run":  time.Until(job.NextRun()),
+	}).Debugf("pending sync loop")
 	q := db.Select("id").
 		From("endpoint").
 		Where("service_id = ?", a.serviceID)

@@ -25,6 +25,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.6
 	github.com/iancoleman/strcase v0.3.0
 	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa
+	github.com/jackc/pgx-logrus v0.0.0-20220919124836-b099d8ce75da
 	github.com/jackc/pgx/v5 v5.4.3
 	github.com/jedib0t/go-pretty/v6 v6.4.7
 	github.com/jessevdk/go-flags v1.5.0

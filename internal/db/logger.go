@@ -15,23 +15,20 @@
 package db
 
 import (
-	"context"
-
+	logrus "github.com/jackc/pgx-logrus"
 	"github.com/jackc/pgx/v5/tracelog"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/sapcc/archer/internal/config"
 )
 
-type Logger struct{}
-
-func NewLogger() *Logger {
-	return &Logger{}
-}
-
-func (l *Logger) Log(_ context.Context, level tracelog.LogLevel, msg string, data map[string]any) {
-	logger := log.WithFields(data)
-	lvl, err := log.ParseLevel(level.String())
-	if err != nil {
-		logger.Error(err)
+func GetTracer() *tracelog.TraceLog {
+	logLevel := tracelog.LogLevelError
+	if config.Global.Database.Trace {
+		logLevel = tracelog.LogLevelDebug
 	}
-	logger.Log(lvl, msg)
+	return &tracelog.TraceLog{
+		Logger:   logrus.NewLogger(log.StandardLogger()),
+		LogLevel: logLevel,
+	}
 }

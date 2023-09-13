@@ -33,7 +33,6 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/gophercloud/utils/openstack/clientconfig"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5/tracelog"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
@@ -86,13 +85,8 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	if config.Global.Database.Trace {
-		logger := tracelog.TraceLog{
-			Logger:   db.NewLogger(),
-			LogLevel: tracelog.LogLevelDebug,
-		}
-		connConfig.ConnConfig.Tracer = &logger
-	}
+	connConfig.ConnConfig.Tracer = db.GetTracer()
+	connConfig.ConnConfig.RuntimeParams["application_name"] = "archer-api"
 	pool, err := pgxpool.NewWithConfig(context.Background(), connConfig)
 	if err != nil {
 		log.Fatal(err.Error())

@@ -54,7 +54,7 @@ func (j *JobChan) Enqueue(model string, id strfmt.UUID) error {
 	job := job{model: model, id: id}
 	select {
 	case *j <- job:
-		log.Debugf("enqueued job %v", job)
+		log.WithField("job", job).Debug("Job enqueued")
 		return nil
 	default:
 		return fmt.Errorf("failed to enque %v", j)
@@ -63,7 +63,7 @@ func (j *JobChan) Enqueue(model string, id strfmt.UUID) error {
 
 func (j *JobChan) Dequeue() (string, strfmt.UUID) {
 	job := <-*j
-	log.Debugf("dequeued job %v", job)
+	log.WithField("job", job).Debug("Job dequeued")
 	return job.model, job.id
 }
 
@@ -76,7 +76,7 @@ type Worker interface {
 func WorkerThread(ctx context.Context, w Worker) {
 	for job := range *w.GetJobQueue() {
 		var err error
-		log.Debugf("received message %v", job)
+		log.WithField("job", job).Debug("Message received")
 
 		switch job.model {
 		case "service":

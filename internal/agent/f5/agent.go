@@ -27,7 +27,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5/tracelog"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 
@@ -64,14 +63,8 @@ func NewAgent() *Agent {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	if config.Global.Database.Trace {
-		logger := tracelog.TraceLog{
-			Logger:   db.NewLogger(),
-			LogLevel: tracelog.LogLevelDebug,
-		}
-		connConfig.ConnConfig.Tracer = &logger
-	}
-	connConfig.ConnConfig.RuntimeParams["application_name"] = "archer-agent"
+	connConfig.ConnConfig.Tracer = db.GetTracer()
+	connConfig.ConnConfig.RuntimeParams["application_name"] = "archer-f5-agent"
 	if agent.pool, err = pgxpool.NewWithConfig(context.Background(), connConfig); err != nil {
 		log.Fatal(err.Error())
 	}
@@ -137,18 +130,21 @@ func (a *Agent) Run() {
 	if _, err := s.
 		Every(config.Global.Agent.PendingSyncInterval).
 		DoWithJobDetails(a.PendingSyncLoop); err != nil {
-		log.Fatal(err.Error())
+		log.Fatal(err)
 	}
 	s.StartBlocking()
 }
 
-func (a *Agent) PendingSyncLoop(context.Context, prometheus.Labels) error {
+func (a *Agent) PendingSyncLoop(job gocron.Job) error {
 	var id strfmt.UUID
 	var rows pgx.Rows
 	var ret pgconn.CommandTag
 	var err error
 
-	log.Debug("pending sync scan")
+	log.WithFields(log.Fields{
+		"run_count": job.RunCount(),
+		"next_run":  time.Until(job.NextRun()),
+	}).Debugf("pending sync loop")
 	sql, args := db.Select("1").
 		From("service").
 		Where("provider = 'tenant'").
