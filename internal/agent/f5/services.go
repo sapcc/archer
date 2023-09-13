@@ -124,7 +124,7 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 			if err != nil {
 				var gerr gophercloud.ErrUnexpectedResponseCode
 				if errors.As(err, &gerr) && gerr.Actual == 409 && bytes.Contains(gerr.Body, []byte("OverQuota")) {
-					log.Infof("Service %s: %s", service.ID, gerr.Body)
+					log.WithField("service", service.ID).Info(gerr.Body)
 					if _, err := tx.Exec(ctx, `UPDATE service SET status = 'ERROR_QUOTA', updated_at = NOW() WHERE id = $1;`,
 						service.ID); err != nil {
 						return err
@@ -192,12 +192,14 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 						port, ok := service.SnatPorts[bigip.GetHostname()]
 						if ok {
 							if err := bigip.CleanupSelfIP(port); err != nil {
-								log.Infof("CleanupSelfIP(service=%s,port=%s): %s", service.ID, port.ID,
-									err.Error())
+								log.
+									WithFields(log.Fields{"service": service.ID, "port": port.ID}).
+									Error(err)
 							}
 						} else {
-							log.Infof("CleanupSelfIP(service=%s): No SelfIP registered for %s",
-								service.ID, bigip.GetHostname())
+							log.
+								WithFields(log.Fields{"service": service.ID, "host": bigip.GetHostname()}).
+								Info("CleanupSelfIP: No SelfIP registered for this host")
 						}
 						return nil
 					})
@@ -230,11 +232,15 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 
 				if !skipCleanup {
 					if err := a.CleanupL2(ctx, service.SegmentId); err != nil {
-						log.Errorf("CleanupL2(service=%s,vlan=%d): %s", service.ID, service.SegmentId,
-							err.Error())
+						log.
+							WithFields(log.Fields{"service": service.ID, "vlan": service.SegmentId}).
+							WithError(err).
+							Error("CleanupL2")
 					}
 				} else {
-					log.Infof("Skipping CleanupL2(service=%s,vlan=%d)", service.ID, service.SegmentId)
+					log.
+						WithFields(log.Fields{"service": service.ID, "vlan": service.SegmentId}).
+						Info("Skipping CleanupL2")
 				}
 			}
 		}
