@@ -25,7 +25,7 @@ import (
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/jackc/pgx/v5"
-	"github.com/sapcc/go-bits/logg"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/sapcc/archer/internal/agent/f5/as3"
@@ -124,7 +124,7 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 			if err != nil {
 				var gerr gophercloud.ErrUnexpectedResponseCode
 				if errors.As(err, &gerr) && gerr.Actual == 409 && bytes.Contains(gerr.Body, []byte("OverQuota")) {
-					logg.Info("Service %s: %s", service.ID, gerr.Body)
+					log.Infof("Service %s: %s", service.ID, gerr.Body)
 					if _, err := tx.Exec(ctx, `UPDATE service SET status = 'ERROR_QUOTA', updated_at = NOW() WHERE id = $1;`,
 						service.ID); err != nil {
 						return err
@@ -192,11 +192,11 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 						port, ok := service.SnatPorts[bigip.GetHostname()]
 						if ok {
 							if err := bigip.CleanupSelfIP(port); err != nil {
-								logg.Info("CleanupSelfIP(service=%s,port=%s): %s", service.ID, port.ID,
+								log.Infof("CleanupSelfIP(service=%s,port=%s): %s", service.ID, port.ID,
 									err.Error())
 							}
 						} else {
-							logg.Info("CleanupSelfIP(service=%s): No SelfIP registered for %",
+							log.Infof("CleanupSelfIP(service=%s): No SelfIP registered for %s",
 								service.ID, bigip.GetHostname())
 						}
 						return nil
@@ -230,11 +230,11 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 
 				if !skipCleanup {
 					if err := a.CleanupL2(ctx, service.SegmentId); err != nil {
-						logg.Error("CleanupL2(service=%s,vlan=%d): %s", service.ID, service.SegmentId,
+						log.Errorf("CleanupL2(service=%s,vlan=%d): %s", service.ID, service.SegmentId,
 							err.Error())
 					}
 				} else {
-					logg.Info("Skipping CleanupL2(service=%s,vlan=%d)", service.ID, service.SegmentId)
+					log.Infof("Skipping CleanupL2(service=%s,vlan=%d)", service.ID, service.SegmentId)
 				}
 			}
 		}
@@ -244,10 +244,9 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 			if service.Status == models.ServiceStatusPENDINGDELETE {
 				for _, snatPort := range service.SnatPorts {
 					if err = a.neutron.DeletePort(snatPort.ID); err != nil {
-						if _, ok := err.(gophercloud.ErrDefault404); !ok {
+						var errDefault404 gophercloud.ErrDefault404
+						if !errors.As(err, &errDefault404) {
 							return err
-						} else {
-							logg.Error("Port '%s' already deleted: %s", snatPort.ID, err.Error())
 						}
 					}
 				}

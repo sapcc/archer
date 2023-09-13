@@ -17,9 +17,11 @@ package f5
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/IBM/pgxpoolprometheus"
 	sq "github.com/Masterminds/squirrel"
+	"github.com/go-co-op/gocron"
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/utils/openstack/clientconfig"
 	"github.com/jackc/pgx/v5"
@@ -27,7 +29,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/tracelog"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sapcc/go-bits/logg"
+	log "github.com/sirupsen/logrus"
 
 	common "github.com/sapcc/archer/internal/agent"
 	"github.com/sapcc/archer/internal/agent/f5/as3"
@@ -60,7 +62,7 @@ func NewAgent() *Agent {
 	// Connect to database
 	connConfig, err := pgxpool.ParseConfig(config.Global.Database.Connection)
 	if err != nil {
-		logg.Fatal(err.Error())
+		log.Fatal(err.Error())
 	}
 	if config.Global.Database.Trace {
 		logger := tracelog.TraceLog{
@@ -71,18 +73,18 @@ func NewAgent() *Agent {
 	}
 	connConfig.ConnConfig.RuntimeParams["application_name"] = "archer-agent"
 	if agent.pool, err = pgxpool.NewWithConfig(context.Background(), connConfig); err != nil {
-		logg.Fatal(err.Error())
+		log.Fatal(err.Error())
 	}
 
 	// install postgres status exporter
 	dbConfig := agent.pool.Config()
 	collector := pgxpoolprometheus.NewCollector(agent.pool, map[string]string{"db_name": dbConfig.ConnConfig.Database})
 	prometheus.MustRegister(collector)
-	logg.Info("Connected to PostgreSQL host=%s, max_conns=%d, health_check_period=%s",
+	log.Infof("Connected to PostgreSQL host=%s, max_conns=%d, health_check_period=%s",
 		dbConfig.ConnConfig.Host, dbConfig.MaxConns, dbConfig.HealthCheckPeriod)
 
 	// physical network/interface
-	logg.Info("Physical Interface Mapping: physical_network=%s, interface=%s",
+	log.Infof("Physical Interface Mapping: physical_network=%s, interface=%s",
 		config.Global.Agent.PhysicalNetwork, config.Global.Agent.PhysicalInterface)
 
 	// bigips
@@ -90,7 +92,7 @@ func NewAgent() *Agent {
 		var big *as3.BigIP
 		big, err = as3.GetBigIPSession(url)
 		if err != nil {
-			logg.Fatal("BigIP session: %v", err)
+			log.Fatalf("BigIP session: %v", err)
 		}
 		agent.bigips = append(agent.bigips, big)
 		if big.GetBigIPDevice(url).FailoverState == "active" {
@@ -103,7 +105,7 @@ func NewAgent() *Agent {
 		var big *as3.BigIP
 		big, err = as3.GetBigIPSession(url)
 		if err != nil {
-			logg.Fatal("BigIP session: %v", err)
+			log.Fatalf("BigIP session: %v", err)
 		}
 
 		agent.vcmps = append(agent.vcmps, big)
@@ -113,13 +115,13 @@ func NewAgent() *Agent {
 	providerClient, err := clientconfig.AuthenticatedClient(&clientconfig.ClientOpts{
 		AuthInfo: &authInfo})
 	if err != nil {
-		logg.Fatal(err.Error())
+		log.Fatal(err.Error())
 	}
 
 	if agent.neutron, err = neutron.ConnectToNeutron(providerClient); err != nil {
-		logg.Fatal("While connecting to Neutron: %s", err.Error())
+		log.Fatalf("While connecting to Neutron: %s", err.Error())
 	}
-	logg.Info("Connected to Neutron %s", agent.neutron.Endpoint)
+	log.Infof("Connected to Neutron %s", agent.neutron.Endpoint)
 
 	common.RegisterAgent(agent.pool, "tenant")
 	return agent
@@ -130,11 +132,14 @@ func (a *Agent) Run() {
 	go common.DBNotificationThread(context.Background(), a.pool, a.jobQueue)
 	go common.PrometheusListenerThread()
 
-	// initial run
-	go func() {
-		_ = a.PendingSyncLoop(context.Background(), nil)
-	}()
-	common.CronJob(a).Run(context.Background())
+	s := gocron.NewScheduler(time.UTC).SingletonMode()
+	// sync pending services
+	if _, err := s.
+		Every(config.Global.Agent.PendingSyncInterval).
+		DoWithJobDetails(a.PendingSyncLoop); err != nil {
+		log.Fatal(err.Error())
+	}
+	s.StartBlocking()
 }
 
 func (a *Agent) PendingSyncLoop(context.Context, prometheus.Labels) error {
@@ -143,7 +148,7 @@ func (a *Agent) PendingSyncLoop(context.Context, prometheus.Labels) error {
 	var ret pgconn.CommandTag
 	var err error
 
-	logg.Debug("pending sync scan")
+	log.Debug("pending sync scan")
 	sql, args := db.Select("1").
 		From("service").
 		Where("provider = 'tenant'").
@@ -191,8 +196,8 @@ func (a *Agent) PendingSyncLoop(context.Context, prometheus.Labels) error {
 }
 
 func (a *Agent) PrometheusListenerThread() {
-	logg.Info("Serving prometheus metrics to %s/metrics", config.Global.Default.PrometheusListen)
+	log.Infof("Serving prometheus metrics to %s/metrics", config.Global.Default.PrometheusListen)
 	if err := http.ListenAndServe(config.Global.Default.PrometheusListen, nil); err != nil {
-		logg.Fatal(err.Error())
+		log.Fatal(err.Error())
 	}
 }

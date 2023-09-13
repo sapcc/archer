@@ -16,10 +16,9 @@ package db
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/jackc/pgx/v5/tracelog"
-	"github.com/sapcc/go-bits/logg"
+	log "github.com/sirupsen/logrus"
 )
 
 type Logger struct{}
@@ -28,16 +27,11 @@ func NewLogger() *Logger {
 	return &Logger{}
 }
 
-func (l *Logger) Log(ctx context.Context, level tracelog.LogLevel, msg string, data map[string]any) {
-	message := fmt.Sprintf("%s: %v", msg, data)
-	switch level {
-	case tracelog.LogLevelDebug:
-		logg.Debug(message)
-	case tracelog.LogLevelInfo:
-		logg.Info(message)
-	case tracelog.LogLevelError:
-		logg.Error(message)
-	default:
-		logg.Other(level.String(), message)
+func (l *Logger) Log(_ context.Context, level tracelog.LogLevel, msg string, data map[string]any) {
+	logger := log.WithFields(data)
+	lvl, err := log.ParseLevel(level.String())
+	if err != nil {
+		logger.Error(err)
 	}
+	logger.Log(lvl, msg)
 }

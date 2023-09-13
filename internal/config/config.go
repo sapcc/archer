@@ -24,7 +24,7 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/jessevdk/go-flags"
-	"github.com/sapcc/go-bits/logg"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -128,7 +128,7 @@ func IsDebug() bool {
 func ResolveHost() {
 	if Global.Default.Host == "" {
 		if hostname, err := os.Hostname(); err != nil {
-			logg.Fatal(err.Error())
+			log.Fatal(err.Error())
 		} else {
 			Global.Default.Host = hostname
 		}
@@ -136,15 +136,21 @@ func ResolveHost() {
 }
 
 func ParseConfig(parser *flags.Parser) {
+	log.SetLevel(log.InfoLevel)
+
 	// parse config file
 	for _, file := range Global.ConfigFile {
 		ini := flags.NewIniParser(parser)
 		if err := ini.ParseFile(file); err != nil {
-			logg.Fatal(err.Error())
+			log.Fatal(err.Error())
 		}
 	}
 
-	logg.Info("Running Archer @%s (%s)", Version, BuildTime)
+	if Global.Default.Debug {
+		log.SetLevel(log.DebugLevel)
+	}
+
+	log.Infof("Running Archer @%s (%s)", Version, BuildTime)
 }
 
 func InitSentry() {
@@ -155,10 +161,10 @@ func InitSentry() {
 			Release:          Version,
 			ServerName:       Global.Default.Host,
 		}); err != nil {
-			logg.Fatal("Sentry initialization failed: %v", err)
+			log.Fatalf("Sentry initialization failed: %v", err)
 		}
 
-		logg.Info("Sentry is enabled")
+		log.Info("Sentry is enabled")
 	}
 }
 

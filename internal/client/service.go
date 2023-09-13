@@ -150,7 +150,8 @@ func (*ServiceSet) Execute(_ []string) error {
 			WithServiceID(ServiceOptions.ServiceSet.Positional.Service)
 		resp, err := ArcherClient.Service.GetServiceServiceID(params, nil)
 		if err != nil {
-			if _, ok := err.(*service.GetServiceServiceIDNotFound); ok {
+			var getServiceServiceIDNotFound *service.GetServiceServiceIDNotFound
+			if errors.As(err, &getServiceServiceIDNotFound) {
 				return errors.New("Not Found")
 			}
 
@@ -329,7 +330,8 @@ func waitForService(id strfmt.UUID, deleted bool) (*models.Service, error) {
 		params := service.NewGetServiceServiceIDParams().WithServiceID(id)
 		r, err := ArcherClient.Service.GetServiceServiceID(params, nil)
 		if err != nil {
-			if _, ok := err.(*service.GetServiceServiceIDNotFound); ok && deleted {
+			var getServiceServiceIDNotFound *service.GetServiceServiceIDNotFound
+			if errors.As(err, &getServiceServiceIDNotFound) && deleted {
 				return nil
 			}
 			return err

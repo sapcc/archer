@@ -15,11 +15,12 @@
 package main
 
 import (
+	"errors"
 	"os"
 
 	"github.com/go-openapi/loads"
 	"github.com/jessevdk/go-flags"
-	"github.com/sapcc/go-bits/logg"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/restapi"
@@ -30,7 +31,7 @@ func main() {
 	var err error
 	restapi.SwaggerSpec, err = loads.Embedded(restapi.SwaggerJSON, restapi.FlatSwaggerJSON)
 	if err != nil {
-		logg.Fatal(err.Error())
+		log.Fatal(err.Error())
 	}
 
 	api := operations.NewArcherAPI(restapi.SwaggerSpec)
@@ -44,13 +45,14 @@ func main() {
 	for _, optsGroup := range api.CommandLineOptionsGroups {
 		_, err := parser.AddGroup(optsGroup.ShortDescription, optsGroup.LongDescription, optsGroup.Options)
 		if err != nil {
-			logg.Fatal(err.Error())
+			log.Fatal(err.Error())
 		}
 	}
 
 	if _, err := parser.Parse(); err != nil {
 		code := 1
-		if fe, ok := err.(*flags.Error); ok {
+		var fe *flags.Error
+		if errors.As(err, &fe) {
 			if fe.Type == flags.ErrHelp {
 				code = 0
 			}
@@ -59,12 +61,9 @@ func main() {
 	}
 
 	config.ParseConfig(parser)
-
-	logg.ShowDebug = config.Global.Default.Debug
 	server.ConfigureAPI()
 
 	if err := server.Serve(); err != nil {
-		logg.Fatal(err.Error())
+		log.Fatal(err.Error())
 	}
-
 }

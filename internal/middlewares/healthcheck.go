@@ -19,7 +19,7 @@ package middlewares
 import (
 	"net/http"
 
-	"github.com/sapcc/go-bits/logg"
+	log "github.com/sirupsen/logrus"
 )
 
 // HealthCheckMiddleware provides the GET /healthcheck endpoint.
@@ -29,7 +29,7 @@ func HealthCheckMiddleware(next http.Handler) http.Handler {
 		if r.URL.Path == "/healthcheck" && r.Method == "GET" {
 			w.WriteHeader(http.StatusOK)
 			if _, err := w.Write([]byte("ok")); err != nil {
-				logg.Error("Error replying health check")
+				log.Error("Error replying health check")
 			}
 		} else {
 			next.ServeHTTP(w, r)

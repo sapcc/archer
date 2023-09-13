@@ -28,7 +28,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
 	lru "github.com/hashicorp/golang-lru/v2"
-	"github.com/sapcc/go-bits/logg"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/errors"
@@ -52,7 +52,7 @@ func ConnectToNeutron(providerClient *gophercloud.ProviderClient) (*NeutronClien
 	// Initialize local cache
 	var cache *lru.Cache[string, int]
 	if cache, err = lru.New[string, int](128); err != nil {
-		logg.Fatal(err.Error())
+		log.Fatal(err.Error())
 	}
 	return &NeutronClient{serviceClient, cache}, nil
 }

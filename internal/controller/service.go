@@ -30,7 +30,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/sapcc/go-bits/gopherpolicy"
-	"github.com/sapcc/go-bits/logg"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal"
 	"github.com/sapcc/archer/internal/auth"
@@ -101,7 +101,8 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 
 	if params.Body.NetworkID != nil {
 		if network, err := networks.Get(c.neutron.ServiceClient, string(*params.Body.NetworkID)).Extract(); err != nil {
-			if _, ok := err.(gophercloud.ErrDefault404); ok {
+			var errDefault404 gophercloud.ErrDefault404
+			if errors.As(err, &errDefault404) {
 				return service.NewPostServiceConflict().WithPayload(&models.Error{
 					Code:    http.StatusConflict,
 					Message: "Network not found.",
@@ -157,7 +158,7 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 			return err
 		}
 
-		logg.Info("Found host '%s' (usage=%d) for service request (provider=%+v)", host, usage,
+		log.Infof("Found host '%s' (usage=%d) for service request (provider=%+v)", host, usage,
 			params.Body.Provider)
 		params.Body.Host = &host
 
@@ -382,14 +383,14 @@ func (c *Controller) GetServiceServiceIDEndpointsHandler(params service.GetServi
 
 func (c *Controller) PutServiceServiceIDAcceptEndpointsHandler(params service.PutServiceServiceIDAcceptEndpointsParams, principal any) middleware.Responder {
 	endpointConsumers, err := commonEndpointsActionHandler(c.pool, params, principal)
-	switch err {
-	case aerr.ErrBadRequest:
+	switch {
+	case errors.Is(err, aerr.ErrBadRequest):
 		return service.NewPutServiceServiceIDAcceptEndpointsBadRequest().WithPayload(
 			&models.Error{
 				Code:    400,
 				Message: "Must declare at least one, endpoint_id(s) or project_id(s)",
 			})
-	case dbscan.ErrNotFound:
+	case errors.Is(err, dbscan.ErrNotFound):
 		return service.NewPutServiceServiceIDAcceptEndpointsNotFound()
 	}
 
@@ -398,14 +399,14 @@ func (c *Controller) PutServiceServiceIDAcceptEndpointsHandler(params service.Pu
 
 func (c *Controller) PutServiceServiceIDRejectEndpointsHandler(params service.PutServiceServiceIDRejectEndpointsParams, principal any) middleware.Responder {
 	endpointConsumers, err := commonEndpointsActionHandler(c.pool, params, principal)
-	switch err {
-	case aerr.ErrBadRequest:
+	switch {
+	case errors.Is(err, aerr.ErrBadRequest):
 		return service.NewPutServiceServiceIDRejectEndpointsBadRequest().WithPayload(
 			&models.Error{
 				Code:    400,
 				Message: "Must declare at least one, endpoint_id(s) or project_id(s)",
 			})
-	case dbscan.ErrNotFound:
+	case errors.Is(err, dbscan.ErrNotFound):
 		return service.NewPutServiceServiceIDRejectEndpointsNotFound()
 	}
 	return service.NewPutServiceServiceIDRejectEndpointsOK().WithPayload(endpointConsumers)

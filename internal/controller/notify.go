@@ -19,18 +19,18 @@ import (
 	"fmt"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/sapcc/go-bits/logg"
+	log "github.com/sirupsen/logrus"
 )
 
 func (c *Controller) notifyService(host string) {
 	if _, err := c.pool.Exec(context.Background(), "SELECT pg_notify('service', $1)", host); err != nil {
-		logg.Error(err.Error())
+		log.Error(err.Error())
 	}
 }
 
 func (c *Controller) notifyEndpoint(host string, id strfmt.UUID) {
 	payload := fmt.Sprintf("%s:%s", host, id)
 	if _, err := c.pool.Exec(context.Background(), "SELECT pg_notify('endpoint', $1)", payload); err != nil {
-		logg.Error(err.Error())
+		log.Error(err.Error())
 	}
 }

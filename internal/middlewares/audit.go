@@ -26,20 +26,20 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/sapcc/go-api-declarations/cadf"
 	"github.com/sapcc/go-bits/audittools"
-	"github.com/sapcc/go-bits/logg"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/policy"
 )
 
-type auditController struct {
+type AuditController struct {
 	EventSink    chan<- cadf.Event
 	observerUUID string
 }
 
-func NewAuditController() *auditController {
+func NewAuditController() *AuditController {
 	s := make(chan cadf.Event, 20)
-	q := auditController{
+	q := AuditController{
 		EventSink:    s,
 		observerUUID: audittools.GenerateUUID(),
 	}
@@ -52,19 +52,19 @@ func NewAuditController() *auditController {
 	go audittools.AuditTrail{
 		EventSink: s,
 		OnSuccessfulPublish: func() {
-			logg.Debug("Notification sent")
+			log.Debug("Notification sent")
 		},
 		OnFailedPublish: func() {
-			logg.Debug("Notification failed")
+			log.Debug("Notification failed")
 		},
 	}.Commit(*transportURL, rabbitmqQueueName)
 	return &q
 }
 
-// auditResponseWriter is a wrapper of regular ResponseWriter
-type auditResponseWriter struct {
+// AuditResponseWriter is a wrapper of regular ResponseWriter
+type AuditResponseWriter struct {
 	http.ResponseWriter
-	controller *auditController
+	controller *AuditController
 	request    *http.Request
 }
 
@@ -97,7 +97,7 @@ func (a AuditResource) Render() cadf.Resource {
 	return res
 }
 
-func (arw *auditResponseWriter) WriteHeader(code int) {
+func (arw *AuditResponseWriter) WriteHeader(code int) {
 	arw.ResponseWriter.WriteHeader(code)
 
 	mr := middleware.MatchedRouteFrom(arw.request)
@@ -105,7 +105,7 @@ func (arw *auditResponseWriter) WriteHeader(code int) {
 	uprinc := middleware.SecurityPrincipalFrom(arw.request)
 	user := uprinc.(audittools.UserInfo)
 	if user == nil {
-		logg.Error("Audit Middleware WriteHeader: missing token")
+		log.Error("Audit Middleware WriteHeader: missing token")
 		return
 	}
 
@@ -127,12 +127,12 @@ func (arw *auditResponseWriter) WriteHeader(code int) {
 	arw.controller.EventSink <- audittools.NewEvent(p)
 }
 
-func (ac *auditController) NewAuditResponseWriter(w http.ResponseWriter, r *http.Request) *auditResponseWriter {
-	return &auditResponseWriter{w, ac, r}
+func (ac *AuditController) NewAuditResponseWriter(w http.ResponseWriter, r *http.Request) *AuditResponseWriter {
+	return &AuditResponseWriter{w, ac, r}
 }
 
 // AuditHandler provides the audit handling.
-func (ac *auditController) AuditHandler(next http.Handler) http.Handler {
+func (ac *AuditController) AuditHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
 			next.ServeHTTP(w, r)

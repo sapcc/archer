@@ -27,7 +27,7 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/sapcc/go-bits/logg"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal"
 	"github.com/sapcc/archer/internal/auth"
@@ -169,7 +169,8 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, _ a
 				Message: "target_port needs at least one IP address.",
 			})
 		}
-		if gopherCloudErr, ok := err.(gophercloud.StatusCodeError); ok {
+		var gopherCloudErr gophercloud.StatusCodeError
+		if errors.As(err, &gopherCloudErr) {
 			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
 				Code:    int64(gopherCloudErr.GetStatusCode()),
 				Message: gopherCloudErr.Error(),
@@ -179,7 +180,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, _ a
 	}
 
 	if serviceNetwork == port.NetworkID {
-		logg.Info("Deallocating port %s: %+v", port.ID, c.neutron.DeletePort(port.ID))
+		log.Infof("Deallocating port %s: %+v", port.ID, c.neutron.DeletePort(port.ID))
 		return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
 			Code:    400,
 			Message: "target_port needs to be in a different network than the service.",
@@ -206,7 +207,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, _ a
 			})
 		}
 		if owned {
-			logg.Error("Deallocating port %s: %+v", port.ID, c.neutron.DeletePort(port.ID))
+			log.Errorf("Deallocating port %s: %+v", port.ID, c.neutron.DeletePort(port.ID))
 		}
 		panic(err)
 	}
@@ -214,7 +215,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, _ a
 	// done and done
 	if err := tx.Commit(ctx); err != nil {
 		if owned {
-			logg.Error("Deallocating port %s: %+v", port.ID, c.neutron.DeletePort(port.ID))
+			log.Errorf("Deallocating port %s: %+v", port.ID, c.neutron.DeletePort(port.ID))
 		}
 		panic(err)
 	}

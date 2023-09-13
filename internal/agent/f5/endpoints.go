@@ -16,6 +16,7 @@ package f5
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
@@ -24,7 +25,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/pagination"
 	"github.com/jackc/pgx/v5"
-	"github.com/sapcc/go-bits/logg"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/sapcc/archer/internal/agent/f5/as3"
@@ -133,7 +134,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	g.Go(func() error {
 		if err := a.populateEndpointPorts(endpoints); err != nil && deleteAll {
 			// ignore missing ports if all endpoints are about to be deleted, print error instead
-			logg.Error(err.Error())
+			log.Error(err.Error())
 		}
 		return nil
 	})
@@ -196,10 +197,10 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 
 		if !skipCleanup {
 			if err := a.CleanupL2(ctx, endpointSegmentID); err != nil {
-				logg.Error("CleanupL2(vlan=%d): %s", endpointSegmentID, err.Error())
+				log.Errorf("CleanupL2(vlan=%d): %s", endpointSegmentID, err.Error())
 			}
 		} else {
-			logg.Info("Skipping CleanupL2(vlan=%d) since it is still in use", endpointSegmentID)
+			log.Infof("Skipping CleanupL2(vlan=%d) since it is still in use", endpointSegmentID)
 		}
 	}
 
@@ -207,10 +208,9 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		if endpoint.Status == models.EndpointStatusPENDINGDELETE {
 			if endpoint.Target.Port != nil && owned {
 				if err := a.neutron.DeletePort(endpoint.Target.Port.String()); err != nil {
-					if _, ok := err.(gophercloud.ErrDefault404); !ok {
+					var errDefault404 gophercloud.ErrDefault404
+					if !errors.As(err, &errDefault404) {
 						return err
-					} else {
-						logg.Error("Port '%s' already deleted: %s", endpoint.Target.Port.String(), err.Error())
 					}
 				}
 			}
@@ -230,6 +230,6 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		return err
 	}
 
-	logg.Info("ProcessEndpoint successful")
+	log.Info("ProcessEndpoint successful")
 	return nil
 }

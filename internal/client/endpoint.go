@@ -218,7 +218,8 @@ func waitForEndpoint(id strfmt.UUID, deleted bool) (*models.Endpoint, error) {
 		params := endpoint.NewGetEndpointEndpointIDParams().WithEndpointID(id)
 		r, err := ArcherClient.Endpoint.GetEndpointEndpointID(params, nil)
 		if err != nil {
-			if _, ok := err.(*endpoint.GetEndpointEndpointIDNotFound); ok && deleted {
+			var getEndpointEndpointIDNotFound *endpoint.GetEndpointEndpointIDNotFound
+			if errors.As(err, &getEndpointEndpointIDNotFound) && deleted {
 				// endpoint deleted
 				return nil
 			}

@@ -23,9 +23,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sapcc/go-bits/jobloop"
-	"github.com/sapcc/go-bits/logg"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
@@ -56,7 +54,7 @@ func (j *JobChan) Enqueue(model string, id strfmt.UUID) error {
 	job := job{model: model, id: id}
 	select {
 	case *j <- job:
-		logg.Debug("enqueued job %v", job)
+		log.Debugf("enqueued job %v", job)
 		return nil
 	default:
 		return fmt.Errorf("failed to enque %v", j)
@@ -65,48 +63,29 @@ func (j *JobChan) Enqueue(model string, id strfmt.UUID) error {
 
 func (j *JobChan) Dequeue() (string, strfmt.UUID) {
 	job := <-*j
-	logg.Debug("dequeued job %v", job)
+	log.Debugf("dequeued job %v", job)
 	return job.model, job.id
 }
 
 type Worker interface {
-	PendingSyncLoop(context.Context, prometheus.Labels) error
 	ProcessServices(context.Context) error
 	ProcessEndpoint(context.Context, strfmt.UUID) error
 	GetJobQueue() *JobChan
 }
 
-func CronJob(w Worker) jobloop.Job {
-	jl := jobloop.CronJob{
-		Metadata: jobloop.JobMetadata{
-			ReadableName:    "pending_sync_loop",
-			ConcurrencySafe: false,
-			CounterOpts: prometheus.CounterOpts{
-				Name: "archer_pending_sync_loop_total",
-				Help: "Total number of pending sync loops",
-			},
-			CounterLabels: nil,
-		},
-		Interval: config.Global.Agent.PendingSyncInterval,
-		Task:     w.PendingSyncLoop,
-	}
-
-	return jl.Setup(prometheus.DefaultRegisterer)
-}
-
 func WorkerThread(ctx context.Context, w Worker) {
 	for job := range *w.GetJobQueue() {
 		var err error
-		logg.Debug("received message %v", job)
+		log.Debugf("received message %v", job)
 
 		switch job.model {
 		case "service":
 			if err = w.ProcessServices(ctx); err != nil {
-				logg.Error(err.Error())
+				log.Error(err.Error())
 			}
 		case "endpoint":
 			if err = w.ProcessEndpoint(ctx, job.id); err != nil {
-				logg.Error(err.Error())
+				log.Error(err.Error())
 			}
 		}
 
@@ -122,30 +101,30 @@ func DBNotificationThread(ctx context.Context, pool *pgxpool.Pool, jobQueue *Job
 	// Acquire one Connection for listen events
 	conn, err := pool.Acquire(ctx)
 	if err != nil {
-		logg.Fatal(err.Error())
+		log.Fatal(err.Error())
 	}
 
 	sql := "LISTEN service; LISTEN endpoint;"
 	if _, err := conn.Exec(ctx, sql); err != nil {
-		logg.Fatal(err.Error())
+		log.Fatal(err.Error())
 	}
 
-	logg.Info("DBNotificationThread: Listening to service and endpoint notifications")
+	log.Info("DBNotificationThread: Listening to service and endpoint notifications")
 
 	for {
 		var id strfmt.UUID
 		notification, err := conn.Conn().WaitForNotification(ctx)
 		if err != nil {
 			if !pgconn.Timeout(err) {
-				logg.Fatal(err.Error())
+				log.Fatal(err.Error())
 			}
 			continue
 		}
 
-		logg.Debug("Received notification, channel=%s, payload=%s", notification.Channel, notification.Payload)
+		log.Debugf("Received notification, channel=%s, payload=%s", notification.Channel, notification.Payload)
 		s := strings.SplitN(notification.Payload, ":", 2)
 		if len(s) < 1 {
-			logg.Error("Received invalid notification payload: %s", notification.Payload)
+			log.Errorf("Received invalid notification payload: %s", notification.Payload)
 			continue
 		}
 
@@ -157,7 +136,7 @@ func DBNotificationThread(ctx context.Context, pool *pgxpool.Pool, jobQueue *Job
 		}
 
 		if err := jobQueue.Enqueue(notification.Channel, id); err != nil {
-			logg.Error(err.Error())
+			log.Error(err.Error())
 		}
 	}
 }

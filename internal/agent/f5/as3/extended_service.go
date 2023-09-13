@@ -31,10 +31,6 @@ type ExtendedService struct {
 	SegmentId   int
 }
 
-func (es *ExtendedService) ProcessVCMP(vcmp *BigIP) error {
-	return nil
-}
-
 func (es *ExtendedService) GetSNATPort(device string) *ports.Port {
 	for _, port := range es.SnatPorts {
 		if strings.HasSuffix(port.Name, device) {

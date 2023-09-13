@@ -26,10 +26,10 @@ type noOpPolicyEngine struct{}
 
 func (p noOpPolicyEngine) init() {}
 
-func (p noOpPolicyEngine) AuthorizeRequest(r *http.Request, t *gopherpolicy.Token, _ string) bool {
+func (p noOpPolicyEngine) AuthorizeRequest(_ *http.Request, _ *gopherpolicy.Token, _ string) bool {
 	return true
 }
 
-func (p noOpPolicyEngine) AuthorizeGetAllRequest(r *http.Request, t *gopherpolicy.Token, _ string) bool {
+func (p noOpPolicyEngine) AuthorizeGetAllRequest(_ *http.Request, _ *gopherpolicy.Token, _ string) bool {
 	return true
 }

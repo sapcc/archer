@@ -77,16 +77,16 @@ const GetNetworkResponseFixture = `
 }
 `
 
-type mockedController struct {
+type MockedController struct {
 	*Controller
 	db pgxmock.PgxPoolIface
 }
 
-func (c *mockedController) Close() {
+func (c *MockedController) Close() {
 	c.db.Close()
 }
 
-func (t *SuiteTest) GetMockedController() *mockedController {
+func (t *SuiteTest) GetMockedController() *MockedController {
 	// need to load from file due to cyclic dependency of restapi package
 	spec, err := loads.Spec(path.Join(rootpath, "swagger.yaml"))
 	if err != nil {
@@ -99,7 +99,7 @@ func (t *SuiteTest) GetMockedController() *mockedController {
 	}
 
 	c := NewController(dbMock, spec, &neutron.NeutronClient{ServiceClient: fake.ServiceClient()})
-	return &mockedController{c, dbMock}
+	return &MockedController{c, dbMock}
 }
 
 func (t *SuiteTest) ResetHttpServer() {
@@ -157,7 +157,7 @@ func (t *SuiteTest) TearDownSuite() {
 }
 
 // Run After a Test
-func (t *SuiteTest) AfterTest(suiteName, testName string) {
+func (t *SuiteTest) AfterTest(_, _ string) {
 	// clear
 	sql := `
 		DELETE FROM rbac;

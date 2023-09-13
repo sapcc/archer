@@ -24,7 +24,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/tokens"
 	"github.com/sapcc/go-bits/gopherpolicy"
-	"github.com/sapcc/go-bits/logg"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal/config"
 )
@@ -58,9 +58,9 @@ func (k *Keystone) AuthenticateToken(tokenStr string) (any, error) {
 	token := k.tv.CheckCredentials(tokenStr, func() gopherpolicy.TokenResult {
 		return tokens.Get(k.tv.IdentityV3, tokenStr)
 	})
-	token.Context.Logger = logg.Debug
-	logg.Debug("token has auth = %v", token.Context.Auth)
-	logg.Debug("token has roles = %v", token.Context.Roles)
+	token.Context.Logger = log.Debugf
+	log.Debugf("token has auth = %v", token.Context.Auth)
+	log.Debugf("token has roles = %v", token.Context.Roles)
 
 	if token.Err != nil {
 		return nil, ErrForbidden

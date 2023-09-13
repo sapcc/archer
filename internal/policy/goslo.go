@@ -20,7 +20,7 @@ import (
 	"net/http"
 
 	"github.com/sapcc/go-bits/gopherpolicy"
-	"github.com/sapcc/go-bits/logg"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal/config"
 )
@@ -29,7 +29,7 @@ type gosloPolicyEngine struct{}
 
 func (p gosloPolicyEngine) init() {
 	if config.Global.ApiSettings.AuthStrategy != "keystone" {
-		logg.Fatal("Policy engine goslo supports only api_settings.auth_strategy = 'keystone'")
+		log.Fatal("Policy engine goslo supports only api_settings.auth_strategy = 'keystone'")
 	}
 }
 

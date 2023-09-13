@@ -25,7 +25,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/gophercloud/utils/openstack/clientconfig"
-	"github.com/sapcc/go-bits/logg"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal/config"
 )
@@ -39,7 +39,7 @@ type ServiceInjection struct {
 	Port      int
 }
 
-func (o *Agent) SetupOpenStack() error {
+func (a *Agent) SetupOpenStack() error {
 	authInfo := clientconfig.AuthInfo(config.Global.ServiceAuth)
 	// Allow automatically reauthenticate
 	authInfo.AllowReauth = true
@@ -47,7 +47,7 @@ func (o *Agent) SetupOpenStack() error {
 	providerClient, err := clientconfig.AuthenticatedClient(&clientconfig.ClientOpts{
 		AuthInfo: &authInfo})
 	if err != nil {
-		logg.Fatal(err.Error())
+		log.Fatal(err.Error())
 	}
 
 	var availability gophercloud.Availability
@@ -59,21 +59,21 @@ func (o *Agent) SetupOpenStack() error {
 	case "admin":
 		availability = gophercloud.AvailabilityAdmin
 	default:
-		logg.Fatal("Invalid endpoint type: %s", config.Global.Default.EndpointType)
+		log.Fatalf("Invalid endpoint type: %s", config.Global.Default.EndpointType)
 	}
 	eo := gophercloud.EndpointOpts{Availability: availability}
-	if o.neutron, err = openstack.NewNetworkV2(providerClient, eo); err != nil {
+	if a.neutron, err = openstack.NewNetworkV2(providerClient, eo); err != nil {
 		return err
 	}
 	// Set timeout to 10 secs
-	o.neutron.HTTPClient.Timeout = time.Second * 10
+	a.neutron.HTTPClient.Timeout = time.Second * 10
 
-	o.haproxy = NewHAProxyController()
+	a.haproxy = NewHAProxyController()
 	return nil
 }
 
-func (o *Agent) EnableInjection(si *ServiceInjection) error {
-	injectorPort, err := ports.Get(o.neutron, si.PortId.String()).Extract()
+func (a *Agent) EnableInjection(si *ServiceInjection) error {
+	injectorPort, err := ports.Get(a.neutron, si.PortId.String()).Extract()
 	if err != nil {
 		return err
 	}
@@ -102,12 +102,12 @@ func (o *Agent) EnableInjection(si *ServiceInjection) error {
 	//}
 
 	// Create network namespace with ip/mac
-	ns, err := EnsureNetworkNamespace(injectorPort, o.neutron)
+	ns, err := EnsureNetworkNamespace(injectorPort, a.neutron)
 	if err != nil {
 		return err
 	}
 
-	if o.haproxy.isRunning(injectorPort.NetworkID) {
+	if a.haproxy.isRunning(injectorPort.NetworkID) {
 		// Nothing to do
 		return nil
 	}
@@ -117,7 +117,7 @@ func (o *Agent) EnableInjection(si *ServiceInjection) error {
 		return err
 	}
 	defer func() { _ = ns.Close() }()
-	if _, err := o.haproxy.addInstance(injectorPort.NetworkID); err != nil {
+	if _, err := a.haproxy.addInstance(injectorPort.NetworkID); err != nil {
 		return err
 	}
 	if err := ns.DisableNetworkNamespace(); err != nil {
@@ -127,15 +127,15 @@ func (o *Agent) EnableInjection(si *ServiceInjection) error {
 	return nil
 }
 
-func (o *Agent) DisableInjection(si *ServiceInjection) error {
-	logg.Debug("DisableInjection(si='%s')", si)
-	injectorPort, err := ports.Get(o.neutron, si.PortId.String()).Extract()
+func (a *Agent) DisableInjection(si *ServiceInjection) error {
+	log.Debugf("DisableInjection(si='%+v')", si)
+	injectorPort, err := ports.Get(a.neutron, si.PortId.String()).Extract()
 	if err != nil {
 		return err
 	}
 
-	if o.haproxy.isRunning(injectorPort.NetworkID) {
-		if err := o.haproxy.removeInstance(injectorPort.NetworkID); err != nil {
+	if a.haproxy.isRunning(injectorPort.NetworkID) {
+		if err := a.haproxy.removeInstance(injectorPort.NetworkID); err != nil {
 			return err
 		}
 	}
@@ -150,6 +150,6 @@ func (o *Agent) DisableInjection(si *ServiceInjection) error {
 	return nil
 }
 
-func (o *Agent) CollectStats() {
-	o.haproxy.collectStats()
+func (a *Agent) CollectStats() {
+	a.haproxy.collectStats()
 }

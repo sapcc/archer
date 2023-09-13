@@ -18,7 +18,7 @@ import (
 	"net/http"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/sapcc/go-bits/logg"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal/auth"
 	"github.com/sapcc/archer/internal/config"
@@ -69,7 +69,7 @@ func CheckQuota(pool PgxIface, r *http.Request, resource string) error {
 		panic(err)
 	}
 
-	logg.Debug("Quota %s of project %s is %d of %d", resource, project, quotaUsed, quotaAvailable)
+	log.Debugf("Quota %s of project %s is %d of %d", resource, project, quotaUsed, quotaAvailable)
 	if quotaAvailable-quotaUsed < 1 {
 		return errors.ErrQuotaExceeded
 	}

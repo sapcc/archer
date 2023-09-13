@@ -27,7 +27,7 @@ type routeDomain struct {
 	Parent string `json:"parent,omitempty"`
 }
 
-type routeDomains struct {
+type RouteDomains struct {
 	RouteDomains []routeDomain `json:"items"`
 }
 
@@ -77,8 +77,8 @@ func (rd *routeDomain) Update(big *BigIP) error {
 	return nil
 }
 
-func (b *BigIP) RouteDomains() (*routeDomains, error) {
-	var rds routeDomains
+func (b *BigIP) RouteDomains() (*RouteDomains, error) {
+	var rds RouteDomains
 	req := &bigip.APIRequest{
 		Method:      "get",
 		URL:         "net/route-domain",

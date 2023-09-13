@@ -23,7 +23,7 @@ import (
 
 type VersionOptions struct{}
 
-func (*VersionOptions) Execute(args []string) error {
+func (*VersionOptions) Execute(_ []string) error {
 	fmt.Printf("CLI Version: %s (%s)\n", config.Version, config.BuildTime)
 	res, err := ArcherClient.Version.Get(version.NewGetParams())
 	if err != nil {

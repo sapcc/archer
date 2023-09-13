@@ -21,7 +21,7 @@ import (
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/sapcc/go-bits/gopherpolicy"
-	"github.com/sapcc/go-bits/logg"
+	log "github.com/sirupsen/logrus"
 )
 
 // global policy engine
@@ -40,14 +40,14 @@ func SetPolicyEngine(engine string) {
 	switch engine {
 	case "goslo":
 		Engine = gosloPolicyEngine{}
-		logg.Info("Initializing goslo policy engine")
+		log.Info("Initializing goslo policy engine")
 		Engine.init()
 	case "noop":
-		logg.Info("Initializing no-op policy engine")
+		log.Info("Initializing no-op policy engine")
 		Engine = noOpPolicyEngine{}
 		Engine.init()
 	default:
-		logg.Fatal("Policy engine '%s' not supported", engine)
+		log.Fatalf("Policy engine '%s' not supported", engine)
 	}
 }
 

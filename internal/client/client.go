@@ -17,6 +17,7 @@
 package client
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -152,7 +153,8 @@ func SetupClient() {
 	}
 
 	if _, err := Parser.Parse(); err != nil {
-		if fe, ok := err.(*flags.Error); ok && fe.Type == flags.ErrHelp {
+		var fe *flags.Error
+		if errors.As(err, &fe) && fe.Type == flags.ErrHelp {
 			os.Exit(0)
 		}
 		os.Exit(1)

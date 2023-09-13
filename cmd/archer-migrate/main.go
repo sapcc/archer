@@ -16,11 +16,12 @@ package main
 
 import (
 	"context"
+	"errors"
 	"os"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jessevdk/go-flags"
-	"github.com/sapcc/go-bits/logg"
+	log "github.com/sirupsen/logrus"
 	"github.com/z0ne-dev/mgx/v2"
 
 	"github.com/sapcc/archer/internal/config"
@@ -33,7 +34,8 @@ func main() {
 
 	if _, err := parser.Parse(); err != nil {
 		code := 1
-		if fe, ok := err.(*flags.Error); ok {
+		var fe *flags.Error
+		if errors.As(err, &fe) {
 			if fe.Type == flags.ErrHelp {
 				code = 0
 			}
@@ -43,20 +45,19 @@ func main() {
 
 	config.ParseConfig(parser)
 
-	logg.ShowDebug = config.IsDebug()
 	conn, err := pgx.Connect(context.Background(), config.Global.Database.Connection)
 	if err != nil {
-		logg.Fatal(err.Error())
+		log.Fatal(err.Error())
 	}
 	migrator, err := mgx.New(migrations.Migrations)
 	if err != nil {
-		logg.Fatal(err.Error())
+		log.Fatal(err.Error())
 	}
 
 	if err := migrator.Migrate(context.Background(), conn); err != nil {
-		logg.Fatal(err.Error())
+		log.Fatal(err.Error())
 	}
 	if err := conn.Close(context.Background()); err != nil {
-		logg.Fatal(err.Error())
+		log.Fatal(err.Error())
 	}
 }

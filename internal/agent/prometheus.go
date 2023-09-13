@@ -19,7 +19,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/sapcc/go-bits/logg"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal/config"
 )
@@ -39,9 +39,9 @@ func InitalizePrometheus() {
 func PrometheusListenerThread() {
 	if config.Global.Default.Prometheus {
 		http.Handle("/metrics", promhttp.Handler())
-		logg.Info("Serving prometheus metrics to %s/metrics", config.Global.Default.PrometheusListen)
+		log.Infof("Serving prometheus metrics to %s/metrics", config.Global.Default.PrometheusListen)
 		if err := http.ListenAndServe(config.Global.Default.PrometheusListen, nil); err != nil {
-			logg.Fatal(err.Error())
+			log.Fatal(err.Error())
 		}
 	}
 }

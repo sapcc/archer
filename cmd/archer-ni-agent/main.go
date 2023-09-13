@@ -15,10 +15,10 @@
 package main
 
 import (
+	"errors"
 	"os"
 
 	"github.com/jessevdk/go-flags"
-	"github.com/sapcc/go-bits/logg"
 
 	"github.com/sapcc/archer/internal/agent/ni"
 	"github.com/sapcc/archer/internal/config"
@@ -30,11 +30,10 @@ func main() {
 
 	if _, err := parser.Parse(); err != nil {
 		code := 1
-		if fe, ok := err.(*flags.Error); ok {
+		var fe *flags.Error
+		if errors.As(err, &fe) {
 			if fe.Type == flags.ErrHelp {
 				code = 0
-			} else {
-				logg.Fatal(fe.Error())
 			}
 		}
 		os.Exit(code)
@@ -43,7 +42,6 @@ func main() {
 	config.ParseConfig(parser)
 	config.InitSentry()
 
-	logg.ShowDebug = config.Global.Default.Debug
 	a := ni.NewAgent()
 	a.Run()
 }

@@ -27,8 +27,8 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
-	"github.com/sapcc/go-bits/logg"
 	"github.com/sethvargo/go-retry"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal"
 	"github.com/sapcc/archer/internal/config"
@@ -256,11 +256,11 @@ func (big *BigIP) PostBigIP(as3 *AS3, tenant string) error {
 func (big *BigIP) GetBigIPDevice(hostname string) *bigip.Device {
 	devices, err := big.GetDevices()
 	if err != nil {
-		logg.Fatal(err.Error())
+		log.Fatal(err.Error())
 	}
 	for _, device := range devices {
 		if strings.HasSuffix(hostname, device.Hostname) {
-			logg.Info("Connected to %s, %s (%s %s), %s", device.MarketingName, device.Name, device.Version,
+			log.Infof("Connected to %s, %s (%s %s), %s", device.MarketingName, device.Name, device.Version,
 				device.Edition, device.FailoverState)
 			return &device
 		}

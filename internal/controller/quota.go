@@ -16,6 +16,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/runtime/middleware"
@@ -105,7 +106,7 @@ func (c *Controller) GetQuotasProjectIDHandler(params quota.GetQuotasProjectIDPa
 			return nil
 		}
 
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, pgx.ErrNoRows) {
 			// insert default quotas
 			if err := insertDefaultQuota(params.HTTPRequest.Context(), tx, params.ProjectID); err != nil {
 				return err

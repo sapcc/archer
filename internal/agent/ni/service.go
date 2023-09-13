@@ -18,7 +18,7 @@ import (
 	"context"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
-	"github.com/sapcc/go-bits/logg"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
@@ -40,7 +40,7 @@ func (a *Agent) discoverService() error {
 	err = pgxscan.Get(context.Background(), a.pool, &a.serviceID, sql, args...)
 	if err != nil {
 		if pgxscan.NotFound(err) && config.Global.Agent.CreateService {
-			logg.Info("Creating service %s", config.Global.Agent.ServiceName)
+			log.Infof("Creating service %s", config.Global.Agent.ServiceName)
 			sql, args, err = db.Insert("service").
 				Columns("description",
 					"network_id",
@@ -82,6 +82,6 @@ func (a *Agent) discoverService() error {
 		return err
 	}
 
-	logg.Info("Agent associated to service %s", a.serviceID)
+	log.Infof("Agent associated to service %s", a.serviceID)
 	return nil
 }
