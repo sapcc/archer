@@ -65,7 +65,9 @@ func (c *Controller) GetServiceHandler(params service.GetServiceParams, _ any) m
 	}
 
 	var servicesResponse = make([]*models.Service, 0)
-	if err := pgxscan.Select(context.Background(), c.pool, &servicesResponse, sql, args...); err != nil {
+	if err := db.Retry(func() error {
+		return pgxscan.Select(context.Background(), c.pool, &servicesResponse, sql, args...)
+	}); err != nil {
 		var pe *pgconn.PgError
 		if errors.As(err, &pe) && pe.Code == pgerrcode.UndefinedColumn {
 			return service.NewGetServiceBadRequest().WithPayload(&models.Error{

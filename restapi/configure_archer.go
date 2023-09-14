@@ -91,6 +91,11 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+	if err := pool.Ping(context.Background()); err != nil {
+		log.Fatal(err)
+	}
+	log.Infof("PGX Connected to %s:%d with (%d) fallbacks",
+		connConfig.ConnConfig.Host, connConfig.ConnConfig.Port, len(connConfig.ConnConfig.Fallbacks))
 
 	if config.Global.Default.Prometheus {
 		http.Handle("/metrics", promhttp.Handler())
