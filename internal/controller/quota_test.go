@@ -43,6 +43,20 @@ func (t *SuiteTest) createQuota(projectId string) {
 	assert.EqualValues(t.T(), 2, payload.Service)
 }
 
+func (t *SuiteTest) TestQuotaGet() {
+	projectId := "abcd12345"
+	t.createQuota(projectId)
+
+	res := t.c.GetQuotasHandler(
+		quota.GetQuotasParams{
+			HTTPRequest: &http.Request{},
+		}, nil)
+	assert.IsType(t.T(), &quota.GetQuotasOK{}, res)
+	payload := res.(*quota.GetQuotasOK).Payload
+	assert.EqualValues(t.T(), 1, payload.Quotas[0].Quota.Endpoint)
+	assert.EqualValues(t.T(), 2, payload.Quotas[0].Quota.Service)
+}
+
 func (t *SuiteTest) TestQuotaPut() {
 	t.createQuota("test123456")
 }

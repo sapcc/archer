@@ -31,8 +31,8 @@ import (
 func (c *Controller) GetQuotasHandler(params quota.GetQuotasParams, _ any) middleware.Responder {
 	q := db.Select("quota.*", "COUNT(DISTINCT s.id) AS in_use_service", "COUNT(DISTINCT e.id) AS in_use_endpoint").
 		From("quota").
-		InnerJoin("service s ON quota.project_id = s.project_id").
-		InnerJoin("endpoint e ON quota.project_id = e.project_id").
+		LeftJoin("service s ON quota.project_id = s.project_id").
+		LeftJoin("endpoint e ON quota.project_id = e.project_id").
 		GroupBy("quota.project_id")
 
 	if params.ProjectID != nil {
