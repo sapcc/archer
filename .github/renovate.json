@@ -15,5 +15,8 @@
       "matchPackageNames": ["github.com/getsentry/sentry-go"],
       "enabled": false
     }
+  ],
+  "postUpdateOptions": [
+    "gomodTidy"
   ]
 }
