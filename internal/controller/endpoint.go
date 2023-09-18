@@ -83,7 +83,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, _ a
 			if errors.Is(err, aerr.ErrQuotaExceeded) {
 				return endpoint.NewPostEndpointForbidden().WithPayload(&models.Error{
 					Code:    http.StatusForbidden,
-					Message: "Quota has been met for Resource: service",
+					Message: "Quota has been met for Resource: endpoint",
 				})
 			}
 			panic(err)

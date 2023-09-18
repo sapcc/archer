@@ -326,7 +326,7 @@ func (t *SuiteTest) TestEndpointQuotaMet() {
 	config.Global.Quota.Enabled = false
 	assert.NotNil(t.T(), res)
 	assert.IsType(t.T(), &endpoint.PostEndpointForbidden{}, res)
-	assert.Equal(t.T(), "Quota has been met for Resource: service", res.(*endpoint.PostEndpointForbidden).Payload.Message)
+	assert.Equal(t.T(), "Quota has been met for Resource: endpoint", res.(*endpoint.PostEndpointForbidden).Payload.Message)
 }
 
 func (t *SuiteTest) TestEndpointPortAlreadyUsed() {
