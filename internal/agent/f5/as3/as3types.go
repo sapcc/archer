@@ -117,6 +117,7 @@ type PoolMember struct {
 	ServicePort     int32    `json:"servicePort"`
 	ServerAddresses []string `json:"serverAddresses"`
 	Enable          bool     `json:"enable"`
+	AdminState      string   `json:"adminState,omitempty"`
 	Remark          string   `json:"remark,omitempty"`
 }
 

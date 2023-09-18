@@ -97,11 +97,16 @@ func GetServiceTenants(endpointServices []*ExtendedService) Tenant {
 			serverAddresses = append(serverAddresses, ip.String())
 		}
 
+		adminState := "enable"
+		if service.Enabled != nil && !*service.Enabled {
+			adminState = "disable"
+		}
+
 		services[GetServicePoolName(service.ID)] = Pool{
 			Class: "Pool",
 			Label: GetServiceName(service.ID),
 			Members: []PoolMember{{
-				Enable:          *service.Enabled,
+				AdminState:      adminState,
 				RouteDomain:     service.SegmentId,
 				ServicePort:     service.Port,
 				ServerAddresses: serverAddresses,
