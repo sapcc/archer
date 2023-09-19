@@ -60,7 +60,8 @@ when SERVER_CONNECTED priority 900 {
     # create TLV type 5
     #set pp2_tlv [call tlv_type5]
     #set pp2_tlv [call tlv_sapcc {497f6eca-6276-4993-bfeb-53cbbbba6f08}]
-    set pp2_tlv [call tlv_sapcc [virtual name]]
+    set pp2_tlv_strlen [string length [virtual name]]
+    set pp2_tlv [call tlv_sapcc [string range [virtual name] [expr { $pp2_tlv_strlen - 36 }] $pp2_tlv_strlen]]
 
     # https://github.com/haproxy/haproxy/blob/ffdf6a32a7413d5bcf9223c3556b765b5e456a69/doc/proxy-protocol.txt#L335
     # proxy protocol version 2 signature (12 bytes)
