@@ -26,7 +26,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           goos: ${{ matrix.goos }}
           goarch: ${{ matrix.goarch }}
-          goversion: latest
           binary_name: archerctl
           project_path: "./cmd/archerctl"
           extra_files: LICENSE README.md
