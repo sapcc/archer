@@ -106,6 +106,7 @@ func GetServiceTenants(endpointServices []*ExtendedService) Tenant {
 			Class: "Pool",
 			Label: GetServiceName(service.ID),
 			Members: []PoolMember{{
+				Enable:          true,
 				AdminState:      adminState,
 				RouteDomain:     service.SegmentId,
 				ServicePort:     service.Port,
