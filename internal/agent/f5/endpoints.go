@@ -58,7 +58,8 @@ func (a *Agent) populateEndpointPorts(endpoints []*as3.ExtendedEndpoint) error {
 	for _, port := range endpointPorts {
 		for _, endpoint := range endpoints {
 			if endpoint.Target.Port.String() == port.ID {
-				endpoint.Port = &port
+				n := port
+				endpoint.Port = &n
 			}
 		}
 	}
