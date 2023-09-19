@@ -17,15 +17,16 @@ jobs:
         exclude:
           - goarch: arm64
             goos: windows
+          - goarch: arm64
+            goos: linux
     steps:
       - uses: actions/checkout@v4
-      - run: go mod edit -json | jq -r .Go | echo "GO_VERSION_FROM_PROJECT=$(cut -d' ' -f2)" >>${GITHUB_ENV}
       - uses: wangyoucao577/go-release-action@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           goos: ${{ matrix.goos }}
           goarch: ${{ matrix.goarch }}
-          goversion: ${{ env.GO_VERSION_FROM_PROJECT }}"
+          goversion: latest
           binary_name: archerctl
           project_path: "./cmd/archerctl"
           extra_files: LICENSE README.md
