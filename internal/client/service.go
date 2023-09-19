@@ -80,7 +80,7 @@ type ServiceCreate struct {
 	Description     string        `long:"description" description:"Set service description"`
 	Provider        *string       `long:"provider" description:"Provider type" choice:"tenant" choice:"cp"`
 	Enable          bool          `long:"enable" description:"Enable service"`
-	Disable         bool          `long:"disable" description:"Disable service" optional-value:"false"`
+	Disable         bool          `long:"disable" description:"Disable service"`
 	Network         strfmt.UUID   `long:"network" description:"Network id" required:"true"`
 	IPAddresses     []strfmt.IPv4 `long:"ip-address" description:"IP Addresses of the providing service, multiple addresses will be round robin load balanced." required:"true"`
 	Port            int32         `long:"port" description:"Port exposed by the service" required:"true"`
@@ -92,7 +92,7 @@ type ServiceCreate struct {
 }
 
 func (*ServiceCreate) Execute(_ []string) error {
-	enabled := ServiceOptions.ServiceCreate.Enable || ServiceOptions.ServiceCreate.Disable
+	enabled := ServiceOptions.ServiceCreate.Enable || !ServiceOptions.ServiceCreate.Disable
 
 	sv := models.Service{
 		Name:            ServiceOptions.ServiceCreate.Name,
