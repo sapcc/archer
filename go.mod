@@ -42,7 +42,7 @@ require (
 	github.com/vishvananda/netns v0.0.4
 	github.com/z0ne-dev/mgx/v2 v2.0.1
 	golang.org/x/net v0.15.0
-	golang.org/x/sync v0.3.0
+	golang.org/x/sync v0.4.0
 )
 
 require (
