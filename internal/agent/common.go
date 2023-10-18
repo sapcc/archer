@@ -81,11 +81,11 @@ func WorkerThread(ctx context.Context, w Worker) {
 		switch job.model {
 		case "service":
 			if err = w.ProcessServices(ctx); err != nil {
-				log.Error(err.Error())
+				log.WithError(err).Error("Failed processing service")
 			}
 		case "endpoint":
 			if err = w.ProcessEndpoint(ctx, job.id); err != nil {
-				log.Error(err.Error())
+				log.WithError(err).WithField("id", job.id).Error("Failed processing endpoint")
 			}
 		}
 

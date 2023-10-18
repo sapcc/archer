@@ -91,6 +91,10 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		Where("endpoint_id = ?", endpointID).
 		MustSql()
 	if err := tx.QueryRow(ctx, sql, args...).Scan(&networkID, &owned); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			log.WithField("id", endpointID).Warning("Endpoint not found")
+			return nil
+		}
 		return err
 	}
 
@@ -123,10 +127,15 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	var endpointSegmentID, serviceSegmentID int
 	g, _ := errgroup.WithContext(ctx)
 
-	g.Go(func() (err error) {
+	g.Go(func() error {
 		// Fetch segment ID from neutron
+		var err error
 		endpointSegmentID, err = a.neutron.GetNetworkSegment(networkID.String())
-		return
+		if err != nil && deleteAll {
+			log.WithError(err).WithField("delete_all", deleteAll).Warning("Ignoring missing physical-network for endpoint(s)")
+			return nil
+		}
+		return err
 	})
 	g.Go(func() (err error) {
 		serviceSegmentID, err = a.neutron.GetNetworkSegment(endpoints[0].ServiceNetworkId.String())
@@ -134,8 +143,8 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	})
 	g.Go(func() error {
 		if err := a.populateEndpointPorts(endpoints); err != nil && deleteAll {
-			// ignore missing ports if all endpoints are about to be deleted, print error instead
-			log.Error(err.Error())
+			// ignore missing ports if all endpoints are about to be deleted, print warning instead
+			log.WithError(err).WithField("delete_all", deleteAll).Warning("Ignoring missing ports for endpoint(s)")
 		}
 		return nil
 	})
@@ -198,7 +207,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 
 		if !skipCleanup {
 			if err := a.CleanupL2(ctx, endpointSegmentID); err != nil {
-				log.Errorf("CleanupL2(vlan=%d): %s", endpointSegmentID, err.Error())
+				log.Warningf("CleanupL2(vlan=%d): %s", endpointSegmentID, err.Error())
 			}
 		} else {
 			log.Infof("Skipping CleanupL2(vlan=%d) since it is still in use", endpointSegmentID)
