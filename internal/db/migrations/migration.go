@@ -244,4 +244,11 @@ var Migrations = mgx.Migrations(
 		`)
 		return err
 	}),
+	mgx.NewMigration("make_agents_az_nullable", func(ctx context.Context, commands mgx.Commands) error {
+		_, err := commands.Exec(ctx, `
+			ALTER TABLE agents ALTER COLUMN availability_zone DROP NOT NULL;
+			UPDATE agents SET availability_zone = NULL WHERE availability_zone = '';
+		`)
+		return err
+	}),
 )

@@ -140,14 +140,12 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 			Where(sq.And{
 				sq.Eq{"agents.enabled": true},
 				sq.Eq{"agents.provider": params.Body.Provider},
+				sq.Eq{"agents.availability_zone": params.Body.AvailabilityZone},
 			}).
 			OrderBy("usage ASC", "agents.updated_at DESC").
 			GroupBy("agents.host").
 			Limit(1)
 
-		if params.Body.AvailabilityZone != nil {
-			q = q.Where("agents.availability_zone = ?", *params.Body.AvailabilityZone)
-		}
 		sql, args, err := q.ToSql()
 		if err != nil {
 			return err

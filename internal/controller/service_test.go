@@ -28,6 +28,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/sapcc/archer/internal/config"
+	"github.com/sapcc/archer/internal/db"
 	"github.com/sapcc/archer/models"
 	"github.com/sapcc/archer/restapi/operations/endpoint"
 	"github.com/sapcc/archer/restapi/operations/service"
@@ -47,15 +48,18 @@ var (
 	}
 )
 
-func (t *SuiteTest) addAgent(az string) {
-	sql := `INSERT INTO agents (host, availability_zone) VALUES ('test-host', '%s')`
-	if _, err := t.c.pool.Exec(context.Background(), fmt.Sprintf(sql, az)); err != nil {
+func (t *SuiteTest) addAgent(az *string) {
+	sql, args := db.Insert("agents").
+		Columns("host", "availability_zone").
+		Values("test-host", az).
+		MustSql()
+	if _, err := t.c.pool.Exec(context.Background(), sql, args...); err != nil {
 		t.FailNow("Failed inserting agent host", err)
 	}
 }
 
 func (t *SuiteTest) createService() strfmt.UUID {
-	t.addAgent("")
+	t.addAgent(nil)
 	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(networkId), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
 	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &testService},
@@ -120,6 +124,25 @@ func (t *SuiteTest) TestServicePostScoped() {
 	assert.IsType(t.T(), &service.GetServiceServiceIDOK{}, res)
 }
 
+func (t *SuiteTest) TestServiceAZPost() {
+	// post and get
+	testServiceWithAZ := testService
+	testServiceWithAZ.AvailabilityZone = swag.String("test-az")
+
+	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(networkId), "GET",
+		"", GetNetworkResponseFixture, http.StatusOK)
+
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1,
+		Body: &testServiceWithAZ}, nil)
+	assert.IsType(t.T(), &service.PostServiceConflict{}, res)
+	assert.Equal(t.T(), "No available host agent found.", res.(*service.PostServiceConflict).Payload.Message)
+
+	t.addAgent(swag.String("test-az"))
+	res = t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1,
+		Body: &testServiceWithAZ}, nil)
+	assert.IsType(t.T(), &service.PostServiceCreated{}, res)
+}
+
 func (t *SuiteTest) TestServicePostQuotaMet() {
 	config.Global.Quota.Enabled = true
 	config.Global.Quota.DefaultQuotaService = 0
@@ -153,6 +176,17 @@ func (t *SuiteTest) TestServicePostNetworkNotAccessible() {
 	assert.NotNil(t.T(), res)
 	assert.IsType(t.T(), &service.PostServiceConflict{}, res)
 	assert.Equal(t.T(), "Network not accessible.", res.(*service.PostServiceConflict).Payload.Message)
+}
+
+func (t *SuiteTest) TestServiceNegativeAZPost() {
+	t.addAgent(swag.String("test-az")) // only az-aware agent
+	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(networkId), "GET",
+		"", GetNetworkResponseFixture, http.StatusOK)
+
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1,
+		Body: &testService}, nil)
+	assert.IsType(t.T(), &service.PostServiceConflict{}, res)
+	assert.Equal(t.T(), "No available host agent found.", res.(*service.PostServiceConflict).Payload.Message)
 }
 
 type TestEnforcerDenyAll struct{}
@@ -264,7 +298,7 @@ func (t *SuiteTest) TestServiceDelete() {
 func (t *SuiteTest) TestServiceDuplicatePayload() {
 	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(networkId), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
-	t.addAgent("zone1")
+	t.addAgent(swag.String("zone1"))
 	s := models.Service{
 		Name:             "test",
 		NetworkID:        &networkId,
