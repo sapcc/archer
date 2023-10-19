@@ -124,11 +124,13 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		if endpoint.Status != models.EndpointStatusPENDINGDELETE {
 			deleteAll = false
 		}
-		if endpoint.SegmentId == 0 {
+		if endpoint.SegmentId == nil {
 			// Sync endpoint segment to database - we want this because in case of port has been deleted meanwhile,
 			// we loose the segment-id and therefor the ability to delete the l2 configuration
 			var err error
-			endpoint.SegmentId, err = a.neutron.GetNetworkSegment(networkID.String())
+			var segmentId int
+			segmentId, err = a.neutron.GetNetworkSegment(networkID.String())
+			endpoint.SegmentId = &segmentId
 			if err != nil {
 				log.WithError(err).WithFields(log.Fields{"port_id": endpoint.Target.Port, "endpoint": endpoint.ID}).
 					Warning("ProcessEndpoint: Could not find valid segment")
@@ -136,7 +138,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 			}
 
 			sql, args = db.Update("endpoint_port").
-				Set("segment_id", endpoint.SegmentId).
+				Set("segment_id", segmentId).
 				Where("endpoint_id = ?", endpoint.ID).
 				MustSql()
 			if _, err = tx.Exec(ctx, sql, args...); err != nil {
@@ -144,6 +146,10 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 					Warning("ProcessEndpoint: Could not update segment_id")
 			}
 		}
+	}
+
+	if !deleteAll && endpoints[0].SegmentId == nil {
+		return fmt.Errorf("could not find or fetch valid segment for endpoint %s, skipping", endpointID)
 	}
 
 	var serviceSegmentID int
@@ -171,7 +177,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	   ================================================== */
 	if !deleteAll {
 		// VCMP configuration
-		if err := a.EnsureL2(ctx, endpoints[0].SegmentId, &serviceSegmentID); err != nil {
+		if err := a.EnsureL2(ctx, *endpoints[0].SegmentId, &serviceSegmentID); err != nil {
 			return err
 		}
 	}
@@ -215,12 +221,12 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		}
 
 		if !skipCleanup {
-			if err := a.CleanupL2(ctx, endpoints[0].SegmentId); err != nil {
-				log.WithField("vlan", endpoints[0].SegmentId).WithError(err).Error("CleanupL2")
-				log.Warningf("CleanupL2(vlan=%d): %s", endpoints[0].SegmentId, err.Error())
+			if err := a.CleanupL2(ctx, *endpoints[0].SegmentId); err != nil {
+				log.WithField("vlan", *endpoints[0].SegmentId).WithError(err).Error("CleanupL2")
+				log.Warningf("CleanupL2(vlan=%d): %s", *endpoints[0].SegmentId, err.Error())
 			}
 		} else {
-			log.WithField("vlan", endpoints[0].SegmentId).Info("Skipping CleanupL2 since it is still in use")
+			log.WithField("vlan", *endpoints[0].SegmentId).Info("Skipping CleanupL2 since it is still in use")
 		}
 	}
 

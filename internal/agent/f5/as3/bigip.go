@@ -181,7 +181,7 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 			TranslateServerPort: true,
 			VirtualPort:         endpoint.ServicePortNr,
 			AllowVlans: []string{
-				fmt.Sprintf("/Common/vlan-%d", endpoint.SegmentId),
+				fmt.Sprintf("/Common/vlan-%d", *endpoint.SegmentId),
 			},
 			VirtualAddresses: virtualAddresses,
 		}
