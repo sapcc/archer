@@ -40,11 +40,10 @@ import (
 type Agent struct {
 	jobQueue *common.JobChan
 	pool     db.PgxIface // thread safe
-	pgxpool.Pool
-	neutron *neutron.NeutronClient
-	bigips  []*as3.BigIP
-	vcmps   []*as3.BigIP
-	bigip   *as3.BigIP // active target
+	neutron  *neutron.NeutronClient
+	bigips   []*as3.BigIP
+	vcmps    []*as3.BigIP
+	bigip    *as3.BigIP // active target
 }
 
 func (a *Agent) GetJobQueue() *common.JobChan {
