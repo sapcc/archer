@@ -147,7 +147,7 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 		var virtualAddresses []string
 		for _, fixedIP := range endpoint.Port.FixedIPs {
 			virtualAddresses = append(virtualAddresses,
-				fmt.Sprintf("%s%%%d", fixedIP.IPAddress, endpoint.SegmentId),
+				fmt.Sprintf("%s%%%d", fixedIP.IPAddress, *endpoint.SegmentId),
 			)
 		}
 		iRules := make([]Pointer, 0)
