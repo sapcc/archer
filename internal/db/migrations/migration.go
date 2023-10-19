@@ -238,4 +238,10 @@ var Migrations = mgx.Migrations(
 		`)
 		return err
 	}),
+	mgx.NewMigration("add_endpoint_port_segment_id", func(ctx context.Context, commands mgx.Commands) error {
+		_, err := commands.Exec(ctx, `
+			ALTER TABLE endpoint_port ADD COLUMN segment_id INTEGER NULL;
+		`)
+		return err
+	}),
 )

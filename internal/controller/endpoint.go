@@ -192,9 +192,20 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, _ a
 		owned = false
 	}
 
+	// Fetch segment ID from neutron
+	endpointSegmentID, err := c.neutron.GetNetworkSegment(port.NetworkID)
+	if err != nil {
+		log.WithError(err).WithField("port_id", port.ID).Warning("Could not find valid segment")
+		return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
+			Code:    500,
+			Message: "Internal server error: segment could not be found.",
+		})
+	}
+
 	sql, args = db.Insert("endpoint_port").
-		Columns("endpoint_id", "port_id", "subnet", "network", "ip_address", "owned").
-		Values(endpointResponse.ID, port.ID, port.FixedIPs[0].SubnetID, port.NetworkID, port.FixedIPs[0].IPAddress, owned).
+		Columns("endpoint_id", "port_id", "subnet", "network", "ip_address", "owned", "segment_id").
+		Values(endpointResponse.ID, port.ID, port.FixedIPs[0].SubnetID, port.NetworkID, port.FixedIPs[0].IPAddress,
+			owned, endpointSegmentID).
 		Suffix("RETURNING port_id, subnet, network").
 		MustSql()
 	row := tx.QueryRow(params.HTTPRequest.Context(), sql, args...)

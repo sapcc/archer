@@ -22,14 +22,13 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/go-openapi/strfmt"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
 )
 
-func RegisterAgent(pool *pgxpool.Pool, provider string) {
+func RegisterAgent(pool db.PgxIface, provider string) {
 	sql, args := db.Insert("agents").
 		Columns("host", "availability_zone", "provider").
 		Values(config.Global.Default.Host, config.Global.Default.AvailabilityZone, provider).
@@ -97,7 +96,7 @@ func WorkerThread(ctx context.Context, w Worker) {
 	}
 }
 
-func DBNotificationThread(ctx context.Context, pool *pgxpool.Pool, jobQueue *JobChan) {
+func DBNotificationThread(ctx context.Context, pool db.PgxIface, jobQueue *JobChan) {
 	// Acquire one Connection for listen events
 	conn, err := pool.Acquire(ctx)
 	if err != nil {

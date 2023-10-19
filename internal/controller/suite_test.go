@@ -72,7 +72,14 @@ const GetNetworkResponseFixture = `
     "network": {
         "id": "d714f65e-bffd-494f-8219-8eb0a85d7a2d]",
         "subnets": ["a0304c3a-4f08-4c43-88af-d796509c97d2"],
-		"project_id": "test-project-1"
+		"project_id": "test-project-1",
+		"segments": [
+			{
+				"provider:physical_network": "physnet1",
+				"provider:network_type": "vlan",
+				"provider:segmentation_id": 100
+			}
+		]
     }
 }
 `
@@ -119,6 +126,7 @@ func (t *SuiteTest) SetupSuite() {
 	// Use it globally
 	config.Global.ApiSettings.PaginationMaxLimit = 1000
 	config.Global.ApiSettings.AuthStrategy = "none"
+	config.Global.Agent.PhysicalNetwork = "physnet1"
 	policy.SetPolicyEngine("noop")
 
 	// need to load from file due to cyclic dependency of restapi package

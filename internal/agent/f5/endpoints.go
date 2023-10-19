@@ -98,10 +98,12 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		return err
 	}
 
+	// Sync endpoint segment cache, is a no-op if already cached
 	sql, args = db.Select("endpoint.*",
 		"service.port AS service_port_nr",
 		"service.proxy_protocol",
 		"service.network_id AS service_network_id",
+		"endpoint_port.segment_id",
 		`endpoint_port.port_id AS "target.port"`,
 		`endpoint_port.network AS "target.network"`,
 		`endpoint_port.subnet AS "target.subnet"`).
@@ -122,21 +124,31 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		if endpoint.Status != models.EndpointStatusPENDINGDELETE {
 			deleteAll = false
 		}
+		if endpoint.SegmentId == 0 {
+			// Sync endpoint segment to database - we want this because in case of port has been deleted meanwhile,
+			// we loose the segment-id and therefor the ability to delete the l2 configuration
+			var err error
+			endpoint.SegmentId, err = a.neutron.GetNetworkSegment(networkID.String())
+			if err != nil {
+				log.WithError(err).WithFields(log.Fields{"port_id": endpoint.Target.Port, "endpoint": endpoint.ID}).
+					Warning("ProcessEndpoint: Could not find valid segment")
+				continue
+			}
+
+			sql, args = db.Update("endpoint_port").
+				Set("segment_id", endpoint.SegmentId).
+				Where("endpoint_id = ?", endpoint.ID).
+				MustSql()
+			if _, err = tx.Exec(ctx, sql, args...); err != nil {
+				log.WithError(err).WithField("endpoint", endpoint.ID).
+					Warning("ProcessEndpoint: Could not update segment_id")
+			}
+		}
 	}
 
-	var endpointSegmentID, serviceSegmentID int
+	var serviceSegmentID int
 	g, _ := errgroup.WithContext(ctx)
 
-	g.Go(func() error {
-		// Fetch segment ID from neutron
-		var err error
-		endpointSegmentID, err = a.neutron.GetNetworkSegment(networkID.String())
-		if err != nil && deleteAll {
-			log.WithError(err).WithField("delete_all", deleteAll).Warning("Ignoring missing physical-network for endpoint(s)")
-			return nil
-		}
-		return err
-	})
 	g.Go(func() (err error) {
 		serviceSegmentID, err = a.neutron.GetNetworkSegment(endpoints[0].ServiceNetworkId.String())
 		return
@@ -153,16 +165,13 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	if err := g.Wait(); err != nil {
 		return err
 	}
-	for _, ep := range endpoints {
-		ep.SegmentId = endpointSegmentID
-	}
 
 	/* ==================================================
 	   Layer 2 VCMP + Guest configuration
 	   ================================================== */
 	if !deleteAll {
 		// VCMP configuration
-		if err := a.EnsureL2(ctx, endpointSegmentID, &serviceSegmentID); err != nil {
+		if err := a.EnsureL2(ctx, endpoints[0].SegmentId, &serviceSegmentID); err != nil {
 			return err
 		}
 	}
@@ -206,11 +215,12 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		}
 
 		if !skipCleanup {
-			if err := a.CleanupL2(ctx, endpointSegmentID); err != nil {
-				log.Warningf("CleanupL2(vlan=%d): %s", endpointSegmentID, err.Error())
+			if err := a.CleanupL2(ctx, endpoints[0].SegmentId); err != nil {
+				log.WithField("vlan", endpoints[0].SegmentId).WithError(err).Error("CleanupL2")
+				log.Warningf("CleanupL2(vlan=%d): %s", endpoints[0].SegmentId, err.Error())
 			}
 		} else {
-			log.Infof("Skipping CleanupL2(vlan=%d) since it is still in use", endpointSegmentID)
+			log.WithField("vlan", endpoints[0].SegmentId).Info("Skipping CleanupL2 since it is still in use")
 		}
 	}
 

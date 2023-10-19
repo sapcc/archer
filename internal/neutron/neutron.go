@@ -70,7 +70,9 @@ func (n *NeutronClient) GetNetworkSegment(networkId string) (int, error) {
 
 	for _, segment := range network.Segments {
 		if segment.PhysicalNetwork == config.Global.Agent.PhysicalNetwork {
-			n.cache.Add(networkId, segment.SegmentationID)
+			if n.cache != nil {
+				n.cache.Add(networkId, segment.SegmentationID)
+			}
 			return segment.SegmentationID, nil
 		}
 	}

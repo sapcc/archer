@@ -339,6 +339,8 @@ func (t *SuiteTest) TestEndpointPortAlreadyUsed() {
 
 	// Teardown / restart http server to create a new mux
 	t.ResetHttpServer()
+	fixture.SetupHandler(t.T(), "/v2.0/networks/"+network.String(), "GET",
+		"", GetNetworkResponseFixture, http.StatusOK)
 	fixture.SetupHandler(t.T(), "/v2.0/ports/65c0ee9f-d634-4522-8954-51021b570b0d", "GET", "",
 		fmt.Sprintf(CreatePortResponseFixture, string(network)), http.StatusOK)
 

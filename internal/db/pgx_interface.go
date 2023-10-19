@@ -19,6 +19,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type PgxIface interface {
@@ -27,4 +28,7 @@ type PgxIface interface {
 	Exec(context.Context, string, ...interface{}) (pgconn.CommandTag, error)
 	Query(context.Context, string, ...interface{}) (pgx.Rows, error)
 	QueryRow(context.Context, string, ...interface{}) pgx.Row
+	Config() *pgxpool.Config
+	Stat() *pgxpool.Stat
+	Acquire(ctx context.Context) (*pgxpool.Conn, error)
 }
