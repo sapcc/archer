@@ -18,13 +18,17 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/gophercloud/gophercloud"
 	fake "github.com/gophercloud/gophercloud/openstack/networking/v2/common"
 	th "github.com/gophercloud/gophercloud/testhelper"
 	"github.com/gophercloud/gophercloud/testhelper/fixture"
 	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/sapcc/archer/internal/config"
+	"github.com/sapcc/archer/models"
 )
 
 const NetworkIDFixture = "9bf57c58-5d9f-418b-a879-44d83e194ad0"
@@ -44,6 +48,43 @@ const GetNetworkResponseFixture = `
     }
 }
 `
+const PostPortRequestFixture = `{"port":{"binding:host_id":"testhost","device_id":"9bf57c58-5d9f-418b-a879-44d83e194ad0","device_owner":"network:f5snat","fixed_ips":[{"subnet_id":"a0304c3a-4f08-4c43-88af-d796509c97d2"}],"name":"local-testdevicehost","network_id":"9bf57c58-5d9f-418b-a879-44d83e194ad0","tenant_id":"test-project-1"}}`
+const PostPortResponseFixture = `
+{
+	"port": {
+		"admin_state_up": true,
+		"allowed_address_pairs": [],
+		"binding:host_id": "testhost",
+		"binding:profile": {},
+		"binding:vif_details": {},
+		"binding:vif_type": "unbound",
+		"binding:vnic_type": "normal",
+		"created_at": "2021-03-18T14:20:00Z",
+		"data_plane_status": null,
+		"description": "",
+		"device_id": "9bf57c58-5d9f-418b-a879-44d83e194ad0",
+		"device_owner": "network:f5snat",
+		"fixed_ips": [
+			{
+				"ip_address": "123.123.123.123",
+				"subnet_id": "a0304c3a-4f08-4c43-88af-d796509c97d2"
+			}
+		],
+		"id": "9bf57c58-5d9f-418b-a879-44d83e194ad0",
+		"ip_allocation": "immediate",
+		"mac_address": "fa:16:3e:4c:2c:2c",
+		"name": "local-testdevicehost",
+		"network_id": "9bf57c58-5d9f-418b-a879-44d83e194ad0",
+		"port_security_enabled": true,
+		"project_id": "test-project-1",
+		"qos_network_policy_id": null,
+		"revision_number": 1,
+		"security_groups": [],
+		"status": "DOWN",
+		"tags": []
+	}
+}
+`
 
 func TestNeutronClient_GetNetworkSegment(t *testing.T) {
 	type fields struct {
@@ -55,6 +96,7 @@ func TestNeutronClient_GetNetworkSegment(t *testing.T) {
 	}
 
 	th.SetupPersistentPortHTTP(t, 8931)
+	defer th.TeardownHTTP()
 	config.Global.Agent.PhysicalNetwork = "physnet1"
 	fixture.SetupHandler(t, "/v2.0/networks/"+NetworkIDFixture, "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
@@ -94,5 +136,30 @@ func TestNeutronClient_GetNetworkSegment(t *testing.T) {
 			}
 		})
 	}
-	th.TeardownHTTP()
+}
+
+func TestNeutronClient_AllocateSNATNeutronPort(t *testing.T) {
+	th.SetupPersistentPortHTTP(t, 8931)
+	defer th.TeardownHTTP()
+	config.Global.Agent.PhysicalNetwork = "physnet1"
+	fixture.SetupHandler(t, "/v2.0/networks/"+NetworkIDFixture, "GET",
+		"", GetNetworkResponseFixture, http.StatusOK)
+	fixture.SetupHandler(t, "/v2.0/ports", "POST",
+		PostPortRequestFixture, PostPortResponseFixture, http.StatusCreated)
+
+	n := &NeutronClient{
+		ServiceClient: fake.ServiceClient(),
+	}
+	nID := strfmt.UUID(NetworkIDFixture)
+	h := "testdevicehost"
+	s := &models.Service{
+		ID:        strfmt.UUID("9bf57c58-5d9f-418b-a879-44d83e194ad0"),
+		NetworkID: &nID,
+		ProjectID: "test-project-1",
+		Host:      swag.String("testhost"),
+	}
+
+	got, err := n.AllocateSNATNeutronPort(s, h)
+	assert.Nil(t, err)
+	assert.Equal(t, "local-testdevicehost", got.Name)
 }
