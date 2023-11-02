@@ -238,8 +238,10 @@ func (b *BigIP) GetHostname() string {
 	if err != nil {
 		panic(err)
 	}
-
-	return deviceURL.Hostname()
+	if deviceURL.Hostname() != "" {
+		return deviceURL.Hostname()
+	}
+	return b.Host
 }
 
 func (b *BigIP) PostBigIP(as3 *AS3, tenant string) error {
