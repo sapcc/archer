@@ -160,11 +160,13 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		return
 	})
 	g.Go(func() error {
-		if err := a.populateEndpointPorts(endpoints); err != nil && deleteAll {
+		err := a.populateEndpointPorts(endpoints)
+		if err != nil && deleteAll {
 			// ignore missing ports if all endpoints are about to be deleted, print warning instead
 			log.WithError(err).WithField("delete_all", deleteAll).Warning("Ignoring missing ports for endpoint(s)")
+			return nil
 		}
-		return nil
+		return err
 	})
 
 	// Wait for populating endpoints struct
