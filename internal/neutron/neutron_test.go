@@ -18,17 +18,15 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
 	"github.com/gophercloud/gophercloud"
 	fake "github.com/gophercloud/gophercloud/openstack/networking/v2/common"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	th "github.com/gophercloud/gophercloud/testhelper"
 	"github.com/gophercloud/gophercloud/testhelper/fixture"
-	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/models"
 )
 
 const NetworkIDFixture = "9bf57c58-5d9f-418b-a879-44d83e194ad0"
@@ -89,7 +87,7 @@ const PostPortResponseFixture = `
 func TestNeutronClient_GetNetworkSegment(t *testing.T) {
 	type fields struct {
 		ServiceClient *gophercloud.ServiceClient
-		cache         *lru.Cache[string, int]
+		cache         *expirable.LRU[string, map[string]*ports.Port]
 	}
 	type args struct {
 		networkId string
@@ -124,7 +122,7 @@ func TestNeutronClient_GetNetworkSegment(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			n := &NeutronClient{
 				ServiceClient: tt.fields.ServiceClient,
-				cache:         tt.fields.cache,
+				portCache:     tt.fields.cache,
 			}
 			got, err := n.GetNetworkSegment(tt.args.networkId)
 			if (err != nil) != tt.wantErr {
@@ -142,6 +140,7 @@ func TestNeutronClient_AllocateSNATNeutronPort(t *testing.T) {
 	th.SetupPersistentPortHTTP(t, 8931)
 	defer th.TeardownHTTP()
 	config.Global.Agent.PhysicalNetwork = "physnet1"
+	config.Global.Default.Host = "testhost"
 	fixture.SetupHandler(t, "/v2.0/networks/"+NetworkIDFixture, "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
 	fixture.SetupHandler(t, "/v2.0/ports", "POST",
@@ -150,16 +149,9 @@ func TestNeutronClient_AllocateSNATNeutronPort(t *testing.T) {
 	n := &NeutronClient{
 		ServiceClient: fake.ServiceClient(),
 	}
-	nID := strfmt.UUID(NetworkIDFixture)
 	h := "testdevicehost"
-	s := &models.Service{
-		ID:        strfmt.UUID("9bf57c58-5d9f-418b-a879-44d83e194ad0"),
-		NetworkID: &nID,
-		ProjectID: "test-project-1",
-		Host:      swag.String("testhost"),
-	}
 
-	got, err := n.AllocateSNATNeutronPort(s, h)
+	got, err := n.AllocateSNATPort(h, NetworkIDFixture)
 	assert.Nil(t, err)
 	assert.Equal(t, "local-testdevicehost", got.Name)
 }

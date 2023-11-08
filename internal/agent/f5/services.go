@@ -18,12 +18,9 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"strings"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
-	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/jackc/pgx/v5"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -33,72 +30,6 @@ import (
 	"github.com/sapcc/archer/internal/db"
 	"github.com/sapcc/archer/models"
 )
-
-func (a *Agent) fetchOrAllocateSNATPorts(ctx context.Context, tx pgx.Tx, service *as3.ExtendedService) error {
-	sql, args := db.Select("port_id").
-		From("service_port").
-		Where("service_id = ?", service.ID).
-		MustSql()
-	rows, err := tx.Query(ctx, sql, args...)
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var portID strfmt.UUID
-		err = rows.Scan(&portID)
-		if err != nil {
-			return err
-		}
-
-		port, err := a.neutron.GetPort(portID.String())
-		if err != nil {
-			// todo: handle missing port
-			return err
-		}
-		hostname := strings.TrimPrefix(port.Name, "local-")
-		service.SnatPorts[hostname] = port
-	}
-
-	if rows.Err() != nil {
-		return err
-	}
-
-	if service.Status == "PENDING_DELETE" {
-		// done if service is being deleted
-		return nil
-	}
-
-	for _, bigip := range a.bigips {
-		hostname := bigip.GetHostname()
-		if _, ok := service.SnatPorts[hostname]; ok {
-			// already allocated, nothing to do
-			continue
-		}
-
-		// No SNAT ports allocated yet, allocate them
-		var port *ports.Port
-		if port, err = a.neutron.AllocateSNATNeutronPort(&service.Service, hostname); err != nil {
-			return err
-		}
-
-		sql, args, err = db.Insert("service_port").
-			Columns("service_id", "port_id").
-			Values(service.ID, port.ID).
-			ToSql()
-		if err != nil {
-			return err
-		}
-		if _, err = tx.Exec(ctx, sql, args...); err != nil {
-			return err
-		}
-
-		service.SnatPorts[hostname] = port
-	}
-
-	return nil
-}
 
 func (a *Agent) ProcessServices(ctx context.Context) error {
 	var services []*as3.ExtendedService
@@ -118,24 +49,40 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 		   Populate ExtendedService instance
 		   ================================================== */
 		for _, service := range services {
+			var err error
 			// Fetch SNAT ports from neutron
-			service.SnatPorts = make(map[string]*ports.Port, len(a.bigips))
-			err := a.fetchOrAllocateSNATPorts(ctx, tx, service)
+			service.NeutronPorts, err = a.neutron.FetchSNATPorts(service.NetworkID.String())
 			if err != nil {
-				var gerr gophercloud.ErrUnexpectedResponseCode
-				if errors.As(err, &gerr) && gerr.Actual == 409 && bytes.Contains(gerr.Body, []byte("OverQuota")) {
-					log.WithField("service", service.ID).Info(gerr.Body)
-					if _, err := tx.Exec(ctx, `UPDATE service SET status = 'ERROR_QUOTA', updated_at = NOW() WHERE id = $1;`,
-						service.ID); err != nil {
-						return err
-					}
-					return nil
-				}
 				return err
 			}
 
-			if len(service.SnatPorts) > 0 {
-				// we only expect a valid segment if we have at least one SNAT port bound
+			for _, bigip := range a.bigips {
+				deviceName := bigip.GetHostname()
+				if _, ok := service.NeutronPorts[deviceName]; !ok {
+					service.NeutronPorts[deviceName], err =
+						a.neutron.AllocateSNATPort(deviceName, service.NetworkID.String())
+					if err != nil {
+						var gerr gophercloud.ErrUnexpectedResponseCode
+						if errors.As(err, &gerr) && gerr.Actual == 409 && bytes.Contains(gerr.Body, []byte("OverQuota")) {
+							log.WithField("service", service.ID).Info(gerr.Body)
+							service.Status = models.ServiceStatusERRORQUOTA
+							if _, err := tx.Exec(ctx,
+								`UPDATE service SET status = 'ERROR_QUOTA', updated_at = NOW() WHERE id = $1;`,
+								service.ID); err != nil {
+								return err
+							}
+							continue
+						}
+						// return generic error
+						return err
+					}
+					a.neutron.ClearCache(service.NetworkID.String())
+				}
+			}
+
+			if len(service.NeutronPorts) > 0 {
+				// we only expect a valid segment if we have at least one Service port bound
+				var err error
 				service.SegmentId, err = a.neutron.GetNetworkSegment(service.NetworkID.String())
 				if err != nil {
 					return err
@@ -186,37 +133,16 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 			if service.Status == "PENDING_DELETE" {
 				service := service
 
-				for _, bigip := range a.bigips {
-					bigip := bigip
-					g.Go(func() error {
-						port, ok := service.SnatPorts[bigip.GetHostname()]
-						if ok {
-							if err := bigip.CleanupSelfIP(port); err != nil {
-								log.
-									WithFields(log.Fields{"service": service.ID, "port": port.ID}).
-									Error(err)
-							}
-						} else {
-							log.
-								WithFields(log.Fields{"service": service.ID, "host": bigip.GetHostname()}).
-								Info("CleanupSelfIP: No SelfIP registered for this host")
-						}
-						return nil
-					})
-				}
-
-				if err = g.Wait(); err != nil {
-					return err
-				}
-
-				// Ensure L2 configuration is no longer needed
+				// Check if another Service is still using this segment
 				var skipCleanup bool
 				for _, s := range services {
-					// check if other service uses the same segment
-					if s.ID != service.ID && s.Status != "PENDING_DELETE" && s.SegmentId == service.SegmentId {
+					// check if other service uses the same network
+					if s.ID != service.ID && s.Status != "PENDING_DELETE" && s.NetworkID == service.NetworkID {
 						skipCleanup = true
+						break
 					}
 				}
+
 				// Check if there are still endpoints using the same segment
 				ct, err := tx.Exec(ctx, "SELECT 1 FROM endpoint_port WHERE network = $1", service.NetworkID)
 				if err != nil {
@@ -231,6 +157,41 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 				}
 
 				if !skipCleanup {
+					for _, bigip := range a.bigips {
+						bigip := bigip
+						g.Go(func() error {
+							port, ok := service.NeutronPorts[bigip.GetHostname()]
+							if ok {
+								if err := bigip.CleanupSelfIP(port); err != nil {
+									log.
+										WithFields(log.Fields{"service": service.ID, "port": port.ID}).
+										Error(err)
+								}
+							} else {
+								log.
+									WithFields(log.Fields{"service": service.ID, "host": bigip.GetHostname()}).
+									Info("CleanupSelfIP: No SelfIP registered for this host")
+							}
+
+							if err = a.neutron.DeletePort(port.ID); err != nil {
+								var errDefault404 gophercloud.ErrDefault404
+								if !errors.As(err, &errDefault404) {
+									return err
+								} else {
+									log.
+										WithError(err).
+										WithField("id", port.ID).
+										Warning("ProcessServices deletePort()")
+								}
+							}
+							return nil
+						})
+					}
+
+					if err = g.Wait(); err != nil {
+						return err
+					}
+
 					if err := a.CleanupL2(ctx, service.SegmentId); err != nil {
 						log.
 							WithFields(log.Fields{"service": service.ID, "vlan": service.SegmentId}).
@@ -248,15 +209,6 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 		// Successfully updated the tenant
 		for _, service := range services {
 			if service.Status == models.ServiceStatusPENDINGDELETE {
-				for _, snatPort := range service.SnatPorts {
-					if err = a.neutron.DeletePort(snatPort.ID); err != nil {
-						var errDefault404 gophercloud.ErrDefault404
-						if !errors.As(err, &errDefault404) {
-							return err
-						}
-					}
-				}
-
 				if _, err = tx.Exec(ctx, `DELETE FROM service WHERE id = $1 AND status = 'PENDING_DELETE';`,
 					service.ID); err != nil {
 					return err

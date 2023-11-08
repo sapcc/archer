@@ -26,13 +26,13 @@ import (
 // ExtendedService is a service with additional fields for snatpool ports etc.
 type ExtendedService struct {
 	models.Service
-	SnatPorts   map[string]*ports.Port
-	TXAllocated bool
-	SegmentId   int
+	NeutronPorts map[string]*ports.Port // SelfIPs / SNAT IPs
+	TXAllocated  bool
+	SegmentId    int
 }
 
 func (es *ExtendedService) GetSNATPort(device string) *ports.Port {
-	for _, port := range es.SnatPorts {
+	for _, port := range es.NeutronPorts {
 		if strings.HasSuffix(port.Name, device) {
 			return port
 		}

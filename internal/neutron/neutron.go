@@ -16,7 +16,7 @@ package neutron
 
 import (
 	"fmt"
-	"net/url"
+	"strings"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -27,8 +27,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
-	lru "github.com/hashicorp/golang-lru/v2"
-	log "github.com/sirupsen/logrus"
+	"github.com/hashicorp/golang-lru/v2/expirable"
 
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/errors"
@@ -37,7 +36,7 @@ import (
 
 type NeutronClient struct {
 	*gophercloud.ServiceClient
-	cache *lru.Cache[string, int]
+	portCache *expirable.LRU[string, map[string]*ports.Port]
 }
 
 func ConnectToNeutron(providerClient *gophercloud.ProviderClient) (*NeutronClient, error) {
@@ -50,18 +49,11 @@ func ConnectToNeutron(providerClient *gophercloud.ProviderClient) (*NeutronClien
 	serviceClient.HTTPClient.Timeout = time.Second * 30
 
 	// Initialize local cache
-	var cache *lru.Cache[string, int]
-	if cache, err = lru.New[string, int](128); err != nil {
-		log.Fatal(err.Error())
-	}
+	cache := expirable.NewLRU[string, map[string]*ports.Port](32, nil, time.Minute*10)
 	return &NeutronClient{serviceClient, cache}, nil
 }
 
 func (n *NeutronClient) GetNetworkSegment(networkId string) (int, error) {
-	/*if segment, ok := n.cache.Get(networkId); ok {
-		return segment, nil
-	}*/
-
 	var network provider.NetworkProviderExt
 	r := networks.Get(n.ServiceClient, networkId)
 	if err := r.ExtractInto(&network); err != nil {
@@ -70,9 +62,6 @@ func (n *NeutronClient) GetNetworkSegment(networkId string) (int, error) {
 
 	for _, segment := range network.Segments {
 		if segment.PhysicalNetwork == config.Global.Agent.PhysicalNetwork {
-			if n.cache != nil {
-				n.cache.Add(networkId, segment.SegmentationID)
-			}
 			return segment.SegmentationID, nil
 		}
 	}
@@ -154,9 +143,47 @@ func (n *NeutronClient) AllocateNeutronEndpointPort(target *models.EndpointTarge
 	return res, nil
 }
 
-func (n *NeutronClient) AllocateSNATNeutronPort(service *models.Service, hostname string) (*ports.Port, error) {
+func (n NeutronClient) ClearCache(networkId string) {
+	n.portCache.Remove(networkId)
+}
+
+func (n *NeutronClient) FetchSNATPorts(networkId string) (map[string]*ports.Port, error) {
+	if p, ok := n.portCache.Get(networkId); ok {
+		return p, nil
+	}
+
+	portMap := make(map[string]*ports.Port)
+	opts := PortListOptsExt{
+		ListOptsBuilder: ports.ListOpts{
+			NetworkID:   networkId,
+			DeviceOwner: "network:f5snat",
+		},
+		HostID: config.Global.Default.Host,
+	}
+	pages, err := ports.List(n.ServiceClient, opts).AllPages()
+	if err != nil {
+		return nil, err
+	}
+	snatPorts, err := ports.ExtractPorts(pages)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, port := range snatPorts {
+		hostname := strings.TrimPrefix(port.Name, "local-")
+		portMap[hostname] = &port
+	}
+	n.portCache.Add(networkId, portMap)
+	return portMap, nil
+}
+
+func GetHost(port *ports.Port) string {
+	return strings.TrimPrefix(port.Name, "local-")
+}
+
+func (n *NeutronClient) AllocateSNATPort(deviceId string, networkId string) (*ports.Port, error) {
 	var fixedIPs []fixedIP
-	network, err := networks.Get(n.ServiceClient, service.NetworkID.String()).Extract()
+	network, err := networks.Get(n.ServiceClient, networkId).Extract()
 	if err != nil {
 		return nil, err
 	}
@@ -168,14 +195,14 @@ func (n *NeutronClient) AllocateSNATNeutronPort(service *models.Service, hostnam
 	// allocate neutron port
 	port := portsbinding.CreateOptsExt{
 		CreateOptsBuilder: ports.CreateOpts{
-			Name:        fmt.Sprintf("local-%s", hostname),
+			Name:        fmt.Sprintf("local-%s", deviceId),
 			DeviceOwner: "network:f5snat",
-			DeviceID:    service.ID.String(),
-			NetworkID:   service.NetworkID.String(),
-			TenantID:    string(service.ProjectID),
+			DeviceID:    networkId,
+			NetworkID:   networkId,
+			TenantID:    network.ProjectID,
 			FixedIPs:    fixedIPs,
 		},
-		HostID: *service.Host,
+		HostID: config.Global.Default.Host,
 	}
 
 	res, err := ports.Create(n.ServiceClient, port).Extract()
@@ -183,18 +210,4 @@ func (n *NeutronClient) AllocateSNATNeutronPort(service *models.Service, hostnam
 		return nil, err
 	}
 	return res, nil
-}
-
-type PortListOpts struct {
-	IDs []string
-}
-
-func (opts PortListOpts) ToPortListQuery() (string, error) {
-	q, err := gophercloud.BuildQueryString(opts)
-	params := q.Query()
-	for _, id := range opts.IDs {
-		params.Add("id", id)
-	}
-	q = &url.URL{RawQuery: params.Encode()}
-	return q.String(), err
 }

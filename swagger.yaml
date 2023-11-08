@@ -1140,12 +1140,14 @@ definitions:
           | PENDING_UPDATE   | Service is being updated               |
           | PENDING_DELETE   | Service is being deleted               |
           | UNAVAILABLE      | Service is unavailable (e.g. disabled) |
+          | ERROR_QUOTA      | Service has not enough port quota      |
         enum:
           - AVAILABLE
           - PENDING_CREATE
           - PENDING_UPDATE
           - PENDING_DELETE
           - UNAVAILABLE
+          - ERROR_QUOTA
         readOnly: true
       require_approval:
         type: boolean

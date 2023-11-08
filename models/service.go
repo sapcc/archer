@@ -105,9 +105,10 @@ type Service struct {
 	// | PENDING_UPDATE   | Service is being updated               |
 	// | PENDING_DELETE   | Service is being deleted               |
 	// | UNAVAILABLE      | Service is unavailable (e.g. disabled) |
+	// | ERROR_QUOTA      | Service has not enough port quota      |
 	//
 	// Read Only: true
-	// Enum: [AVAILABLE PENDING_CREATE PENDING_UPDATE PENDING_DELETE UNAVAILABLE]
+	// Enum: [AVAILABLE PENDING_CREATE PENDING_UPDATE PENDING_DELETE UNAVAILABLE ERROR_QUOTA]
 	Status string `json:"status,omitempty"`
 
 	// The list of tags on the resource.
@@ -343,7 +344,7 @@ var serviceTypeStatusPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["AVAILABLE","PENDING_CREATE","PENDING_UPDATE","PENDING_DELETE","UNAVAILABLE"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["AVAILABLE","PENDING_CREATE","PENDING_UPDATE","PENDING_DELETE","UNAVAILABLE","ERROR_QUOTA"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -367,6 +368,9 @@ const (
 
 	// ServiceStatusUNAVAILABLE captures enum value "UNAVAILABLE"
 	ServiceStatusUNAVAILABLE string = "UNAVAILABLE"
+
+	// ServiceStatusERRORQUOTA captures enum value "ERROR_QUOTA"
+	ServiceStatusERRORQUOTA string = "ERROR_QUOTA"
 )
 
 // prop value enum

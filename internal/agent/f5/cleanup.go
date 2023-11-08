@@ -15,14 +15,11 @@
 package f5
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
 	"github.com/gophercloud/gophercloud"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/sapcc/archer/internal/db"
 )
 
 // scanAndClean scans all selfips on all bigips and deletes them if they are not in the database
@@ -41,24 +38,11 @@ func (a *Agent) cleanOrphanSelfIPs() {
 				continue
 			}
 
-			// check if port exists in archer database
-			sql, args, err := db.
-				Select("1").
-				From("service_port").
-				Where("port_id = ?", portID).
-				ToSql()
+			p, err := a.neutron.GetPort(portID)
 			if err != nil {
-				log.Error(err)
-				return
+				log.WithError(err).WithField("port_id", portID).Error("cleanOrphanSelfIPs")
 			}
-			ct, err := a.pool.Exec(context.Background(), sql, args...)
-			if err != nil {
-				log.Error(err)
-				return
-			}
-
-			if ct.RowsAffected() != 0 {
-				// port exists, nothing to do
+			if p != nil {
 				continue
 			}
 

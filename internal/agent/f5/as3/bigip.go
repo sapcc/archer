@@ -78,7 +78,7 @@ func GetServiceTenants(endpointServices []*ExtendedService) Tenant {
 		}
 
 		var snatAddresses []string
-		for _, snatPort := range service.SnatPorts {
+		for _, snatPort := range service.NeutronPorts {
 			for _, fixedIP := range snatPort.FixedIPs {
 				snatAddresses = append(snatAddresses,
 					fmt.Sprintf("%s%%%d", fixedIP.IPAddress, service.SegmentId))
@@ -303,7 +303,7 @@ func (b *BigIP) GetVCMPGuests() (*VcmpGuests, error) {
 }
 
 func (b *BigIP) EnsureSelfIP(neutron *neutron.NeutronClient, service *ExtendedService) error {
-	port, ok := service.SnatPorts[b.GetHostname()]
+	port, ok := service.NeutronPorts[b.GetHostname()]
 	if !ok {
 		return fmt.Errorf("EnsureSelfIP: no port for service '%s' found on bigip '%s'", service.ID, b.Host)
 	}

@@ -251,4 +251,10 @@ var Migrations = mgx.Migrations(
 		`)
 		return err
 	}),
+	mgx.NewMigration("drop_service_port_table", func(ctx context.Context, commands mgx.Commands) error {
+		_, err := commands.Exec(ctx, `
+			DROP TABLE service_port;
+		`)
+		return err
+	}),
 )

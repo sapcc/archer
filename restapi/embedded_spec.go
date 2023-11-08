@@ -1727,14 +1727,15 @@ func init() {
           "default": true
         },
         "status": {
-          "description": "Status of the service.\n\n### Status can be one of\n| Status           | Description                            |\n| ---------------- | -------------------------------------- |\n| AVAILABLE        | Service is ready for consumption.      |\n| PENDING_CREATE   | Service is being set up                |\n| PENDING_UPDATE   | Service is being updated               |\n| PENDING_DELETE   | Service is being deleted               |\n| UNAVAILABLE      | Service is unavailable (e.g. disabled) |\n",
+          "description": "Status of the service.\n\n### Status can be one of\n| Status           | Description                            |\n| ---------------- | -------------------------------------- |\n| AVAILABLE        | Service is ready for consumption.      |\n| PENDING_CREATE   | Service is being set up                |\n| PENDING_UPDATE   | Service is being updated               |\n| PENDING_DELETE   | Service is being deleted               |\n| UNAVAILABLE      | Service is unavailable (e.g. disabled) |\n| ERROR_QUOTA      | Service has not enough port quota      |\n",
           "type": "string",
           "enum": [
             "AVAILABLE",
             "PENDING_CREATE",
             "PENDING_UPDATE",
             "PENDING_DELETE",
-            "UNAVAILABLE"
+            "UNAVAILABLE",
+            "ERROR_QUOTA"
           ],
           "readOnly": true
         },
@@ -3827,14 +3828,15 @@ func init() {
           "default": true
         },
         "status": {
-          "description": "Status of the service.\n\n### Status can be one of\n| Status           | Description                            |\n| ---------------- | -------------------------------------- |\n| AVAILABLE        | Service is ready for consumption.      |\n| PENDING_CREATE   | Service is being set up                |\n| PENDING_UPDATE   | Service is being updated               |\n| PENDING_DELETE   | Service is being deleted               |\n| UNAVAILABLE      | Service is unavailable (e.g. disabled) |\n",
+          "description": "Status of the service.\n\n### Status can be one of\n| Status           | Description                            |\n| ---------------- | -------------------------------------- |\n| AVAILABLE        | Service is ready for consumption.      |\n| PENDING_CREATE   | Service is being set up                |\n| PENDING_UPDATE   | Service is being updated               |\n| PENDING_DELETE   | Service is being deleted               |\n| UNAVAILABLE      | Service is unavailable (e.g. disabled) |\n| ERROR_QUOTA      | Service has not enough port quota      |\n",
           "type": "string",
           "enum": [
             "AVAILABLE",
             "PENDING_CREATE",
             "PENDING_UPDATE",
             "PENDING_DELETE",
-            "UNAVAILABLE"
+            "UNAVAILABLE",
+            "ERROR_QUOTA"
           ],
           "readOnly": true
         },
