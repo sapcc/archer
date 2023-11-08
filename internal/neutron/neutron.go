@@ -170,15 +170,12 @@ func (n *NeutronClient) FetchSNATPorts(networkId string) (map[string]*ports.Port
 	}
 
 	for _, port := range snatPorts {
+		port := port
 		hostname := strings.TrimPrefix(port.Name, "local-")
 		portMap[hostname] = &port
 	}
 	n.portCache.Add(networkId, portMap)
 	return portMap, nil
-}
-
-func GetHost(port *ports.Port) string {
-	return strings.TrimPrefix(port.Name, "local-")
 }
 
 func (n *NeutronClient) AllocateSNATPort(deviceId string, networkId string) (*ports.Port, error) {

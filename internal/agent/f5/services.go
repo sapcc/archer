@@ -137,7 +137,9 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 				var skipCleanup bool
 				for _, s := range services {
 					// check if other service uses the same network
-					if s.ID != service.ID && s.Status != "PENDING_DELETE" && s.NetworkID == service.NetworkID {
+					if s.ID != service.ID &&
+						s.Status != models.ServiceStatusPENDINGDELETE &&
+						*s.NetworkID == *service.NetworkID {
 						skipCleanup = true
 						break
 					}

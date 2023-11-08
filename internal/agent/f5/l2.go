@@ -78,7 +78,7 @@ func (a *Agent) CleanupL2(ctx context.Context, segmentID int) error {
 	g.Go(func() error {
 		for _, bigip := range a.bigips {
 			if err := bigip.CleanupRouteDomain(segmentID); err != nil {
-				return fmt.Errorf("CleanupRouteDomain: %s", err.Error())
+				return fmt.Errorf("CleanupRouteDomain: device=%s %s", bigip.GetHostname(), err.Error())
 			}
 			if err := bigip.CleanupVLAN(segmentID); err != nil {
 				return fmt.Errorf("CleanupVLAN: %s", err.Error())
