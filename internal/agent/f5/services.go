@@ -162,6 +162,7 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 					for _, bigip := range a.bigips {
 						bigip := bigip
 						g.Go(func() error {
+							a.neutron.ClearCache(service.NetworkID.String())
 							port, ok := service.NeutronPorts[bigip.GetHostname()]
 							if ok {
 								if err := bigip.CleanupSelfIP(port); err != nil {
