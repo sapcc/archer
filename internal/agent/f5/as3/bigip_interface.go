@@ -21,6 +21,7 @@ type BigIPIface interface {
 	PostAs3Bigip(as3NewJson string, tenantFilter string) (error, string, string)
 	GetDevices() ([]bigip.Device, error)
 	APICall(options *bigip.APIRequest) ([]byte, error)
+	SelfIP(selfip string) (*bigip.SelfIP, error)
 	SelfIPs() (*bigip.SelfIPs, error)
 	DeleteSelfIP(name string) error
 	DeleteRouteDomain(name string) error

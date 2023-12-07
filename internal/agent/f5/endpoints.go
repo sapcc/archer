@@ -184,6 +184,20 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		}
 	}
 
+	// SelfIPs
+	for _, ep := range endpoints {
+		ep := ep
+		if ep.Status != models.EndpointStatusPENDINGDELETE {
+			g.Go(func() error {
+				return a.EnsureSelfIPs(*ep.SegmentId, ep.Port)
+			})
+		}
+	}
+
+	if err := g.Wait(); err != nil {
+		return err
+	}
+
 	/* ==================================================
 	   Post AS3 Declaration to active BigIP
 	   ================================================== */
@@ -234,6 +248,12 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 
 	for _, endpoint := range endpoints {
 		if endpoint.Status == models.EndpointStatusPENDINGDELETE {
+			// Delete endpoint selfips
+			if err := a.CleanupSelfIPs(endpoint.Port, endpoints); err != nil {
+				return err
+			}
+
+			// Delete endpoint neutron port
 			if endpoint.Target.Port != nil && owned {
 				if err := a.neutron.DeletePort(endpoint.Target.Port.String()); err != nil {
 					var errDefault404 gophercloud.ErrDefault404
@@ -242,6 +262,8 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 					}
 				}
 			}
+
+			log.Debugf("ProcessEndpoint: Deleting endpoint %s", endpoint.ID)
 			if _, err := tx.Exec(ctx, `DELETE FROM endpoint WHERE id = $1 AND status = 'PENDING_DELETE';`,
 				endpoint.ID); err != nil {
 				return err
