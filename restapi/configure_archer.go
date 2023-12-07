@@ -113,6 +113,7 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 		log.Fatalf("While connecting to Neutron: %s", err.Error())
 	}
 	log.Infof("Connected to Neutron %s", neutronClient.Endpoint)
+	neutronClient.InitCache()
 
 	var keystone *auth.Keystone
 	if config.Global.ApiSettings.AuthStrategy == "keystone" {

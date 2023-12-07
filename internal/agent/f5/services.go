@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/gophercloud/gophercloud"
@@ -165,7 +166,7 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 							a.neutron.ClearCache(service.NetworkID.String())
 							port, ok := service.NeutronPorts[bigip.GetHostname()]
 							if ok {
-								if err := bigip.CleanupSelfIP(port); err != nil {
+								if err := bigip.CleanupSelfIP(fmt.Sprintf("selfip-%s", port.ID)); err != nil {
 									log.
 										WithFields(log.Fields{"service": service.ID, "port": port.ID}).
 										Error(err)

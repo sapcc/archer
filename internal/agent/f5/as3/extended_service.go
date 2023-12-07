@@ -15,6 +15,7 @@
 package as3
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
@@ -47,5 +48,17 @@ func (es *ExtendedService) EnsureSNATPort(bigip *BigIP, client *neutron.NeutronC
 	if err := bigip.EnsureRouteDomain(es.SegmentId, nil); err != nil {
 		return err
 	}
-	return bigip.EnsureSelfIP(client, es)
+
+	for _, port := range es.NeutronPorts {
+		mask, err := client.GetMask(port.FixedIPs[0].SubnetID)
+		if err != nil {
+			return err
+		}
+		address := fmt.Sprint(port.FixedIPs[0].IPAddress, "%", es.SegmentId, "/", mask)
+		name := fmt.Sprint("selfip-", port.ID)
+		if err := bigip.EnsureBigIPSelfIP(name, address, es.SegmentId); err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/f5devcentral/go-bigip"
 	"github.com/go-openapi/strfmt"
 	fake "github.com/gophercloud/gophercloud/openstack/networking/v2/common"
 	th "github.com/gophercloud/gophercloud/testhelper"
@@ -47,6 +48,15 @@ const GetNetworkResponseFixture = `
 }
 `
 
+const GetSubnetResponseFixture = `
+{
+	"subnet": {
+        "cidr": "192.0.0.0/8",
+        "network_id": "35a3ca82-62af-4e0a-9472-92331500fb3a"
+	}
+}
+`
+
 const GetServiceNetworkResponseFixture = `
 {
     "network": {
@@ -62,15 +72,46 @@ const GetServiceNetworkResponseFixture = `
 }
 `
 
-const GetNetworkListResponseFixture = `
+const GetPortListResponseFixture = `
 {
 	"ports": [
 		{
+			"fixed_ips": [
+				{
+					"subnet_id": "e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e",
+					"ip_address": "2.3.4.5"
+				}
+			],
+			"device_owner": "network:f5snat",
 			"id": "c0c0c0c0-c0c0-4c0c-8c0c-0c0c0c0c0c0c",
+			"network_id": "35a3ca82-62af-4e0a-9472-92331500fb3a",
+			"project_id": "test-project-1"
+		},
+		{
+			"name": "local-dummybigiphost",
+			"fixed_ips": [
+				{
+					"subnet_id": "e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e",
+					"ip_address": "42.42.42.42"
+				}
+			],
+			"device_owner": "network:f5selfip",
+			"id": "5a8ad669-4ffe-4133-b9f9-6de62cd654a4",
 			"network_id": "35a3ca82-62af-4e0a-9472-92331500fb3a",
 			"project_id": "test-project-1"
 		}
 	]
+}
+`
+
+const RouteDomainFixture = `{
+  "items": [
+    {
+	  "id": 123,
+      "name": "net-35a3ca82-62af-4e0a-9472-92331500fb3a",
+      "parent": "/Common/vlan-666"
+    }
+  ]
 }
 `
 
@@ -103,7 +144,9 @@ const PostBigIPFixture = `{
           "snat": {
             "bigip": "/Common/Shared/snatpool-a0a0a0a0-a0a0-4a0a-8a0a-0a0a0a0a0a0a"
           },
-          "virtualAddresses": null,
+          "virtualAddresses": [
+            "2.3.4.5%123"
+          ],
           "translateServerPort": true,
           "virtualPort": 80
         },
@@ -124,13 +167,16 @@ func TestAgent_ProcessEndpoint(t *testing.T) {
 	serviceNetwork := strfmt.UUID("b0b0b0b0-b0b0-4b0b-8b0b-0b0b0b0b0b0b")
 
 	th.SetupPersistentPortHTTP(t, 8931)
+	defer th.TeardownHTTP()
 	config.Global.Agent.PhysicalNetwork = "physnet1"
 	fixture.SetupHandler(t, "/v2.0/networks/"+network.String(), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
 	fixture.SetupHandler(t, "/v2.0/networks/"+serviceNetwork.String(), "GET",
 		"", GetServiceNetworkResponseFixture, http.StatusOK)
 	fixture.SetupHandler(t, "/v2.0/ports", "GET", "",
-		GetNetworkListResponseFixture, http.StatusOK)
+		GetPortListResponseFixture, http.StatusOK)
+	fixture.SetupHandler(t, "/v2.0/subnets/"+subnet.String(), "GET", "",
+		GetSubnetResponseFixture, http.StatusOK)
 
 	ctx := context.Background()
 	dbMock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
@@ -143,15 +189,33 @@ func TestAgent_ProcessEndpoint(t *testing.T) {
 
 	bigiphost := as3.NewMockBigIPIface(t)
 	bigiphost.EXPECT().
+		Vlans().
+		Return(&bigip.Vlans{Vlans: []bigip.Vlan{{Name: "/Common/vlan-123", Tag: 123}}}, nil)
+	bigiphost.EXPECT().
+		APICall(&bigip.APIRequest{Method: "get", URL: "net/route-domain", ContentType: "application/json"}).
+		Return([]byte(RouteDomainFixture), nil)
+	bigiphost.EXPECT().
+		SelfIP("selfip-5a8ad669-4ffe-4133-b9f9-6de62cd654a4").
+		Return(nil, nil)
+	bigiphost.EXPECT().
+		CreateSelfIP(&bigip.SelfIP{
+			Name:    "selfip-5a8ad669-4ffe-4133-b9f9-6de62cd654a4",
+			Address: "42.42.42.42%123/8",
+			Vlan:    "/Common/vlan-123",
+		}).
+		Return(nil)
+	bigiphost.EXPECT().
 		PostAs3Bigip(PostBigIPFixture, "net-35a3ca82-62af-4e0a-9472-92331500fb3a").
 		Return(nil, "", "")
 
 	config.Global.Default.Host = "host-123"
+	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient()}
+	neutronClient.InitCache()
 	a := &Agent{
 		jobQueue: nil,
 		pool:     dbMock,
-		neutron:  &neutron.NeutronClient{ServiceClient: fake.ServiceClient()},
-		bigips:   []*as3.BigIP{},
+		neutron:  &neutronClient,
+		bigips:   []*as3.BigIP{{Host: "dummybigiphost", BigIPIface: bigiphost}},
 		vcmps:    []*as3.BigIP{},
 		bigip:    &as3.BigIP{Host: "dummybigiphost", BigIPIface: bigiphost},
 	}

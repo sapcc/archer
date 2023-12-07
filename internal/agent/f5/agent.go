@@ -115,6 +115,7 @@ func NewAgent() *Agent {
 		log.Fatalf("While connecting to Neutron: %s", err.Error())
 	}
 	log.Infof("Connected to Neutron %s", agent.neutron.Endpoint)
+	agent.neutron.InitCache()
 
 	common.RegisterAgent(agent.pool, "tenant")
 	return agent

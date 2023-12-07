@@ -16,6 +16,7 @@ package neutron
 
 import (
 	"fmt"
+	"net"
 	"strings"
 	"time"
 
@@ -27,7 +28,10 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
+	"github.com/gophercloud/gophercloud/pagination"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/hashicorp/golang-lru/v2/expirable"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/errors"
@@ -36,7 +40,14 @@ import (
 
 type NeutronClient struct {
 	*gophercloud.ServiceClient
-	portCache *expirable.LRU[string, map[string]*ports.Port]
+	portCache *expirable.LRU[string, map[string]*ports.Port] // networkID -> map[hostname]port, expires after 10 mins
+	maskCache *lru.Cache[string, int]                        // subnetID -> mask, never expires
+}
+
+func (n *NeutronClient) InitCache() {
+	// Initialize local cache
+	n.portCache = expirable.NewLRU[string, map[string]*ports.Port](32, nil, time.Minute*10)
+	n.maskCache, _ = lru.New[string, int](32)
 }
 
 func ConnectToNeutron(providerClient *gophercloud.ProviderClient) (*NeutronClient, error) {
@@ -47,10 +58,7 @@ func ConnectToNeutron(providerClient *gophercloud.ProviderClient) (*NeutronClien
 
 	// Set timeout to 30 secs
 	serviceClient.HTTPClient.Timeout = time.Second * 30
-
-	// Initialize local cache
-	cache := expirable.NewLRU[string, map[string]*ports.Port](32, nil, time.Minute*10)
-	return &NeutronClient{serviceClient, cache}, nil
+	return &NeutronClient{ServiceClient: serviceClient}, nil
 }
 
 func (n *NeutronClient) GetNetworkSegment(networkId string) (int, error) {
@@ -207,4 +215,86 @@ func (n *NeutronClient) AllocateSNATPort(deviceId string, networkId string) (*po
 		return nil, err
 	}
 	return res, nil
+}
+
+// EnsureNeutronSelfIPs ensures that a SelfIPs exists for the given deviceID and subnetID
+func (n *NeutronClient) EnsureNeutronSelfIPs(deviceIDs []string, subnetID string, dryRun bool) (map[string]*ports.Port, error) {
+	log.Debugf("EnsureNeutronSelfIP (subnet=%s)", subnetID)
+	var subnet, err = subnets.Get(n.ServiceClient, subnetID).Extract()
+	if err != nil {
+		return nil, err
+	}
+
+	var pages pagination.Page
+	opts := PortListOptsExt{
+		ListOptsBuilder: ports.ListOpts{
+			NetworkID:   subnet.NetworkID,
+			FixedIPs:    []ports.FixedIPOpts{{SubnetID: subnetID}},
+			DeviceOwner: "network:f5selfip",
+		},
+		HostID: config.Global.Default.Host,
+	}
+	pages, err = ports.List(n.ServiceClient, opts).AllPages()
+	if err != nil {
+		return nil, err
+	}
+	neutronPorts, err := ports.ExtractPorts(pages)
+	if err != nil {
+		return nil, err
+	}
+
+	selfIPs := make(map[string]*ports.Port, len(deviceIDs))
+	for _, deviceID := range deviceIDs {
+		for _, neutronPort := range neutronPorts {
+			if neutronPort.DeviceOwner != "network:f5selfip" {
+				continue
+			}
+
+			if neutronPort.Name == fmt.Sprintf("local-%s", deviceID) {
+				selfIPs[deviceID] = &neutronPort
+			}
+		}
+
+		if _, ok := selfIPs[deviceID]; !ok && !dryRun {
+			// allocate neutron port
+			log.Infof("EnsureNeutronSelfIP: Allocating SelfIP (network=%s,subnet=%s,device=%s)",
+				subnet.NetworkID, subnetID, deviceID)
+			port := portsbinding.CreateOptsExt{
+				CreateOptsBuilder: ports.CreateOpts{
+					Name:        fmt.Sprintf("local-%s", deviceID),
+					DeviceOwner: "network:f5selfip",
+					DeviceID:    subnetID,
+					NetworkID:   subnet.NetworkID,
+					TenantID:    subnet.TenantID,
+					FixedIPs:    []fixedIP{{SubnetID: subnetID}},
+				},
+				HostID: config.Global.Default.Host,
+			}
+
+			selfIPs[deviceID], err = ports.Create(n.ServiceClient, port).Extract()
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return selfIPs, nil
+}
+
+func (n *NeutronClient) GetMask(subnetID string) (int, error) {
+	// Cache subnet mask - never expires
+	if mask, ok := n.maskCache.Get(subnetID); ok {
+		return mask, nil
+	}
+
+	subnet, err := subnets.Get(n.ServiceClient, subnetID).Extract()
+	if err != nil {
+		return 0, err
+	}
+	_, ipNet, err := net.ParseCIDR(subnet.CIDR)
+	if err != nil {
+		return 0, err
+	}
+	mask, _ := ipNet.Mask.Size()
+	n.maskCache.Add(subnetID, mask)
+	return mask, nil
 }

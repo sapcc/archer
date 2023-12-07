@@ -25,15 +25,12 @@ import (
 
 	"github.com/f5devcentral/go-bigip"
 	"github.com/go-openapi/strfmt"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
 	"github.com/sethvargo/go-retry"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/errors"
-	"github.com/sapcc/archer/internal/neutron"
 	"github.com/sapcc/archer/models"
 )
 
@@ -302,57 +299,33 @@ func (b *BigIP) GetVCMPGuests() (*VcmpGuests, error) {
 	return &guests, nil
 }
 
-func (b *BigIP) EnsureSelfIP(neutron *neutron.NeutronClient, service *ExtendedService) error {
-	port, ok := service.NeutronPorts[b.GetHostname()]
-	if !ok {
-		return fmt.Errorf("EnsureSelfIP: no port for service '%s' found on bigip '%s'", service.ID, b.Host)
+func (b *BigIP) EnsureBigIPSelfIP(name string, address string, segmentId int) error {
+	log.Debugf("EnsureBigIPSelfIP(bigip=%s): %s %s %d", b.GetHostname(), name, address, segmentId)
+	selfIP, err := b.SelfIP(name)
+	if err != nil && !strings.Contains(err.Error(), "was not found") {
+		return err
 	}
 
-	name := fmt.Sprint("selfip-", port.ID)
-	selfIPs, err := b.SelfIPs()
-	if err != nil {
-		return err
-	}
-	for _, selfIP := range selfIPs.SelfIPs {
-		if selfIP.Name == name {
-			return nil
-		}
+	if selfIP != nil {
+		return nil
+		// nothing to do
 	}
 
-	// Fetch netmask
-	subnet, err := subnets.Get(neutron.ServiceClient, port.FixedIPs[0].SubnetID).Extract()
-	if err != nil {
-		return err
-	}
-	_, ipNet, err := net.ParseCIDR(subnet.CIDR)
-	if err != nil {
-		return err
-	}
-	mask, _ := ipNet.Mask.Size()
-	selfIP := bigip.SelfIP{
+	newSelfIP := bigip.SelfIP{
 		Name:    name,
-		Address: fmt.Sprint(port.FixedIPs[0].IPAddress, "%", service.SegmentId, "/", mask),
-		Vlan:    fmt.Sprint("/Common/vlan-", service.SegmentId),
+		Address: address, //fmt.Sprint(address, "%", segmentId, "/", mask),
+		Vlan:    fmt.Sprint("/Common/vlan-", segmentId),
 	}
-	if err := b.CreateSelfIP(&selfIP); err != nil {
-		return err
-	}
-	return nil
+	return b.CreateSelfIP(&newSelfIP)
 }
 
-func (b *BigIP) CleanupSelfIP(port *ports.Port) error {
-	name := fmt.Sprint("selfip-", port.ID)
-	selfIPs, err := b.SelfIPs()
+func (b *BigIP) CleanupSelfIP(name string) error {
+	_, err := b.SelfIP(name)
 	if err != nil {
-		return err
-	}
-	for _, selfIP := range selfIPs.SelfIPs {
-		if selfIP.Name == name {
-			return b.DeleteSelfIP(selfIP.Name)
-		}
+		return fmt.Errorf("CleanupSelfIP: SelfIP %s not found: %w", name, err)
 	}
 
-	return errors.ErrNoSelfIP
+	return b.DeleteSelfIP(name)
 }
 
 func (b *BigIP) EnsureRouteDomain(segmentId int, parent *int) error {
