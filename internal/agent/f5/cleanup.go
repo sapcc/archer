@@ -38,32 +38,22 @@ func (a *Agent) cleanOrphanSelfIPs() {
 				continue
 			}
 
-			p, err := a.neutron.GetPort(portID)
+			_, err := a.neutron.GetPort(portID)
 			if err != nil {
-				log.WithError(err).WithField("port_id", portID).Error("cleanOrphanSelfIPs")
-			}
-			if p != nil {
-				continue
-			}
-
-			log.WithFields(log.Fields{
-				"port_id": portID,
-				"host":    bigip.GetHostname(),
-			}).Warning("Found orphan SelfIP, deleting")
-
-			// Delete neutron port, but don't fail if it doesn't exist
-			if err := a.neutron.DeletePort(portID); err != nil {
+				log.WithError(err).WithField("port_id", portID).Info("cleanOrphanSelfIPs")
 				var errDefault404 gophercloud.ErrDefault404
-				if !errors.As(err, &errDefault404) {
-					log.Error(err)
-					return
-				}
-			}
+				if errors.As(err, &errDefault404) {
+					log.WithFields(log.Fields{
+						"port_id": portID,
+						"host":    bigip.GetHostname(),
+					}).Warning("Found orphan SelfIP, deleting")
 
-			// port should not exist, delete selfip
-			if err := bigip.DeleteSelfIP(selfip.Name); err != nil {
-				log.Error(err)
-				return
+					// port should not exist, delete selfip
+					if err := bigip.DeleteSelfIP(selfip.Name); err != nil {
+						log.Error(err)
+						return
+					}
+				}
 			}
 		}
 	}
