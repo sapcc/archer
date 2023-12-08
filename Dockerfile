@@ -19,7 +19,7 @@ RUN make -C /src
 
 ################################################################################
 
-FROM alpine:3.18
+FROM alpine:3.19
 LABEL source_repository="https://github.com/sapcc/archer"
 
 RUN apk add --no-cache ca-certificates haproxy
