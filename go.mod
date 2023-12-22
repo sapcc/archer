@@ -14,11 +14,11 @@ require (
 	github.com/getsentry/sentry-go v0.20.0
 	github.com/go-co-op/gocron v1.37.0
 	github.com/go-openapi/errors v0.21.0
-	github.com/go-openapi/loads v0.21.3
+	github.com/go-openapi/loads v0.21.4
 	github.com/go-openapi/runtime v0.26.2
-	github.com/go-openapi/spec v0.20.12
+	github.com/go-openapi/spec v0.20.13
 	github.com/go-openapi/strfmt v0.21.10
-	github.com/go-openapi/swag v0.22.5
+	github.com/go-openapi/swag v0.22.6
 	github.com/go-openapi/validate v0.22.4
 	github.com/gophercloud/gophercloud v1.8.0
 	github.com/gophercloud/utils v0.0.0-20231010081019-80377eca5d56
@@ -53,9 +53,9 @@ require (
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/go-logr/logr v1.3.0 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/go-openapi/analysis v0.21.5 // indirect
-	github.com/go-openapi/jsonpointer v0.20.1 // indirect
-	github.com/go-openapi/jsonreference v0.20.3 // indirect
+	github.com/go-openapi/analysis v0.22.0 // indirect
+	github.com/go-openapi/jsonpointer v0.20.2 // indirect
+	github.com/go-openapi/jsonreference v0.20.4 // indirect
 	github.com/go-pkgz/expirable-cache v0.1.0 // indirect
 	github.com/gobuffalo/logger v1.0.3 // indirect
 	github.com/gobuffalo/packd v1.0.0 // indirect
