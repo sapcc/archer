@@ -14,7 +14,7 @@ require (
 	github.com/getsentry/sentry-go v0.20.0
 	github.com/go-co-op/gocron v1.37.0
 	github.com/go-openapi/errors v0.21.0
-	github.com/go-openapi/loads v0.21.4
+	github.com/go-openapi/loads v0.21.5
 	github.com/go-openapi/runtime v0.26.2
 	github.com/go-openapi/spec v0.20.13
 	github.com/go-openapi/strfmt v0.21.10
