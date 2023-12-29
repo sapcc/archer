@@ -17,7 +17,7 @@ require (
 	github.com/go-openapi/loads v0.21.5
 	github.com/go-openapi/runtime v0.26.2
 	github.com/go-openapi/spec v0.20.13
-	github.com/go-openapi/strfmt v0.21.10
+	github.com/go-openapi/strfmt v0.22.0
 	github.com/go-openapi/swag v0.22.7
 	github.com/go-openapi/validate v0.22.6
 	github.com/gophercloud/gophercloud v1.8.0
@@ -62,7 +62,7 @@ require (
 	github.com/gobuffalo/packr/v2 v2.8.0 // indirect
 	github.com/gocarina/gocsv v0.0.0-20210516172204-ca9e8a8ddea8 // indirect
 	github.com/gofrs/uuid/v5 v5.0.0 // indirect
-	github.com/google/uuid v1.4.0 // indirect
+	github.com/google/uuid v1.5.0 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
