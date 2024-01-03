@@ -83,9 +83,9 @@ type fixedIP struct {
 }
 
 func (n *NeutronClient) AllocateNeutronEndpointPort(target *models.EndpointTarget, endpoint *models.Endpoint,
-	projectID string, host string) (*ports.Port, error) {
+	projectID string, host string, client *gophercloud.ServiceClient) (*ports.Port, error) {
 	if target.Port != nil {
-		port, err := ports.Get(n.ServiceClient, target.Port.String()).Extract()
+		port, err := ports.Get(client, target.Port.String()).Extract()
 		if err != nil {
 			return nil, err
 		}
@@ -103,7 +103,7 @@ func (n *NeutronClient) AllocateNeutronEndpointPort(target *models.EndpointTarge
 
 	var fixedIPs []fixedIP
 	if target.Network == nil {
-		subnet, err := subnets.Get(n.ServiceClient, target.Subnet.String()).Extract()
+		subnet, err := subnets.Get(client, target.Subnet.String()).Extract()
 		if err != nil {
 			return nil, err
 		}
@@ -112,7 +112,7 @@ func (n *NeutronClient) AllocateNeutronEndpointPort(target *models.EndpointTarge
 		networkID := strfmt.UUID(subnet.NetworkID)
 		target.Network = &networkID
 	} else {
-		network, err := networks.Get(n.ServiceClient, target.Network.String()).Extract()
+		network, err := networks.Get(client, target.Network.String()).Extract()
 		if err != nil {
 			return nil, err
 		}

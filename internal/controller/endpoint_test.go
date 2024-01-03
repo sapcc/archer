@@ -21,7 +21,10 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/gophercloud/gophercloud"
+	fake "github.com/gophercloud/gophercloud/openstack/networking/v2/common"
 	"github.com/gophercloud/gophercloud/testhelper/fixture"
+	"github.com/sapcc/go-bits/gopherpolicy"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/sapcc/archer/internal/config"
@@ -138,6 +141,26 @@ func (t *SuiteTest) TestEndpointTargetNetworkUnknown() {
 	assert.NotNil(t.T(), res)
 	assert.IsType(t.T(), &endpoint.PostEndpointBadRequest{}, res)
 	assert.Contains(t.T(), res.(*endpoint.PostEndpointBadRequest).Payload.Message, notFoundBody)
+}
+
+func (t *SuiteTest) TestEndpointTargetForeignNetwork() {
+	serviceId := t.createService()
+	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
+
+	fakeServiceClient := fake.ServiceClient()
+	fakeServiceClient.EndpointLocator = func(opts gophercloud.EndpointOpts) (string, error) {
+		return "http://localhost:8931/", nil
+	}
+	token := gopherpolicy.Token{ProviderClient: fakeServiceClient.ProviderClient}
+	res := t.c.PostEndpointHandler(endpoint.PostEndpointParams{HTTPRequest: &http.Request{}, Body: &models.Endpoint{
+		ServiceID: serviceId,
+		Target:    models.EndpointTarget{Network: &network},
+		ProjectID: testProject1,
+	}}, &token)
+	assert.NotNil(t.T(), res)
+	assert.IsType(t.T(), &endpoint.PostEndpointBadRequest{}, res)
+	assert.Equal(t.T(), fmt.Sprintf("Resource not found: [GET http://localhost:8931/v2.0/networks/%s], error message: 404 page not found\n", network),
+		res.(*endpoint.PostEndpointBadRequest).Payload.Message)
 }
 
 func (t *SuiteTest) TestEndpointTargetPortUnknown() {
