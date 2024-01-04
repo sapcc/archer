@@ -149,7 +149,7 @@ func (t *SuiteTest) TestEndpointTargetForeignNetwork() {
 
 	fakeServiceClient := fake.ServiceClient()
 	fakeServiceClient.EndpointLocator = func(opts gophercloud.EndpointOpts) (string, error) {
-		return "http://localhost:8931/", nil
+		return "http://127.0.0.1:8931/", nil
 	}
 	token := gopherpolicy.Token{ProviderClient: fakeServiceClient.ProviderClient}
 	res := t.c.PostEndpointHandler(endpoint.PostEndpointParams{HTTPRequest: &http.Request{}, Body: &models.Endpoint{
@@ -159,7 +159,7 @@ func (t *SuiteTest) TestEndpointTargetForeignNetwork() {
 	}}, &token)
 	assert.NotNil(t.T(), res)
 	assert.IsType(t.T(), &endpoint.PostEndpointBadRequest{}, res)
-	assert.Equal(t.T(), fmt.Sprintf("Resource not found: [GET http://localhost:8931/v2.0/networks/%s], error message: 404 page not found\n", network),
+	assert.Equal(t.T(), fmt.Sprintf("Resource not found: [GET http://127.0.0.1:8931/v2.0/networks/%s], error message: 404 page not found\n", network),
 		res.(*endpoint.PostEndpointBadRequest).Payload.Message)
 }
 

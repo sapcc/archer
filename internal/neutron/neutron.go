@@ -40,14 +40,22 @@ import (
 
 type NeutronClient struct {
 	*gophercloud.ServiceClient
-	portCache *expirable.LRU[string, map[string]*ports.Port] // networkID -> map[hostname]port, expires after 10 mins
-	maskCache *lru.Cache[string, int]                        // subnetID -> mask, never expires
+	portCache    *expirable.LRU[string, map[string]*ports.Port] // networkID -> map[hostname]*ports.port, 10 min expiry
+	networkCache *expirable.LRU[string, *networks.Network]      // networkID -> *networks.network, expires after 10 mins
+	maskCache    *lru.Cache[string, int]                        // subnetID -> mask, never expires
 }
 
 func (n *NeutronClient) InitCache() {
 	// Initialize local cache
 	n.portCache = expirable.NewLRU[string, map[string]*ports.Port](32, nil, time.Minute*10)
+	n.networkCache = expirable.NewLRU[string, *networks.Network](32, nil, time.Minute*10)
 	n.maskCache, _ = lru.New[string, int](32)
+}
+
+func (n *NeutronClient) ResetCache() {
+	n.portCache.Purge()
+	n.networkCache.Purge()
+	n.maskCache.Purge()
 }
 
 func ConnectToNeutron(providerClient *gophercloud.ProviderClient) (*NeutronClient, error) {
@@ -120,7 +128,7 @@ func (n *NeutronClient) AllocateNeutronEndpointPort(target *models.EndpointTarge
 		networkID := strfmt.UUID(subnet.NetworkID)
 		target.Network = &networkID
 	} else {
-		network, err := networks.Get(client, target.Network.String()).Extract()
+		network, err := n.GetNetwork(target.Network.String())
 		if err != nil {
 			return nil, err
 		}
@@ -155,6 +163,7 @@ func (n NeutronClient) ClearCache(networkId string) {
 	n.portCache.Remove(networkId)
 }
 
+// TODO: Remove after a while
 func (n *NeutronClient) FetchSNATPorts(networkId string) (map[string]*ports.Port, error) {
 	if p, ok := n.portCache.Get(networkId); ok {
 		return p, nil
@@ -186,40 +195,26 @@ func (n *NeutronClient) FetchSNATPorts(networkId string) (map[string]*ports.Port
 	return portMap, nil
 }
 
-func (n *NeutronClient) AllocateSNATPort(deviceId string, networkId string) (*ports.Port, error) {
-	var fixedIPs []fixedIP
+func (n *NeutronClient) GetNetwork(networkId string) (*networks.Network, error) {
+	if network, ok := n.networkCache.Get(networkId); ok {
+		return network, nil
+	}
+
 	network, err := networks.Get(n.ServiceClient, networkId).Extract()
 	if err != nil {
 		return nil, err
 	}
-	if len(network.Subnets) == 0 {
-		return nil, errors.ErrMissingSubnets
-	}
-	fixedIPs = append(fixedIPs, fixedIP{network.Subnets[0]})
-
-	// allocate neutron port
-	port := portsbinding.CreateOptsExt{
-		CreateOptsBuilder: ports.CreateOpts{
-			Name:        fmt.Sprintf("local-%s", deviceId),
-			DeviceOwner: "network:f5snat",
-			DeviceID:    networkId,
-			NetworkID:   networkId,
-			TenantID:    network.ProjectID,
-			FixedIPs:    fixedIPs,
-		},
-		HostID: config.Global.Default.Host,
-	}
-
-	res, err := ports.Create(n.ServiceClient, port).Extract()
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+	n.networkCache.Add(networkId, network)
+	return network, nil
 }
 
 // EnsureNeutronSelfIPs ensures that a SelfIPs exists for the given deviceID and subnetID
 func (n *NeutronClient) EnsureNeutronSelfIPs(deviceIDs []string, subnetID string, dryRun bool) (map[string]*ports.Port, error) {
-	log.Debugf("EnsureNeutronSelfIP (subnet=%s)", subnetID)
+	log.WithFields(log.Fields{
+		"subnet":  subnetID,
+		"devices": deviceIDs,
+		"dry_run": dryRun,
+	}).Debug("EnsureNeutronSelfIP")
 	var subnet, err = subnets.Get(n.ServiceClient, subnetID).Extract()
 	if err != nil {
 		return nil, err
@@ -251,14 +246,18 @@ func (n *NeutronClient) EnsureNeutronSelfIPs(deviceIDs []string, subnetID string
 			}
 
 			if neutronPort.Name == fmt.Sprintf("local-%s", deviceID) {
+				neutronPort := neutronPort
 				selfIPs[deviceID] = &neutronPort
 			}
 		}
 
 		if _, ok := selfIPs[deviceID]; !ok && !dryRun {
 			// allocate neutron port
-			log.Infof("EnsureNeutronSelfIP: Allocating SelfIP (network=%s,subnet=%s,device=%s)",
-				subnet.NetworkID, subnetID, deviceID)
+			log.WithFields(log.Fields{
+				"network": subnet.NetworkID,
+				"subnet":  subnetID,
+				"device":  deviceID,
+			}).Info("EnsureNeutronSelfIP: Allocating new SelfIP")
 			port := portsbinding.CreateOptsExt{
 				CreateOptsBuilder: ports.CreateOpts{
 					Name:        fmt.Sprintf("local-%s", deviceID),

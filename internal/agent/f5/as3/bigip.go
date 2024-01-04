@@ -300,7 +300,13 @@ func (b *BigIP) GetVCMPGuests() (*VcmpGuests, error) {
 }
 
 func (b *BigIP) EnsureBigIPSelfIP(name string, address string, segmentId int) error {
-	log.Debugf("EnsureBigIPSelfIP(bigip=%s): %s %s %d", b.GetHostname(), name, address, segmentId)
+	log.WithFields(log.Fields{
+		"hostname":  b.GetHostname(),
+		"name":      name,
+		"address":   address,
+		"segmentId": segmentId}).
+		Debug("EnsureBigIPSelfIP")
+
 	selfIP, err := b.SelfIP(name)
 	if err != nil && !strings.Contains(err.Error(), "was not found") {
 		return err
@@ -412,6 +418,40 @@ func (b *BigIP) CleanupGuestVlan(segmentId int) error {
 			}
 		}
 	}
+	return errors.ErrNoVCMPFound
+}
+
+func (b *BigIP) SyncGuestVLANs(usedSegments map[int]struct{}) error {
+	guests, err := b.GetVCMPGuests()
+	if err != nil {
+		return err
+	}
+
+	for _, guest := range guests.Guests {
+		for _, deviceHost := range config.Global.Agent.Devices {
+			if strings.HasSuffix(deviceHost, guest.Hostname) {
+				var vlans []string
+				for _, vlan := range guest.Vlans {
+					var segmentId int
+					if n, err := fmt.Sscanf(vlan, "/Common/vlan-%d", &segmentId); err != nil || n != 1 {
+						vlans = append(vlans, vlan)
+					} else if _, ok := usedSegments[segmentId]; ok {
+						// vlan is still in use
+						vlans = append(vlans, vlan)
+					} else {
+						log.WithFields(log.Fields{
+							"host":  b.GetHostname(),
+							"guest": guest.Hostname,
+							"vlan":  vlan,
+						}).Info("Found orphan vcmp guest vlan, deleting")
+					}
+				}
+				newGuest := bigip.VcmpGuest{Vlans: vlans}
+				return b.UpdateVcmpGuest(guest.Name, &newGuest)
+			}
+		}
+	}
+
 	return errors.ErrNoVCMPFound
 }
 

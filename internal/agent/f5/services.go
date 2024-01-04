@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/gophercloud/gophercloud"
@@ -52,33 +51,29 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 		for _, service := range services {
 			var err error
 			// Fetch SNAT ports from neutron
-			service.NeutronPorts, err = a.neutron.FetchSNATPorts(service.NetworkID.String())
+			deviceIDs := a.getDeviceIDs()
+			network, err := a.neutron.GetNetwork(service.NetworkID.String())
+			service.SubnetID = network.Subnets[0]
 			if err != nil {
 				return err
 			}
 
-			for _, bigip := range a.bigips {
-				deviceName := bigip.GetHostname()
-				if _, ok := service.NeutronPorts[deviceName]; !ok {
-					service.NeutronPorts[deviceName], err =
-						a.neutron.AllocateSNATPort(deviceName, service.NetworkID.String())
-					if err != nil {
-						var gerr gophercloud.ErrUnexpectedResponseCode
-						if errors.As(err, &gerr) && gerr.Actual == 409 && bytes.Contains(gerr.Body, []byte("OverQuota")) {
-							log.WithField("service", service.ID).Info(gerr.Body)
-							service.Status = models.ServiceStatusERRORQUOTA
-							if _, err := tx.Exec(ctx,
-								`UPDATE service SET status = 'ERROR_QUOTA', updated_at = NOW() WHERE id = $1;`,
-								service.ID); err != nil {
-								return err
-							}
-							continue
-						}
-						// return generic error
+			// Allocate SNAT ports as SelfIPs in Neutron
+			service.NeutronPorts, err = a.neutron.EnsureNeutronSelfIPs(deviceIDs, service.SubnetID, false)
+			if err != nil {
+				var gerr gophercloud.ErrUnexpectedResponseCode
+				if errors.As(err, &gerr) && gerr.Actual == 409 && bytes.Contains(gerr.Body, []byte("OverQuota")) {
+					log.WithField("service", service.ID).Info(gerr.Body)
+					service.Status = models.ServiceStatusERRORQUOTA
+					if _, err := tx.Exec(ctx,
+						`UPDATE service SET status = 'ERROR_QUOTA', updated_at = NOW() WHERE id = $1;`,
+						service.ID); err != nil {
 						return err
 					}
-					a.neutron.ClearCache(service.NetworkID.String())
+					continue
 				}
+				// return generic error
+				return err
 			}
 
 			if len(service.NeutronPorts) > 0 {
@@ -101,13 +96,8 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 				if err := a.EnsureL2(ctx, service.SegmentId, nil); err != nil {
 					return err
 				}
-
-				// Ensure SNAT neutron ports and segment ids on VCMP guests
-				for _, bigip := range a.bigips {
-					bigip := bigip
-					g.Go(func() error {
-						return service.EnsureSNATPort(bigip, a.neutron)
-					})
+				if err := a.EnsureSelfIPs(service.SegmentId, service.SubnetID, true); err != nil {
+					return err
 				}
 			}
 		}
@@ -160,52 +150,24 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 				}
 
 				if !skipCleanup {
-					for _, bigip := range a.bigips {
-						bigip := bigip
-						g.Go(func() error {
-							a.neutron.ClearCache(service.NetworkID.String())
-							port, ok := service.NeutronPorts[bigip.GetHostname()]
-							if ok {
-								if err := bigip.CleanupSelfIP(fmt.Sprintf("selfip-%s", port.ID)); err != nil {
-									log.
-										WithFields(log.Fields{"service": service.ID, "port": port.ID}).
-										Error(err)
-								}
-							} else {
-								log.
-									WithFields(log.Fields{"service": service.ID, "host": bigip.GetHostname()}).
-									Info("CleanupSelfIP: No SelfIP registered for this host")
-							}
-
-							if err = a.neutron.DeletePort(port.ID); err != nil {
-								var errDefault404 gophercloud.ErrDefault404
-								if !errors.As(err, &errDefault404) {
-									return err
-								} else {
-									log.
-										WithError(err).
-										WithField("id", port.ID).
-										Warning("ProcessServices deletePort()")
-								}
-							}
-							return nil
-						})
+					if err := a.CleanupSelfIPs(service.SubnetID); err != nil {
+						return err
 					}
 
-					if err = g.Wait(); err != nil {
+					// TODO: Remove after a while, we switched to normal f5selfips instead of f5snat
+					if err := a.CleanupSNATPorts(service.NetworkID.String()); err != nil {
 						return err
 					}
 
 					if err := a.CleanupL2(ctx, service.SegmentId); err != nil {
 						log.
 							WithFields(log.Fields{"service": service.ID, "vlan": service.SegmentId}).
-							WithError(err).
-							Error("CleanupL2")
+							WithError(err).Error("CleanupL2")
 					}
 				} else {
 					log.
 						WithFields(log.Fields{"service": service.ID, "vlan": service.SegmentId}).
-						Info("Skipping CleanupL2")
+						Info("Skipping CleanupL2 since it is still in use")
 				}
 			}
 		}

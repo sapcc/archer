@@ -133,11 +133,8 @@ func (a *Agent) Run() {
 		DoWithJobDetails(a.PendingSyncLoop); err != nil {
 		log.Fatal(err)
 	}
-	if _, err := s.Every(24).Hours().Do(a.cleanOrphanSelfIPs); err != nil {
-		log.WithField("cron", "cleanupOrphanSelfIPs").Error(err)
-	}
-	if _, err := s.Every(24).Hours().Do(a.cleanOrphanRDsAndVLANs); err != nil {
-		log.WithField("cron", "cleanOrphanRDsAndVLANs").Error(err)
+	if _, err := s.Every(24).Hours().Do(a.cleanupL2); err != nil {
+		log.WithField("cron", "cleanupL2").Error(err)
 	}
 	s.StartBlocking()
 }

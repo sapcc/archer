@@ -137,6 +137,7 @@ func (t *SuiteTest) SetupSuite() {
 
 	th.SetupPersistentPortHTTP(t.T(), 8931)
 	t.c = NewController(pool, spec, &neutron.NeutronClient{ServiceClient: fake.ServiceClient()})
+	t.c.neutron.InitCache()
 
 	// Run migration
 	migrator, err := mgx.New(migrations.Migrations)
@@ -180,4 +181,5 @@ func (t *SuiteTest) AfterTest(_, _ string) {
 	}
 
 	t.ResetHttpServer()
+	t.c.neutron.ResetCache()
 }
