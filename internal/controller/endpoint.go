@@ -24,9 +24,11 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/sapcc/go-bits/gopherpolicy"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal"
@@ -70,7 +72,7 @@ func (c *Controller) GetEndpointHandler(params endpoint.GetEndpointParams, _ any
 	return endpoint.NewGetEndpointOK().WithPayload(&endpoint.GetEndpointOKBody{Items: items, Links: links})
 }
 
-func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, _ any) middleware.Responder {
+func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, token any) middleware.Responder {
 	ctx := params.HTTPRequest.Context()
 	var endpointResponse models.Endpoint
 	var host string
@@ -154,8 +156,16 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, _ a
 		panic(err)
 	}
 
+	client := c.neutron.ServiceClient
+	// Use user supplied ProviderClient to allocate port
+	if t, ok := token.(*gopherpolicy.Token); ok {
+		client, err = openstack.NewNetworkV2(t.ProviderClient, gophercloud.EndpointOpts{})
+		if err != nil {
+			panic(err)
+		}
+	}
 	port, err := c.neutron.AllocateNeutronEndpointPort(&params.Body.Target, &endpointResponse, string(params.Body.ProjectID),
-		host)
+		host, client)
 	if err != nil {
 		if errors.Is(err, aerr.ErrProjectMismatch) {
 			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
