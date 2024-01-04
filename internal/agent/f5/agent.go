@@ -136,6 +136,9 @@ func (a *Agent) Run() {
 	if _, err := s.Every(24).Hours().Do(a.cleanOrphanSelfIPs); err != nil {
 		log.WithField("cron", "cleanupOrphanSelfIPs").Error(err)
 	}
+	if _, err := s.Every(24).Hours().Do(a.cleanOrphanRDsAndVLANs); err != nil {
+		log.WithField("cron", "cleanOrphanRDsAndVLANs").Error(err)
+	}
 	s.StartBlocking()
 }
 
