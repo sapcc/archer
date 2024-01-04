@@ -26,14 +26,38 @@ import (
 	"github.com/sapcc/archer/internal/db"
 )
 
-// scanAndClean scans all selfips on all bigips and deletes them if they are not in the database
-func (a *Agent) cleanOrphanSelfIPs() {
+func (a *Agent) cleanupL2() error {
+	if err := a.cleanOrphanSelfIPs(); err != nil {
+		log.WithError(err).Error("cleanOrphanSelfIPs")
+		// continue
+	}
+
+	usedSegments, err := a.getUsedSegments()
+	if err != nil {
+		return err
+	}
+	if err := a.cleanOrphanedRDs(usedSegments); err != nil {
+		log.WithError(err).Error("cleanOrphanedRDs")
+		// continue
+	}
+	if err := a.cleanOrphanedVLANs(usedSegments); err != nil {
+		log.WithError(err).Error("cleanOrphanedVLANs")
+		// continue
+	}
+	if err := a.cleanOrphanedVCMPVLANs(usedSegments); err != nil {
+		log.WithError(err).Error("cleanOrphanedVCMPVLANs")
+		// continue
+	}
+	return nil
+}
+
+// cleanOrphanSelfIPs deletes SelfIPs that are not associated with a port
+func (a *Agent) cleanOrphanSelfIPs() error {
 	log.Debug("Running CleanOrphanSelfIPs")
 	for _, bigip := range a.bigips {
 		selfips, err := bigip.SelfIPs()
 		if err != nil {
-			log.Error(err)
-			return
+			return err
 		}
 
 		for _, selfip := range selfips.SelfIPs {
@@ -54,19 +78,20 @@ func (a *Agent) cleanOrphanSelfIPs() {
 
 					// port should not exist, delete selfip
 					if err := bigip.DeleteSelfIP(selfip.Name); err != nil {
-						log.Error(err)
-						return
+						log.
+							WithField("host", bigip.GetHostname()).
+							WithError(err).
+							Error("cleanOrphanSelfIPs")
 					}
 				}
 			}
 		}
 	}
 	log.Debug("Finished CleanOrphanSelfIPs")
+	return nil
 }
 
-func (a *Agent) cleanOrphanRDsAndVLANs() error {
-	log.Debug("Running cleanOrphanRDsAndVLANs")
-
+func (a *Agent) getUsedSegments() (map[int]struct{}, error) {
 	sql, args := db.Select("s.network_id", "ep.segment_id").
 		Join("endpoint e ON s.id = e.service_id").
 		Join("endpoint_port ep ON ep.endpoint_id = e.id").
@@ -77,7 +102,7 @@ func (a *Agent) cleanOrphanRDsAndVLANs() error {
 
 	rows, err := a.pool.Query(context.Background(), sql, args...)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -87,18 +112,21 @@ func (a *Agent) cleanOrphanRDsAndVLANs() error {
 		var segmentID int
 
 		if err = rows.Scan(&networkID, &segmentID); err != nil {
-			return err
+			return nil, err
 		}
 		usedSegments[segmentID] = struct{}{}
 		serviceSegment, err := a.neutron.GetNetworkSegment(networkID)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		usedSegments[serviceSegment] = struct{}{}
 	}
 
-	// Print used segments
-	log.Debugf("cleanOrphanRDsAndVLANs: Used segments: %v", usedSegments)
+	return usedSegments, nil
+}
+
+func (a *Agent) cleanOrphanedRDs(usedSegments map[int]struct{}) error {
+	log.WithField("usedSegments", usedSegments).Debug("Running cleanOrphanedRDs")
 
 	for _, bigip := range a.bigips {
 		routeDomains, err := bigip.RouteDomains()
@@ -118,12 +146,18 @@ func (a *Agent) cleanOrphanRDsAndVLANs() error {
 				continue
 			}
 			log.WithField("host", bigip.GetHostname()).
-				Infof(" - found orphan routeDomain %s, deleting", routeDomain.Name)
+				Warningf("found orphan routeDomain %s, deleting", routeDomain.Name)
 			if err := bigip.DeleteRouteDomain(routeDomain.Name); err != nil {
-				log.Warningf("- skipping due interdependency: %s", err.Error())
+				log.Warningf("skipping routeDomain due interdependency: %s", err.Error())
 			}
 		}
 	}
+	log.Debug("Finished cleanOrphanedRDs")
+	return nil
+}
+
+func (a *Agent) cleanOrphanedVLANs(usedSegments map[int]struct{}) error {
+	log.WithField("usedSegments", usedSegments).Debug("Running cleanOrphanedVLANs")
 
 	for _, bigip := range a.bigips {
 		vlans, err := bigip.Vlans()
@@ -150,6 +184,19 @@ func (a *Agent) cleanOrphanRDsAndVLANs() error {
 		}
 	}
 
-	log.Debug("Finished cleanOrphanRDsAndVLANs")
+	log.Debug("Finished cleanOrphanedVLANs")
+	return nil
+}
+
+func (a *Agent) cleanOrphanedVCMPVLANs(usedSegments map[int]struct{}) error {
+	log.WithField("usedSegments", usedSegments).Debug("Running cleanOrphanedVCMPVLANs")
+
+	for _, b := range a.vcmps {
+		if err := b.SyncGuestVLANs(usedSegments); err != nil {
+			return err
+		}
+	}
+
+	log.Debug("Finished cleanOrphanedVCMPVLANs")
 	return nil
 }

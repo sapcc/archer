@@ -188,14 +188,15 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	for _, ep := range endpoints {
 		ep := ep
 		if ep.Status != models.EndpointStatusPENDINGDELETE {
-			g.Go(func() error {
-				return a.EnsureSelfIPs(*ep.SegmentId, ep.Port)
-			})
+			// SelfIPs
+			if len(ep.Port.FixedIPs) == 0 {
+				return fmt.Errorf("EnsureSelfIPs: no fixedIPs found for EP port %s", ep.Port.ID)
+			}
+			subnetID := ep.Port.FixedIPs[0].SubnetID
+			if err := a.EnsureSelfIPs(*ep.SegmentId, subnetID, false); err != nil {
+				return err
+			}
 		}
-	}
-
-	if err := g.Wait(); err != nil {
-		return err
 	}
 
 	/* ==================================================
@@ -213,6 +214,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	/* ==================================================
 	   Layer 2 VCMP + Guest cleanup
 	   ================================================== */
+	// 2. Delete lower L2 configuration if all endpoints of a segments are deleted
 	if deleteAll {
 		// Ensure L2 configuration is no longer needed
 		var skipCleanup bool
@@ -237,22 +239,25 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		}
 
 		if !skipCleanup {
+			if len(endpoints) != 0 {
+				subnetID := endpoints[0].Port.FixedIPs[0].SubnetID
+				if err := a.CleanupSelfIPs(subnetID); err != nil {
+					return err
+				}
+			}
+
 			if err := a.CleanupL2(ctx, *endpoints[0].SegmentId); err != nil {
 				log.WithField("vlan", *endpoints[0].SegmentId).WithError(err).Error("CleanupL2")
-				log.Warningf("CleanupL2(vlan=%d): %s", *endpoints[0].SegmentId, err.Error())
 			}
 		} else {
-			log.WithField("vlan", *endpoints[0].SegmentId).Info("Skipping CleanupL2 since it is still in use")
+			log.WithField("vlan", *endpoints[0].SegmentId).
+				Info("Skipping CleanupL2 since it is still in use")
 		}
 	}
 
+	// 3. Finalize endpoint deletion and related ports
 	for _, endpoint := range endpoints {
 		if endpoint.Status == models.EndpointStatusPENDINGDELETE {
-			// Delete endpoint selfips
-			if err := a.CleanupSelfIPs(endpoint.Port, endpoints); err != nil {
-				return err
-			}
-
 			// Delete endpoint neutron port
 			if endpoint.Target.Port != nil && owned {
 				if err := a.neutron.DeletePort(endpoint.Target.Port.String()); err != nil {

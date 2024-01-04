@@ -20,7 +20,6 @@ import (
 
 	"github.com/f5devcentral/go-bigip"
 	fake "github.com/gophercloud/gophercloud/openstack/networking/v2/common"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	th "github.com/gophercloud/gophercloud/testhelper"
 	"github.com/gophercloud/gophercloud/testhelper/fixture"
 	"github.com/pashagolub/pgxmock/v3"
@@ -28,7 +27,6 @@ import (
 
 	"github.com/sapcc/archer/internal/agent/f5/as3"
 	"github.com/sapcc/archer/internal/neutron"
-	"github.com/sapcc/archer/models"
 )
 
 func TestAgent_EnsureSelfIPs_Create(t *testing.T) {
@@ -72,17 +70,8 @@ func TestAgent_EnsureSelfIPs_Create(t *testing.T) {
 		bigip:    &as3.BigIP{Host: "dummybigiphost", BigIPIface: bigIPMock},
 	}
 
-	epPort := ports.Port{
-		ID: "af813e79-8038-4a0a-bf57-9c0bb8d65c2a",
-		FixedIPs: []ports.IP{
-			{
-				IPAddress: "6.6.6.6",
-				SubnetID:  "e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e",
-			},
-		},
-	}
-
-	assert.Nil(t, a.EnsureSelfIPs(1234, &epPort), "EnsureSelfIPs() should not return an error")
+	subnetID := "e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e"
+	assert.Nil(t, a.EnsureSelfIPs(1234, subnetID, false), "EnsureSelfIPs() should not return an error")
 }
 
 func TestAgent_EnsureSelfIPs_NoOp(t *testing.T) {
@@ -123,17 +112,8 @@ func TestAgent_EnsureSelfIPs_NoOp(t *testing.T) {
 		bigip:    &as3.BigIP{Host: "dummybigiphost", BigIPIface: bigIPMock},
 	}
 
-	epPort := ports.Port{
-		ID: "af813e79-8038-4a0a-bf57-9c0bb8d65c2a",
-		FixedIPs: []ports.IP{
-			{
-				IPAddress: "6.6.6.6",
-				SubnetID:  "e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e",
-			},
-		},
-	}
-
-	assert.Nil(t, a.EnsureSelfIPs(1234, &epPort), "EnsureSelfIPs() should not return an error")
+	subnetID := "e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e"
+	assert.Nil(t, a.EnsureSelfIPs(1234, subnetID, false), "EnsureSelfIPs() should not return an error")
 }
 
 func TestAgent_CleanupSelfIPs(t *testing.T) {
@@ -179,70 +159,7 @@ func TestAgent_CleanupSelfIPs(t *testing.T) {
 		bigip:    &as3.BigIP{Host: "dummybigiphost", BigIPIface: bigIPMock},
 	}
 
-	epPort := ports.Port{
-		ID: "af813e79-8038-4a0a-bf57-9c0bb8d65c2a",
-		FixedIPs: []ports.IP{
-			{
-				IPAddress: "6.6.6.6",
-				SubnetID:  "e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e",
-			},
-		},
-	}
-
-	allPorts := []*as3.ExtendedEndpoint{{
-		Endpoint: models.Endpoint{Status: models.EndpointStatusPENDINGDELETE},
-		Port:     &epPort,
-	}}
-
 	// Port should be deleted
-	assert.Nil(t, a.CleanupSelfIPs(&epPort, allPorts), "CleanupSelfIPs() should not return an error")
-}
-
-func TestAgent_CleanupSelfIPs_NoOp(t *testing.T) {
-	dbMock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		dbMock.Close()
-	}()
-
-	th.SetupPersistentPortHTTP(t, 8931)
-	defer th.TeardownHTTP()
-	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient()}
-	neutronClient.InitCache()
-
-	bigIPMock := as3.NewMockBigIPIface(t)
-	a := &Agent{
-		jobQueue: nil,
-		pool:     dbMock,
-		neutron:  &neutronClient,
-		bigips:   []*as3.BigIP{{Host: "dummybigiphost", BigIPIface: bigIPMock}},
-		vcmps:    []*as3.BigIP{},
-		bigip:    &as3.BigIP{Host: "dummybigiphost", BigIPIface: bigIPMock},
-	}
-
-	epPort := ports.Port{
-		ID: "af813e79-8038-4a0a-bf57-9c0bb8d65c2a",
-		FixedIPs: []ports.IP{
-			{
-				IPAddress: "6.6.6.6",
-				SubnetID:  "e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e",
-			},
-		},
-	}
-
-	allPorts := []*as3.ExtendedEndpoint{{
-		Endpoint: models.Endpoint{Status: models.EndpointStatusPENDINGDELETE},
-		Port:     &epPort,
-	}, {
-		Endpoint: models.Endpoint{Status: models.EndpointStatusACTIVE},
-		Port: &ports.Port{
-			FixedIPs: []ports.IP{{SubnetID: "e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e"}},
-		},
-	}}
-
-	// SelfIP Port should not be deleted, since we have an existing endpoint in the same subnet
-	assert.Nil(t, a.CleanupSelfIPs(&epPort, allPorts), "CleanupSelfIPs() should not return an error")
-	assert.Nil(t, bigIPMock.Calls)
+	subnetID := "e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e"
+	assert.Nil(t, a.CleanupSelfIPs(subnetID), "CleanupSelfIPs() should not return an error")
 }
