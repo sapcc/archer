@@ -20,7 +20,7 @@ jobs:
       - name: Run PostgreSQL
         uses: harmon758/postgresql-action@v1
         with:
-          postgresql version: '13'
+          postgresql version: '15'
           postgresql db: 'test_suite_controller'
           postgresql user: root
           postgresql password: root
