@@ -1326,6 +1326,12 @@ definitions:
             description: Endpoint port target. One of `target_network`, `target_subnet` or `target_port` must be specified.
             example: b2accf1a-1c99-4b54-9eeb-22be53f177f5
             x-nullable: true
+      ip_address:
+        readOnly: true
+        type: string
+        format: ipv4
+        description: Endpoint IP address.
+        example: 1.2.3.4
       tags:
         type: array
         description: The list of tags on the resource.

@@ -50,7 +50,8 @@ func (c *Controller) GetEndpointHandler(params endpoint.GetEndpointParams, _ any
 		Select("endpoint.*",
 			`endpoint_port.port_id AS "target.port"`,
 			`endpoint_port.network AS "target.network"`,
-			`endpoint_port.subnet AS "target.subnet"`).
+			`endpoint_port.subnet AS "target.subnet"`,
+			"host(endpoint_port.ip_address) AS ip_address").
 		From("endpoint").
 		Join("endpoint_port ON endpoint_port.endpoint_id = endpoint.id"))
 	if err != nil {
@@ -250,7 +251,8 @@ func (c *Controller) GetEndpointEndpointIDHandler(params endpoint.GetEndpointEnd
 	q := db.Select("endpoint.*",
 		`endpoint_port.port_id AS "target.port"`,
 		`endpoint_port.network AS "target.network"`,
-		`endpoint_port.subnet AS "target.subnet"`).
+		`endpoint_port.subnet AS "target.subnet"`,
+		"host(endpoint_port.ip_address) AS ip_address").
 		From("endpoint").
 		Join("endpoint_port ON endpoint_port.endpoint_id = endpoint.id").
 		Where("endpoint.id = ?", params.EndpointID)
@@ -275,7 +277,8 @@ func (c *Controller) PutEndpointEndpointIDHandler(params endpoint.PutEndpointEnd
 	q := db.Select("endpoint.*",
 		`endpoint_port.port_id AS "target.port"`,
 		`endpoint_port.network AS "target.network"`,
-		`endpoint_port.subnet AS "target.subnet"`).
+		`endpoint_port.subnet AS "target.subnet"`,
+		"host(endpoint_port.ip_address) AS ip_address").
 		PrefixExpr(db.Update("endpoint").
 			Prefix("WITH endpoint AS (").
 			Set("tags", sq.Expr("COALESCE(?, tags)", internal.Unique(params.Body.Tags))).
