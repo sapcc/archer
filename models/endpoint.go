@@ -48,6 +48,12 @@ type Endpoint struct {
 	// Format: uuid
 	ID strfmt.UUID `json:"id,omitempty"`
 
+	// Endpoint IP address.
+	// Example: 1.2.3.4
+	// Read Only: true
+	// Format: ipv4
+	IPAddress strfmt.IPv4 `json:"ip_address,omitempty"`
+
 	// Name of the endpoint.
 	// Example: Example endpoint.
 	// Max Length: 64
@@ -86,6 +92,10 @@ func (m *Endpoint) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateID(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateIPAddress(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -149,6 +159,18 @@ func (m *Endpoint) validateID(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("id", "body", "uuid", m.ID.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Endpoint) validateIPAddress(formats strfmt.Registry) error {
+	if swag.IsZero(m.IPAddress) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("ip_address", "body", "ipv4", m.IPAddress.String(), formats); err != nil {
 		return err
 	}
 
@@ -262,6 +284,10 @@ func (m *Endpoint) ContextValidate(ctx context.Context, formats strfmt.Registry)
 		res = append(res, err)
 	}
 
+	if err := m.contextValidateIPAddress(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.contextValidateProjectID(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -283,6 +309,15 @@ func (m *Endpoint) ContextValidate(ctx context.Context, formats strfmt.Registry)
 func (m *Endpoint) contextValidateID(ctx context.Context, formats strfmt.Registry) error {
 
 	if err := validate.ReadOnly(ctx, "id", "body", strfmt.UUID(m.ID)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Endpoint) contextValidateIPAddress(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := validate.ReadOnly(ctx, "ip_address", "body", strfmt.IPv4(m.IPAddress)); err != nil {
 		return err
 	}
 

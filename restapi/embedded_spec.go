@@ -1376,6 +1376,13 @@ func init() {
           "format": "uuid",
           "readOnly": true
         },
+        "ip_address": {
+          "description": "Endpoint IP address.",
+          "type": "string",
+          "format": "ipv4",
+          "readOnly": true,
+          "example": "1.2.3.4"
+        },
         "name": {
           "description": "Name of the endpoint.",
           "type": "string",
@@ -3430,6 +3437,13 @@ func init() {
           "type": "string",
           "format": "uuid",
           "readOnly": true
+        },
+        "ip_address": {
+          "description": "Endpoint IP address.",
+          "type": "string",
+          "format": "ipv4",
+          "readOnly": true,
+          "example": "1.2.3.4"
         },
         "name": {
           "description": "Name of the endpoint.",
