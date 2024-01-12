@@ -244,7 +244,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, tok
 	}
 
 	c.notifyEndpoint(host, endpointResponse.ID)
-	return endpoint.NewPostEndpointCreated().WithPayload(&endpointResponse)
+	return endpoint.NewPostEndpointCreated().WithXTargetID(endpointResponse.ID).WithPayload(&endpointResponse)
 }
 
 func (c *Controller) GetEndpointEndpointIDHandler(params endpoint.GetEndpointEndpointIDParams, _ any) middleware.Responder {

@@ -71,13 +71,15 @@ type AuditResponseWriter struct {
 // AuditResource is an audittools.EventRenderer.
 type AuditResource struct {
 	project     string
+	domain      string
 	resource    string
 	routeParams middleware.RouteParams
+	id          string
 }
 
 // Render implements the audittools.EventRenderer interface.
 func (a AuditResource) Render() cadf.Resource {
-	id := ""
+	id := a.id
 	var attachments []cadf.Attachment
 	for _, routeParam := range a.routeParams {
 		attachments = append(attachments, cadf.Attachment{
@@ -91,6 +93,7 @@ func (a AuditResource) Render() cadf.Resource {
 		TypeURI:     fmt.Sprintf("injector/%s", a.resource),
 		ID:          id,
 		ProjectID:   a.project,
+		DomainID:    a.domain,
 		Attachments: attachments,
 	}
 
@@ -117,8 +120,10 @@ func (arw *AuditResponseWriter) WriteHeader(code int) {
 		Action:     cadf.GetAction(arw.request.Method),
 		Target: AuditResource{
 			user.ProjectScopeUUID(),
+			user.DomainScopeUUID(),
 			resource,
 			mr.Params,
+			arw.Header().Get("X-Target-Id"),
 		},
 	}
 	p.Observer.TypeURI = "service/injector"

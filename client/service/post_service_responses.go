@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 
@@ -83,6 +84,13 @@ PostServiceCreated describes a response with status code 201, with default heade
 Service
 */
 type PostServiceCreated struct {
+
+	/* The UUID of the created resource
+
+	   Format: uuid
+	*/
+	XTargetID strfmt.UUID
+
 	Payload *models.Service
 }
 
@@ -129,6 +137,17 @@ func (o *PostServiceCreated) GetPayload() *models.Service {
 }
 
 func (o *PostServiceCreated) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	// hydrates response header X-Target-Id
+	hdrXTargetID := response.GetHeader("X-Target-Id")
+
+	if hdrXTargetID != "" {
+		valxTargetId, err := formats.Parse("uuid", hdrXTargetID)
+		if err != nil {
+			return errors.InvalidType("X-Target-Id", "header", "strfmt.UUID", hdrXTargetID)
+		}
+		o.XTargetID = *(valxTargetId.(*strfmt.UUID))
+	}
 
 	o.Payload = new(models.Service)
 

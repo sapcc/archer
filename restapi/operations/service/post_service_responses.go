@@ -23,6 +23,7 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/strfmt"
 
 	"github.com/sapcc/archer/models"
 )
@@ -36,6 +37,10 @@ PostServiceCreated Service
 swagger:response postServiceCreated
 */
 type PostServiceCreated struct {
+	/*The UUID of the created resource
+
+	 */
+	XTargetID strfmt.UUID `json:"X-Target-Id"`
 
 	/*
 	  In: Body
@@ -47,6 +52,17 @@ type PostServiceCreated struct {
 func NewPostServiceCreated() *PostServiceCreated {
 
 	return &PostServiceCreated{}
+}
+
+// WithXTargetID adds the xTargetId to the post service created response
+func (o *PostServiceCreated) WithXTargetID(xTargetID strfmt.UUID) *PostServiceCreated {
+	o.XTargetID = xTargetID
+	return o
+}
+
+// SetXTargetID sets the xTargetId to the post service created response
+func (o *PostServiceCreated) SetXTargetID(xTargetID strfmt.UUID) {
+	o.XTargetID = xTargetID
 }
 
 // WithPayload adds the payload to the post service created response
@@ -62,6 +78,13 @@ func (o *PostServiceCreated) SetPayload(payload *models.Service) {
 
 // WriteResponse to the client
 func (o *PostServiceCreated) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	// response header X-Target-Id
+
+	xTargetID := o.XTargetID.String()
+	if xTargetID != "" {
+		rw.Header().Set("X-Target-Id", xTargetID)
+	}
 
 	rw.WriteHeader(201)
 	if o.Payload != nil {

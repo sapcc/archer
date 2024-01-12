@@ -100,7 +100,7 @@ func (c *Controller) PostRbacPoliciesHandler(params rbac.PostRbacPoliciesParams,
 		panic(err)
 	}
 
-	return rbac.NewPostRbacPoliciesCreated().WithPayload(&rbacResponse)
+	return rbac.NewPostRbacPoliciesCreated().WithXTargetID(rbacResponse.ID).WithPayload(&rbacResponse)
 }
 
 func (c *Controller) GetRbacPoliciesRbacPolicyIDHandler(params rbac.GetRbacPoliciesRbacPolicyIDParams, _ any) middleware.Responder {

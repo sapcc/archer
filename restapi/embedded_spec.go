@@ -181,6 +181,13 @@ func init() {
             "description": "Endpoint",
             "schema": {
               "$ref": "#/definitions/Endpoint"
+            },
+            "headers": {
+              "X-Target-Id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The UUID of the created resource"
+              }
             }
           },
           "400": {
@@ -696,6 +703,13 @@ func init() {
             "description": "RBAC policy",
             "schema": {
               "$ref": "#/definitions/RBACPolicy"
+            },
+            "headers": {
+              "X-Target-Id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The UUID of the created resource"
+              }
             }
           },
           "401": {
@@ -962,6 +976,13 @@ func init() {
             "description": "Service",
             "schema": {
               "$ref": "#/definitions/Service"
+            },
+            "headers": {
+              "X-Target-Id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The UUID of the created resource"
+              }
             }
           },
           "401": {
@@ -2190,6 +2211,13 @@ func init() {
             "description": "Endpoint",
             "schema": {
               "$ref": "#/definitions/Endpoint"
+            },
+            "headers": {
+              "X-Target-Id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The UUID of the created resource"
+              }
             }
           },
           "400": {
@@ -2703,6 +2731,13 @@ func init() {
             "description": "RBAC policy",
             "schema": {
               "$ref": "#/definitions/RBACPolicy"
+            },
+            "headers": {
+              "X-Target-Id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The UUID of the created resource"
+              }
             }
           },
           "401": {
@@ -3011,6 +3046,13 @@ func init() {
             "description": "Service",
             "schema": {
               "$ref": "#/definitions/Service"
+            },
+            "headers": {
+              "X-Target-Id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The UUID of the created resource"
+              }
             }
           },
           "401": {

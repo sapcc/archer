@@ -195,7 +195,7 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 	}
 
 	c.notifyService(host)
-	return service.NewPostServiceCreated().WithPayload(&serviceResponse)
+	return service.NewPostServiceCreated().WithXTargetID(serviceResponse.ID).WithPayload(&serviceResponse)
 }
 
 func (c *Controller) GetServiceServiceIDHandler(params service.GetServiceServiceIDParams, _ any) middleware.Responder {

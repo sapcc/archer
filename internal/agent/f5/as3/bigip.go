@@ -434,6 +434,7 @@ func (b *BigIP) SyncGuestVLANs(usedSegments map[int]struct{}) error {
 				for _, vlan := range guest.Vlans {
 					var segmentId int
 					if n, err := fmt.Sscanf(vlan, "/Common/vlan-%d", &segmentId); err != nil || n != 1 {
+						// not a provisioned vlan
 						vlans = append(vlans, vlan)
 					} else if _, ok := usedSegments[segmentId]; ok {
 						// vlan is still in use
