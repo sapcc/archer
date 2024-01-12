@@ -238,6 +238,11 @@ paths:
           description: Service
           schema:
             $ref: "#/definitions/Service"
+          headers:
+            X-Target-Id:
+              type: string
+              format: uuid
+              description: "The UUID of the created resource"
         401:
           description: Unauthorized
           schema:
@@ -569,6 +574,11 @@ paths:
           description: Endpoint
           schema:
             $ref: "#/definitions/Endpoint"
+          headers:
+            X-Target-Id:
+              type: string
+              format: uuid
+              description: "The UUID of the created resource"
         400:
           description: Bad request
           schema:
@@ -750,6 +760,11 @@ paths:
           description: RBAC policy
           schema:
             $ref: '#/definitions/RBACPolicy'
+          headers:
+            X-Target-Id:
+              type: string
+              format: uuid
+              description: "The UUID of the created resource"
         401:
           description: Unauthorized
           schema:

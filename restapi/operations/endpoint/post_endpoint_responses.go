@@ -23,6 +23,7 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/strfmt"
 
 	"github.com/sapcc/archer/models"
 )
@@ -36,6 +37,10 @@ PostEndpointCreated Endpoint
 swagger:response postEndpointCreated
 */
 type PostEndpointCreated struct {
+	/*The UUID of the created resource
+
+	 */
+	XTargetID strfmt.UUID `json:"X-Target-Id"`
 
 	/*
 	  In: Body
@@ -47,6 +52,17 @@ type PostEndpointCreated struct {
 func NewPostEndpointCreated() *PostEndpointCreated {
 
 	return &PostEndpointCreated{}
+}
+
+// WithXTargetID adds the xTargetId to the post endpoint created response
+func (o *PostEndpointCreated) WithXTargetID(xTargetID strfmt.UUID) *PostEndpointCreated {
+	o.XTargetID = xTargetID
+	return o
+}
+
+// SetXTargetID sets the xTargetId to the post endpoint created response
+func (o *PostEndpointCreated) SetXTargetID(xTargetID strfmt.UUID) {
+	o.XTargetID = xTargetID
 }
 
 // WithPayload adds the payload to the post endpoint created response
@@ -62,6 +78,13 @@ func (o *PostEndpointCreated) SetPayload(payload *models.Endpoint) {
 
 // WriteResponse to the client
 func (o *PostEndpointCreated) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	// response header X-Target-Id
+
+	xTargetID := o.XTargetID.String()
+	if xTargetID != "" {
+		rw.Header().Set("X-Target-Id", xTargetID)
+	}
 
 	rw.WriteHeader(201)
 	if o.Payload != nil {

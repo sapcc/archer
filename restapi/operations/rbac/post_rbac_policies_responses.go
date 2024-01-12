@@ -23,6 +23,7 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/strfmt"
 
 	"github.com/sapcc/archer/models"
 )
@@ -36,6 +37,10 @@ PostRbacPoliciesCreated RBAC policy
 swagger:response postRbacPoliciesCreated
 */
 type PostRbacPoliciesCreated struct {
+	/*The UUID of the created resource
+
+	 */
+	XTargetID strfmt.UUID `json:"X-Target-Id"`
 
 	/*
 	  In: Body
@@ -47,6 +52,17 @@ type PostRbacPoliciesCreated struct {
 func NewPostRbacPoliciesCreated() *PostRbacPoliciesCreated {
 
 	return &PostRbacPoliciesCreated{}
+}
+
+// WithXTargetID adds the xTargetId to the post rbac policies created response
+func (o *PostRbacPoliciesCreated) WithXTargetID(xTargetID strfmt.UUID) *PostRbacPoliciesCreated {
+	o.XTargetID = xTargetID
+	return o
+}
+
+// SetXTargetID sets the xTargetId to the post rbac policies created response
+func (o *PostRbacPoliciesCreated) SetXTargetID(xTargetID strfmt.UUID) {
+	o.XTargetID = xTargetID
 }
 
 // WithPayload adds the payload to the post rbac policies created response
@@ -62,6 +78,13 @@ func (o *PostRbacPoliciesCreated) SetPayload(payload *models.Rbacpolicy) {
 
 // WriteResponse to the client
 func (o *PostRbacPoliciesCreated) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	// response header X-Target-Id
+
+	xTargetID := o.XTargetID.String()
+	if xTargetID != "" {
+		rw.Header().Set("X-Target-Id", xTargetID)
+	}
 
 	rw.WriteHeader(201)
 	if o.Payload != nil {
