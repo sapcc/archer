@@ -24,7 +24,7 @@ jobs:
           go-version-file: 'go.mod'
       - run: go mod edit -json | jq -r .Go | echo "GO_VERSION_FROM_PROJECT=$(cut -d' ' -f2)" >>${GITHUB_ENV}
       - name: Dependency Review
-        uses: actions/dependency-review-action@v3
+        uses: actions/dependency-review-action@v4
         with:
           base-ref: ${{ github.event.pull_request.base.sha || 'main' }}
           deny-licenses: AGPL-1.0, AGPL-3.0, GPL-1.0, GPL-2.0, GPL-3.0, LGPL-2.0, LGPL-2.1, LGPL-3.0, BUSL-1.1
