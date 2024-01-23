@@ -216,6 +216,8 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	   ================================================== */
 	// 2. Delete lower L2 configuration if all endpoints of a segments are deleted
 	if deleteAll {
+		logWith := log.WithFields(log.Fields{"endpoint": endpointID, "network": endpoints[0].Port.NetworkID})
+
 		// Ensure L2 configuration is no longer needed
 		var skipCleanup bool
 		// check if other service uses the same segment
@@ -226,6 +228,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		}
 		if ct.RowsAffected() > 0 {
 			skipCleanup = true
+			logWith.Debugf("ProcessEndpoint: Skipping CleanupL2 since it is still in use by other service(s)")
 		}
 
 		// Check if there are still endpoints using the same segment
@@ -236,9 +239,11 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		}
 		if ct.RowsAffected() > 0 {
 			skipCleanup = true
+			logWith.Debugf("ProcessEndpoint: Skipping CleanupL2 since it is still in use by other endpoint(s)")
 		}
 
 		if !skipCleanup {
+			logWith.Info("ProcessEndpoint: Deleting L2 configuration")
 			if len(endpoints) != 0 {
 				subnetID := endpoints[0].Port.FixedIPs[0].SubnetID
 				if err := a.CleanupSelfIPs(subnetID); err != nil {
@@ -247,11 +252,8 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 			}
 
 			if err := a.CleanupL2(ctx, *endpoints[0].SegmentId); err != nil {
-				log.WithField("vlan", *endpoints[0].SegmentId).WithError(err).Error("CleanupL2")
+				logWith.WithError(err).Error("ProcessEndpoint: CleanupL2")
 			}
-		} else {
-			log.WithField("vlan", *endpoints[0].SegmentId).
-				Info("Skipping CleanupL2 since it is still in use")
 		}
 	}
 

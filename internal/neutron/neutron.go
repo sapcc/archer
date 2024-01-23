@@ -261,6 +261,7 @@ func (n *NeutronClient) EnsureNeutronSelfIPs(deviceIDs []string, subnetID string
 			port := portsbinding.CreateOptsExt{
 				CreateOptsBuilder: ports.CreateOpts{
 					Name:        fmt.Sprintf("local-%s", deviceID),
+					Description: fmt.Sprintf("Archer SelfIP for device %s", deviceID),
 					DeviceOwner: "network:f5selfip",
 					DeviceID:    subnetID,
 					NetworkID:   subnet.NetworkID,
