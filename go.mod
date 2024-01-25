@@ -15,10 +15,10 @@ require (
 	github.com/go-co-op/gocron v1.37.0
 	github.com/go-openapi/errors v0.21.0
 	github.com/go-openapi/loads v0.21.5
-	github.com/go-openapi/runtime v0.27.0
+	github.com/go-openapi/runtime v0.27.1
 	github.com/go-openapi/spec v0.20.14
 	github.com/go-openapi/strfmt v0.22.0
-	github.com/go-openapi/swag v0.22.8
+	github.com/go-openapi/swag v0.22.9
 	github.com/go-openapi/validate v0.22.6
 	github.com/gophercloud/gophercloud v1.8.0
 	github.com/gophercloud/utils v0.0.0-20231010081019-80377eca5d56
