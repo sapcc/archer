@@ -258,7 +258,7 @@ func (c *Controller) GetEndpointEndpointIDHandler(params endpoint.GetEndpointEnd
 		Where("endpoint.id = ?", params.EndpointID)
 
 	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
-		q.Where("project_id = ?", projectId)
+		q = q.Where("project_id = ?", projectId)
 	}
 
 	var endpointResponse models.Endpoint
@@ -274,25 +274,27 @@ func (c *Controller) GetEndpointEndpointIDHandler(params endpoint.GetEndpointEnd
 }
 
 func (c *Controller) PutEndpointEndpointIDHandler(params endpoint.PutEndpointEndpointIDParams, _ any) middleware.Responder {
+	u := db.Update("endpoint").
+		Prefix("WITH endpoint AS (").
+		Set("tags", sq.Expr("COALESCE(?, tags)", internal.Unique(params.Body.Tags))).
+		Set("name", sq.Expr("COALESCE(?, name)", params.Body.Name)).
+		Set("description", sq.Expr("COALESCE(?, description)", params.Body.Description)).
+		Set("updated_at", sq.Expr("NOW()")).
+		Where("id = ?", params.EndpointID).
+		Suffix("RETURNING *)")
+
+	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
+		u = u.Where("project_id = ?", projectId)
+	}
+
 	q := db.Select("endpoint.*",
 		`endpoint_port.port_id AS "target.port"`,
 		`endpoint_port.network AS "target.network"`,
 		`endpoint_port.subnet AS "target.subnet"`,
 		"host(endpoint_port.ip_address) AS ip_address").
-		PrefixExpr(db.Update("endpoint").
-			Prefix("WITH endpoint AS (").
-			Set("tags", sq.Expr("COALESCE(?, tags)", internal.Unique(params.Body.Tags))).
-			Set("name", sq.Expr("COALESCE(?, name)", params.Body.Name)).
-			Set("description", sq.Expr("COALESCE(?, description)", params.Body.Description)).
-			Set("updated_at", sq.Expr("NOW()")).
-			Where("id = ?", params.EndpointID).
-			Suffix("RETURNING *)")).
+		PrefixExpr(u).
 		From("endpoint").
 		Join("endpoint_port ON endpoint_port.endpoint_id = endpoint.id")
-
-	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
-		q.Where("project_id = ?", projectId)
-	}
 
 	sql, args := q.MustSql()
 	var endpointResponse models.Endpoint
@@ -324,7 +326,7 @@ func (c *Controller) DeleteEndpointEndpointIDHandler(params endpoint.DeleteEndpo
 		Suffix("RETURNING service_id")
 
 	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
-		q.Where("project_id = ?", projectId)
+		q = q.Where("project_id = ?", projectId)
 	}
 
 	sql, args := q.MustSql()

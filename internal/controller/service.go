@@ -277,7 +277,7 @@ func (c *Controller) DeleteServiceServiceIDHandler(params service.DeleteServiceS
 		Suffix("FOR UPDATE")
 
 	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
-		q.Where("project_id = ?", projectId)
+		q = q.Where("project_id = ?", projectId)
 	}
 
 	tx, err := c.pool.Begin(params.HTTPRequest.Context())
@@ -329,7 +329,7 @@ func (c *Controller) GetServiceServiceIDEndpointsHandler(params service.GetServi
 		Where("id = ?", params.ServiceID)
 
 	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
-		q.Where("project_id = ?", projectId)
+		q = q.Where("project_id = ?", projectId)
 	}
 
 	sql, args := q.MustSql()

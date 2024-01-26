@@ -111,7 +111,7 @@ func (c *Controller) GetRbacPoliciesRbacPolicyIDHandler(params rbac.GetRbacPolic
 		Where("id = ?", params.RbacPolicyID)
 
 	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
-		q.Where("project_id = ?", projectId)
+		q = q.Where("project_id = ?", projectId)
 	}
 
 	var rbacResponse models.Rbacpolicy
@@ -131,7 +131,7 @@ func (c *Controller) PutRbacPoliciesRbacPolicyIDHandler(params rbac.PutRbacPolic
 	q := db.Update("rbac").Where("id = ?", params.RbacPolicyID)
 
 	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
-		q.Where("project_id = ?", projectId)
+		q = q.Where("project_id = ?", projectId)
 	}
 
 	sql, args := q.Set("target_project", sq.Expr("COALESCE(?, target_project)", params.Body.Target)).
@@ -161,7 +161,7 @@ func (c *Controller) DeleteRbacPoliciesRbacPolicyIDHandler(params rbac.DeleteRba
 		Where("id = ?", params.RbacPolicyID)
 
 	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
-		q.Where("project_id = ?", projectId)
+		q = q.Where("project_id = ?", projectId)
 	}
 
 	sql, args := q.MustSql()
