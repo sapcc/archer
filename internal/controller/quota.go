@@ -36,7 +36,7 @@ func (c *Controller) GetQuotasHandler(params quota.GetQuotasParams, _ any) middl
 		GroupBy("quota.project_id")
 
 	if params.ProjectID != nil {
-		q.Where("project_id = ?", params.ProjectID)
+		q = q.Where("project_id = ?", params.ProjectID)
 	}
 
 	var quotas = make([]*quota.GetQuotasOKBodyQuotasItems0, 0)
