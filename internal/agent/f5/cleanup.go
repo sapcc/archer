@@ -93,8 +93,8 @@ func (a *Agent) cleanOrphanSelfIPs() error {
 
 func (a *Agent) getUsedSegments() (map[int]struct{}, error) {
 	sql, args := db.Select("s.network_id", "ep.segment_id").
-		Join("endpoint e ON s.id = e.service_id").
-		Join("endpoint_port ep ON ep.endpoint_id = e.id").
+		LeftJoin("endpoint e ON s.id = e.service_id").
+		LeftJoin("endpoint_port ep ON ep.endpoint_id = e.id").
 		From("service s").
 		Where("s.host = ?", config.Global.Default.Host).
 		Where("s.provider = 'tenant'").
@@ -114,7 +114,10 @@ func (a *Agent) getUsedSegments() (map[int]struct{}, error) {
 		if err = rows.Scan(&networkID, &segmentID); err != nil {
 			return nil, err
 		}
-		usedSegments[segmentID] = struct{}{}
+		if segmentID != 0 {
+			// add to used segment map
+			usedSegments[segmentID] = struct{}{}
+		}
 		serviceSegment, err := a.neutron.GetNetworkSegment(networkID)
 		if err != nil {
 			return nil, err
