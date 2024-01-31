@@ -84,3 +84,48 @@ func TestAgent_TestGetUsedSegments(t *testing.T) {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }
+
+func TestAgent_TestCleanOrphanedNeutronPorts(t *testing.T) {
+	const GetPortListSelfIPsResponseFixture = `
+{
+	"ports": [
+		{
+            "name": "This port should be deleted",
+			"id": "c0c0c0c0-c0c0-4c0c-8c0c-0c0c0c0c0c0c",
+			"network_id": "b0b0b0b0-b0b0-4b0b-8b0b-0b0b0b0b0b0b"
+		},
+		{
+			"id": "5a8ad669-4ffe-4133-b9f9-6de62cd654a4",
+			"network_id": "35a3ca82-62af-4e0a-9472-92331500fb3a"
+		}
+	]
+}
+`
+
+	// prepare global config
+	config.Global.Default.Host = "host-123"
+	config.Global.Agent.PhysicalNetwork = "physnet1"
+
+	// setup neutron "server
+	th.SetupPersistentPortHTTP(t, 8931)
+	defer th.TeardownHTTP()
+	fixture.SetupHandler(t, "/v2.0/ports", "GET", "",
+		GetPortListSelfIPsResponseFixture, http.StatusOK)
+	fixture.SetupHandler(t, "/v2.0/networks/b0b0b0b0-b0b0-4b0b-8b0b-0b0b0b0b0b0b", "GET",
+		"", GetServiceNetworkResponseFixture, http.StatusOK)
+	fixture.SetupHandler(t, "/v2.0/networks/35a3ca82-62af-4e0a-9472-92331500fb3a", "GET",
+		"", GetNetworkResponseFixture, http.StatusOK)
+	fixture.SetupHandler(t, "/v2.0/ports/c0c0c0c0-c0c0-4c0c-8c0c-0c0c0c0c0c0c", "DELETE",
+		"", "", http.StatusNoContent)
+
+	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient()}
+	neutronClient.InitCache()
+	// initialize agent
+	a := &Agent{neutron: &neutronClient}
+
+	// run the test function
+	usedSegments := map[int]struct{}{
+		123: {},
+	}
+	assert.Nil(t, a.cleanOrphanedNeutronPorts(usedSegments))
+}

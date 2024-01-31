@@ -108,11 +108,11 @@ func NewAgent() *Agent {
 	providerClient, err := clientconfig.AuthenticatedClient(&clientconfig.ClientOpts{
 		AuthInfo: &authInfo})
 	if err != nil {
-		log.Fatal(err.Error())
+		log.WithError(err).Fatal("Error while connecting to Keystone")
 	}
 
 	if agent.neutron, err = neutron.ConnectToNeutron(providerClient); err != nil {
-		log.Fatalf("While connecting to Neutron: %s", err.Error())
+		log.WithError(err).Fatalf("Error while connecting to Neutron")
 	}
 	log.Infof("Connected to Neutron %s", agent.neutron.Endpoint)
 	agent.neutron.InitCache()

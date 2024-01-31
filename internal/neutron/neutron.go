@@ -208,6 +208,30 @@ func (n *NeutronClient) GetNetwork(networkId string) (*networks.Network, error) 
 	return network, nil
 }
 
+func (n *NeutronClient) FetchSelfIPPorts() (map[string][]*ports.Port, error) {
+	portMap := make(map[string][]*ports.Port)
+	opts := PortListOptsExt{
+		ListOptsBuilder: ports.ListOpts{
+			DeviceOwner: "network:f5selfip",
+		},
+		HostID: config.Global.Default.Host,
+	}
+	pages, err := ports.List(n.ServiceClient, opts).AllPages()
+	if err != nil {
+		return nil, err
+	}
+	selfIPPorts, err := ports.ExtractPorts(pages)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, port := range selfIPPorts {
+		port := port
+		portMap[port.NetworkID] = append(portMap[port.NetworkID], &port)
+	}
+	return portMap, nil
+}
+
 // EnsureNeutronSelfIPs ensures that a SelfIPs exists for the given deviceID and subnetID
 func (n *NeutronClient) EnsureNeutronSelfIPs(deviceIDs []string, subnetID string, dryRun bool) (map[string]*ports.Port, error) {
 	log.WithFields(log.Fields{
