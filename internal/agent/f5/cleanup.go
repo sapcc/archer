@@ -48,6 +48,10 @@ func (a *Agent) cleanupL2() error {
 		log.WithError(err).Error("cleanOrphanedVCMPVLANs")
 		// continue
 	}
+	if err := a.cleanOrphanedNeutronPorts(usedSegments); err != nil {
+		log.WithError(err).Error("cleanOrphanedNeutronPorts")
+		// continue
+	}
 	return nil
 }
 
@@ -201,5 +205,40 @@ func (a *Agent) cleanOrphanedVCMPVLANs(usedSegments map[int]struct{}) error {
 	}
 
 	log.Debug("Finished cleanOrphanedVCMPVLANs")
+	return nil
+}
+
+func (a *Agent) cleanOrphanedNeutronPorts(usedSegments map[int]struct{}) error {
+	log.Debug("Running cleanOrphanedNeutronPorts")
+
+	// Fetch all selfips from neutron
+	selfips, err := a.neutron.FetchSelfIPPorts()
+	if err != nil {
+		return err
+	}
+
+	// Fetch all segments for every selfip network
+	for networkID, ports := range selfips {
+		segment, err := a.neutron.GetNetworkSegment(networkID)
+		if err != nil {
+			log.Errorf("cleanOrphanedNeutronPorts: %s", err.Error())
+			continue
+		}
+		if _, ok := usedSegments[segment]; ok {
+			// SelfIP in use
+			continue
+		}
+
+		// SelfIP is part of an unused segment, delete it
+		for _, port := range ports {
+			log.WithFields(log.Fields{"network": networkID, "port": port.ID, "segment": segment}).
+				Warningf("found orphan SelfIP port '%s', deleting", port.Name)
+			if err := a.neutron.DeletePort(port.ID); err != nil {
+				log.Errorf("cleanOrphanedNeutronPorts: %s", err.Error())
+			}
+		}
+	}
+
+	log.Debug("Finished cleanOrphanedNeutronPorts")
 	return nil
 }
