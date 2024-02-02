@@ -33,7 +33,7 @@ require (
 	github.com/pashagolub/pgxmock/v3 v3.3.0
 	github.com/prometheus/client_golang v1.18.0
 	github.com/rs/cors v1.10.1
-	github.com/sapcc/go-api-declarations v1.10.7
+	github.com/sapcc/go-api-declarations v1.10.8
 	github.com/sapcc/go-bits v0.0.0-20240202151734-7d1284b994ef
 	github.com/sethvargo/go-retry v0.2.4
 	github.com/sirupsen/logrus v1.9.3
