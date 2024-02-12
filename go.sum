@@ -42,8 +42,8 @@ github.com/docker/go-units v0.5.0 h1:69rxXcBk27SvSaaxTtLh/8llcHD8vYHT7WSdRZ/jvr4
 github.com/docker/go-units v0.5.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
 github.com/dre1080/recovr v1.0.3 h1:ePIUAU6R2b5U1ZfknulI9zrfVm55NbV4FYDKlUJXBEo=
 github.com/dre1080/recovr v1.0.3/go.mod h1:QV2VG2MZQYPszdtZ9bsZTpTdWTP81Mer3UHQXqo5bfY=
-github.com/f5devcentral/go-bigip v0.0.0-20240102182502-074c3e5c7aee h1:RVNlRNmKTdRVEacKkgXM+LVM0HZEDY07wneeUXXZTeo=
-github.com/f5devcentral/go-bigip v0.0.0-20240102182502-074c3e5c7aee/go.mod h1:0Lkr0fBU6O1yBxF2mt9JFwXpaFbIb/wAY7oM3dMJDdA=
+github.com/f5devcentral/go-bigip v0.0.0-20240212051136-955cd7058e2a h1:SlNfjnGLTVKCwJzvDrboPtULNBCrejyIXZWiQMea8PU=
+github.com/f5devcentral/go-bigip v0.0.0-20240212051136-955cd7058e2a/go.mod h1:0Lkr0fBU6O1yBxF2mt9JFwXpaFbIb/wAY7oM3dMJDdA=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
 github.com/georgysavva/scany/v2 v2.1.0 h1:jEAX+yPQ2AAtnv0WJzAYlgsM/KzvwbD6BjSjLIyDxfc=
 github.com/georgysavva/scany/v2 v2.1.0/go.mod h1:fqp9yHZzM/PFVa3/rYEC57VmDx+KDch0LoqrJzkvtos=
