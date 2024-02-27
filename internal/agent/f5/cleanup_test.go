@@ -65,13 +65,13 @@ func TestAgent_TestGetUsedSegments(t *testing.T) {
 		neutron: &neutronClient,
 	}
 
-	sql := `SELECT s.network_id, ep.segment_id FROM service s LEFT JOIN endpoint e ON s.id = e.service_id LEFT JOIN endpoint_port ep ON ep.endpoint_id = e.id WHERE s.host = $1 AND s.provider = 'tenant'`
+	sql := `SELECT s.network_id, COALESCE(ep.segment_id, 0) FROM service s LEFT JOIN endpoint e ON s.id = e.service_id LEFT JOIN endpoint_port ep ON ep.endpoint_id = e.id WHERE s.host = $1 AND s.provider = 'tenant'`
 	dbMock.
 		ExpectQuery(sql).
 		WithArgs("host-123").
 		WillReturnRows(pgxmock.NewRows([]string{"network_id", "segment_id"}).
 			AddRow(serviceNetwork, 123).
-			AddRow(someOtherNetwork, nil))
+			AddRow(someOtherNetwork, 0))
 
 	// run the test function
 	var usedSegments map[int]struct{}
