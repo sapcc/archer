@@ -96,7 +96,7 @@ func (a *Agent) cleanOrphanSelfIPs() error {
 }
 
 func (a *Agent) getUsedSegments() (map[int]struct{}, error) {
-	sql, args := db.Select("s.network_id", "ep.segment_id").
+	sql, args := db.Select("s.network_id", "COALESCE(ep.segment_id, 0)").
 		LeftJoin("endpoint e ON s.id = e.service_id").
 		LeftJoin("endpoint_port ep ON ep.endpoint_id = e.id").
 		From("service s").
