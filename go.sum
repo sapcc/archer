@@ -80,8 +80,8 @@ github.com/go-openapi/strfmt v0.22.1 h1:5Ky8cybT4576C6Ffc+8gYji/wRXCo6Ozm8RaWjPI
 github.com/go-openapi/strfmt v0.22.1/go.mod h1:OfVoytIXJasDkkGvkb1Cceb3BPyMOwk1FgmyyEw7NYg=
 github.com/go-openapi/swag v0.22.9 h1:XX2DssF+mQKM2DHsbgZK74y/zj4mo9I99+89xUmuZCE=
 github.com/go-openapi/swag v0.22.9/go.mod h1:3/OXnFfnMAwBD099SwYRk7GD3xOrr1iL7d/XNLXVVwE=
-github.com/go-openapi/validate v0.23.0 h1:2l7PJLzCis4YUGEoW6eoQw3WhyM65WSIcjX6SQnlfDw=
-github.com/go-openapi/validate v0.23.0/go.mod h1:EeiAZ5bmpSIOJV1WLfyYF9qp/B1ZgSaEpHTJHtN5cbE=
+github.com/go-openapi/validate v0.23.1 h1:3YlF+7NP/pKpaZrSxB88oeVbIuCYlWPGKVMWvPcBMYw=
+github.com/go-openapi/validate v0.23.1/go.mod h1:DYvS/pv2Y65SE4hB6Tx+kFC+gS9sPKbqYbY1iwG6z7k=
 github.com/go-pkgz/expirable-cache v0.1.0 h1:3bw0m8vlTK8qlwz5KXuygNBTkiKRTPrAGXU0Ej2AC1g=
 github.com/go-pkgz/expirable-cache v0.1.0/go.mod h1:GTrEl0X+q0mPNqN6dtcQXksACnzCBQ5k/k1SwXJsZKs=
 github.com/go-sql-driver/mysql v1.6.0/go.mod h1:DCzpHaOWr8IXmIStZouvnhqoel9Qv2LBy8hT2VhHyBg=
