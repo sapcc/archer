@@ -13,13 +13,13 @@ require (
 	github.com/georgysavva/scany/v2 v2.1.0
 	github.com/getsentry/sentry-go v0.20.0
 	github.com/go-co-op/gocron v1.37.0
-	github.com/go-openapi/errors v0.21.0
-	github.com/go-openapi/loads v0.21.5
-	github.com/go-openapi/runtime v0.27.1
-	github.com/go-openapi/spec v0.20.14
-	github.com/go-openapi/strfmt v0.22.1
-	github.com/go-openapi/swag v0.22.9
-	github.com/go-openapi/validate v0.23.1
+	github.com/go-openapi/errors v0.21.1
+	github.com/go-openapi/loads v0.21.6
+	github.com/go-openapi/runtime v0.27.2
+	github.com/go-openapi/spec v0.20.15
+	github.com/go-openapi/strfmt v0.22.2
+	github.com/go-openapi/swag v0.22.10
+	github.com/go-openapi/validate v0.23.2
 	github.com/gophercloud/gophercloud v1.10.0
 	github.com/gophercloud/utils v0.0.0-20231010081019-80377eca5d56
 	github.com/hashicorp/golang-lru/v2 v2.0.7
@@ -53,9 +53,9 @@ require (
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/go-logr/logr v1.3.0 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/go-openapi/analysis v0.22.2 // indirect
-	github.com/go-openapi/jsonpointer v0.20.2 // indirect
-	github.com/go-openapi/jsonreference v0.20.4 // indirect
+	github.com/go-openapi/analysis v0.22.3 // indirect
+	github.com/go-openapi/jsonpointer v0.20.3 // indirect
+	github.com/go-openapi/jsonreference v0.20.5 // indirect
 	github.com/go-pkgz/expirable-cache v0.1.0 // indirect
 	github.com/gobuffalo/logger v1.0.3 // indirect
 	github.com/gobuffalo/packd v1.0.0 // indirect
