@@ -14,7 +14,7 @@ jobs:
         with:
           ref: gh-pages
       - name: redoc-cli generate index.html
-        uses: seeebiii/redoc-cli-github-action@v10
+        uses: fluximus-prime/redocly-cli-github-action@v1.0.2
         with:
           args: 'build-docs https://raw.githubusercontent.com/sapcc/archer/main/swagger.yaml -o index.html'
       - name: Commit documentation
