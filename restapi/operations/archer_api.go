@@ -251,6 +251,17 @@ Tag filters can also be combined in the same request:
 | 422   | Unprocessable Entity |
 | 429   | You have reached maximum request limit |
 | 500   | Internal server error |
+
+### Endpoint identification via Proxy Protocol v2
+
+Archer supports the Proxy Protocol v2 for endpoint identification. The Proxy Protocol is a widely used protocol for passing client connection information through a load balancer to the backend server. It is used to identify the original client IP address and port number. The Proxy Protocol v2 is a binary protocol that is more efficient than the original text-based Proxy Protocol v1.
+The proxy protocol header also includes the ID of the endpoint. This information is encoded using a custom Type-Length-Value (TLV) vector as follows.
+
+| Field | Length (Octets) | Description           |
+| ----- | --------------- | --------------------- |
+| Type  | 1               | PP2_TYPE_SAPCC (0xEC) |
+| Length| 2               | Length of the value   |
+| Value | 16              | UUID of the endpoint  |
 */
 type ArcherAPI struct {
 	spec            *loads.Document
