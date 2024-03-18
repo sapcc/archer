@@ -13,13 +13,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: gh-pages
-      - name: get swagger.yaml
-        run: |
-          curl https://raw.githubusercontent.com/sapcc/archer/main/swagger.yaml -o swagger.yaml
       - name: redoc-cli generate index.html
         uses: seeebiii/redoc-cli-github-action@v10
         with:
-          args: 'bundle swagger.yaml -o index.html'
+          args: 'build-docs https://raw.githubusercontent.com/sapcc/archer/main/swagger.yaml -o index.html'
       - name: Commit documentation
         run: |
           git config --global user.name 'GitHub Pages Bot'
