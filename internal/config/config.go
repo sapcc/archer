@@ -104,7 +104,7 @@ type AuthInfo struct {
 	Token                       string `ini-name:"token"`
 	Username                    string `ini-name:"username"`
 	UserID                      string `ini-name:"user_id" `
-	Password                    string `ini-name:"password" `
+	Password                    string `ini-name:"password" env:"OS_PASSWORD"`
 	ApplicationCredentialID     string `ini-name:"application_credential_id"`
 	ApplicationCredentialName   string `ini-name:"application_credential_name" `
 	ApplicationCredentialSecret string `ini-name:"application_credential_secret" `
