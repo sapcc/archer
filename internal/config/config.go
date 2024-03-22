@@ -80,7 +80,7 @@ type Database struct {
 
 type Audit struct {
 	Enabled      bool   `long:"enable-audit" ini-name:"enabled" description:"Enables message notification bus."`
-	TransportURL string `long:"transport-url" ini-name:"transport_url" description:"The network address and optional user credentials for connecting to the messaging backend."`
+	TransportURL string `long:"transport-url" ini-name:"transport_url" env:"AUDIT_TRANSPORT_URL" description:"The network address and optional user credentials for connecting to the messaging backend."`
 	QueueName    string `long:"queue-name" ini-name:"queue_name" description:"RabbitMQ queue name"`
 }
 

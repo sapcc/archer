@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -217,7 +218,10 @@ func GetBigIPSession(rawURL string) (*BigIP, error) {
 	// check for password
 	pw, ok := parsedURL.User.Password()
 	if !ok {
-		return nil, fmt.Errorf("password required for host '%s'", parsedURL.Hostname())
+		pw, ok = os.LookupEnv("BIGIP_PASSWORD")
+		if !ok {
+			return nil, fmt.Errorf("password required for host '%s'", parsedURL.Hostname())
+		}
 	}
 
 	session := bigip.NewSession(&bigip.Config{
