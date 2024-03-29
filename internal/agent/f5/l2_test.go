@@ -26,6 +26,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/sapcc/archer/internal/agent/f5/as3"
+	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/neutron"
 )
 
@@ -38,10 +39,16 @@ func TestAgent_EnsureSelfIPs_Create(t *testing.T) {
 		dbMock.Close()
 	}()
 
+	// prepare global config
+	config.Global.Default.Host = "host-1234"
+	config.Global.Agent.PhysicalNetwork = "physnet1"
+
 	th.SetupPersistentPortHTTP(t, 8931)
 	defer th.TeardownHTTP()
 	fixture.SetupHandler(t, "/v2.0/subnets/e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e", "GET", "",
 		GetSubnetResponseFixture, http.StatusOK)
+	fixture.SetupHandler(t, "/v2.0/networks/35a3ca82-62af-4e0a-9472-92331500fb3a", "GET", "",
+		GetNetworkResponseFixture, http.StatusOK)
 	fixture.SetupHandler(t, "/v2.0/ports", "GET", "",
 		GetPortListResponseFixture, http.StatusOK)
 
@@ -56,8 +63,8 @@ func TestAgent_EnsureSelfIPs_Create(t *testing.T) {
 	bigIPMock.EXPECT().
 		CreateSelfIP(&bigip.SelfIP{
 			Name:    "selfip-5a8ad669-4ffe-4133-b9f9-6de62cd654a4",
-			Address: "42.42.42.42%1234/8",
-			Vlan:    "/Common/vlan-1234",
+			Address: "42.42.42.42%123/8",
+			Vlan:    "/Common/vlan-123",
 		}).
 		Return(nil)
 
@@ -71,7 +78,7 @@ func TestAgent_EnsureSelfIPs_Create(t *testing.T) {
 	}
 
 	subnetID := "e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e"
-	assert.Nil(t, a.EnsureSelfIPs(1234, subnetID, false), "EnsureSelfIPs() should not return an error")
+	assert.Nil(t, a.EnsureSelfIPs(subnetID, false), "EnsureSelfIPs() should not return an error")
 }
 
 func TestAgent_EnsureSelfIPs_NoOp(t *testing.T) {
@@ -83,10 +90,16 @@ func TestAgent_EnsureSelfIPs_NoOp(t *testing.T) {
 		dbMock.Close()
 	}()
 
+	// prepare global config
+	config.Global.Default.Host = "host-1234"
+	config.Global.Agent.PhysicalNetwork = "physnet1"
+
 	th.SetupPersistentPortHTTP(t, 8931)
 	defer th.TeardownHTTP()
 	fixture.SetupHandler(t, "/v2.0/subnets/e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e", "GET", "",
 		GetSubnetResponseFixture, http.StatusOK)
+	fixture.SetupHandler(t, "/v2.0/networks/35a3ca82-62af-4e0a-9472-92331500fb3a", "GET", "",
+		GetNetworkResponseFixture, http.StatusOK)
 	fixture.SetupHandler(t, "/v2.0/ports", "GET", "",
 		GetPortListResponseFixture, http.StatusOK)
 
@@ -113,7 +126,7 @@ func TestAgent_EnsureSelfIPs_NoOp(t *testing.T) {
 	}
 
 	subnetID := "e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e"
-	assert.Nil(t, a.EnsureSelfIPs(1234, subnetID, false), "EnsureSelfIPs() should not return an error")
+	assert.Nil(t, a.EnsureSelfIPs(subnetID, false), "EnsureSelfIPs() should not return an error")
 }
 
 func TestAgent_CleanupSelfIPs(t *testing.T) {

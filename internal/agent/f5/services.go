@@ -96,7 +96,7 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 				if err := a.EnsureL2(ctx, service.SegmentId, nil); err != nil {
 					return err
 				}
-				if err := a.EnsureSelfIPs(service.SegmentId, service.SubnetID, true); err != nil {
+				if err := a.EnsureSelfIPs(service.SubnetID, true); err != nil {
 					return err
 				}
 			}
@@ -124,32 +124,18 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 			if service.Status == "PENDING_DELETE" {
 				service := service
 
-				// Check if another Service is still using this segment
-				var skipCleanup bool
-				for _, s := range services {
-					// check if other service uses the same network
-					if s.ID != service.ID &&
-						s.Status != models.ServiceStatusPENDINGDELETE &&
-						*s.NetworkID == *service.NetworkID {
-						skipCleanup = true
-						break
-					}
-				}
-
-				// Check if there are still endpoints using the same segment
-				ct, err := tx.Exec(ctx, "SELECT 1 FROM endpoint_port WHERE network = $1", service.NetworkID)
+				err, cleanupL2 := checkCleanupL2(ctx, tx, service.NetworkID.String(),
+					false, true)
 				if err != nil {
 					return err
 				}
-				if ct.RowsAffected() > 0 {
-					skipCleanup = true
+				err, cleanupSelfIPs := a.checkCleanupSelfIPs(ctx, tx, service.NetworkID.String(),
+					service.SubnetID, false, true)
+				if err != nil {
+					return err
 				}
 
-				if service.SegmentId == 0 {
-					skipCleanup = true
-				}
-
-				if !skipCleanup {
+				if cleanupSelfIPs {
 					if err := a.CleanupSelfIPs(service.SubnetID); err != nil {
 						return err
 					}
@@ -158,16 +144,14 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 					if err := a.CleanupSNATPorts(service.NetworkID.String()); err != nil {
 						return err
 					}
+				}
 
-					if err := a.CleanupL2(ctx, service.SegmentId); err != nil {
+				if cleanupL2 {
+					if err := a.CleanupL2(ctx, service.SubnetID); err != nil {
 						log.
 							WithFields(log.Fields{"service": service.ID, "vlan": service.SegmentId}).
 							WithError(err).Error("CleanupL2")
 					}
-				} else {
-					log.
-						WithFields(log.Fields{"service": service.ID, "vlan": service.SegmentId}).
-						Info("Skipping CleanupL2 since it is still in use")
 				}
 			}
 		}

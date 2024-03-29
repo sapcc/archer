@@ -221,9 +221,9 @@ func TestAgent_ProcessEndpoint(t *testing.T) {
 	}
 	dbMock.
 		ExpectBegin()
-	dbMock.ExpectQuery("SELECT network, owned FROM endpoint_port WHERE endpoint_id = $1").
+	dbMock.ExpectQuery("SELECT network, subnet, owned FROM endpoint_port WHERE endpoint_id = $1").
 		WithArgs(endpoint).
-		WillReturnRows(pgxmock.NewRows([]string{"network", "owned"}).AddRow(network, true))
+		WillReturnRows(pgxmock.NewRows([]string{"network", "subnet", "owned"}).AddRow(network, subnet.String(), true))
 	dbMock.ExpectQuery("SELECT endpoint.*, service.port AS service_port_nr, service.proxy_protocol, service.network_id AS service_network_id, endpoint_port.segment_id, endpoint_port.port_id AS \"target.port\", endpoint_port.network AS \"target.network\", endpoint_port.subnet AS \"target.subnet\" FROM endpoint INNER JOIN service ON endpoint.service_id = service.id JOIN endpoint_port ON endpoint_id = endpoint.id WHERE network = $1 AND service.host = $2 AND service.provider = 'tenant' FOR UPDATE of endpoint").
 		WithArgs(network, config.Global.Default.Host).
 		WillReturnRows(pgxmock.
@@ -232,6 +232,9 @@ func TestAgent_ProcessEndpoint(t *testing.T) {
 	dbMock.ExpectExec("UPDATE endpoint_port SET segment_id = $1 WHERE endpoint_id = $2").
 		WithArgs(123, endpoint).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+	dbMock.ExpectExec("SELECT 1 FROM endpoint INNER JOIN service ON endpoint.service_id = service.id JOIN endpoint_port ON endpoint_id = endpoint.id WHERE endpoint_port.subnet = $1 AND service.host = $2 AND service.provider = 'tenant' AND endpoint.status != 'PENDING_DELETE'").
+		WithArgs(subnet.String(), config.Global.Default.Host).
+		WillReturnResult(pgxmock.NewResult("SELECT", 1))
 	dbMock.ExpectExec("UPDATE endpoint SET status = 'AVAILABLE', updated_at = NOW() WHERE id = $1;").
 		WithArgs(endpoint).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
