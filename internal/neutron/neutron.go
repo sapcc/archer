@@ -29,7 +29,6 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
 	"github.com/gophercloud/gophercloud/pagination"
-	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	log "github.com/sirupsen/logrus"
 
@@ -42,20 +41,20 @@ type NeutronClient struct {
 	*gophercloud.ServiceClient
 	portCache    *expirable.LRU[string, map[string]*ports.Port] // networkID -> map[hostname]*ports.port, 10 min expiry
 	networkCache *expirable.LRU[string, *networks.Network]      // networkID -> *networks.network, expires after 10 mins
-	maskCache    *lru.Cache[string, int]                        // subnetID -> mask, never expires
+	subnetCache  *expirable.LRU[string, *subnets.Subnet]        // subnetID -> *subnets.subnet, expires after 10 mins
 }
 
 func (n *NeutronClient) InitCache() {
 	// Initialize local cache
 	n.portCache = expirable.NewLRU[string, map[string]*ports.Port](32, nil, time.Minute*10)
 	n.networkCache = expirable.NewLRU[string, *networks.Network](32, nil, time.Minute*10)
-	n.maskCache, _ = lru.New[string, int](32)
+	n.subnetCache = expirable.NewLRU[string, *subnets.Subnet](32, nil, time.Minute*10)
 }
 
 func (n *NeutronClient) ResetCache() {
 	n.portCache.Purge()
 	n.networkCache.Purge()
-	n.maskCache.Purge()
+	n.subnetCache.Purge()
 }
 
 func ConnectToNeutron(providerClient *gophercloud.ProviderClient) (*NeutronClient, error) {
@@ -69,9 +68,9 @@ func ConnectToNeutron(providerClient *gophercloud.ProviderClient) (*NeutronClien
 	return &NeutronClient{ServiceClient: serviceClient}, nil
 }
 
-func (n *NeutronClient) GetNetworkSegment(networkId string) (int, error) {
+func (n *NeutronClient) GetNetworkSegment(networkID string) (int, error) {
 	var network provider.NetworkProviderExt
-	r := networks.Get(n.ServiceClient, networkId)
+	r := networks.Get(n.ServiceClient, networkID)
 	if err := r.ExtractInto(&network); err != nil {
 		return 0, err
 	}
@@ -83,7 +82,17 @@ func (n *NeutronClient) GetNetworkSegment(networkId string) (int, error) {
 	}
 
 	return 0, fmt.Errorf("could not find physical-network %s for network '%s'",
-		config.Global.Agent.PhysicalNetwork, networkId)
+		config.Global.Agent.PhysicalNetwork, networkID)
+}
+
+func (n *NeutronClient) GetSubnetSegment(subnetID string) (int, error) {
+
+	subnet, err := n.getSubnet(subnetID)
+	if err != nil {
+		return 0, err
+	}
+
+	return n.GetNetworkSegment(subnet.NetworkID)
 }
 
 func (n *NeutronClient) GetPort(portId string) (*ports.Port, error) {
@@ -159,20 +168,20 @@ func (n *NeutronClient) AllocateNeutronEndpointPort(target *models.EndpointTarge
 	return res, nil
 }
 
-func (n NeutronClient) ClearCache(networkId string) {
-	n.portCache.Remove(networkId)
+func (n NeutronClient) ClearCache(networkID string) {
+	n.portCache.Remove(networkID)
 }
 
 // TODO: Remove after a while
-func (n *NeutronClient) FetchSNATPorts(networkId string) (map[string]*ports.Port, error) {
-	if p, ok := n.portCache.Get(networkId); ok {
+func (n *NeutronClient) FetchSNATPorts(networkID string) (map[string]*ports.Port, error) {
+	if p, ok := n.portCache.Get(networkID); ok {
 		return p, nil
 	}
 
 	portMap := make(map[string]*ports.Port)
 	opts := PortListOptsExt{
 		ListOptsBuilder: ports.ListOpts{
-			NetworkID:   networkId,
+			NetworkID:   networkID,
 			DeviceOwner: "network:f5snat",
 		},
 		HostID: config.Global.Default.Host,
@@ -191,21 +200,34 @@ func (n *NeutronClient) FetchSNATPorts(networkId string) (map[string]*ports.Port
 		hostname := strings.TrimPrefix(port.Name, "local-")
 		portMap[hostname] = &port
 	}
-	n.portCache.Add(networkId, portMap)
+	n.portCache.Add(networkID, portMap)
 	return portMap, nil
 }
 
-func (n *NeutronClient) GetNetwork(networkId string) (*networks.Network, error) {
-	if network, ok := n.networkCache.Get(networkId); ok {
+func (n *NeutronClient) GetNetwork(networkID string) (*networks.Network, error) {
+	if network, ok := n.networkCache.Get(networkID); ok {
 		return network, nil
 	}
 
-	network, err := networks.Get(n.ServiceClient, networkId).Extract()
+	network, err := networks.Get(n.ServiceClient, networkID).Extract()
 	if err != nil {
 		return nil, err
 	}
-	n.networkCache.Add(networkId, network)
+	n.networkCache.Add(networkID, network)
 	return network, nil
+}
+
+func (n *NeutronClient) getSubnet(subnetID string) (*subnets.Subnet, error) {
+	if network, ok := n.subnetCache.Get(subnetID); ok {
+		return network, nil
+	}
+
+	subnet, err := subnets.Get(n.ServiceClient, subnetID).Extract()
+	if err != nil {
+		return nil, err
+	}
+	n.subnetCache.Add(subnetID, subnet)
+	return subnet, nil
 }
 
 func (n *NeutronClient) FetchSelfIPPorts() (map[string][]*ports.Port, error) {
@@ -239,7 +261,7 @@ func (n *NeutronClient) EnsureNeutronSelfIPs(deviceIDs []string, subnetID string
 		"devices": deviceIDs,
 		"dry_run": dryRun,
 	}).Debug("EnsureNeutronSelfIP")
-	var subnet, err = subnets.Get(n.ServiceClient, subnetID).Extract()
+	subnet, err := n.getSubnet(subnetID)
 	if err != nil {
 		return nil, err
 	}
@@ -305,12 +327,7 @@ func (n *NeutronClient) EnsureNeutronSelfIPs(deviceIDs []string, subnetID string
 }
 
 func (n *NeutronClient) GetMask(subnetID string) (int, error) {
-	// Cache subnet mask - never expires
-	if mask, ok := n.maskCache.Get(subnetID); ok {
-		return mask, nil
-	}
-
-	subnet, err := subnets.Get(n.ServiceClient, subnetID).Extract()
+	subnet, err := n.getSubnet(subnetID)
 	if err != nil {
 		return 0, err
 	}
@@ -319,6 +336,5 @@ func (n *NeutronClient) GetMask(subnetID string) (int, error) {
 		return 0, err
 	}
 	mask, _ := ipNet.Mask.Size()
-	n.maskCache.Add(subnetID, mask)
 	return mask, nil
 }

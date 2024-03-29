@@ -67,9 +67,49 @@ func (a *Agent) populateEndpointPorts(endpoints []*as3.ExtendedEndpoint) error {
 	return nil
 }
 
+// refreshSegments ensures that the segment_id is set for the given endpoint
+func refreshSegments(ctx context.Context, tx pgx.Tx, endpoints []*as3.ExtendedEndpoint, n *neutron.NeutronClient) {
+	for _, endpoint := range endpoints {
+		logger := log.WithFields(log.Fields{"port_id": endpoint.Target.Port, "endpoint": endpoint.ID})
+		if endpoint.SegmentId == nil {
+			// Sync endpoint segment to database - we want this because in case of port has been deleted meanwhile,
+			// we loose the segment-id and therefor the ability to delete the l2 configuration
+			var err error
+			var segmentId int
+			segmentId, err = n.GetNetworkSegment(endpoint.Target.Network.String())
+			if err != nil {
+				logger.WithError(err).Warning("ProcessEndpoint: Could not find valid segment")
+				continue
+			}
+			endpoint.SegmentId = &segmentId
+
+			log.Infof("ProcessEndpoint: Updating segment_id to %d", segmentId)
+			sql, args := db.Update("endpoint_port").
+				Set("segment_id", segmentId).
+				Where("endpoint_id = ?", endpoint.ID).
+				MustSql()
+			if _, err = tx.Exec(ctx, sql, args...); err != nil {
+				logger.WithError(err).Warning("ProcessEndpoint: Could not update segment_id")
+			}
+		}
+	}
+}
+
+func checkAllPendingDelete(endpoints []*as3.ExtendedEndpoint, subnetID string) bool {
+	for _, endpoint := range endpoints {
+		if endpoint.Target.Subnet.String() == subnetID && endpoint.Status != models.EndpointStatusPENDINGDELETE {
+			// if any endpoint with same subnet is not in PENDING_DELETE, skip cleanup
+			return false
+		}
+	}
+
+	return true
+}
+
 func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) error {
 	var endpoints []*as3.ExtendedEndpoint
 	var networkID strfmt.UUID
+	var subnetID string
 	var owned bool
 	var tx pgx.Tx
 
@@ -86,11 +126,11 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		_ = tx.Rollback(ctx)
 	}(tx, ctx)
 
-	sql, args := db.Select("network", "owned").
+	sql, args := db.Select("network", "subnet", "owned").
 		From("endpoint_port").
 		Where("endpoint_id = ?", endpointID).
 		MustSql()
-	if err := tx.QueryRow(ctx, sql, args...).Scan(&networkID, &owned); err != nil {
+	if err := tx.QueryRow(ctx, sql, args...).Scan(&networkID, &subnetID, &owned); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			log.WithField("id", endpointID).Warning("Endpoint not found")
 			return nil
@@ -119,36 +159,24 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		return err
 	}
 
-	deleteAll := true
-	for _, endpoint := range endpoints {
-		if endpoint.Status != models.EndpointStatusPENDINGDELETE {
-			deleteAll = false
-		}
-		if endpoint.SegmentId == nil {
-			// Sync endpoint segment to database - we want this because in case of port has been deleted meanwhile,
-			// we loose the segment-id and therefor the ability to delete the l2 configuration
-			var err error
-			var segmentId int
-			segmentId, err = a.neutron.GetNetworkSegment(networkID.String())
-			endpoint.SegmentId = &segmentId
-			if err != nil {
-				log.WithError(err).WithFields(log.Fields{"port_id": endpoint.Target.Port, "endpoint": endpoint.ID}).
-					Warning("ProcessEndpoint: Could not find valid segment")
-				continue
-			}
+	refreshSegments(ctx, tx, endpoints, a.neutron)
 
-			sql, args = db.Update("endpoint_port").
-				Set("segment_id", segmentId).
-				Where("endpoint_id = ?", endpoint.ID).
-				MustSql()
-			if _, err = tx.Exec(ctx, sql, args...); err != nil {
-				log.WithError(err).WithField("endpoint", endpoint.ID).
-					Warning("ProcessEndpoint: Could not update segment_id")
-			}
+	var cleanupL2 bool
+	if checkAllPendingDelete(endpoints, subnetID) {
+		// Consider cleaning up L2 configuration if all endpoints of a subnet are deleted
+		var err error
+		if err, cleanupL2 = checkCleanupL2(ctx, tx, networkID.String(),
+			true, false); err != nil {
+			return err
 		}
 	}
+	err, cleanupSelfIPs := a.checkCleanupSelfIPs(ctx, tx, networkID.String(), subnetID,
+		true, false)
+	if err != nil {
+		return err
+	}
 
-	if !deleteAll && endpoints[0].SegmentId == nil {
+	if !cleanupL2 && endpoints[0].SegmentId == nil {
 		return fmt.Errorf("could not find or fetch valid segment for endpoint %s, skipping", endpointID)
 	}
 
@@ -161,9 +189,9 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	})
 	g.Go(func() error {
 		err := a.populateEndpointPorts(endpoints)
-		if err != nil && deleteAll {
+		if err != nil && cleanupL2 {
 			// ignore missing ports if all endpoints are about to be deleted, print warning instead
-			log.WithError(err).WithField("delete_all", deleteAll).Warning("Ignoring missing ports for endpoint(s)")
+			log.WithError(err).Warning("Ignoring missing ports for endpoint(s)")
 			return nil
 		}
 		return err
@@ -177,14 +205,14 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	/* ==================================================
 	   Layer 2 VCMP + Guest configuration
 	   ================================================== */
-	if !deleteAll {
+	if !cleanupL2 {
 		// VCMP configuration
 		if err := a.EnsureL2(ctx, *endpoints[0].SegmentId, &serviceSegmentID); err != nil {
 			return err
 		}
 	}
 
-	// SelfIPs
+	// (Re-)Sync SelfIPs of all endpoints in the same segment
 	for _, ep := range endpoints {
 		ep := ep
 		if ep.Status != models.EndpointStatusPENDINGDELETE {
@@ -192,8 +220,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 			if len(ep.Port.FixedIPs) == 0 {
 				return fmt.Errorf("EnsureSelfIPs: no fixedIPs found for EP port %s", ep.Port.ID)
 			}
-			subnetID := ep.Port.FixedIPs[0].SubnetID
-			if err := a.EnsureSelfIPs(*ep.SegmentId, subnetID, false); err != nil {
+			if err := a.EnsureSelfIPs(subnetID, false); err != nil {
 				return err
 			}
 		}
@@ -215,45 +242,18 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	   Layer 2 VCMP + Guest cleanup
 	   ================================================== */
 	// 2. Delete lower L2 configuration if all endpoints of a segments are deleted
-	if deleteAll {
-		logWith := log.WithFields(log.Fields{"endpoint": endpointID, "network": endpoints[0].Port.NetworkID})
-
-		// Ensure L2 configuration is no longer needed
-		var skipCleanup bool
-		// check if other service uses the same segment
-		ct, err := tx.Exec(ctx, "SELECT 1 FROM service WHERE network_id = $1 AND status != 'PENDING_DELETE'",
-			networkID)
-		if err != nil {
+	logWith := log.WithFields(log.Fields{"endpoint": endpointID, "network": endpoints[0].Port.NetworkID})
+	if cleanupSelfIPs {
+		logWith.Info("ProcessEndpoint: Deleting SelfIPs")
+		if err := a.CleanupSelfIPs(subnetID); err != nil {
 			return err
 		}
-		if ct.RowsAffected() > 0 {
-			skipCleanup = true
-			logWith.Debugf("ProcessEndpoint: Skipping CleanupL2 since it is still in use by other service(s)")
-		}
+	}
 
-		// Check if there are still endpoints using the same segment
-		ct, err = tx.Exec(ctx, "SELECT 1 FROM endpoint_port WHERE network = $1 AND endpoint_id != $2",
-			networkID, endpointID)
-		if err != nil {
-			return err
-		}
-		if ct.RowsAffected() > 0 {
-			skipCleanup = true
-			logWith.Debugf("ProcessEndpoint: Skipping CleanupL2 since it is still in use by other endpoint(s)")
-		}
-
-		if !skipCleanup {
-			logWith.Info("ProcessEndpoint: Deleting L2 configuration")
-			if len(endpoints) != 0 {
-				subnetID := endpoints[0].Port.FixedIPs[0].SubnetID
-				if err := a.CleanupSelfIPs(subnetID); err != nil {
-					return err
-				}
-			}
-
-			if err := a.CleanupL2(ctx, *endpoints[0].SegmentId); err != nil {
-				logWith.WithError(err).Error("ProcessEndpoint: CleanupL2")
-			}
+	if cleanupL2 {
+		logWith.Info("ProcessEndpoint: Deleting L2")
+		if err := a.CleanupL2(ctx, subnetID); err != nil {
+			logWith.WithError(err).Error("ProcessEndpoint: CleanupL2")
 		}
 	}
 

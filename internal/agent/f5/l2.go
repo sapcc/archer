@@ -69,8 +69,14 @@ func (a *Agent) EnsureL2(ctx context.Context, segmentID int, parentSegmentID *in
 }
 
 // CleanupL2 cleans up L2 configuration on BIG-IP(s) and VCMP(s) for the given segmentID.
-func (a *Agent) CleanupL2(ctx context.Context, segmentID int) error {
+func (a *Agent) CleanupL2(ctx context.Context, subnetID string) error {
 	g, _ := errgroup.WithContext(ctx)
+
+	segmentID, err := a.neutron.GetSubnetSegment(subnetID)
+	if err != nil {
+		return err
+	}
+
 	// Cleanup VCMP
 	g.Go(func() error {
 		for _, vcmp := range a.vcmps {
@@ -108,9 +114,14 @@ func (a *Agent) CleanupL2(ctx context.Context, segmentID int) error {
 // SelfIPs
 // --------------------------------------------------------------------------
 
-// EnsureSelfIPs ensures that a SelfIPs exists on the BIG-IP(s) for the given endpoint port.
-func (a *Agent) EnsureSelfIPs(segmentID int, subnetID string, dryRun bool) error {
+// EnsureSelfIPs ensures that a SelfIPs exists on the BIG-IP(s) for a given subnet.
+func (a *Agent) EnsureSelfIPs(subnetID string, dryRun bool) error {
 	neutronPorts, err := a.neutron.EnsureNeutronSelfIPs(a.getDeviceIDs(), subnetID, dryRun)
+	if err != nil {
+		return err
+	}
+
+	segmentID, err := a.neutron.GetSubnetSegment(subnetID)
 	if err != nil {
 		return err
 	}
