@@ -10,7 +10,7 @@ require (
 	github.com/didip/tollbooth/v7 v7.0.1
 	github.com/dre1080/recovr v1.0.3
 	github.com/f5devcentral/go-bigip v0.0.0-20240214135103-fd95be9ae1fb
-	github.com/georgysavva/scany/v2 v2.1.2
+	github.com/georgysavva/scany/v2 v2.1.3
 	github.com/getsentry/sentry-go v0.20.0
 	github.com/go-co-op/gocron v1.37.0
 	github.com/go-openapi/errors v0.22.0
