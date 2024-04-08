@@ -38,6 +38,11 @@ func (opts PortListOptsExt) ToPortListQuery() (string, error) {
 
 	params := q.Query()
 
+	// From ListOpts.FixedIPs
+	for _, _fixedIP := range opts.ListOptsBuilder.(ports.ListOpts).FixedIPs {
+		params.Add("fixed_ips", _fixedIP.String())
+	}
+
 	if opts.HostID != "" {
 		params.Add("binding:host_id", opts.HostID)
 	}
