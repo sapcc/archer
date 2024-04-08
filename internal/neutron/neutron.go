@@ -151,7 +151,7 @@ func (n *NeutronClient) AllocateNeutronEndpointPort(target *models.EndpointTarge
 	// allocate neutron port
 	port := portsbinding.CreateOptsExt{
 		CreateOptsBuilder: ports.CreateOpts{
-			Name:        fmt.Sprintf("endpoint-%s", endpoint.ServiceID),
+			Name:        fmt.Sprintf("endpoint-%s", endpoint.ID),
 			DeviceOwner: "network:archer",
 			DeviceID:    endpoint.ID.String(),
 			NetworkID:   target.Network.String(),
@@ -260,7 +260,7 @@ func (n *NeutronClient) EnsureNeutronSelfIPs(deviceIDs []string, subnetID string
 		"subnet":  subnetID,
 		"devices": deviceIDs,
 		"dry_run": dryRun,
-	}).Debug("EnsureNeutronSelfIP")
+	}).Debug("EnsureNeutronSelfIPs")
 	subnet, err := n.getSubnet(subnetID)
 	if err != nil {
 		return nil, err
@@ -279,6 +279,7 @@ func (n *NeutronClient) EnsureNeutronSelfIPs(deviceIDs []string, subnetID string
 	if err != nil {
 		return nil, err
 	}
+
 	neutronPorts, err := ports.ExtractPorts(pages)
 	if err != nil {
 		return nil, err

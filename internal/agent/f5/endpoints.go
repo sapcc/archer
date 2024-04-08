@@ -242,17 +242,27 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	   Layer 2 VCMP + Guest cleanup
 	   ================================================== */
 	// 2. Delete lower L2 configuration if all endpoints of a segments are deleted
-	logWith := log.WithFields(log.Fields{"endpoint": endpointID, "network": endpoints[0].Port.NetworkID})
+	logWith := log.WithField("endpoint", endpointID)
+
+	// Get segmentID for subnet before we delete SelfIPs, since they could be the last ports holding the segment
+	var segmentID int
+	if cleanupL2 {
+		segmentID, err = a.neutron.GetSubnetSegment(subnetID)
+		if err != nil {
+			return err
+		}
+	}
+
 	if cleanupSelfIPs {
-		logWith.Info("ProcessEndpoint: Deleting SelfIPs")
+		logWith.WithField("subnet", subnetID).Info("ProcessEndpoint: deleting SelfIPs")
 		if err := a.CleanupSelfIPs(subnetID); err != nil {
 			return err
 		}
 	}
 
 	if cleanupL2 {
-		logWith.Info("ProcessEndpoint: Deleting L2")
-		if err := a.CleanupL2(ctx, subnetID); err != nil {
+		logWith.WithField("network", endpoints[0].Port.NetworkID).Info("ProcessEndpoint: deleting L2")
+		if err := a.CleanupL2(ctx, segmentID); err != nil {
 			logWith.WithError(err).Error("ProcessEndpoint: CleanupL2")
 		}
 	}

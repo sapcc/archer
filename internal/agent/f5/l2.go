@@ -31,6 +31,12 @@ import (
 
 // EnsureL2 ensures that L2 configuration exists on BIG-IP(s) and VCMP(s) for the given segmentID.
 func (a *Agent) EnsureL2(ctx context.Context, segmentID int, parentSegmentID *int) error {
+	printSegementID := "nil"
+	if parentSegmentID != nil {
+		printSegementID = fmt.Sprint(*parentSegmentID)
+	}
+	log.WithFields(log.Fields{"segmentID": segmentID, "parentSegmentID": printSegementID}).Debug("EnsureL2")
+
 	g, _ := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		for _, vcmp := range a.vcmps {
@@ -69,17 +75,16 @@ func (a *Agent) EnsureL2(ctx context.Context, segmentID int, parentSegmentID *in
 }
 
 // CleanupL2 cleans up L2 configuration on BIG-IP(s) and VCMP(s) for the given segmentID.
-func (a *Agent) CleanupL2(ctx context.Context, subnetID string) error {
-	g, _ := errgroup.WithContext(ctx)
+func (a *Agent) CleanupL2(ctx context.Context, segmentID int) error {
+	logger := log.WithField("segmentID", segmentID)
+	logger.Debug("CleanupL2")
 
-	segmentID, err := a.neutron.GetSubnetSegment(subnetID)
-	if err != nil {
-		return err
-	}
+	g, _ := errgroup.WithContext(ctx)
 
 	// Cleanup VCMP
 	g.Go(func() error {
 		for _, vcmp := range a.vcmps {
+			logger.WithField("vcmp", vcmp.GetHostname()).Debug("CleanupL2: cleaning up VCMP L2 configuration")
 			if err := vcmp.CleanupGuestVlan(segmentID); err != nil {
 				return fmt.Errorf("CleanupGuestVlan: %s", err.Error())
 			}
@@ -93,6 +98,7 @@ func (a *Agent) CleanupL2(ctx context.Context, subnetID string) error {
 	// Cleanup Guest
 	g.Go(func() error {
 		for _, bigip := range a.bigips {
+			logger.WithField("bigip", bigip.GetHostname()).Debug("CleanupL2: cleaning up Guest L2 configuration")
 			if err := bigip.CleanupRouteDomain(segmentID); err != nil {
 				return fmt.Errorf("CleanupRouteDomain: device=%s %s", bigip.GetHostname(), err.Error())
 			}
@@ -116,6 +122,8 @@ func (a *Agent) CleanupL2(ctx context.Context, subnetID string) error {
 
 // EnsureSelfIPs ensures that a SelfIPs exists on the BIG-IP(s) for a given subnet.
 func (a *Agent) EnsureSelfIPs(subnetID string, dryRun bool) error {
+	log.WithFields(log.Fields{"subnetID": subnetID, "dryRun": dryRun}).Debug("EnsureSelfIPs")
+
 	neutronPorts, err := a.neutron.EnsureNeutronSelfIPs(a.getDeviceIDs(), subnetID, dryRun)
 	if err != nil {
 		return err
@@ -146,6 +154,8 @@ func (a *Agent) EnsureSelfIPs(subnetID string, dryRun bool) error {
 }
 
 func (a *Agent) CleanupSelfIPs(subnetID string) error {
+	log.WithField("subnetID", subnetID).Debug("Running CleanupSelfIPs")
+
 	// don't create new neutron selfip ports, just return existing ones
 	neutronPorts, err := a.neutron.EnsureNeutronSelfIPs(a.getDeviceIDs(), subnetID, true)
 	if err != nil {
@@ -158,17 +168,20 @@ func (a *Agent) CleanupSelfIPs(subnetID string) error {
 
 		if port, ok := neutronPorts[big.GetHostname()]; ok {
 			name := fmt.Sprint("selfip-", port.ID)
-			if err := big.CleanupSelfIP(name); err != nil {
+			logger := log.WithFields(log.Fields{"name": name, "device": big.GetHostname()})
+			logger.Debug("CleanupSelfIPs: deleting SelfIP on device")
+			if err = big.CleanupSelfIP(name); err != nil {
 				if !strings.Contains(err.Error(), "was not found") {
 					return err
 				}
-				log.WithField("name", name).Warning("BigIP SelfIP cleanup: selfip not found, skipping")
+				logger.Warning("BigIP SelfIP cleanup: selfip not found, skipping")
 			}
 		}
 	}
 
 	// finally delete from neutron
 	for _, port := range neutronPorts {
+		log.WithField("id", port.ID).Debug("CleanupSelfIPs: deleting neutron port")
 		if err := a.neutron.DeletePort(port.ID); err != nil {
 			var errDefault404 gophercloud.ErrDefault404
 			if !errors.As(err, &errDefault404) {
@@ -194,17 +207,20 @@ func (a *Agent) CleanupSNATPorts(networkID string) error {
 
 		if port, ok := ports[big.GetHostname()]; ok {
 			name := fmt.Sprint("snat-", port.ID)
-			if err := big.CleanupSelfIP(name); err != nil {
+			logger := log.WithFields(log.Fields{"name": name, "device": big.GetHostname()})
+			logger.Debug("CleanupSNATPorts: deleting SNAT port on device")
+			if err = big.CleanupSelfIP(name); err != nil {
 				if !strings.Contains(err.Error(), "was not found") {
 					return err
 				}
-				log.WithField("name", name).Warning("CleanupSNATPorts: SelfIP not found, skipping")
+				logger.Warning("CleanupSNATPorts: SelfIP not found on device, skipping")
 			}
 		}
 	}
 
 	// finally delete from neutron
 	for _, port := range ports {
+		log.WithField("id", port.ID).Debug("CleanupSNATPorts: deleting SNAT neutron port")
 		if err := a.neutron.DeletePort(port.ID); err != nil {
 			var errDefault404 gophercloud.ErrDefault404
 			if !errors.As(err, &errDefault404) {
