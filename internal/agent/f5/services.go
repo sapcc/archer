@@ -122,6 +122,7 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 		   ================================================== */
 		for _, service := range services {
 			if service.Status == "PENDING_DELETE" {
+				logWith := log.WithField("service", service.ID)
 				service := service
 
 				err, cleanupL2 := checkCleanupL2(ctx, tx, service.NetworkID.String(),
@@ -135,7 +136,18 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 					return err
 				}
 
+				// Get segmentID for subnet before we delete SelfIPs, since they could be the last ports holding the
+				// segment
+				var segmentID int
+				if cleanupL2 {
+					segmentID, err = a.neutron.GetSubnetSegment(service.SubnetID)
+					if err != nil {
+						return err
+					}
+				}
+
 				if cleanupSelfIPs {
+					logWith.WithField("subnet", service.SubnetID).Info("ProcessServices: deleting SelfIPs")
 					if err := a.CleanupSelfIPs(service.SubnetID); err != nil {
 						return err
 					}
@@ -147,7 +159,8 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 				}
 
 				if cleanupL2 {
-					if err := a.CleanupL2(ctx, service.SubnetID); err != nil {
+					logWith.WithField("network", service.NetworkID).Info("ProcessServices: deleting L2.")
+					if err := a.CleanupL2(ctx, segmentID); err != nil {
 						log.
 							WithFields(log.Fields{"service": service.ID, "vlan": service.SegmentId}).
 							WithError(err).Error("CleanupL2")
