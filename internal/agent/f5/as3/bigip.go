@@ -215,18 +215,28 @@ func GetBigIPSession(rawURL string) (*BigIP, error) {
 		return nil, err
 	}
 
+	// check for user
+	user := parsedURL.User.Username()
+	if user == "" {
+		var ok bool
+		user, ok = os.LookupEnv("BIGIP_USER")
+		if !ok {
+			return nil, fmt.Errorf("BIGIP_USER required for host '%s'", parsedURL.Hostname())
+		}
+	}
+
 	// check for password
 	pw, ok := parsedURL.User.Password()
 	if !ok {
 		pw, ok = os.LookupEnv("BIGIP_PASSWORD")
 		if !ok {
-			return nil, fmt.Errorf("password required for host '%s'", parsedURL.Hostname())
+			return nil, fmt.Errorf("BIGIP_PASSWORD required for host '%s'", parsedURL.Hostname())
 		}
 	}
 
 	session := bigip.NewSession(&bigip.Config{
 		Address:           parsedURL.Host,
-		Username:          parsedURL.User.Username(),
+		Username:          user,
 		Password:          pw,
 		LoginReference:    "tmos",
 		CertVerifyDisable: !config.Global.Agent.ValidateCert,
