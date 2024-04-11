@@ -191,7 +191,8 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		err := a.populateEndpointPorts(endpoints)
 		if err != nil && cleanupL2 {
 			// ignore missing ports if all endpoints are about to be deleted, print warning instead
-			log.WithError(err).Warning("Ignoring missing ports for endpoint(s)")
+			log.WithError(err).
+				Warning("Ignoring missing ports for endpoint(s) since endpoints are about to be deleted.")
 			return nil
 		}
 		return err
@@ -261,7 +262,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	}
 
 	if cleanupL2 {
-		logWith.WithField("network", endpoints[0].Port.NetworkID).Info("ProcessEndpoint: deleting L2")
+		logWith.WithField("network", networkID).Info("ProcessEndpoint: deleting L2")
 		if err := a.CleanupL2(ctx, segmentID); err != nil {
 			logWith.WithError(err).Error("ProcessEndpoint: CleanupL2")
 		}
