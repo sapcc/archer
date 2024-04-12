@@ -244,8 +244,8 @@ github.com/rs/cors v1.10.1/go.mod h1:XyqrcTp5zjWr1wsJ8PIRZssZ8b/WMcMf71DJnit4EMU
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/sapcc/go-api-declarations v1.10.11 h1:fxPTNfsriHX/a/eZo/9ugrGyS3oxh5z0xOTJkGmGUlQ=
 github.com/sapcc/go-api-declarations v1.10.11/go.mod h1:83R3hTANhuRXt/pXDby37IJetw8l7DG41s33Tp9NXxI=
-github.com/sapcc/go-bits v0.0.0-20240412085452-b302448551d5 h1:Tl7ewy8+/jTviwxz8LXdN4gQqzqhRiZ+0N3PJqfPB0Q=
-github.com/sapcc/go-bits v0.0.0-20240412085452-b302448551d5/go.mod h1:7ejtcgmK6MNAVVCeUUC0R8E8Y5ltDB7/vpSrok291DY=
+github.com/sapcc/go-bits v0.0.0-20240412131404-c19f29da6dd1 h1:oepUvAvV7B1eXphVQhdSyeoaro5/nweeLIHCcLC7wT0=
+github.com/sapcc/go-bits v0.0.0-20240412131404-c19f29da6dd1/go.mod h1:7ejtcgmK6MNAVVCeUUC0R8E8Y5ltDB7/vpSrok291DY=
 github.com/sergi/go-diff v1.3.1 h1:xkr+Oxo4BOQKmkn/B9eMK0g5Kg/983T9DqqPHwYqD+8=
 github.com/sergi/go-diff v1.3.1/go.mod h1:aMJSSKb2lpPvRNec0+w3fl7LP9IOFzdc9Pa4NFbPK1I=
 github.com/sethvargo/go-retry v0.2.4 h1:T+jHEQy/zKJf5s95UkguisicE0zuF9y7+/vgz08Ocec=
