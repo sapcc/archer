@@ -18,12 +18,15 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/f5devcentral/go-bigip"
 	fake "github.com/gophercloud/gophercloud/openstack/networking/v2/common"
 	th "github.com/gophercloud/gophercloud/testhelper"
 	"github.com/gophercloud/gophercloud/testhelper/fixture"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/pashagolub/pgxmock/v3"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/sapcc/archer/internal/agent/f5/as3"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/neutron"
 )
@@ -65,18 +68,24 @@ func TestAgent_TestGetUsedSegments(t *testing.T) {
 		neutron: &neutronClient,
 	}
 
-	sql := `SELECT s.network_id, COALESCE(ep.segment_id, 0) FROM service s LEFT JOIN endpoint e ON s.id = e.service_id LEFT JOIN endpoint_port ep ON ep.endpoint_id = e.id WHERE s.host = $1 AND s.provider = 'tenant'`
+	var segementID pgtype.Int4
+	_ = segementID.Scan(int64(123))
+	var epNetworkID pgtype.UUID
+	_ = epNetworkID.Scan(someOtherNetwork)
+
+	sql := `SELECT s.network_id, ep.segment_id, ep.network FROM service s LEFT JOIN endpoint e ON s.id = e.service_id LEFT JOIN endpoint_port ep ON ep.endpoint_id = e.id WHERE s.host = $1 AND s.provider = 'tenant'`
 	dbMock.
 		ExpectQuery(sql).
 		WithArgs("host-123").
-		WillReturnRows(pgxmock.NewRows([]string{"network_id", "segment_id"}).
-			AddRow(serviceNetwork, 123).
-			AddRow(someOtherNetwork, 0))
+		WillReturnRows(pgxmock.NewRows([]string{"network_id", "segment_id", "network"}).
+			AddRow(serviceNetwork, segementID, epNetworkID).
+			AddRow(someOtherNetwork, nil, nil))
 
 	// run the test function
-	var usedSegments map[int]struct{}
+	var usedSegments map[int]string
 	usedSegments, err = a.getUsedSegments()
-	assert.EqualValues(t, map[int]struct{}{123: {}, 666: {}}, usedSegments)
+	assert.Nil(t, err)
+	assert.EqualValues(t, map[int]string{123: someOtherNetwork, 666: serviceNetwork}, usedSegments)
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
@@ -124,8 +133,54 @@ func TestAgent_TestCleanOrphanedNeutronPorts(t *testing.T) {
 	a := &Agent{neutron: &neutronClient}
 
 	// run the test function
-	usedSegments := map[int]struct{}{
-		123: {},
+	usedSegments := map[int]string{
+		123: "b0b0b0b0-b0b0-4b0b-8b0b-0b0b0b0b0b0b",
 	}
 	assert.Nil(t, a.cleanOrphanedNeutronPorts(usedSegments))
+}
+
+func TestAgent_TestCleanupOrphanedTenants(t *testing.T) {
+	bigIPMock := as3.NewMockBigIPIface(t)
+	// we don't have the selfip yet, let it create it
+	bigIPMock.EXPECT().
+		TMPartitions().
+		Return(&bigip.TMPartitions{
+			TMPartitions: []*bigip.TMPartition{
+				{Name: "Common"},
+				{Name: "net-4f891be2-c32f-4356-81c4-056b6101463a"},
+				{Name: "something-manual-don't-touch-me"},
+				{Name: "net-delete-me"},
+			},
+		}, nil)
+
+	const expectAS3 = `{
+  "persist": false,
+  "class": "AS3",
+  "action": "deploy",
+  "declaration": {
+    "class": "ADC",
+    "id": "urn:uuid:07649173-4AF7-48DF-963F-84000C70F0DD",
+    "net-delete-me": {
+      "class": "Tenant"
+    },
+    "schemaVersion": "3.36.0",
+    "updateMode": "selective"
+  }
+}`
+
+	bigIPMock.EXPECT().
+		PostAs3Bigip(expectAS3, "net-delete-me").
+		Return(nil, "blub", "bla")
+	// initialize agent
+	a := &Agent{
+		bigip:  &as3.BigIP{Host: "dummybigiphost", BigIPIface: bigIPMock},
+		bigips: []*as3.BigIP{{Host: "dummybigiphost", BigIPIface: bigIPMock}},
+	}
+
+	// run the test function
+	usedSegments := map[int]string{
+		123: "4f891be2-c32f-4356-81c4-056b6101463a",
+		666: "3ac03bd0-477d-4aa9-85f9-c1a95ca3a962",
+	}
+	assert.Nil(t, a.cleanupOrphanedTenants(usedSegments))
 }

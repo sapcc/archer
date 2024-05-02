@@ -435,7 +435,7 @@ func (b *BigIP) CleanupGuestVlan(segmentId int) error {
 	return errors.ErrNoVCMPFound
 }
 
-func (b *BigIP) SyncGuestVLANs(usedSegments map[int]struct{}) error {
+func (b *BigIP) SyncGuestVLANs(usedSegments map[int]string) error {
 	guests, err := b.GetVCMPGuests()
 	if err != nil {
 		return err
