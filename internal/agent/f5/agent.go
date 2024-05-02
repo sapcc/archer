@@ -16,12 +16,15 @@ package f5
 
 import (
 	"context"
+	"fmt"
 	"net/http"
-	"time"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/IBM/pgxpoolprometheus"
 	sq "github.com/Masterminds/squirrel"
-	"github.com/go-co-op/gocron"
+	"github.com/go-co-op/gocron/v2"
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/utils/openstack/clientconfig"
 	"github.com/jackc/pgx/v5"
@@ -38,16 +41,20 @@ import (
 )
 
 type Agent struct {
-	jobQueue *common.JobChan
-	pool     db.PgxIface // thread safe
-	neutron  *neutron.NeutronClient
-	bigips   []*as3.BigIP
-	vcmps    []*as3.BigIP
-	bigip    *as3.BigIP // active target
+	scheduler gocron.Scheduler
+	pool      db.PgxIface // thread safe
+	neutron   *neutron.NeutronClient
+	bigips    []*as3.BigIP
+	vcmps     []*as3.BigIP
+	bigip     *as3.BigIP // active target
 }
 
-func (a *Agent) GetJobQueue() *common.JobChan {
-	return a.jobQueue
+func (a *Agent) GetScheduler() gocron.Scheduler {
+	return a.scheduler
+}
+
+func (a *Agent) GetPool() db.PgxIface {
+	return a.pool
 }
 
 func NewAgent() *Agent {
@@ -55,8 +62,7 @@ func NewAgent() *Agent {
 	common.InitalizePrometheus()
 
 	agent := new(Agent)
-	jobQueue := make(common.JobChan, 100)
-	agent.jobQueue = &jobQueue
+	agent.scheduler = common.NewScheduler()
 
 	// Connect to database
 	connConfig, err := pgxpool.ParseConfig(config.Global.Database.Connection)
@@ -122,33 +128,51 @@ func NewAgent() *Agent {
 }
 
 func (a *Agent) Run() {
-	go common.WorkerThread(context.Background(), a)
-	go common.DBNotificationThread(context.Background(), a.pool, a.jobQueue)
+	go common.DBNotificationThread(context.Background(), a)
 	go common.PrometheusListenerThread()
+	a.scheduler.Start()
 
-	s := gocron.NewScheduler(time.UTC).SingletonMode()
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	done := make(chan bool, 1)
+	go func() {
+		sig := <-sigs
+		fmt.Println()
+		fmt.Println(sig)
+		done <- true
+	}()
+
 	// sync pending services
-	if _, err := s.
-		Every(config.Global.Agent.PendingSyncInterval).
-		DoWithJobDetails(a.PendingSyncLoop); err != nil {
+	if _, err := a.scheduler.NewJob(
+		gocron.DurationJob(config.Global.Agent.PendingSyncInterval),
+		gocron.NewTask(a.PendingSyncLoop),
+	); err != nil {
 		log.Fatal(err)
 	}
-	if _, err := s.Every(24).Hours().Do(a.cleanupL2); err != nil {
-		log.WithField("cron", "cleanupL2").Error(err)
+
+	if _, err := a.scheduler.NewJob(
+		gocron.DailyJob(1, gocron.NewAtTimes(
+			gocron.NewAtTime(0, 0, 0)),
+		),
+		gocron.NewTask(a.cleanupL2),
+	); err != nil {
+		log.Fatal(err)
 	}
-	s.StartBlocking()
+
+	// block until done
+	log.Infof("Agent running...")
+	<-done
+	if err := a.scheduler.Shutdown(); err != nil {
+		log.Fatal(err)
+	}
 }
 
-func (a *Agent) PendingSyncLoop(job gocron.Job) error {
+func (a *Agent) PendingSyncLoop() error {
 	var id strfmt.UUID
 	var rows pgx.Rows
 	var ret pgconn.CommandTag
 	var err error
 
-	log.WithFields(log.Fields{
-		"run_count": job.RunCount(),
-		"next_run":  time.Until(job.NextRun()),
-	}).Debugf("pending sync loop")
 	sql, args := db.Select("1").
 		From("service").
 		Where("provider = 'tenant'").
@@ -161,7 +185,10 @@ func (a *Agent) PendingSyncLoop(job gocron.Job) error {
 	}
 
 	if ret.RowsAffected() > 0 {
-		if err := a.jobQueue.Enqueue("service", ""); err != nil {
+		if _, err := a.scheduler.NewJob(
+			gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
+			gocron.NewTask(a.ProcessServices(context.Background())),
+		); err != nil {
 			return err
 		}
 	}
@@ -184,7 +211,10 @@ func (a *Agent) PendingSyncLoop(job gocron.Job) error {
 		return err
 	}
 	if _, err = pgx.ForEachRow(rows, []any{&id}, func() error {
-		if err := a.jobQueue.Enqueue("endpoint", id); err != nil {
+		if _, err := a.scheduler.NewJob(
+			gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
+			gocron.NewTask(a.ProcessEndpoint(context.Background(), id)),
+		); err != nil {
 			return err
 		}
 		return nil
