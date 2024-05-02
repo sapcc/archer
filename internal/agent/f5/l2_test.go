@@ -69,12 +69,11 @@ func TestAgent_EnsureSelfIPs_Create(t *testing.T) {
 		Return(nil)
 
 	a := &Agent{
-		jobQueue: nil,
-		pool:     dbMock,
-		neutron:  &neutronClient,
-		bigips:   []*as3.BigIP{{Host: "dummybigiphost", BigIPIface: bigIPMock}},
-		vcmps:    []*as3.BigIP{},
-		bigip:    &as3.BigIP{Host: "dummybigiphost", BigIPIface: bigIPMock},
+		pool:    dbMock,
+		neutron: &neutronClient,
+		bigips:  []*as3.BigIP{{Host: "dummybigiphost", BigIPIface: bigIPMock}},
+		vcmps:   []*as3.BigIP{},
+		bigip:   &as3.BigIP{Host: "dummybigiphost", BigIPIface: bigIPMock},
 	}
 
 	subnetID := "e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e"
@@ -117,12 +116,11 @@ func TestAgent_EnsureSelfIPs_NoOp(t *testing.T) {
 		}, nil)
 
 	a := &Agent{
-		jobQueue: nil,
-		pool:     dbMock,
-		neutron:  &neutronClient,
-		bigips:   []*as3.BigIP{{Host: "dummybigiphost", BigIPIface: bigIPMock}},
-		vcmps:    []*as3.BigIP{},
-		bigip:    &as3.BigIP{Host: "dummybigiphost", BigIPIface: bigIPMock},
+		pool:    dbMock,
+		neutron: &neutronClient,
+		bigips:  []*as3.BigIP{{Host: "dummybigiphost", BigIPIface: bigIPMock}},
+		vcmps:   []*as3.BigIP{},
+		bigip:   &as3.BigIP{Host: "dummybigiphost", BigIPIface: bigIPMock},
 	}
 
 	subnetID := "e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e"
@@ -164,12 +162,11 @@ func TestAgent_CleanupSelfIPs(t *testing.T) {
 		Return(nil)
 
 	a := &Agent{
-		jobQueue: nil,
-		pool:     dbMock,
-		neutron:  &neutronClient,
-		bigips:   []*as3.BigIP{{Host: "dummybigiphost", BigIPIface: bigIPMock}},
-		vcmps:    []*as3.BigIP{},
-		bigip:    &as3.BigIP{Host: "dummybigiphost", BigIPIface: bigIPMock},
+		pool:    dbMock,
+		neutron: &neutronClient,
+		bigips:  []*as3.BigIP{{Host: "dummybigiphost", BigIPIface: bigIPMock}},
+		vcmps:   []*as3.BigIP{},
+		bigip:   &as3.BigIP{Host: "dummybigiphost", BigIPIface: bigIPMock},
 	}
 
 	// Port should be deleted

@@ -16,7 +16,10 @@ package agent
 
 import (
 	"net/http"
+	"time"
 
+	"github.com/go-co-op/gocron/v2"
+	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -24,16 +27,44 @@ import (
 	"github.com/sapcc/archer/internal/config"
 )
 
-var (
-	processJobCount = prometheus.NewCounterVec(prometheus.CounterOpts{
+type PrometheusMonitor struct {
+	processJobCount *prometheus.CounterVec
+	jobTiming       *prometheus.HistogramVec
+}
+
+func NewPrometheusMonitor() *PrometheusMonitor {
+	processJobCount := prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "archer_job_processed",
 		Help: "The total number of processed jobs",
-	}, []string{"model", "outcome"})
-)
+	}, []string{"name", "outcome", "id"})
+	jobTiming := prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "archer_job_timing",
+		Help:    "The time taken to process a job",
+		Buckets: prometheus.ExponentialBuckets(0.1, 2, 14),
+	}, []string{"name", "id"})
 
-func InitalizePrometheus() {
-	prometheus.DefaultRegisterer.MustRegister(processJobCount)
-	processJobCount.WithLabelValues("service", "unknown").Add(0)
+	prometheus.DefaultRegisterer.MustRegister(processJobCount, jobTiming)
+
+	return &PrometheusMonitor{
+		processJobCount: processJobCount,
+		jobTiming:       jobTiming,
+	}
+}
+
+func (p PrometheusMonitor) IncrementJob(_ uuid.UUID, name string, tags []string, status gocron.JobStatus) {
+	labels := prometheus.Labels{"name": name, "outcome": string(status), "id": ""}
+	if len(tags) == 1 {
+		labels["id"] = tags[0]
+	}
+	p.processJobCount.With(labels).Inc()
+}
+
+func (p PrometheusMonitor) RecordJobTiming(startTime, endTime time.Time, _ uuid.UUID, name string, tags []string) {
+	labels := prometheus.Labels{"name": name, "id": ""}
+	if len(tags) == 1 {
+		labels["id"] = tags[0]
+	}
+	p.jobTiming.With(labels).Observe(endTime.Sub(startTime).Seconds())
 }
 
 func PrometheusListenerThread() {

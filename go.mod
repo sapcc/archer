@@ -12,7 +12,6 @@ require (
 	github.com/f5devcentral/go-bigip v0.0.0-20240614094559-88a99e648815
 	github.com/georgysavva/scany/v2 v2.1.3
 	github.com/getsentry/sentry-go v0.20.0
-	github.com/go-co-op/gocron v1.37.0
 	github.com/go-co-op/gocron/v2 v2.4.0
 	github.com/go-openapi/errors v0.22.0
 	github.com/go-openapi/loads v0.22.0
@@ -21,6 +20,7 @@ require (
 	github.com/go-openapi/strfmt v0.23.0
 	github.com/go-openapi/swag v0.23.0
 	github.com/go-openapi/validate v0.24.0
+	github.com/google/uuid v1.6.0
 	github.com/gophercloud/gophercloud/v2 v2.0.0
 	github.com/gophercloud/utils/v2 v2.0.0-20240705071316-780b64d153e3
 	github.com/hashicorp/go-uuid v1.0.3
@@ -64,10 +64,10 @@ require (
 	github.com/gobuffalo/packr/v2 v2.8.0 // indirect
 	github.com/gocarina/gocsv v0.0.0-20210516172204-ca9e8a8ddea8 // indirect
 	github.com/gofrs/uuid/v5 v5.2.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20231201235250-de7065d80cb9 // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
+	github.com/jonboulle/clockwork v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/karrick/godirwalk v1.15.3 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
@@ -96,8 +96,8 @@ require (
 	go.opentelemetry.io/otel v1.24.0 // indirect
 	go.opentelemetry.io/otel/metric v1.24.0 // indirect
 	go.opentelemetry.io/otel/trace v1.24.0 // indirect
-	go.uber.org/atomic v1.11.0 // indirect
 	golang.org/x/crypto v0.25.0 // indirect
+	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f // indirect
 	golang.org/x/sys v0.22.0 // indirect
 	golang.org/x/term v0.22.0 // indirect
 	golang.org/x/text v0.16.0 // indirect

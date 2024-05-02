@@ -16,12 +16,16 @@ package ni
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/IBM/pgxpoolprometheus"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/v2/pgxscan"
-	"github.com/go-co-op/gocron"
+	"github.com/go-co-op/gocron/v2"
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/jackc/pgx/v5"
@@ -35,24 +39,26 @@ import (
 )
 
 type Agent struct {
-	jobQueue  *common.JobChan
+	scheduler gocron.Scheduler
 	pool      *pgxpool.Pool // thread safe
 	neutron   *gophercloud.ServiceClient
 	haproxy   *HAProxyController
 	serviceID strfmt.UUID
 }
 
-func (a *Agent) GetJobQueue() *common.JobChan {
-	return a.jobQueue
+func (a *Agent) GetScheduler() gocron.Scheduler {
+	return a.scheduler
+}
+
+func (a *Agent) GetPool() db.PgxIface {
+	return a.pool
 }
 
 func NewAgent() *Agent {
 	config.ResolveHost()
-	common.InitalizePrometheus()
 
 	agent := new(Agent)
-	jobQueue := make(common.JobChan, 100)
-	agent.jobQueue = &jobQueue
+	agent.scheduler = common.NewScheduler()
 
 	// Connect to database
 	connConfig, err := pgxpool.ParseConfig(config.Global.Database.Connection)
@@ -90,22 +96,48 @@ func NewAgent() *Agent {
 }
 
 func (a *Agent) Run() {
-	go common.WorkerThread(context.Background(), a)
-	go common.DBNotificationThread(context.Background(), a.pool, a.jobQueue)
+	go common.DBNotificationThread(context.Background(), a)
 	go common.PrometheusListenerThread()
 
-	s := gocron.NewScheduler(time.UTC).SingletonMode()
-	// sync pending services
-	if _, err := s.
-		Every(config.Global.Agent.PendingSyncInterval).
-		DoWithJobDetails(a.PendingSyncLoop); err != nil {
-		log.Fatal(err.Error())
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	done := make(chan bool, 1)
+	go func() {
+		sig := <-sigs
+		fmt.Println()
+		fmt.Println(sig)
+		done <- true
+	}()
+
+	// sync immediately
+	if err := a.PendingSyncLoop(context.Background(), true); err != nil {
+		log.Fatal(err)
 	}
+
+	// background job for pending services
+	if _, err := a.scheduler.NewJob(
+		gocron.DurationJob(config.Global.Agent.PendingSyncInterval),
+		gocron.NewTask(a.PendingSyncLoop, context.Background(), false),
+		gocron.WithName("PendingSyncLoop"),
+	); err != nil {
+		log.Fatal(err)
+	}
+
 	// collect metrics
-	if _, err := s.Every(1).Minute().Do(a.CollectStats); err != nil {
-		log.Fatal(err.Error())
+	if _, err := a.scheduler.NewJob(
+		gocron.DurationJob(1*time.Minute),
+		gocron.NewTask(a.CollectStats),
+		gocron.WithName("CollectStats"),
+	); err != nil {
+		log.Fatal(err)
 	}
-	s.StartBlocking()
+
+	// block until done
+	log.Infof("Agent running...")
+	<-done
+	if err := a.scheduler.Shutdown(); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func (a *Agent) ProcessServices(ctx context.Context) error {
@@ -188,16 +220,12 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
 	})
 }
 
-func (a *Agent) PendingSyncLoop(job gocron.Job) error {
-	log.WithFields(log.Fields{
-		"run_count": job.RunCount(),
-		"next_run":  time.Until(job.NextRun()),
-	}).Debugf("pending sync loop")
+func (a *Agent) PendingSyncLoop(ctx context.Context, syncAll bool) error {
 	q := db.Select("id").
 		From("endpoint").
 		Where("service_id = ?", a.serviceID)
 
-	if job.RunCount() == 1 {
+	if syncAll {
 		// initial run, sync everything
 		q = q.Where("status != 'REJECTED'")
 	} else {
@@ -207,12 +235,17 @@ func (a *Agent) PendingSyncLoop(job gocron.Job) error {
 
 	var id strfmt.UUID
 	sql, args := q.MustSql()
-	rows, err := a.pool.Query(job.Context(), sql, args...)
+	rows, err := a.pool.Query(ctx, sql, args...)
 	if err != nil {
 		return err
 	}
 	_, err = pgx.ForEachRow(rows, []any{&id}, func() error {
-		if err = a.jobQueue.Enqueue("endpoint", id); err != nil {
+		if _, err := a.scheduler.NewJob(
+			gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
+			gocron.NewTask(a.ProcessEndpoint(context.Background(), id)),
+			gocron.WithName("ProcessEndpoint"),
+			gocron.WithTags(id.String()),
+		); err != nil {
 			return err
 		}
 		return nil

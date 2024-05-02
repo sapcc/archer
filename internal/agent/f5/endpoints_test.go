@@ -231,12 +231,11 @@ func TestAgent_ProcessEndpoint(t *testing.T) {
 	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient()}
 	neutronClient.InitCache()
 	a := &Agent{
-		jobQueue: nil,
-		pool:     dbMock,
-		neutron:  &neutronClient,
-		bigips:   []*as3.BigIP{{Host: "dummybigiphost", BigIPIface: bigiphost}},
-		vcmps:    []*as3.BigIP{},
-		bigip:    &as3.BigIP{Host: "dummybigiphost", BigIPIface: bigiphost},
+		pool:    dbMock,
+		neutron: &neutronClient,
+		bigips:  []*as3.BigIP{{Host: "dummybigiphost", BigIPIface: bigiphost}},
+		vcmps:   []*as3.BigIP{},
+		bigip:   &as3.BigIP{Host: "dummybigiphost", BigIPIface: bigiphost},
 	}
 	dbMock.
 		ExpectBegin()
@@ -294,12 +293,11 @@ func TestAgent_DeleteEndpointWithDeletedNetwork(t *testing.T) {
 	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient()}
 	neutronClient.InitCache()
 	a := &Agent{
-		jobQueue: nil,
-		pool:     dbMock,
-		neutron:  &neutronClient,
-		bigips:   []*as3.BigIP{{Host: "dummybigiphost", BigIPIface: bigiphost}},
-		vcmps:    []*as3.BigIP{},
-		bigip:    &as3.BigIP{Host: "dummybigiphost", BigIPIface: bigiphost},
+		pool:    dbMock,
+		neutron: &neutronClient,
+		bigips:  []*as3.BigIP{{Host: "dummybigiphost", BigIPIface: bigiphost}},
+		vcmps:   []*as3.BigIP{},
+		bigip:   &as3.BigIP{Host: "dummybigiphost", BigIPIface: bigiphost},
 	}
 
 	dbMock.

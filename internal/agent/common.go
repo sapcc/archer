@@ -16,10 +16,10 @@ package agent
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/go-co-op/gocron/v2"
 	"github.com/go-openapi/strfmt"
 	"github.com/jackc/pgx/v5/pgconn"
 	log "github.com/sirupsen/logrus"
@@ -46,63 +46,28 @@ func RegisterAgent(pool db.PgxIface, provider string) {
 	}
 }
 
-type job struct {
-	model string
-	id    strfmt.UUID
-}
-
-type JobChan chan job
-
-func (j *JobChan) Enqueue(model string, id strfmt.UUID) error {
-	job := job{model: model, id: id}
-	select {
-	case *j <- job:
-		log.WithField("job", job).Debug("Job enqueued")
-		return nil
-	default:
-		return fmt.Errorf("failed to enque %v", j)
-	}
-}
-
-func (j *JobChan) Dequeue() (string, strfmt.UUID) {
-	job := <-*j
-	log.WithField("job", job).Debug("Job dequeued")
-	return job.model, job.id
-}
-
 type Worker interface {
 	ProcessServices(context.Context) error
 	ProcessEndpoint(context.Context, strfmt.UUID) error
-	GetJobQueue() *JobChan
+	GetPool() db.PgxIface
+	GetScheduler() gocron.Scheduler
 }
 
-func WorkerThread(ctx context.Context, w Worker) {
-	for job := range *w.GetJobQueue() {
-		var err error
-		log.WithField("job", job).Debug("Message received")
-
-		switch job.model {
-		case "service":
-			if err = w.ProcessServices(ctx); err != nil {
-				log.WithError(err).Error("Failed processing service")
-			}
-		case "endpoint":
-			if err = w.ProcessEndpoint(ctx, job.id); err != nil {
-				log.WithError(err).WithField("id", job.id).Error("Failed processing endpoint")
-			}
-		}
-
-		outcome := "success"
-		if err != nil {
-			outcome = "failure"
-		}
-		processJobCount.WithLabelValues(job.model, outcome).Inc()
+func NewScheduler() gocron.Scheduler {
+	scheduler, err := gocron.NewScheduler(
+		gocron.WithLimitConcurrentJobs(1, gocron.LimitModeReschedule),
+		gocron.WithLogger(NewGoCronLogger()),
+		gocron.WithMonitor(NewPrometheusMonitor()),
+	)
+	if err != nil {
+		log.Fatal(err)
 	}
+	return scheduler
 }
 
-func DBNotificationThread(ctx context.Context, pool db.PgxIface, jobQueue *JobChan) {
+func DBNotificationThread(ctx context.Context, w Worker) {
 	// Acquire one Connection for listen events
-	conn, err := pool.Acquire(ctx)
+	conn, err := w.GetPool().Acquire(ctx)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -138,8 +103,29 @@ func DBNotificationThread(ctx context.Context, pool db.PgxIface, jobQueue *JobCh
 			id = strfmt.UUID(s[1])
 		}
 
-		if err := jobQueue.Enqueue(notification.Channel, id); err != nil {
-			log.Error(err.Error())
+		scheduler := w.GetScheduler()
+		switch notification.Channel {
+		case "service":
+			if _, err := scheduler.NewJob(
+				gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
+				gocron.NewTask(w.ProcessServices, ctx),
+				gocron.WithName("ProcessServices"),
+			); nil != err {
+				log.WithError(err).Error("failed enqueueing ProcessServices job")
+			}
+		case "endpoint":
+			if id == "" {
+				log.Error("Received endpoint notification without ID")
+				continue
+			}
+			if _, err := scheduler.NewJob(
+				gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
+				gocron.NewTask(w.ProcessEndpoint, ctx, id),
+				gocron.WithName("ProcessEndpoint"),
+				gocron.WithTags(id.String()),
+			); nil != err {
+				log.WithError(err).WithField("id", id).Error("failed enqueueing ProcessEndpoint job")
+			}
 		}
 	}
 }
