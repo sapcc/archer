@@ -18,10 +18,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud"
+	"github.com/jackc/pgx/v5/pgtype"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/sapcc/archer/internal/agent/f5/as3"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
 )
@@ -35,6 +39,10 @@ func (a *Agent) cleanupL2() error {
 	usedSegments, err := a.getUsedSegments()
 	if err != nil {
 		return err
+	}
+	if err := a.cleanupOrphanedTenants(usedSegments); err != nil {
+		log.WithError(err).Error("cleanupOrphanedTenants")
+		// continue
 	}
 	if err := a.cleanOrphanedRDs(usedSegments); err != nil {
 		log.WithError(err).Error("cleanOrphanedRDs")
@@ -95,8 +103,8 @@ func (a *Agent) cleanOrphanSelfIPs() error {
 	return nil
 }
 
-func (a *Agent) getUsedSegments() (map[int]struct{}, error) {
-	sql, args := db.Select("s.network_id", "COALESCE(ep.segment_id, 0)").
+func (a *Agent) getUsedSegments() (map[int]string, error) {
+	sql, args := db.Select("s.network_id", "ep.segment_id", "ep.network").
 		LeftJoin("endpoint e ON s.id = e.service_id").
 		LeftJoin("endpoint_port ep ON ep.endpoint_id = e.id").
 		From("service s").
@@ -110,29 +118,34 @@ func (a *Agent) getUsedSegments() (map[int]struct{}, error) {
 	}
 	defer rows.Close()
 
-	usedSegments := map[int]struct{}{}
+	usedSegments := map[int]string{}
 	for rows.Next() {
 		var networkID string
-		var segmentID int
+		var epNetworkID pgtype.UUID
+		var segmentID pgtype.Int4
 
-		if err = rows.Scan(&networkID, &segmentID); err != nil {
+		if err = rows.Scan(&networkID, &segmentID, &epNetworkID); err != nil {
 			return nil, err
 		}
-		if segmentID != 0 {
+		if segmentID.Valid {
 			// add to used segment map
-			usedSegments[segmentID] = struct{}{}
+			uuid, err := epNetworkID.Value()
+			if err != nil {
+				return nil, err
+			}
+			usedSegments[int(segmentID.Int32)] = uuid.(string)
 		}
 		serviceSegment, err := a.neutron.GetNetworkSegment(networkID)
 		if err != nil {
 			return nil, err
 		}
-		usedSegments[serviceSegment] = struct{}{}
+		usedSegments[serviceSegment] = networkID
 	}
 
 	return usedSegments, nil
 }
 
-func (a *Agent) cleanOrphanedRDs(usedSegments map[int]struct{}) error {
+func (a *Agent) cleanOrphanedRDs(usedSegments map[int]string) error {
 	log.WithField("usedSegments", usedSegments).Debug("Running cleanOrphanedRDs")
 
 	for _, bigip := range a.bigips {
@@ -163,7 +176,7 @@ func (a *Agent) cleanOrphanedRDs(usedSegments map[int]struct{}) error {
 	return nil
 }
 
-func (a *Agent) cleanOrphanedVLANs(usedSegments map[int]struct{}) error {
+func (a *Agent) cleanOrphanedVLANs(usedSegments map[int]string) error {
 	log.WithField("usedSegments", usedSegments).Debug("Running cleanOrphanedVLANs")
 
 	for _, bigip := range a.bigips {
@@ -195,7 +208,7 @@ func (a *Agent) cleanOrphanedVLANs(usedSegments map[int]struct{}) error {
 	return nil
 }
 
-func (a *Agent) cleanOrphanedVCMPVLANs(usedSegments map[int]struct{}) error {
+func (a *Agent) cleanOrphanedVCMPVLANs(usedSegments map[int]string) error {
 	log.WithField("usedSegments", usedSegments).Debug("Running cleanOrphanedVCMPVLANs")
 
 	for _, b := range a.vcmps {
@@ -208,7 +221,7 @@ func (a *Agent) cleanOrphanedVCMPVLANs(usedSegments map[int]struct{}) error {
 	return nil
 }
 
-func (a *Agent) cleanOrphanedNeutronPorts(usedSegments map[int]struct{}) error {
+func (a *Agent) cleanOrphanedNeutronPorts(usedSegments map[int]string) error {
 	log.Debug("Running cleanOrphanedNeutronPorts")
 
 	// Fetch all selfips from neutron
@@ -240,5 +253,52 @@ func (a *Agent) cleanOrphanedNeutronPorts(usedSegments map[int]struct{}) error {
 	}
 
 	log.Debug("Finished cleanOrphanedNeutronPorts")
+	return nil
+}
+
+func (a *Agent) cleanupOrphanedTenants(usedSegments map[int]string) error {
+	log.Debug("Running cleanupOrphanedTenants")
+
+	for _, bigip := range a.bigips {
+		// Fetch all partitions
+		partitions, err := bigip.TMPartitions()
+		if err != nil {
+			return err
+		}
+
+		for _, partition := range partitions.TMPartitions {
+			// skip Common partition
+			if partition.Name == "Common" {
+				continue
+			}
+
+			// skip non-net partitions
+			if !strings.HasPrefix(partition.Name, "net-") {
+				continue
+			}
+
+			// Check if partition is used
+			used := false
+			for _, networkID := range usedSegments {
+				if as3.GetEndpointTenantName(strfmt.UUID(networkID)) == partition.Name {
+					used = true
+					break
+				}
+			}
+			if used {
+				continue
+			}
+
+			log.WithFields(log.Fields{"host": bigip.GetHostname(), "partition": partition.Name}).
+				Warning("Found orphaned tenant, deleting")
+			data := as3.GetAS3Declaration(map[string]as3.Tenant{
+				partition.Name: as3.GetEndpointTenants([]*as3.ExtendedEndpoint{}),
+			})
+			if err := a.bigip.PostBigIP(&data, partition.Name); err != nil {
+				return err
+			}
+		}
+	}
+	log.Debug("Finished cleanupOrphanedTenants")
 	return nil
 }

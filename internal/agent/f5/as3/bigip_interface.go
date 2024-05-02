@@ -32,4 +32,5 @@ type BigIPIface interface {
 	GetVlanInterfaces(vlan string) (*bigip.VlanInterfaces, error)
 	AddInterfaceToVlan(vlan, iface string, tagged bool) error
 	DeleteVlan(name string) error
+	TMPartitions() (*bigip.TMPartitions, error)
 }
