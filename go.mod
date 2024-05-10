@@ -34,7 +34,7 @@ require (
 	github.com/prometheus/client_golang v1.19.1
 	github.com/rs/cors v1.11.0
 	github.com/sapcc/go-api-declarations v1.11.2
-	github.com/sapcc/go-bits v0.0.0-20240510084529-cd25c4e3bda0
+	github.com/sapcc/go-bits v0.0.0-20240510133533-f59e074e0a64
 	github.com/sethvargo/go-retry v0.2.4
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.9.0
@@ -85,7 +85,7 @@ require (
 	github.com/prometheus/client_model v0.6.0 // indirect
 	github.com/prometheus/common v0.53.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
-	github.com/rabbitmq/amqp091-go v1.9.0 // indirect
+	github.com/rabbitmq/amqp091-go v1.10.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
