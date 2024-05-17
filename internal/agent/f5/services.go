@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/gophercloud/gophercloud"
@@ -52,11 +53,15 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 			var err error
 			// Fetch SNAT ports from neutron
 			deviceIDs := a.getDeviceIDs()
+			// TODO: tolerate deleted network in case the service is going to be deleted
 			network, err := a.neutron.GetNetwork(service.NetworkID.String())
-			service.SubnetID = network.Subnets[0]
 			if err != nil {
 				return err
 			}
+			if len(network.Subnets) == 0 {
+				return fmt.Errorf("service %s: no subnets found for network %s", service.ID, service.NetworkID)
+			}
+			service.SubnetID = network.Subnets[0]
 
 			// Allocate SNAT ports as SelfIPs in Neutron
 			service.NeutronPorts, err = a.neutron.EnsureNeutronSelfIPs(deviceIDs, service.SubnetID, false)
