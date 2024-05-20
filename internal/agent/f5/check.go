@@ -16,7 +16,9 @@ package f5
 
 import (
 	"context"
+	"errors"
 
+	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	"github.com/jackc/pgx/v5"
 
@@ -93,9 +95,14 @@ func (a *Agent) checkCleanupSelfIPs(ctx context.Context, tx pgx.Tx, networkID st
 
 	var network *networks.Network
 	network, err = a.neutron.GetNetwork(networkID)
-	if err != nil {
+	var errDefault404 gophercloud.ErrDefault404
+	if errors.As(err, &errDefault404) {
+		// The network is already deleted
+		return nil, false
+	} else if err != nil {
 		return err, false
 	}
+
 	if network.Subnets[0] == subnetID {
 		// There could be a service in the same subnet
 		q := db.Select("1").

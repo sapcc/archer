@@ -56,7 +56,12 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 			// TODO: tolerate deleted network in case the service is going to be deleted
 			network, err := a.neutron.GetNetwork(service.NetworkID.String())
 			if err != nil {
-				return err
+				var errDefault404 gophercloud.ErrDefault404
+				if !errors.As(err, &errDefault404) || service.Status != models.ServiceStatusPENDINGDELETE {
+					return err
+				}
+				log.WithError(err).WithField("service", service.ID).Warning("ProcessServices(PENDING_DELETE): network not found")
+				continue
 			}
 			if len(network.Subnets) == 0 {
 				return fmt.Errorf("service %s: no subnets found for network %s", service.ID, service.NetworkID)
@@ -129,6 +134,11 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 			if service.Status == "PENDING_DELETE" {
 				logWith := log.WithField("service", service.ID)
 				service := service
+
+				if service.SubnetID == "" {
+					logWith.Warning("ProcessServices: no subnet found for service, skipping cleanup but continuing with deletion")
+					continue
+				}
 
 				err, cleanupL2 := checkCleanupL2(ctx, tx, service.NetworkID.String(),
 					false, true)

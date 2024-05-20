@@ -29,6 +29,7 @@ import (
 	"github.com/sapcc/archer/internal/agent/f5/as3"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/neutron"
+	"github.com/sapcc/archer/models"
 )
 
 const GetNetworkResponseFixture = `
@@ -158,6 +159,21 @@ const PostBigIPFixture = `{
   }
 }`
 
+const BigIPCleanupFixture = `{
+  "persist": false,
+  "class": "AS3",
+  "action": "deploy",
+  "declaration": {
+    "class": "ADC",
+    "id": "urn:uuid:07649173-4AF7-48DF-963F-84000C70F0DD",
+    "net-35a3ca82-62af-4e0a-9472-92331500fb3a": {
+      "class": "Tenant"
+    },
+    "schemaVersion": "3.36.0",
+    "updateMode": "selective"
+  }
+}`
+
 func TestAgent_ProcessEndpoint(t *testing.T) {
 	endpoint := strfmt.UUID("95dbe813-62f9-47f1-90ba-09f2dadcaefa")
 	port := strfmt.UUID("c0c0c0c0-c0c0-4c0c-8c0c-0c0c0c0c0c0c")
@@ -238,6 +254,78 @@ func TestAgent_ProcessEndpoint(t *testing.T) {
 	dbMock.ExpectExec("UPDATE endpoint SET status = 'AVAILABLE', updated_at = NOW() WHERE id = $1;").
 		WithArgs(endpoint).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+	dbMock.ExpectCommit()
+
+	if err := a.ProcessEndpoint(ctx, endpoint); err != nil {
+		t.Errorf("Agent.ProcessEndpoint() error = %v", err)
+	}
+	if err := dbMock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+func TestAgent_DeleteEndpointWithDeletedNetwork(t *testing.T) {
+	endpoint := strfmt.UUID("95dbe813-62f9-47f1-90ba-09f2dadcaefa")
+	port := strfmt.UUID("c0c0c0c0-c0c0-4c0c-8c0c-0c0c0c0c0c0c")
+	network := strfmt.UUID("35a3ca82-62af-4e0a-9472-92331500fb3a")
+	subnet := strfmt.UUID("e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e")
+	service := strfmt.UUID("a0a0a0a0-a0a0-4a0a-8a0a-0a0a0a0a0a0a")
+	serviceNetwork := strfmt.UUID("b0b0b0b0-b0b0-4b0b-8b0b-0b0b0b0b0b0b")
+
+	th.SetupPersistentPortHTTP(t, 8931)
+	defer th.TeardownHTTP()
+	config.Global.Agent.PhysicalNetwork = "physnet1"
+	fixture.SetupHandler(t, "/v2.0/networks/"+network.String(), "GET",
+		"", GetNetworkResponseFixture, http.StatusNotFound)
+
+	ctx := context.Background()
+	dbMock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		dbMock.Close()
+	}()
+
+	bigiphost := as3.NewMockBigIPIface(t)
+
+	config.Global.Default.Host = "host-123"
+	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient()}
+	neutronClient.InitCache()
+	a := &Agent{
+		jobQueue: nil,
+		pool:     dbMock,
+		neutron:  &neutronClient,
+		bigips:   []*as3.BigIP{{Host: "dummybigiphost", BigIPIface: bigiphost}},
+		vcmps:    []*as3.BigIP{},
+		bigip:    &as3.BigIP{Host: "dummybigiphost", BigIPIface: bigiphost},
+	}
+
+	dbMock.
+		ExpectBegin()
+	dbMock.ExpectQuery("SELECT network, subnet, owned FROM endpoint_port WHERE endpoint_id = $1").
+		WithArgs(endpoint).
+		WillReturnRows(pgxmock.NewRows([]string{"network", "subnet", "owned"}).AddRow(network, subnet.String(), true))
+	dbMock.ExpectQuery("SELECT endpoint.*, service.port AS service_port_nr, service.proxy_protocol, service.network_id AS service_network_id, endpoint_port.segment_id, endpoint_port.port_id AS \"target.port\", endpoint_port.network AS \"target.network\", endpoint_port.subnet AS \"target.subnet\" FROM endpoint INNER JOIN service ON endpoint.service_id = service.id JOIN endpoint_port ON endpoint_id = endpoint.id WHERE network = $1 AND service.host = $2 AND service.provider = 'tenant' FOR UPDATE of endpoint").
+		WithArgs(network, config.Global.Default.Host).
+		WillReturnRows(pgxmock.
+			NewRows([]string{"id", "service_id", "status", "name", "service_port_nr", "proxy_protocol", "service_network_id", "segment_id", "target.port", "target.network", "target.subnet"}).
+			AddRow(endpoint, service, models.EndpointStatusPENDINGDELETE, "test-service", int32(80), false, serviceNetwork, nil, &port, &network, &subnet))
+	dbMock.ExpectExec("SELECT 1 FROM service WHERE network_id = $1 AND host = $2 AND provider = 'tenant'").
+		WithArgs(network.String(), config.Global.Default.Host).
+		WillReturnResult(pgxmock.NewResult("SELECT", 0))
+	dbMock.ExpectExec("SELECT 1 FROM endpoint INNER JOIN service ON endpoint.service_id = service.id JOIN endpoint_port ON endpoint_id = endpoint.id WHERE endpoint_port.network = $1 AND service.host = $2 AND service.provider = 'tenant' AND endpoint.status != 'PENDING_DELETE'").
+		WithArgs(network.String(), config.Global.Default.Host).
+		WillReturnResult(pgxmock.NewResult("SELECT", 0))
+	dbMock.ExpectExec("SELECT 1 FROM endpoint INNER JOIN service ON endpoint.service_id = service.id JOIN endpoint_port ON endpoint_id = endpoint.id WHERE endpoint_port.subnet = $1 AND service.host = $2 AND service.provider = 'tenant' AND endpoint.status != 'PENDING_DELETE'").
+		WithArgs(subnet.String(), config.Global.Default.Host).
+		WillReturnResult(pgxmock.NewResult("SELECT", 0))
+	bigiphost.EXPECT().
+		PostAs3Bigip(BigIPCleanupFixture, "net-35a3ca82-62af-4e0a-9472-92331500fb3a").
+		Return(nil, "", "")
+	dbMock.ExpectExec("DELETE FROM endpoint WHERE id = $1 AND status = 'PENDING_DELETE';").
+		WithArgs(endpoint).
+		WillReturnResult(pgxmock.NewResult("SELECT", 1))
 	dbMock.ExpectCommit()
 
 	if err := a.ProcessEndpoint(ctx, endpoint); err != nil {
