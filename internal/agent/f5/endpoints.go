@@ -252,7 +252,11 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	if cleanupL2 {
 		segmentID, err = a.neutron.GetSubnetSegment(subnetID)
 		if err != nil {
-			return err
+			var errDefault404 gophercloud.ErrDefault404
+			if !errors.As(err, &errDefault404) {
+				return err
+			}
+			logWith.WithError(err).Warning("ProcessEndpoint: GetSubnetSegment failed with 404, skipping L2 cleanup")
 		}
 	}
 
@@ -263,7 +267,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		}
 	}
 
-	if cleanupL2 {
+	if cleanupL2 && segmentID > 0 {
 		logWith.WithField("network", networkID).Info("ProcessEndpoint: deleting L2")
 		if err := a.CleanupL2(ctx, segmentID); err != nil {
 			logWith.WithError(err).Error("ProcessEndpoint: CleanupL2")
