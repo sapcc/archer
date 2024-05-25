@@ -26,7 +26,7 @@ require (
 	github.com/iancoleman/strcase v0.3.0
 	github.com/jackc/pgerrcode v0.0.0-20240316143900-6e2875d9b438
 	github.com/jackc/pgx-logrus v0.0.0-20220919124836-b099d8ce75da
-	github.com/jackc/pgx/v5 v5.5.5
+	github.com/jackc/pgx/v5 v5.6.0
 	github.com/jedib0t/go-pretty/v6 v6.5.9
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/jmoiron/sqlx v1.4.0
