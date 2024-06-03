@@ -17,7 +17,7 @@ package agent
 import (
 	"testing"
 
-	"github.com/pashagolub/pgxmock/v3"
+	"github.com/pashagolub/pgxmock/v4"
 
 	"github.com/sapcc/archer/internal/config"
 )

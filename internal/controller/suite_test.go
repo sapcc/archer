@@ -25,7 +25,7 @@ import (
 	fake "github.com/gophercloud/gophercloud/openstack/networking/v2/common"
 	th "github.com/gophercloud/gophercloud/testhelper"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/pashagolub/pgxmock/v3"
+	"github.com/pashagolub/pgxmock/v4"
 	"github.com/sapcc/go-bits/osext"
 	"github.com/stretchr/testify/suite"
 	"github.com/z0ne-dev/mgx/v2"
