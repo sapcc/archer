@@ -68,7 +68,7 @@ func (a *Agent) populateEndpointPorts(endpoints []*as3.ExtendedEndpoint) error {
 }
 
 // refreshSegments ensures that the segment_id is set for the given endpoint
-func refreshSegments(ctx context.Context, tx pgx.Tx, endpoints []*as3.ExtendedEndpoint, n *neutron.NeutronClient) {
+func refreshSegments(ctx context.Context, pool db.PgxIface, endpoints []*as3.ExtendedEndpoint, n *neutron.NeutronClient) {
 	for _, endpoint := range endpoints {
 		logger := log.WithFields(log.Fields{"port_id": endpoint.Target.Port, "endpoint": endpoint.ID})
 		if endpoint.SegmentId == nil {
@@ -88,7 +88,7 @@ func refreshSegments(ctx context.Context, tx pgx.Tx, endpoints []*as3.ExtendedEn
 				Set("segment_id", segmentId).
 				Where("endpoint_id = ?", endpoint.ID).
 				MustSql()
-			if _, err = tx.Exec(ctx, sql, args...); err != nil {
+			if _, err = pool.Exec(ctx, sql, args...); err != nil {
 				logger.WithError(err).Warning("ProcessEndpoint: Could not update segment_id")
 			}
 		}
@@ -159,7 +159,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		return err
 	}
 
-	refreshSegments(ctx, tx, endpoints, a.neutron)
+	refreshSegments(ctx, a.pool, endpoints, a.neutron)
 
 	var cleanupL2 bool
 	if checkAllPendingDelete(endpoints, subnetID) {
