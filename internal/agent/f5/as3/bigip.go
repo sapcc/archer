@@ -164,7 +164,7 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 			})
 		} else {
 			class = "Service_L4"
-			l4profile = &Pointer{BigIP: "/Common/cc_fastL4_profile"}
+			l4profile = &Pointer{BigIP: config.Global.Agent.L4Profile}
 		}
 
 		services[endpointName] = Service{
@@ -175,6 +175,7 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 			PersistanceMethods:  []string{},
 			Pool:                Pointer{BigIP: pool},
 			ProfileL4:           l4profile,
+			ProfileTCP:          &Pointer{BigIP: config.Global.Agent.TCPProfile},
 			Snat:                Pointer{BigIP: snat},
 			TranslateServerPort: true,
 			VirtualPort:         endpoint.ServicePortNr,
