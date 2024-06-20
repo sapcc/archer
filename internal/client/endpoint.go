@@ -37,10 +37,12 @@ var EndpointOptions struct {
 }
 
 type EndpointList struct {
-	Tags       []string `long:"tags" description:"List endpoints which have all given tag(s) (repeat option for multiple tags)"`
-	AnyTags    []string `long:"any-tags" description:"List endpoints which have any given tag(s) (repeat option for multiple tags)"`
-	NotTags    []string `long:"not-tags" description:"Exclude endpoints which have all given tag(s) (repeat option for multiple tags)"`
-	NotAnyTags []string `long:"not-any-tags" description:"Exclude endpoints which have any given tag(s) (repeat option for multiple tags)"`
+	Tags       []string     `long:"tags" description:"List endpoints which have all given tag(s) (repeat option for multiple tags)"`
+	AnyTags    []string     `long:"any-tags" description:"List endpoints which have any given tag(s) (repeat option for multiple tags)"`
+	NotTags    []string     `long:"not-tags" description:"Exclude endpoints which have all given tag(s) (repeat option for multiple tags)"`
+	NotAnyTags []string     `long:"not-any-tags" description:"Exclude endpoints which have any given tag(s) (repeat option for multiple tags)"`
+	Project    *string      `short:"p" long:"project" description:"List endpoints in the given project (ID)"`
+	Service    *strfmt.UUID `short:"s" long:"service" description:"List endpoints for the given service (ID)"`
 }
 
 func (*EndpointList) Execute(_ []string) error {
@@ -48,14 +50,21 @@ func (*EndpointList) Execute(_ []string) error {
 		WithTags(EndpointOptions.EndpointList.Tags).
 		WithTagsAny(EndpointOptions.EndpointList.AnyTags).
 		WithNotTags(EndpointOptions.EndpointList.NotTags).
-		WithNotTagsAny(EndpointOptions.EndpointList.NotAnyTags)
+		WithNotTagsAny(EndpointOptions.EndpointList.NotAnyTags).
+		WithProjectID(EndpointOptions.EndpointList.Project)
 	resp, err := ArcherClient.Endpoint.GetEndpoint(params, nil)
 	if err != nil {
 		return err
 	}
 
 	DefaultColumns = []string{"id", "name", "service_id", "target.port", "status", "ip_address"}
-	return WriteTable(resp.GetPayload().Items)
+	var items []*models.Endpoint
+	for _, item := range resp.GetPayload().Items {
+		if EndpointOptions.EndpointList.Service == nil || item.ServiceID == *EndpointOptions.EndpointList.Service {
+			items = append(items, item)
+		}
+	}
+	return WriteTable(items)
 }
 
 type EndpointShow struct {
