@@ -1,6 +1,6 @@
 module github.com/sapcc/archer
 
-go 1.22.4
+go 1.22.5
 
 require (
 	github.com/IBM/pgxpoolprometheus v1.1.1
