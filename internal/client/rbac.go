@@ -60,7 +60,7 @@ func (*RbacCreate) Execute(_ []string) error {
 		WithBody(&models.Rbacpolicy{
 			ServiceID:  &RbacOptions.RbacCreate.Service,
 			Target:     RbacOptions.RbacCreate.Target,
-			TargetType: RbacOptions.RbacCreate.TargetType,
+			TargetType: &RbacOptions.RbacCreate.TargetType,
 		})
 	resp, err := ArcherClient.Rbac.PostRbacPolicies(params, nil)
 	if err != nil {
@@ -115,7 +115,7 @@ func (*RbacSet) Execute(_ []string) error {
 			Target: RbacOptions.RbacSet.Target,
 		})
 	if RbacOptions.RbacSet.TargetType != nil {
-		params.Body.TargetType = *RbacOptions.RbacSet.TargetType
+		params.Body.TargetType = RbacOptions.RbacSet.TargetType
 	}
 
 	resp, err := ArcherClient.Rbac.PutRbacPoliciesRbacPolicyID(params, nil)

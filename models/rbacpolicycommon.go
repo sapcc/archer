@@ -49,7 +49,7 @@ type Rbacpolicycommon struct {
 
 	// target type
 	// Enum: [project]
-	TargetType string `json:"target_type,omitempty"`
+	TargetType *string `json:"target_type,omitempty"`
 }
 
 // Validate validates this rbacpolicycommon
@@ -148,7 +148,7 @@ func (m *Rbacpolicycommon) validateTargetType(formats strfmt.Registry) error {
 	}
 
 	// value enum
-	if err := m.validateTargetTypeEnum("target_type", "body", m.TargetType); err != nil {
+	if err := m.validateTargetTypeEnum("target_type", "body", *m.TargetType); err != nil {
 		return err
 	}
 

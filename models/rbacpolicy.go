@@ -56,8 +56,8 @@ type Rbacpolicy struct {
 	Target string `json:"target,omitempty"`
 
 	// target type
-	// Enum: [project_id domain_id]
-	TargetType string `json:"target_type,omitempty"`
+	// Enum: [project]
+	TargetType *string `json:"target_type,omitempty"`
 
 	// updated at
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
@@ -151,7 +151,7 @@ var rbacpolicyTypeTargetTypePropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["project_id","domain_id"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["project"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -161,11 +161,8 @@ func init() {
 
 const (
 
-	// RbacpolicyTargetTypeProjectID captures enum value "project_id"
-	RbacpolicyTargetTypeProjectID string = "project_id"
-
-	// RbacpolicyTargetTypeDomainID captures enum value "domain_id"
-	RbacpolicyTargetTypeDomainID string = "domain_id"
+	// RbacpolicyTargetTypeProject captures enum value "project"
+	RbacpolicyTargetTypeProject string = "project"
 )
 
 // prop value enum
@@ -182,7 +179,7 @@ func (m *Rbacpolicy) validateTargetType(formats strfmt.Registry) error {
 	}
 
 	// value enum
-	if err := m.validateTargetTypeEnum("target_type", "body", m.TargetType); err != nil {
+	if err := m.validateTargetTypeEnum("target_type", "body", *m.TargetType); err != nil {
 		return err
 	}
 

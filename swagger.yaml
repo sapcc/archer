@@ -1416,6 +1416,7 @@ definitions:
         type: string
         enum:
           - project
+        default: project
       target:
         description: The ID of the project to which the RBAC policy will be enforced.
         type: string
@@ -1436,8 +1437,8 @@ definitions:
       target_type:
         type: string
         enum:
-          - project_id
-          - domain_id
+          - project
+        default: project
       target:
         description: The ID of the project to which the RBAC policy will be enforced.
         type: string

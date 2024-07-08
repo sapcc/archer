@@ -54,7 +54,7 @@ func init() {
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "version": "1.3.0",
+    "version": "1.4.0",
     "x-logo": {
       "altText": "Archer logo",
       "backgroundColor": "#FFFFFF",
@@ -1617,9 +1617,9 @@ func init() {
         },
         "target_type": {
           "type": "string",
+          "default": "project",
           "enum": [
-            "project_id",
-            "domain_id"
+            "project"
           ]
         },
         "updated_at": {
@@ -1650,6 +1650,7 @@ func init() {
         },
         "target_type": {
           "type": "string",
+          "default": "project",
           "enum": [
             "project"
           ]
@@ -2042,7 +2043,7 @@ func init() {
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "version": "1.3.0",
+    "version": "1.4.0",
     "x-logo": {
       "altText": "Archer logo",
       "backgroundColor": "#FFFFFF",
@@ -3746,9 +3747,9 @@ func init() {
         },
         "target_type": {
           "type": "string",
+          "default": "project",
           "enum": [
-            "project_id",
-            "domain_id"
+            "project"
           ]
         },
         "updated_at": {
@@ -3779,6 +3780,7 @@ func init() {
         },
         "target_type": {
           "type": "string",
+          "default": "project",
           "enum": [
             "project"
           ]

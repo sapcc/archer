@@ -19,6 +19,7 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/sapcc/archer/models"
@@ -31,7 +32,7 @@ func (t *SuiteTest) createRbac(target string) strfmt.UUID {
 	s := models.Rbacpolicy{
 		ServiceID:  &service,
 		Target:     target,
-		TargetType: "project_id",
+		TargetType: swag.String(models.RbacpolicyTargetTypeProject),
 	}
 
 	res := t.c.PostRbacPoliciesHandler(rbac.PostRbacPoliciesParams{HTTPRequest: &http.Request{}, Body: &s},
@@ -124,7 +125,7 @@ func (t *SuiteTest) TestRbacConflict() {
 	p := models.Rbacpolicy{
 		ServiceID:  &s,
 		Target:     target,
-		TargetType: "project_id",
+		TargetType: swag.String(models.RbacpolicyTargetTypeProject),
 	}
 
 	// post
