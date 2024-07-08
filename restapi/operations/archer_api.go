@@ -145,7 +145,8 @@ func NewArcherAPI(spec *loads.Document) *ArcherAPI {
 }
 
 /*
-ArcherAPI Archer is an API service that can privately connect services from one private [OpenStack Network](https://docs.openstack.org/neutron/latest/admin/intro-os-networking.html) to another. Consumers can select a *service* from a service catalog and **inject** it to their network, which means making this *service* available via a private ip address.
+ArcherAPI # Documentation
+Archer is an API service that can privately connect services from one private [OpenStack Network](https://docs.openstack.org/neutron/latest/admin/intro-os-networking.html) to another. Consumers can select a *service* from a service catalog and **inject** it to their network, which means making this *service* available via a private ip address.
 
 Archer implements an *OpenStack* like API and integrates with *OpenStack Keystone* and *OpenStack Neutron*.
 
@@ -167,7 +168,7 @@ There are two types of resources: **services** and **endpoints**
 ### Requirements
 * PostgreSQL Database
 
-### API
+## API properties
 This section describes properties of the Archer API. It uses a ReSTful HTTP API.
 
 #### Request format
@@ -252,16 +253,19 @@ Tag filters can also be combined in the same request:
 | 429   | You have reached maximum request limit |
 | 500   | Internal server error |
 
-### Endpoint identification via Proxy Protocol v2
+## Endpoint identification
 
-Archer supports the Proxy Protocol v2 for endpoint identification. The Proxy Protocol is a widely used protocol for passing client connection information through a load balancer to the backend server. It is used to identify the original client IP address and port number. The Proxy Protocol v2 is a binary protocol that is more efficient than the original text-based Proxy Protocol v1.
+Archer supports the Proxy Protocol v2 for endpoint identification.
+
+The Proxy Protocol is a widely used protocol for passing client connection information through a load balancer to the backend server. It is used to identify the original client IP address and port number. The Proxy Protocol v2 is a binary protocol that is more efficient than the original text-based Proxy Protocol v1.
+
 The proxy protocol header also includes the ID of the endpoint. This information is encoded using a custom Type-Length-Value (TLV) vector as follows.
 
-| Field | Length (Octets) | Description           |
-| ----- | --------------- | --------------------- |
-| Type  | 1               | PP2_TYPE_SAPCC (0xEC) |
-| Length| 2               | Length of the value   |
-| Value | 16              | UUID of the endpoint  |
+| Field | Length (Octets) | Description                                                    |
+| ----- | --------------- | -------------------------------------------------------------- |
+| Type  | 1               | PP2_TYPE_SAPCC (0xEC)                                          |
+| Length| 2               | Length of the value (UUIDv4 is always 36 byte as ASCII string) |
+| Value | 36              | ASCII UUID of the endpoint                                     |
 */
 type ArcherAPI struct {
 	spec            *loads.Document

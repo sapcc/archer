@@ -1,6 +1,6 @@
 swagger: "2.0"
 info:
-  version: "1.3.0"
+  version: "1.4.0"
   title: "🏹 Archer"
   contact:
     name: SAP SE / Converged Cloud
@@ -1393,7 +1393,7 @@ definitions:
       | REJECTED           | Endpoint was rejected                 |
       | FAILED             | Endpoint setup failed                 |
     enum:
-      - ACTIVE
+      - AVAILABLE
       - PENDING_APPROVAL
       - PENDING_CREATE
       - PENDING_REJECTED

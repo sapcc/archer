@@ -141,9 +141,9 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, tok
 		panic(err)
 	}
 
-	status := "PENDING_CREATE"
+	status := models.EndpointStatusPENDINGCREATE
 	if requireApproval {
-		status = "PENDING_APPROVAL"
+		status = models.EndpointStatusPENDINGAPPROVAL
 	}
 
 	// Insert endpoint
@@ -321,7 +321,7 @@ func (c *Controller) DeleteEndpointEndpointIDHandler(params endpoint.DeleteEndpo
 	var host string
 
 	q := db.Update("endpoint").
-		Set("status", "PENDING_DELETE").
+		Set("status", models.EndpointStatusPENDINGDELETE).
 		Where("id = ?", params.EndpointID).
 		Suffix("RETURNING service_id")
 

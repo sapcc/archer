@@ -55,8 +55,8 @@ func (m EndpointStatus) Pointer() *EndpointStatus {
 
 const (
 
-	// EndpointStatusACTIVE captures enum value "ACTIVE"
-	EndpointStatusACTIVE EndpointStatus = "ACTIVE"
+	// EndpointStatusAVAILABLE captures enum value "AVAILABLE"
+	EndpointStatusAVAILABLE EndpointStatus = "AVAILABLE"
 
 	// EndpointStatusPENDINGAPPROVAL captures enum value "PENDING_APPROVAL"
 	EndpointStatusPENDINGAPPROVAL EndpointStatus = "PENDING_APPROVAL"
@@ -82,7 +82,7 @@ var endpointStatusEnum []interface{}
 
 func init() {
 	var res []EndpointStatus
-	if err := json.Unmarshal([]byte(`["ACTIVE","PENDING_APPROVAL","PENDING_CREATE","PENDING_REJECTED","PENDING_DELETE","REJECTED","FAILED"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["AVAILABLE","PENDING_APPROVAL","PENDING_CREATE","PENDING_REJECTED","PENDING_DELETE","REJECTED","FAILED"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
