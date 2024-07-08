@@ -150,6 +150,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		From("endpoint").
 		InnerJoin("service ON endpoint.service_id = service.id").
 		Join("endpoint_port ON endpoint_id = endpoint.id").
+		Where("endpoint.status != 'PENDING_APPROVAL'").
 		Where("network = ?", networkID).
 		Where("service.host = ?", config.Global.Default.Host).
 		Where("service.provider = 'tenant'").
@@ -157,6 +158,11 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		MustSql()
 	if err := pgxscan.Select(ctx, tx, &endpoints, sql, args...); err != nil {
 		return err
+	}
+
+	if len(endpoints) == 0 {
+		log.WithField("id", endpointID).Warning("No endpoints than need update, skipping")
+		return nil
 	}
 
 	refreshSegments(ctx, a.pool, endpoints, a.neutron)
