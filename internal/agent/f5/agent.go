@@ -35,6 +35,7 @@ import (
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
 	"github.com/sapcc/archer/internal/neutron"
+	"github.com/sapcc/archer/models"
 )
 
 type Agent struct {
@@ -151,11 +152,14 @@ func (a *Agent) PendingSyncLoop(job gocron.Job) error {
 	}).Debugf("pending sync loop")
 	sql, args := db.Select("1").
 		From("service").
-		Where("provider = 'tenant'").
-		Where(sq.Like{"status": "PENDING_%"}).
+		Where("provider = ?", models.ServiceProviderTenant).
+		Where(sq.Eq{"status": []string{
+			models.ServiceStatusPENDINGDELETE,
+			models.ServiceStatusPENDINGCREATE,
+			models.ServiceStatusPENDINGUPDATE}}).
 		Where("host = ?", config.Global.Default.Host).
 		MustSql()
-	ret, err = a.pool.Exec(context.Background(), sql, args...)
+	ret, err = a.pool.Exec(job.Context(), sql, args...)
 	if err != nil {
 		return err
 	}
@@ -169,22 +173,25 @@ func (a *Agent) PendingSyncLoop(job gocron.Job) error {
 	sql, args = db.Select("id").
 		From("endpoint").
 		Where(sq.And{
-			sq.Like{"status": "PENDING_%"},
+			sq.Eq{"status": []models.EndpointStatus{
+				models.EndpointStatusPENDINGDELETE,
+				models.EndpointStatusPENDINGCREATE,
+				models.EndpointStatusPENDINGUPDATE}},
 			db.Select("1").
 				Prefix("EXISTS(").
 				From("service").
 				Where("service.id = endpoint.service_id").
-				Where("service.provider = 'tenant'").
+				Where("service.provider = ?", models.ServiceProviderTenant).
 				Where("service.host = ?", config.Global.Default.Host).
 				Suffix(")"),
 		}).
 		MustSql()
-	rows, err = a.pool.Query(context.Background(), sql, args...)
+	rows, err = a.pool.Query(job.Context(), sql, args...)
 	if err != nil {
 		return err
 	}
 	if _, err = pgx.ForEachRow(rows, []any{&id}, func() error {
-		if err := a.jobQueue.Enqueue("endpoint", id); err != nil {
+		if err = a.jobQueue.Enqueue("endpoint", id); err != nil {
 			return err
 		}
 		return nil

@@ -1,6 +1,6 @@
 swagger: "2.0"
 info:
-  version: "1.4.0"
+  version: "1.4.1"
   title: "🏹 Archer"
   contact:
     name: SAP SE / Converged Cloud
@@ -1385,9 +1385,10 @@ definitions:
       ### Status can be one of
       | Status             | Description                           |
       | ------------------ | ------------------------------------- |
-      | AVAILABLE          | Endpoint is active for consumption    |
+      | AVAILABLE          | Endpoint is avaiable for consumption  |
       | PENDING_APPROVAL   | Endpoint is waiting for approval      |
       | PENDING_CREATE     | Endpoint is being set up              |
+      | PENDING_UPDATE     | Endpoint is being updated             |
       | PENDING_REJECTED   | Endpoint is being rejected            |
       | PENDING_DELETE     | Endpoint is being deleted             |
       | REJECTED           | Endpoint was rejected                 |
@@ -1396,6 +1397,7 @@ definitions:
       - AVAILABLE
       - PENDING_APPROVAL
       - PENDING_CREATE
+      - PENDING_UPDATE
       - PENDING_REJECTED
       - PENDING_DELETE
       - REJECTED

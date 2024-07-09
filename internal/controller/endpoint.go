@@ -280,6 +280,7 @@ func (c *Controller) PutEndpointEndpointIDHandler(params endpoint.PutEndpointEnd
 		Set("name", sq.Expr("COALESCE(?, name)", params.Body.Name)).
 		Set("description", sq.Expr("COALESCE(?, description)", params.Body.Description)).
 		Set("updated_at", sq.Expr("NOW()")).
+		Set("status", models.EndpointStatusPENDINGUPDATE).
 		Where("id = ?", params.EndpointID).
 		Suffix("RETURNING *)")
 

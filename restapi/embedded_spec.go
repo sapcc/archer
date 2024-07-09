@@ -54,7 +54,7 @@ func init() {
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "version": "1.4.0",
+    "version": "1.4.1",
     "x-logo": {
       "altText": "Archer logo",
       "backgroundColor": "#FFFFFF",
@@ -1502,12 +1502,13 @@ func init() {
       }
     },
     "EndpointStatus": {
-      "description": "Status of the endpoint\n\n### Status can be one of\n| Status             | Description                           |\n| ------------------ | ------------------------------------- |\n| AVAILABLE          | Endpoint is active for consumption    |\n| PENDING_APPROVAL   | Endpoint is waiting for approval      |\n| PENDING_CREATE     | Endpoint is being set up              |\n| PENDING_REJECTED   | Endpoint is being rejected            |\n| PENDING_DELETE     | Endpoint is being deleted             |\n| REJECTED           | Endpoint was rejected                 |\n| FAILED             | Endpoint setup failed                 |\n",
+      "description": "Status of the endpoint\n\n### Status can be one of\n| Status             | Description                           |\n| ------------------ | ------------------------------------- |\n| AVAILABLE          | Endpoint is avaiable for consumption  |\n| PENDING_APPROVAL   | Endpoint is waiting for approval      |\n| PENDING_CREATE     | Endpoint is being set up              |\n| PENDING_UPDATE     | Endpoint is being updated             |\n| PENDING_REJECTED   | Endpoint is being rejected            |\n| PENDING_DELETE     | Endpoint is being deleted             |\n| REJECTED           | Endpoint was rejected                 |\n| FAILED             | Endpoint setup failed                 |\n",
       "type": "string",
       "enum": [
         "AVAILABLE",
         "PENDING_APPROVAL",
         "PENDING_CREATE",
+        "PENDING_UPDATE",
         "PENDING_REJECTED",
         "PENDING_DELETE",
         "REJECTED",
@@ -2043,7 +2044,7 @@ func init() {
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "version": "1.4.0",
+    "version": "1.4.1",
     "x-logo": {
       "altText": "Archer logo",
       "backgroundColor": "#FFFFFF",
@@ -3586,12 +3587,13 @@ func init() {
       }
     },
     "EndpointStatus": {
-      "description": "Status of the endpoint\n\n### Status can be one of\n| Status             | Description                           |\n| ------------------ | ------------------------------------- |\n| AVAILABLE          | Endpoint is active for consumption    |\n| PENDING_APPROVAL   | Endpoint is waiting for approval      |\n| PENDING_CREATE     | Endpoint is being set up              |\n| PENDING_REJECTED   | Endpoint is being rejected            |\n| PENDING_DELETE     | Endpoint is being deleted             |\n| REJECTED           | Endpoint was rejected                 |\n| FAILED             | Endpoint setup failed                 |\n",
+      "description": "Status of the endpoint\n\n### Status can be one of\n| Status             | Description                           |\n| ------------------ | ------------------------------------- |\n| AVAILABLE          | Endpoint is avaiable for consumption  |\n| PENDING_APPROVAL   | Endpoint is waiting for approval      |\n| PENDING_CREATE     | Endpoint is being set up              |\n| PENDING_UPDATE     | Endpoint is being updated             |\n| PENDING_REJECTED   | Endpoint is being rejected            |\n| PENDING_DELETE     | Endpoint is being deleted             |\n| REJECTED           | Endpoint was rejected                 |\n| FAILED             | Endpoint setup failed                 |\n",
       "type": "string",
       "enum": [
         "AVAILABLE",
         "PENDING_APPROVAL",
         "PENDING_CREATE",
+        "PENDING_UPDATE",
         "PENDING_REJECTED",
         "PENDING_DELETE",
         "REJECTED",

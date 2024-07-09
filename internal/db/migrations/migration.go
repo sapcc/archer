@@ -257,4 +257,13 @@ var Migrations = mgx.Migrations(
 		`)
 		return err
 	}),
+	mgx.NewMigration("add_endpoint_pending_update_status", func(ctx context.Context, commands mgx.Commands) error {
+		_, err := commands.Exec(ctx, `
+				INSERT INTO
+					endpoint_status(name)
+				VALUES
+					('PENDING_UPDATE');
+		`)
+		return err
+	}),
 )

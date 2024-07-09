@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud"
@@ -150,11 +151,11 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		From("endpoint").
 		InnerJoin("service ON endpoint.service_id = service.id").
 		Join("endpoint_port ON endpoint_id = endpoint.id").
-		Where("endpoint.status != 'PENDING_APPROVAL'").
+		Where(sq.NotEq{"endpoint.status": []models.EndpointStatus{models.EndpointStatusPENDINGAPPROVAL, models.EndpointStatusPENDINGREJECTED, models.EndpointStatusREJECTED}}).
 		Where("network = ?", networkID).
 		Where("service.host = ?", config.Global.Default.Host).
-		Where("service.provider = 'tenant'").
-		Suffix("FOR UPDATE of endpoint").
+		Where("service.provider = ?", models.ServiceProviderTenant).
+		Suffix("FOR UPDATE OF endpoint").
 		MustSql()
 	if err := pgxscan.Select(ctx, tx, &endpoints, sql, args...); err != nil {
 		return err

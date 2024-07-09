@@ -33,9 +33,10 @@ import (
 // ### Status can be one of
 // | Status             | Description                           |
 // | ------------------ | ------------------------------------- |
-// | AVAILABLE          | Endpoint is active for consumption    |
+// | AVAILABLE          | Endpoint is avaiable for consumption  |
 // | PENDING_APPROVAL   | Endpoint is waiting for approval      |
 // | PENDING_CREATE     | Endpoint is being set up              |
+// | PENDING_UPDATE     | Endpoint is being updated             |
 // | PENDING_REJECTED   | Endpoint is being rejected            |
 // | PENDING_DELETE     | Endpoint is being deleted             |
 // | REJECTED           | Endpoint was rejected                 |
@@ -64,6 +65,9 @@ const (
 	// EndpointStatusPENDINGCREATE captures enum value "PENDING_CREATE"
 	EndpointStatusPENDINGCREATE EndpointStatus = "PENDING_CREATE"
 
+	// EndpointStatusPENDINGUPDATE captures enum value "PENDING_UPDATE"
+	EndpointStatusPENDINGUPDATE EndpointStatus = "PENDING_UPDATE"
+
 	// EndpointStatusPENDINGREJECTED captures enum value "PENDING_REJECTED"
 	EndpointStatusPENDINGREJECTED EndpointStatus = "PENDING_REJECTED"
 
@@ -82,7 +86,7 @@ var endpointStatusEnum []interface{}
 
 func init() {
 	var res []EndpointStatus
-	if err := json.Unmarshal([]byte(`["AVAILABLE","PENDING_APPROVAL","PENDING_CREATE","PENDING_REJECTED","PENDING_DELETE","REJECTED","FAILED"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["AVAILABLE","PENDING_APPROVAL","PENDING_CREATE","PENDING_UPDATE","PENDING_REJECTED","PENDING_DELETE","REJECTED","FAILED"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
