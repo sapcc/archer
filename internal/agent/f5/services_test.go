@@ -84,8 +84,8 @@ func TestProcessServicesWithDeletedNetwork(t *testing.T) {
 	}
 
 	dbMock.ExpectBegin()
-	dbMock.ExpectQuery("SELECT * FROM service WHERE host = $1 AND provider = 'tenant' FOR UPDATE OF service").
-		WithArgs("host-123").
+	dbMock.ExpectQuery("SELECT * FROM service WHERE host = $1 AND provider = $2 FOR UPDATE OF service").
+		WithArgs("host-123", models.ServiceProviderTenant).
 		WillReturnRows(dbMock.NewRows([]string{"id", "network_id", "status"}).AddRow(service, &network, models.ServiceStatusPENDINGDELETE))
 	bigiphost.EXPECT().
 		PostAs3Bigip(PostAs3BigipFixture, "Common").

@@ -29,4 +29,5 @@ type ExtendedEndpoint struct {
 	ServiceNetworkId strfmt.UUID
 	SegmentId        *int
 	ProxyProtocol    bool
+	Owned            bool
 }

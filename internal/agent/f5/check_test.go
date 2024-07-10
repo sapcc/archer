@@ -27,6 +27,7 @@ import (
 
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/neutron"
+	"github.com/sapcc/archer/models"
 )
 
 func TestCheckCleanupL2(t *testing.T) {
@@ -42,11 +43,11 @@ func TestCheckCleanupL2(t *testing.T) {
 	}()
 
 	dbMock.ExpectBegin()
-	dbMock.ExpectExec("SELECT 1 FROM service WHERE network_id = $1 AND host = $2 AND provider = 'tenant'").
-		WithArgs(networkID, config.Global.Default.Host).
+	dbMock.ExpectExec("SELECT 1 FROM service WHERE network_id = $1 AND host = $2 AND provider = $3").
+		WithArgs(networkID, config.Global.Default.Host, models.ServiceProviderTenant).
 		WillReturnResult(pgxmock.NewResult("SELECT 1", 0))
-	dbMock.ExpectExec("SELECT 1 FROM endpoint INNER JOIN service ON endpoint.service_id = service.id JOIN endpoint_port ON endpoint_id = endpoint.id WHERE endpoint_port.network = $1 AND service.host = $2 AND service.provider = 'tenant'").
-		WithArgs(networkID, config.Global.Default.Host).
+	dbMock.ExpectExec("SELECT 1 FROM endpoint INNER JOIN service ON endpoint.service_id = service.id JOIN endpoint_port ON endpoint_id = endpoint.id WHERE endpoint_port.network = $1 AND service.host = $2 AND service.provider = $3").
+		WithArgs(networkID, config.Global.Default.Host, models.ServiceProviderTenant).
 		WillReturnResult(pgxmock.NewResult("SELECT 1", 0))
 
 	ctx := context.TODO()
@@ -79,8 +80,8 @@ func TestCheckCleanupSelfIPs(t *testing.T) {
 		"", GetNetworkResponseFixture, http.StatusOK)
 
 	dbMock.ExpectBegin()
-	dbMock.ExpectExec("SELECT 1 FROM endpoint INNER JOIN service ON endpoint.service_id = service.id JOIN endpoint_port ON endpoint_id = endpoint.id WHERE endpoint_port.subnet = $1 AND service.host = $2 AND service.provider = 'tenant'").
-		WithArgs(subnetID, config.Global.Default.Host).
+	dbMock.ExpectExec("SELECT 1 FROM endpoint INNER JOIN service ON endpoint.service_id = service.id JOIN endpoint_port ON endpoint_id = endpoint.id WHERE endpoint_port.subnet = $1 AND service.host = $2 AND service.provider = $3").
+		WithArgs(subnetID, config.Global.Default.Host, models.ServiceProviderTenant).
 		WillReturnResult(pgxmock.NewResult("SELECT 1", 0))
 
 	ctx := context.TODO()
@@ -119,11 +120,11 @@ func TestCheckCleanupSelfIPs_negative(t *testing.T) {
 		"", GetNetworkResponseFixture, http.StatusOK)
 
 	dbMock.ExpectBegin()
-	dbMock.ExpectExec("SELECT 1 FROM endpoint INNER JOIN service ON endpoint.service_id = service.id JOIN endpoint_port ON endpoint_id = endpoint.id WHERE endpoint_port.subnet = $1 AND service.host = $2 AND service.provider = 'tenant'").
-		WithArgs(subnetID, config.Global.Default.Host).
+	dbMock.ExpectExec("SELECT 1 FROM endpoint INNER JOIN service ON endpoint.service_id = service.id JOIN endpoint_port ON endpoint_id = endpoint.id WHERE endpoint_port.subnet = $1 AND service.host = $2 AND service.provider = $3").
+		WithArgs(subnetID, config.Global.Default.Host, models.ServiceProviderTenant).
 		WillReturnResult(pgxmock.NewResult("SELECT 1", 0))
-	dbMock.ExpectExec("SELECT 1 FROM service WHERE network_id = $1 AND host = $2 AND provider = 'tenant'").
-		WithArgs(networkID, config.Global.Default.Host).
+	dbMock.ExpectExec("SELECT 1 FROM service WHERE network_id = $1 AND host = $2 AND provider = $3").
+		WithArgs(networkID, config.Global.Default.Host, models.ServiceProviderTenant).
 		WillReturnResult(pgxmock.NewResult("SELECT 1", 1))
 
 	ctx := context.TODO()

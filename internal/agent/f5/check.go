@@ -18,12 +18,14 @@ import (
 	"context"
 	"errors"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
+	"github.com/sapcc/archer/models"
 )
 
 func checkCleanupL2(ctx context.Context, tx pgx.Tx, networkID string,
@@ -32,7 +34,7 @@ func checkCleanupL2(ctx context.Context, tx pgx.Tx, networkID string,
 		From("service").
 		Where("network_id = ?", networkID).
 		Where("host = ?", config.Global.Default.Host).
-		Where("provider = 'tenant'")
+		Where("provider = ?", models.ServiceProviderTenant)
 	if ignorePendingService {
 		q = q.Where("status != 'PENDING_DELETE'")
 	}
@@ -52,9 +54,11 @@ func checkCleanupL2(ctx context.Context, tx pgx.Tx, networkID string,
 		Join("endpoint_port ON endpoint_id = endpoint.id").
 		Where("endpoint_port.network = ?", networkID).
 		Where("service.host = ?", config.Global.Default.Host).
-		Where("service.provider = 'tenant'")
+		Where("service.provider = ?", models.ServiceProviderTenant)
 	if ignorePendingEndpoint {
-		q = q.Where("endpoint.status != 'PENDING_DELETE'")
+		q = q.Where(sq.NotEq{"endpoint.status": []models.EndpointStatus{
+			models.EndpointStatusPENDINGDELETE,
+			models.EndpointStatusPENDINGREJECTED}})
 	}
 	sql, args = q.MustSql()
 	ct, err = tx.Exec(ctx, sql, args...)
@@ -79,9 +83,11 @@ func (a *Agent) checkCleanupSelfIPs(ctx context.Context, tx pgx.Tx, networkID st
 		Join("endpoint_port ON endpoint_id = endpoint.id").
 		Where("endpoint_port.subnet = ?", subnetID).
 		Where("service.host = ?", config.Global.Default.Host).
-		Where("service.provider = 'tenant'")
+		Where("service.provider = ?", models.ServiceProviderTenant)
 	if ignorePendingEndpoint {
-		q = q.Where("endpoint.status != 'PENDING_DELETE'")
+		q = q.Where(sq.NotEq{"endpoint.status": []models.EndpointStatus{
+			models.EndpointStatusPENDINGDELETE,
+			models.EndpointStatusPENDINGREJECTED}})
 	}
 	sql, args := q.MustSql()
 	ct, err := tx.Exec(ctx, sql, args...)
@@ -109,7 +115,7 @@ func (a *Agent) checkCleanupSelfIPs(ctx context.Context, tx pgx.Tx, networkID st
 			From("service").
 			Where("network_id = ?", networkID).
 			Where("host = ?", config.Global.Default.Host).
-			Where("provider = 'tenant'")
+			Where("provider = ?", models.ServiceProviderTenant)
 		if ignorePendingService {
 			q = q.Where("status != 'PENDING_DELETE'")
 		}

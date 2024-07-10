@@ -134,7 +134,7 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 
 	for _, endpoint := range endpoints {
 		// Skip pending delete endpoints
-		if endpoint.Status == models.EndpointStatusPENDINGDELETE {
+		if endpoint.Status == models.EndpointStatusPENDINGDELETE || endpoint.Status == models.EndpointStatusPENDINGREJECTED {
 			continue
 		}
 

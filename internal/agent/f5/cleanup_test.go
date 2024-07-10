@@ -29,6 +29,7 @@ import (
 	"github.com/sapcc/archer/internal/agent/f5/as3"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/neutron"
+	"github.com/sapcc/archer/models"
 )
 
 func TestAgent_TestGetUsedSegments(t *testing.T) {
@@ -73,10 +74,10 @@ func TestAgent_TestGetUsedSegments(t *testing.T) {
 	var epNetworkID pgtype.UUID
 	_ = epNetworkID.Scan(someOtherNetwork)
 
-	sql := `SELECT s.network_id, ep.segment_id, ep.network FROM service s LEFT JOIN endpoint e ON s.id = e.service_id LEFT JOIN endpoint_port ep ON ep.endpoint_id = e.id WHERE s.host = $1 AND s.provider = 'tenant'`
+	sql := `SELECT s.network_id, ep.segment_id, ep.network FROM service s LEFT JOIN endpoint e ON s.id = e.service_id LEFT JOIN endpoint_port ep ON ep.endpoint_id = e.id WHERE s.host = $1 AND s.provider = $2`
 	dbMock.
 		ExpectQuery(sql).
-		WithArgs("host-123").
+		WithArgs("host-123", models.ServiceProviderTenant).
 		WillReturnRows(pgxmock.NewRows([]string{"network_id", "segment_id", "network"}).
 			AddRow(serviceNetwork, segementID, epNetworkID).
 			AddRow(someOtherNetwork, nil, nil))

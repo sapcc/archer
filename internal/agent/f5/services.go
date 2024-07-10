@@ -39,7 +39,7 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 		sql, args := db.Select("*").
 			From("service").
 			Where("host = ?", config.Global.Default.Host).
-			Where("provider = 'tenant'").
+			Where("provider = ?", models.ServiceProviderTenant).
 			Suffix("FOR UPDATE OF service").
 			MustSql()
 		if err := pgxscan.Select(ctx, tx, &services, sql, args...); err != nil {

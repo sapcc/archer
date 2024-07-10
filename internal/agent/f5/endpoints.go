@@ -98,8 +98,9 @@ func refreshSegments(ctx context.Context, pool db.PgxIface, endpoints []*as3.Ext
 
 func checkAllPendingDelete(endpoints []*as3.ExtendedEndpoint, subnetID string) bool {
 	for _, endpoint := range endpoints {
-		if endpoint.Target.Subnet.String() == subnetID && endpoint.Status != models.EndpointStatusPENDINGDELETE {
-			// if any endpoint with same subnet is not in PENDING_DELETE, skip cleanup
+		if endpoint.Target.Subnet.String() == subnetID &&
+			(endpoint.Status != models.EndpointStatusPENDINGDELETE && endpoint.Status != models.EndpointStatusPENDINGREJECTED) {
+			// if any endpoint with same subnet is not in PENDING_DELETE/PENDING_REJECTED, skip cleanup
 			return false
 		}
 	}
@@ -111,7 +112,6 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	var endpoints []*as3.ExtendedEndpoint
 	var networkID strfmt.UUID
 	var subnetID string
-	var owned bool
 	var tx pgx.Tx
 
 	{
@@ -127,11 +127,11 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		_ = tx.Rollback(ctx)
 	}(tx, ctx)
 
-	sql, args := db.Select("network", "subnet", "owned").
+	sql, args := db.Select("network", "subnet").
 		From("endpoint_port").
 		Where("endpoint_id = ?", endpointID).
 		MustSql()
-	if err := tx.QueryRow(ctx, sql, args...).Scan(&networkID, &subnetID, &owned); err != nil {
+	if err := tx.QueryRow(ctx, sql, args...).Scan(&networkID, &subnetID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			log.WithField("id", endpointID).Warning("Endpoint not found")
 			return nil
@@ -147,11 +147,14 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		"endpoint_port.segment_id",
 		`endpoint_port.port_id AS "target.port"`,
 		`endpoint_port.network AS "target.network"`,
-		`endpoint_port.subnet AS "target.subnet"`).
+		`endpoint_port.subnet AS "target.subnet"`,
+		`endpoint_port.owned`).
 		From("endpoint").
 		InnerJoin("service ON endpoint.service_id = service.id").
 		Join("endpoint_port ON endpoint_id = endpoint.id").
-		Where(sq.NotEq{"endpoint.status": []models.EndpointStatus{models.EndpointStatusPENDINGAPPROVAL, models.EndpointStatusPENDINGREJECTED, models.EndpointStatusREJECTED}}).
+		Where(sq.NotEq{"endpoint.status": []models.EndpointStatus{
+			models.EndpointStatusPENDINGAPPROVAL, // ignore pending approval
+			models.EndpointStatusREJECTED}}).     // ignore rejected, they are considered deleted already
 		Where("network = ?", networkID).
 		Where("service.host = ?", config.Global.Default.Host).
 		Where("service.provider = ?", models.ServiceProviderTenant).
@@ -225,7 +228,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	// (Re-)Sync SelfIPs of all endpoints in the same segment
 	for _, ep := range endpoints {
 		ep := ep
-		if ep.Status != models.EndpointStatusPENDINGDELETE {
+		if ep.Status != models.EndpointStatusPENDINGDELETE && ep.Status != models.EndpointStatusPENDINGREJECTED {
 			// SelfIPs
 			if len(ep.Port.FixedIPs) == 0 {
 				return fmt.Errorf("EnsureSelfIPs: no fixedIPs found for EP port %s", ep.Port.ID)
@@ -283,10 +286,28 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 
 	// 3. Finalize endpoint deletion and related ports
 	for _, endpoint := range endpoints {
-		if endpoint.Status == models.EndpointStatusPENDINGDELETE {
-			// Delete endpoint neutron port
-			if endpoint.Target.Port != nil && owned {
-				if err := a.neutron.DeletePort(endpoint.Target.Port.String()); err != nil {
+		switch endpoint.Status {
+		case models.EndpointStatusPENDINGREJECTED:
+			// Delete endpoint neutron port, if it exists and is owned by the agent
+			if endpoint.Target.Port != nil && endpoint.Owned {
+				if err = a.neutron.DeletePort(endpoint.Target.Port.String()); err != nil {
+					var errDefault404 gophercloud.ErrDefault404
+					if !errors.As(err, &errDefault404) {
+						return err
+					}
+				}
+			}
+
+			log.Debugf("ProcessEndpoint: Rejecting endpoint %s", endpoint.ID)
+			sql, args = db.
+				Update("endpoint").
+				Set("status", models.EndpointStatusREJECTED).
+				Set("updated_at", sq.Expr("NOW()")).
+				MustSql()
+		case models.EndpointStatusPENDINGDELETE:
+			// Delete endpoint neutron port, if it exists and is owned by the agent
+			if endpoint.Target.Port != nil && endpoint.Owned {
+				if err = a.neutron.DeletePort(endpoint.Target.Port.String()); err != nil {
 					var errDefault404 gophercloud.ErrDefault404
 					if !errors.As(err, &errDefault404) {
 						return err
@@ -295,19 +316,24 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 			}
 
 			log.Debugf("ProcessEndpoint: Deleting endpoint %s", endpoint.ID)
-			if _, err := tx.Exec(ctx, `DELETE FROM endpoint WHERE id = $1 AND status = 'PENDING_DELETE';`,
-				endpoint.ID); err != nil {
-				return err
-			}
-		} else {
-			if _, err := tx.Exec(ctx, `UPDATE endpoint SET status = 'AVAILABLE', updated_at = NOW() WHERE id = $1;`,
-				endpoint.ID); err != nil {
-				return err
-			}
+			sql, args = db.
+				Delete("endpoint").
+				Where("id = ?", endpoint.ID).
+				MustSql()
+		default:
+			sql, args = db.
+				Update("endpoint").
+				Set("status", models.EndpointStatusAVAILABLE).
+				Set("updated_at", sq.Expr("NOW()")).
+				Where("id = ?", endpoint.ID).
+				MustSql()
+		}
+		if _, err = tx.Exec(ctx, sql, args...); err != nil {
+			return err
 		}
 	}
 
-	if err := tx.Commit(ctx); err != nil {
+	if err = tx.Commit(ctx); err != nil {
 		return err
 	}
 

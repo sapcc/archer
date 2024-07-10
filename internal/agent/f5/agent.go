@@ -176,7 +176,9 @@ func (a *Agent) PendingSyncLoop(job gocron.Job) error {
 			sq.Eq{"status": []models.EndpointStatus{
 				models.EndpointStatusPENDINGDELETE,
 				models.EndpointStatusPENDINGCREATE,
-				models.EndpointStatusPENDINGUPDATE}},
+				models.EndpointStatusPENDINGUPDATE,
+				models.EndpointStatusPENDINGREJECTED,
+			}},
 			db.Select("1").
 				Prefix("EXISTS(").
 				From("service").

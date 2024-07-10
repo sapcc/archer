@@ -28,6 +28,7 @@ import (
 	"github.com/sapcc/archer/internal/agent/f5/as3"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
+	"github.com/sapcc/archer/models"
 )
 
 func (a *Agent) cleanupL2() error {
@@ -109,7 +110,7 @@ func (a *Agent) getUsedSegments() (map[int]string, error) {
 		LeftJoin("endpoint_port ep ON ep.endpoint_id = e.id").
 		From("service s").
 		Where("s.host = ?", config.Global.Default.Host).
-		Where("s.provider = 'tenant'").
+		Where("s.provider = ?", models.ServiceProviderTenant).
 		MustSql()
 
 	rows, err := a.pool.Query(context.Background(), sql, args...)
