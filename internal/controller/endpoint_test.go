@@ -408,6 +408,48 @@ func (t *SuiteTest) TestEndpointPut() {
 	assert.Equal(t.T(), network, *res.(*endpoint.PutEndpointEndpointIDOK).Payload.Target.Network)
 }
 
+func (t *SuiteTest) TestEndpointRequireApproval() {
+	// create service with require approval
+	t.addAgent(nil)
+	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(networkId), "GET",
+		"", GetNetworkResponseFixture, http.StatusOK)
+	serviceCopy := testService
+	serviceCopy.RequireApproval = swag.Bool(true)
+	res := t.c.PostServiceHandler(
+		service.PostServiceParams{HTTPRequest: &headerProject1, Body: &serviceCopy}, nil)
+	assert.EqualValues(t.T(), *res.(*service.PostServiceCreated).Payload.RequireApproval, true)
+
+	// create endpoint
+	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
+	payload := t.createEndpoint(res.(*service.PostServiceCreated).Payload.ID, models.EndpointTarget{
+		Network: &network,
+	})
+	assert.Equal(t.T(), models.EndpointStatusPENDINGAPPROVAL, payload.Status)
+
+	// changes won't change the approval status
+	res = t.c.PutEndpointEndpointIDHandler(
+		endpoint.PutEndpointEndpointIDParams{HTTPRequest: &http.Request{}, EndpointID: payload.ID,
+			Body: endpoint.PutEndpointEndpointIDBody{Name: swag.String("testPut")}}, nil)
+	assert.IsType(t.T(), &endpoint.PutEndpointEndpointIDOK{}, res)
+	payload = res.(*endpoint.PutEndpointEndpointIDOK).Payload
+	assert.Equal(t.T(), "testPut", payload.Name)
+	assert.Equal(t.T(), models.EndpointStatusPENDINGAPPROVAL, payload.Status)
+
+	// deletion should succeed
+	res = t.c.DeleteEndpointEndpointIDHandler(
+		endpoint.DeleteEndpointEndpointIDParams{HTTPRequest: &http.Request{}, EndpointID: payload.ID}, nil)
+	assert.IsType(t.T(), &endpoint.DeleteEndpointEndpointIDAccepted{}, res)
+
+	// pending delete
+	res = t.c.GetEndpointEndpointIDHandler(
+		endpoint.GetEndpointEndpointIDParams{HTTPRequest: &http.Request{}, EndpointID: payload.ID}, nil)
+	assert.IsType(t.T(), &endpoint.GetEndpointEndpointIDOK{}, res)
+	payload = res.(*endpoint.GetEndpointEndpointIDOK).Payload
+	assert.NotNil(t.T(), payload)
+	assert.Equal(t.T(), models.EndpointStatusPENDINGDELETE, payload.Status)
+
+}
+
 func (t *SuiteTest) TestEndpointDelete() {
 	// create, delete, get
 	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
