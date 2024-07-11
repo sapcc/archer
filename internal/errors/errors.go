@@ -26,4 +26,5 @@ var (
 	ErrNoSelfIP         = errors.New("no self ip found")
 	ErrNoVCMPFound      = errors.New("no VCMP guest found")
 	ErrQuotaExceeded    = errors.New("quota has been met")
+	ErrNoPhysNetFound   = errors.New("no physical network found")
 )

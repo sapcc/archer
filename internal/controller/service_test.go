@@ -489,3 +489,58 @@ func (t *SuiteTest) TestPutServiceServiceIDRejectEndpointsHandler() {
 	assert.Equal(t.T(), models.EndpointStatusPENDINGREJECTED,
 		res.(*service.PutServiceServiceIDRejectEndpointsOK).Payload[0].Status)
 }
+
+func (t *SuiteTest) TestPutServiceServiceIDAcceptEndpointHandlerMultiple() {
+	// create service and set require approval
+	serviceId := t.createService()
+	params := service.PutServiceServiceIDParams{
+		HTTPRequest: &headerProject1,
+		Body:        &models.ServiceUpdatable{RequireApproval: swag.Bool(true)},
+		ServiceID:   serviceId,
+	}
+	assert.IsType(t.T(), &service.PutServiceServiceIDOK{}, t.c.PutServiceServiceIDHandler(params, nil))
+
+	// create endpoint
+	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
+	ep := t.createEndpoint(serviceId, models.EndpointTarget{Network: &network})
+
+	// validate endpoint is status PENDING_APPROVAL
+	epParams := endpoint.GetEndpointEndpointIDParams{HTTPRequest: &headerProject1, EndpointID: ep.ID}
+	epRes := t.c.GetEndpointEndpointIDHandler(epParams, nil)
+	assert.IsType(t.T(), &endpoint.GetEndpointEndpointIDOK{}, epRes)
+	assert.Equal(t.T(), models.EndpointStatusPENDINGAPPROVAL, epRes.(*endpoint.GetEndpointEndpointIDOK).Payload.Status)
+
+	putParams := service.PutServiceServiceIDAcceptEndpointsParams{
+		HTTPRequest: &headerProject1,
+		ServiceID:   serviceId,
+		Body:        &models.EndpointConsumerList{EndpointIds: []strfmt.UUID{ep.ID}},
+	}
+
+	// try accepting endpoint with from unauthorized project
+	unauthorizedParams := putParams
+	unauthorizedParams.HTTPRequest = &headerProject2
+	res := t.c.PutServiceServiceIDAcceptEndpointsHandler(unauthorizedParams, nil)
+	assert.IsType(t.T(), &service.PutServiceServiceIDAcceptEndpointsNotFound{}, res)
+
+	// try accepting with invalid endpoint id
+	invalidEPIDParams := putParams
+	invalidEPIDParams.Body = &models.EndpointConsumerList{
+		EndpointIds: []strfmt.UUID{"50a1e876-5171-45c4-9e03-6388512ee418"}}
+	res = t.c.PutServiceServiceIDAcceptEndpointsHandler(invalidEPIDParams, nil)
+	assert.IsType(t.T(), &service.PutServiceServiceIDAcceptEndpointsNotFound{}, res)
+
+	// try accepting without correct consumer list
+	missingConsumerListParams := putParams
+	missingConsumerListParams.Body = &models.EndpointConsumerList{}
+	res = t.c.PutServiceServiceIDAcceptEndpointsHandler(missingConsumerListParams, nil)
+	assert.IsType(t.T(), &service.PutServiceServiceIDAcceptEndpointsBadRequest{}, res)
+	assert.Equal(t.T(), "Must declare at least one, endpoint_id(s) or project_id(s)",
+		res.(*service.PutServiceServiceIDAcceptEndpointsBadRequest).Payload.Message)
+
+	// accept endpoint and validate status is PENDING_CREATE
+	res = t.c.PutServiceServiceIDAcceptEndpointsHandler(putParams, nil)
+	assert.IsType(t.T(), &service.PutServiceServiceIDAcceptEndpointsOK{}, res)
+	assert.Len(t.T(), res.(*service.PutServiceServiceIDAcceptEndpointsOK).Payload, 1)
+	assert.Equal(t.T(), models.EndpointStatusPENDINGCREATE,
+		res.(*service.PutServiceServiceIDAcceptEndpointsOK).Payload[0].Status)
+}

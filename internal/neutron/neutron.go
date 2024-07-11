@@ -15,6 +15,7 @@
 package neutron
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -33,7 +34,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/internal/errors"
+	aErrors "github.com/sapcc/archer/internal/errors"
 	"github.com/sapcc/archer/models"
 )
 
@@ -68,10 +69,16 @@ func ConnectToNeutron(providerClient *gophercloud.ProviderClient) (*NeutronClien
 	return &NeutronClient{ServiceClient: serviceClient}, nil
 }
 
+// GetNetworkSegment return the segmentation ID for the given network
+// throws ErrNoPhysNetFound if the physical network is not found
 func (n *NeutronClient) GetNetworkSegment(networkID string) (int, error) {
 	var network provider.NetworkProviderExt
 	r := networks.Get(n.ServiceClient, networkID)
 	if err := r.ExtractInto(&network); err != nil {
+		var errDefault404 gophercloud.ErrDefault404
+		if errors.As(err, &errDefault404) {
+			return 0, fmt.Errorf("%w, network not found, %s", aErrors.ErrNoPhysNetFound, errDefault404.Error())
+		}
 		return 0, err
 	}
 
@@ -81,14 +88,18 @@ func (n *NeutronClient) GetNetworkSegment(networkID string) (int, error) {
 		}
 	}
 
-	return 0, fmt.Errorf("could not find physical-network %s for network '%s'",
-		config.Global.Agent.PhysicalNetwork, networkID)
+	return 0, fmt.Errorf("%w, physnet '%s' not found for network '%s'",
+		aErrors.ErrNoPhysNetFound, config.Global.Agent.PhysicalNetwork, networkID)
 }
 
 func (n *NeutronClient) GetSubnetSegment(subnetID string) (int, error) {
 
 	subnet, err := n.getSubnet(subnetID)
+	var errDefault404 gophercloud.ErrDefault404
 	if err != nil {
+		if errors.As(err, &errDefault404) {
+			return 0, fmt.Errorf("%w, subnet not found, %s", aErrors.ErrNoPhysNetFound, errDefault404.Error())
+		}
 		return 0, err
 	}
 
@@ -116,11 +127,11 @@ func (n *NeutronClient) AllocateNeutronEndpointPort(target *models.EndpointTarge
 		}
 
 		if port.ProjectID != projectID {
-			return nil, errors.ErrProjectMismatch
+			return nil, aErrors.ErrProjectMismatch
 		}
 
 		if len(port.FixedIPs) < 1 {
-			return nil, errors.ErrMissingIPAddress
+			return nil, aErrors.ErrMissingIPAddress
 		}
 
 		return port, nil
@@ -142,7 +153,7 @@ func (n *NeutronClient) AllocateNeutronEndpointPort(target *models.EndpointTarge
 			return nil, err
 		}
 		if len(network.Subnets) == 0 {
-			return nil, errors.ErrMissingSubnets
+			return nil, aErrors.ErrMissingSubnets
 		}
 
 		fixedIPs = append(fixedIPs, fixedIP{network.Subnets[0]})

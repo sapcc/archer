@@ -32,6 +32,7 @@ import (
 	"github.com/sapcc/archer/internal/agent/f5/as3"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
+	aErrors "github.com/sapcc/archer/internal/errors"
 	"github.com/sapcc/archer/internal/neutron"
 	"github.com/sapcc/archer/models"
 )
@@ -262,8 +263,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	if cleanupL2 {
 		segmentID, err = a.neutron.GetSubnetSegment(subnetID)
 		if err != nil {
-			var errDefault404 gophercloud.ErrDefault404
-			if !errors.As(err, &errDefault404) {
+			if !errors.Is(err, aErrors.ErrNoPhysNetFound) {
 				return err
 			}
 			logWith.WithError(err).Warning("ProcessEndpoint: GetSubnetSegment failed with 404, skipping L2 cleanup")
