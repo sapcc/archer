@@ -363,7 +363,7 @@ func (c *Controller) GetServiceServiceIDEndpointsHandler(params service.GetServi
 	}
 
 	var endpointsResponse = make([]*models.EndpointConsumer, 0)
-	if err := pgxscan.Select(context.Background(), c.pool, &endpointsResponse, sql, args...); err != nil {
+	if err = pgxscan.Select(context.Background(), c.pool, &endpointsResponse, sql, args...); err != nil {
 		var pe *pgconn.PgError
 		if errors.As(err, &pe) && pe.Code == pgerrcode.UndefinedColumn {
 			return service.NewGetServiceServiceIDEndpointsBadRequest().WithPayload(&models.Error{
@@ -432,6 +432,7 @@ func commonEndpointsActionHandler(pool db.PgxIface, body any, _ any) ([]*models.
 		httpRequest = params.HTTPRequest
 		consumerList = params.Body
 	}
+	q = q.Where("service_id = ?", serviceId)
 
 	if projectId := auth.GetProjectID(httpRequest); projectId != "" {
 		q = q.Where(db.Select("1").
@@ -459,7 +460,7 @@ func commonEndpointsActionHandler(pool db.PgxIface, body any, _ any) ([]*models.
 		return nil, err
 	}
 
-	if err := pgxscan.ScanAll(&endpointConsumers, rows); err != nil {
+	if err = pgxscan.ScanAll(&endpointConsumers, rows); err != nil {
 		return nil, err
 	}
 	if len(endpointConsumers) == 0 {

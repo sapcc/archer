@@ -24,6 +24,7 @@ import (
 	"github.com/gophercloud/gophercloud"
 	fake "github.com/gophercloud/gophercloud/openstack/networking/v2/common"
 	"github.com/gophercloud/gophercloud/testhelper/fixture"
+	"github.com/hashicorp/go-uuid"
 	"github.com/sapcc/go-bits/gopherpolicy"
 	"github.com/stretchr/testify/assert"
 
@@ -40,10 +41,14 @@ func (t *SuiteTest) createEndpoint(serviceId strfmt.UUID, target models.Endpoint
 		ProjectID: testProject1,
 	}
 
+	t.ResetHttpServer()
 	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(*target.Network), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
+	portID, _ := uuid.GenerateUUID()
 	fixture.SetupHandler(t.T(), "/v2.0/ports", "POST", "",
-		fmt.Sprintf(CreatePortResponseFixture, string(*target.Network)), http.StatusCreated)
+		fmt.Sprintf(CreatePortResponseFixture, portID, string(*target.Network)), http.StatusCreated)
+	fixture.SetupHandler(t.T(), "/v2.0/ports/"+portID, "GET", "",
+		fmt.Sprintf(CreatePortResponseFixture, portID, string(*target.Network)), http.StatusOK)
 
 	res := t.c.PostEndpointHandler(endpoint.PostEndpointParams{HTTPRequest: &http.Request{}, Body: &s},
 		nil)
@@ -55,7 +60,7 @@ func (t *SuiteTest) createEndpoint(serviceId strfmt.UUID, target models.Endpoint
 
 func (t *SuiteTest) TestEndpointList() {
 	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
-	payload := t.createEndpoint(t.createService(), models.EndpointTarget{
+	payload := t.createEndpoint(t.createService(testService), models.EndpointTarget{
 		Network: &network,
 	})
 
@@ -97,7 +102,7 @@ func (t *SuiteTest) TestEndpointPost() {
 	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
 
 	// create endpoint
-	payload := t.createEndpoint(t.createService(), models.EndpointTarget{
+	payload := t.createEndpoint(t.createService(testService), models.EndpointTarget{
 		Network: &network,
 	})
 
@@ -111,7 +116,7 @@ func (t *SuiteTest) TestEndpointPost() {
 
 func (t *SuiteTest) TestEndpointServiceNotAccessible() {
 	// post and get
-	serviceId := t.createService()
+	serviceId := t.createService(testService)
 
 	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
 	res := t.c.PostEndpointHandler(endpoint.PostEndpointParams{HTTPRequest: &headerProject2, Body: &models.Endpoint{
@@ -126,7 +131,7 @@ func (t *SuiteTest) TestEndpointServiceNotAccessible() {
 }
 
 func (t *SuiteTest) TestEndpointTargetNetworkUnknown() {
-	serviceId := t.createService()
+	serviceId := t.createService(testService)
 	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
 
 	notFoundBody := fmt.Sprintf(`{"NeutronError": {"type": "NetworkNotFound", "message": "Network %s could not be found.", "detail": ""}}`,
@@ -144,7 +149,7 @@ func (t *SuiteTest) TestEndpointTargetNetworkUnknown() {
 }
 
 func (t *SuiteTest) TestEndpointTargetForeignNetwork() {
-	serviceId := t.createService()
+	serviceId := t.createService(testService)
 	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
 
 	fakeServiceClient := fake.ServiceClient()
@@ -164,7 +169,7 @@ func (t *SuiteTest) TestEndpointTargetForeignNetwork() {
 }
 
 func (t *SuiteTest) TestEndpointTargetPortUnknown() {
-	serviceId := t.createService()
+	serviceId := t.createService(testService)
 	unknownPort := strfmt.UUID("aafd39b6-429d-43ff-9600-623d63de6f50")
 	s := models.Endpoint{
 		ServiceID: serviceId,
@@ -185,7 +190,7 @@ func (t *SuiteTest) TestEndpointTargetPortUnknown() {
 }
 
 func (t *SuiteTest) TestEndpointTargetPortNotSameProject() {
-	serviceId := t.createService()
+	serviceId := t.createService(testService)
 	portId := strfmt.UUID("89f3b416-affd-4e4f-8468-f9fc5f141cd9")
 	s := models.Endpoint{
 		ServiceID: serviceId,
@@ -220,7 +225,7 @@ func (t *SuiteTest) TestEndpointTargetPortNotSameProject() {
 }
 
 func (t *SuiteTest) TestEndpointTargetPortMissingIPAdddress() {
-	serviceId := t.createService()
+	serviceId := t.createService(testService)
 	portId := strfmt.UUID("89f3b416-affd-4e4f-8468-f9fc5f141cd9")
 	s := models.Endpoint{
 		ServiceID: serviceId,
@@ -249,7 +254,7 @@ func (t *SuiteTest) TestEndpointTargetPortMissingIPAdddress() {
 }
 
 func (t *SuiteTest) TestEndpointTargetPortSameNetworkAsService() {
-	serviceId := t.createService()
+	serviceId := t.createService(testService)
 	portId := strfmt.UUID("89f3b416-affd-4e4f-8468-f9fc5f141cd9")
 	s := models.Endpoint{
 		ServiceID: serviceId,
@@ -258,7 +263,7 @@ func (t *SuiteTest) TestEndpointTargetPortSameNetworkAsService() {
 	}
 
 	fixture.SetupHandler(t.T(), fmt.Sprintf("/v2.0/ports/%s", portId), "GET", "",
-		fmt.Sprintf(CreatePortResponseFixture, networkId), http.StatusOK)
+		fmt.Sprintf(CreatePortResponseFixture, portId, networkId), http.StatusOK)
 
 	res := t.c.PostEndpointHandler(endpoint.PostEndpointParams{HTTPRequest: &http.Request{}, Body: &s},
 		nil)
@@ -270,14 +275,15 @@ func (t *SuiteTest) TestEndpointTargetPortSameNetworkAsService() {
 
 func (t *SuiteTest) TestEndpointScopes() {
 	// post and get
-	serviceId := t.createService()
+	serviceId := t.createService(testService)
 
 	// prepare endpoint
 	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
 	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(network), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
+	portID, _ := uuid.GenerateUUID()
 	fixture.SetupHandler(t.T(), "/v2.0/ports", "POST", "",
-		fmt.Sprintf(CreatePortResponseFixture, string(network)), http.StatusCreated)
+		fmt.Sprintf(CreatePortResponseFixture, portID, string(network)), http.StatusCreated)
 	s := models.Endpoint{
 		ServiceID: serviceId,
 		Target:    models.EndpointTarget{Network: &network},
@@ -305,18 +311,19 @@ func (t *SuiteTest) TestEndpointScopes() {
 
 func (t *SuiteTest) TestEndpointWithQuota() {
 	network := strfmt.UUID("037d5b08-e113-4567-9d43-901fd89d27cf")
-	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(network), "GET",
-		"", GetNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t.T(), "/v2.0/ports", "POST", "",
-		fmt.Sprintf(CreatePortResponseFixture, string(network)), http.StatusCreated)
-
 	s := models.Endpoint{
-		ServiceID: t.createService(),
+		ServiceID: t.createService(testService),
 		Target: models.EndpointTarget{
 			Network: &network,
 		},
 		ProjectID: testProject1,
 	}
+
+	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(network), "GET",
+		"", GetNetworkResponseFixture, http.StatusOK)
+	portID, _ := uuid.GenerateUUID()
+	fixture.SetupHandler(t.T(), "/v2.0/ports", "POST", "",
+		fmt.Sprintf(CreatePortResponseFixture, portID, string(network)), http.StatusCreated)
 
 	config.Global.Quota.Enabled = true
 	t.createQuota(string(testProject1))
@@ -329,7 +336,7 @@ func (t *SuiteTest) TestEndpointWithQuota() {
 
 func (t *SuiteTest) TestEndpointPostMissingTarget() {
 	s := models.Endpoint{
-		ServiceID: t.createService(),
+		ServiceID: t.createService(testService),
 	}
 
 	res := t.c.PostEndpointHandler(endpoint.PostEndpointParams{HTTPRequest: &http.Request{}, Body: &s},
@@ -340,7 +347,7 @@ func (t *SuiteTest) TestEndpointPostMissingTarget() {
 
 func (t *SuiteTest) TestEndpointQuotaMet() {
 	s := models.Endpoint{
-		ServiceID: t.createService(),
+		ServiceID: t.createService(testService),
 	}
 
 	config.Global.Quota.Enabled = true
@@ -353,20 +360,14 @@ func (t *SuiteTest) TestEndpointQuotaMet() {
 }
 
 func (t *SuiteTest) TestEndpointPortAlreadyUsed() {
-	serviceId := t.createService()
+	serviceId := t.createService(testService)
 	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
 	payload := t.createEndpoint(serviceId, models.EndpointTarget{
 		Network: &network,
 	})
 	assert.NotNil(t.T(), payload)
 
-	// Teardown / restart http server to create a new mux
-	t.ResetHttpServer()
-	fixture.SetupHandler(t.T(), "/v2.0/networks/"+network.String(), "GET",
-		"", GetNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t.T(), "/v2.0/ports/65c0ee9f-d634-4522-8954-51021b570b0d", "GET", "",
-		fmt.Sprintf(CreatePortResponseFixture, string(network)), http.StatusOK)
-
+	// create another endpoint with the same port
 	s := models.Endpoint{
 		ServiceID: serviceId,
 		Target: models.EndpointTarget{
@@ -395,7 +396,7 @@ func (t *SuiteTest) TestEndpointPut() {
 	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
 
 	// create endpoint
-	payload := t.createEndpoint(t.createService(), models.EndpointTarget{
+	payload := t.createEndpoint(t.createService(testService), models.EndpointTarget{
 		Network: &network,
 	})
 
@@ -462,7 +463,7 @@ func (t *SuiteTest) TestEndpointDelete() {
 	assert.IsType(t.T(), &endpoint.DeleteEndpointEndpointIDNotFound{}, res)
 
 	// create endpoint
-	payload := t.createEndpoint(t.createService(), models.EndpointTarget{
+	payload := t.createEndpoint(t.createService(testService), models.EndpointTarget{
 		Network: &network,
 	})
 

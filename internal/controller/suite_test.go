@@ -54,7 +54,7 @@ const CreatePortResponseFixture = `
 {
     "port": {
         "status": "DOWN",
-        "id": "65c0ee9f-d634-4522-8954-51021b570b0d",
+        "id": "%s",
 		"network_id": "%s",
         "fixed_ips": [
             {

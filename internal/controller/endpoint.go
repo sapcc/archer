@@ -190,17 +190,19 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, tok
 		panic(err)
 	}
 
+	owned := true
+	if params.Body.Target.Port != nil {
+		owned = false
+	}
+
 	if serviceNetwork == port.NetworkID {
-		log.Infof("Deallocating port %s: %+v", port.ID, c.neutron.DeletePort(port.ID))
+		if owned {
+			log.Infof("Deallocating port %s: %+v", port.ID, c.neutron.DeletePort(port.ID))
+		}
 		return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
 			Code:    400,
 			Message: "target_port needs to be in a different network than the service.",
 		})
-	}
-
-	owned := true
-	if params.Body.Target.Port != nil {
-		owned = false
 	}
 
 	/* TODO: need to fetch physical network from agent to get the correct segment, can be fetched later by the agent

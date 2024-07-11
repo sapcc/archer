@@ -28,7 +28,7 @@ import (
 )
 
 func (t *SuiteTest) createRbac(target string) strfmt.UUID {
-	service := t.createService()
+	service := t.createService(testService)
 	s := models.Rbacpolicy{
 		ServiceID:  &service,
 		Target:     target,
@@ -121,7 +121,7 @@ func (t *SuiteTest) TestRbacDelete() {
 
 func (t *SuiteTest) TestRbacConflict() {
 	target := "faa90930-9518-469e-ac9f-d3622110e09b"
-	s := t.createService()
+	s := t.createService(testService)
 	p := models.Rbacpolicy{
 		ServiceID:  &s,
 		Target:     target,

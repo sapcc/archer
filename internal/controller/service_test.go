@@ -52,17 +52,19 @@ func (t *SuiteTest) addAgent(az *string) {
 	sql, args := db.Insert("agents").
 		Columns("host", "availability_zone").
 		Values("test-host", az).
+		Suffix("ON CONFLICT DO NOTHING").
 		MustSql()
 	if _, err := t.c.pool.Exec(context.Background(), sql, args...); err != nil {
 		t.FailNow("Failed inserting agent host", err)
 	}
 }
 
-func (t *SuiteTest) createService() strfmt.UUID {
+func (t *SuiteTest) createService(svc models.Service) strfmt.UUID {
 	t.addAgent(nil)
-	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(networkId), "GET",
+	t.ResetHttpServer()
+	fixture.SetupHandler(t.T(), "/v2.0/networks/"+svc.NetworkID.String(), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
-	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &testService},
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &svc},
 		nil)
 
 	assert.NotNil(t.T(), res)
@@ -73,7 +75,7 @@ func (t *SuiteTest) createService() strfmt.UUID {
 }
 
 func (t *SuiteTest) TestGetServiceHandler() {
-	serviceId := t.createService()
+	serviceId := t.createService(testService)
 
 	header := headerProject1
 	header.URL = new(url.URL)
@@ -107,7 +109,7 @@ func (t *SuiteTest) TestGetServiceHandlerEmptyGet() {
 
 func (t *SuiteTest) TestServicePost() {
 	// post and get
-	serviceId := t.createService()
+	serviceId := t.createService(testService)
 
 	res := t.c.GetServiceServiceIDHandler(
 		service.GetServiceServiceIDParams{HTTPRequest: &http.Request{}, ServiceID: serviceId},
@@ -116,7 +118,7 @@ func (t *SuiteTest) TestServicePost() {
 }
 
 func (t *SuiteTest) TestServicePostScoped() {
-	serviceId := t.createService()
+	serviceId := t.createService(testService)
 
 	res := t.c.GetServiceServiceIDHandler(
 		service.GetServiceServiceIDParams{HTTPRequest: &http.Request{}, ServiceID: serviceId},
@@ -220,7 +222,7 @@ func (t *SuiteTest) TestServicePostNoAgentFound() {
 
 func (t *SuiteTest) TestServiceScopedGetFromOtherProject() {
 	// post and get
-	serviceId := t.createService()
+	serviceId := t.createService(testService)
 
 	res := t.c.GetServiceServiceIDHandler(
 		service.GetServiceServiceIDParams{HTTPRequest: &headerProject2, ServiceID: serviceId},
@@ -243,7 +245,7 @@ func (t *SuiteTest) TestServiceScopedGetFromOtherProject() {
 
 func (t *SuiteTest) TestServicePut() {
 	// post and get
-	serviceId := t.createService()
+	serviceId := t.createService(testService)
 
 	name := "test2"
 	res := t.c.PutServiceServiceIDHandler(
@@ -272,7 +274,7 @@ func (t *SuiteTest) TestServicePut() {
 func (t *SuiteTest) TestServiceDelete() {
 	// create, delete, get
 	// post and get
-	serviceId := t.createService()
+	serviceId := t.createService(testService)
 
 	// delete
 	res := t.c.DeleteServiceServiceIDHandler(
@@ -310,28 +312,24 @@ func (t *SuiteTest) TestServiceDuplicatePayload() {
 	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &s},
 		nil)
 	assert.IsType(t.T(), &service.PostServiceCreated{}, res)
-
 	res = t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &s},
 		nil)
 	assert.IsType(t.T(), &service.PostServiceConflict{}, res)
 
 	// create a second service with a different ip
 	s.IPAddresses = []strfmt.IPv4{"1.2.3.5"}
-	res = t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &s},
-		nil)
-	assert.IsType(t.T(), &service.PostServiceCreated{}, res)
-	payload := res.(*service.PostServiceCreated).Payload
+	serviceID := t.createService(s)
 
 	// update to 1.2.3.4 -> conflict
 	res = t.c.PutServiceServiceIDHandler(
 		service.PutServiceServiceIDParams{HTTPRequest: &headerProject1,
-			ServiceID: payload.ID, Body: &models.ServiceUpdatable{IPAddresses: []strfmt.IPv4{"1.2.3.4"}}},
+			ServiceID: serviceID, Body: &models.ServiceUpdatable{IPAddresses: []strfmt.IPv4{"1.2.3.4"}}},
 		nil)
 	assert.IsType(t.T(), &service.PutServiceServiceIDConflict{}, res)
 }
 
 func (t *SuiteTest) TestServiceDeleteInUse() {
-	serviceId := t.createService()
+	serviceId := t.createService(testService)
 	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
 	t.createEndpoint(serviceId, models.EndpointTarget{Network: &network})
 
@@ -349,7 +347,7 @@ func (t *SuiteTest) TestServiceDeleteInUse() {
 }
 
 func (t *SuiteTest) TestGetServiceServiceIDEndpointsHandler() {
-	serviceId := t.createService()
+	serviceId := t.createService(testService)
 	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
 	ep := t.createEndpoint(serviceId, models.EndpointTarget{Network: &network})
 
@@ -372,7 +370,7 @@ func (t *SuiteTest) TestGetServiceServiceIDEndpointsHandlerNotFound() {
 }
 
 func (t *SuiteTest) TestGetServiceServiceIDEndpointsHandlerUnknownSortColumn() {
-	serviceId := t.createService()
+	serviceId := t.createService(testService)
 	params := service.GetServiceServiceIDEndpointsParams{HTTPRequest: &headerProject1,
 		Sort: swag.String("unknown"), ServiceID: serviceId}
 	res := t.c.GetServiceServiceIDEndpointsHandler(params, nil)
@@ -382,7 +380,7 @@ func (t *SuiteTest) TestGetServiceServiceIDEndpointsHandlerUnknownSortColumn() {
 
 func (t *SuiteTest) TestPutServiceServiceIDAcceptEndpointsHandler() {
 	// create service and set require approval
-	serviceId := t.createService()
+	serviceId := t.createService(testService)
 	params := service.PutServiceServiceIDParams{
 		HTTPRequest: &headerProject1,
 		Body:        &models.ServiceUpdatable{RequireApproval: swag.Bool(true)},
@@ -436,14 +434,10 @@ func (t *SuiteTest) TestPutServiceServiceIDAcceptEndpointsHandler() {
 }
 
 func (t *SuiteTest) TestPutServiceServiceIDRejectEndpointsHandler() {
-	// create service and set require approval
-	serviceId := t.createService()
-	params := service.PutServiceServiceIDParams{
-		HTTPRequest: &headerProject1,
-		Body:        &models.ServiceUpdatable{RequireApproval: swag.Bool(true)},
-		ServiceID:   serviceId,
-	}
-	assert.IsType(t.T(), &service.PutServiceServiceIDOK{}, t.c.PutServiceServiceIDHandler(params, nil))
+	// create service with require approval
+	svcReqApproval := testService
+	svcReqApproval.RequireApproval = swag.Bool(true)
+	serviceId := t.createService(testService)
 
 	// create endpoint
 	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
@@ -490,54 +484,33 @@ func (t *SuiteTest) TestPutServiceServiceIDRejectEndpointsHandler() {
 		res.(*service.PutServiceServiceIDRejectEndpointsOK).Payload[0].Status)
 }
 
-func (t *SuiteTest) TestPutServiceServiceIDAcceptEndpointHandlerMultiple() {
-	// create service and set require approval
-	serviceId := t.createService()
-	params := service.PutServiceServiceIDParams{
-		HTTPRequest: &headerProject1,
-		Body:        &models.ServiceUpdatable{RequireApproval: swag.Bool(true)},
-		ServiceID:   serviceId,
-	}
-	assert.IsType(t.T(), &service.PutServiceServiceIDOK{}, t.c.PutServiceServiceIDHandler(params, nil))
+func (t *SuiteTest) TestPutServiceServiceIDAcceptEndpointHandlerMultipleServices() {
+	// create two services with require approval
+	svcReqApproval := testService
+	svcReqApproval.RequireApproval = swag.Bool(true)
+	serviceID1 := t.createService(testService)
 
-	// create endpoint
-	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
-	ep := t.createEndpoint(serviceId, models.EndpointTarget{Network: &network})
+	svcReqApproval.Name = "test2"
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &testService},
+		nil)
+	assert.NotNil(t.T(), res)
+	assert.IsType(t.T(), &service.PostServiceCreated{}, res)
+	serviceID2 := res.(*service.PostServiceCreated).Payload.ID
 
-	// validate endpoint is status PENDING_APPROVAL
-	epParams := endpoint.GetEndpointEndpointIDParams{HTTPRequest: &headerProject1, EndpointID: ep.ID}
-	epRes := t.c.GetEndpointEndpointIDHandler(epParams, nil)
-	assert.IsType(t.T(), &endpoint.GetEndpointEndpointIDOK{}, epRes)
-	assert.Equal(t.T(), models.EndpointStatusPENDINGAPPROVAL, epRes.(*endpoint.GetEndpointEndpointIDOK).Payload.Status)
-
-	putParams := service.PutServiceServiceIDAcceptEndpointsParams{
-		HTTPRequest: &headerProject1,
-		ServiceID:   serviceId,
-		Body:        &models.EndpointConsumerList{EndpointIds: []strfmt.UUID{ep.ID}},
-	}
+	// create endpoints for for both services
+	var network strfmt.UUID
+	network = "d714f65e-bffd-494f-8219-8eb0a85d7a2d"
+	t.createEndpoint(serviceID1, models.EndpointTarget{Network: &network})
+	network = "a97c6721-32d9-436d-9cd1-5327d65de67b"
+	t.createEndpoint(serviceID2, models.EndpointTarget{Network: &network})
 
 	// try accepting endpoint with from unauthorized project
-	unauthorizedParams := putParams
-	unauthorizedParams.HTTPRequest = &headerProject2
-	res := t.c.PutServiceServiceIDAcceptEndpointsHandler(unauthorizedParams, nil)
-	assert.IsType(t.T(), &service.PutServiceServiceIDAcceptEndpointsNotFound{}, res)
-
-	// try accepting with invalid endpoint id
-	invalidEPIDParams := putParams
-	invalidEPIDParams.Body = &models.EndpointConsumerList{
-		EndpointIds: []strfmt.UUID{"50a1e876-5171-45c4-9e03-6388512ee418"}}
-	res = t.c.PutServiceServiceIDAcceptEndpointsHandler(invalidEPIDParams, nil)
-	assert.IsType(t.T(), &service.PutServiceServiceIDAcceptEndpointsNotFound{}, res)
-
-	// try accepting without correct consumer list
-	missingConsumerListParams := putParams
-	missingConsumerListParams.Body = &models.EndpointConsumerList{}
-	res = t.c.PutServiceServiceIDAcceptEndpointsHandler(missingConsumerListParams, nil)
-	assert.IsType(t.T(), &service.PutServiceServiceIDAcceptEndpointsBadRequest{}, res)
-	assert.Equal(t.T(), "Must declare at least one, endpoint_id(s) or project_id(s)",
-		res.(*service.PutServiceServiceIDAcceptEndpointsBadRequest).Payload.Message)
-
-	// accept endpoint and validate status is PENDING_CREATE
+	putParams := service.PutServiceServiceIDAcceptEndpointsParams{
+		HTTPRequest: &headerProject1,
+		ServiceID:   serviceID1,
+		Body:        &models.EndpointConsumerList{ProjectIds: []models.Project{testProject1}},
+	}
+	// we expect only one endpoint to be returned
 	res = t.c.PutServiceServiceIDAcceptEndpointsHandler(putParams, nil)
 	assert.IsType(t.T(), &service.PutServiceServiceIDAcceptEndpointsOK{}, res)
 	assert.Len(t.T(), res.(*service.PutServiceServiceIDAcceptEndpointsOK).Payload, 1)
