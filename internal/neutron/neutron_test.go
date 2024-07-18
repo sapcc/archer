@@ -19,11 +19,11 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/gophercloud/gophercloud"
-	fake "github.com/gophercloud/gophercloud/openstack/networking/v2/common"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
-	th "github.com/gophercloud/gophercloud/testhelper"
-	"github.com/gophercloud/gophercloud/testhelper/fixture"
+	"github.com/gophercloud/gophercloud/v2"
+	fake "github.com/gophercloud/gophercloud/v2/openstack/networking/v2/common"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
+	th "github.com/gophercloud/gophercloud/v2/testhelper"
+	"github.com/gophercloud/gophercloud/v2/testhelper/fixture"
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/stretchr/testify/assert"
 
@@ -81,7 +81,7 @@ func TestNeutronClient_GetNetworkSegment404(t *testing.T) {
 	_, err := n.GetNetworkSegment(NetworkIDFixture)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, aErrors.ErrNoPhysNetFound))
-	assert.ErrorContains(t, err, "no physical network found, network not found, Resource not found")
+	assert.ErrorContains(t, err, "no physical network found, network not found")
 }
 
 func TestNeutronClient_GetNetworkSegmentMissing(t *testing.T) {
@@ -119,6 +119,6 @@ func TestNeutronClient_GetNetworkSegment500(t *testing.T) {
 	_, err := n.GetNetworkSegment(NetworkIDFixture)
 	assert.Error(t, err)
 	assert.False(t, errors.Is(err, aErrors.ErrNoPhysNetFound))
-	assert.IsType(t, gophercloud.ErrDefault500{}, err)
-	assert.EqualError(t, err, "Internal Server Error")
+	assert.True(t, gophercloud.ResponseCodeIs(err, http.StatusInternalServerError))
+	assert.ErrorContains(t, err, "internal server error")
 }

@@ -16,12 +16,12 @@ package f5
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/v2"
 	"github.com/jackc/pgx/v5/pgtype"
 	log "github.com/sirupsen/logrus"
 
@@ -82,8 +82,7 @@ func (a *Agent) cleanOrphanSelfIPs() error {
 			_, err := a.neutron.GetPort(portID)
 			if err != nil {
 				log.WithError(err).WithField("port_id", portID).Info("cleanOrphanSelfIPs")
-				var errDefault404 gophercloud.ErrDefault404
-				if errors.As(err, &errDefault404) {
+				if gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
 					log.WithFields(log.Fields{
 						"port_id": portID,
 						"host":    bigip.GetHostname(),

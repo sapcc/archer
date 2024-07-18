@@ -16,11 +16,11 @@ package f5
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
-	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/v2"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
@@ -183,8 +183,7 @@ func (a *Agent) CleanupSelfIPs(subnetID string) error {
 	for _, port := range neutronPorts {
 		log.WithField("id", port.ID).Debug("CleanupSelfIPs: deleting neutron port")
 		if err := a.neutron.DeletePort(port.ID); err != nil {
-			var errDefault404 gophercloud.ErrDefault404
-			if !errors.As(err, &errDefault404) {
+			if !gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
 				return err
 			}
 			log.WithField("id", port.ID).Warning("CleanupSelfIPs: neutron port not found, skipping")
@@ -222,8 +221,7 @@ func (a *Agent) CleanupSNATPorts(networkID string) error {
 	for _, port := range ports {
 		log.WithField("id", port.ID).Debug("CleanupSNATPorts: deleting SNAT neutron port")
 		if err := a.neutron.DeletePort(port.ID); err != nil {
-			var errDefault404 gophercloud.ErrDefault404
-			if !errors.As(err, &errDefault404) {
+			if !gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
 				return err
 			}
 			log.WithField("id", port.ID).Warning("CleanupSNATPorts: neutron port not found, skipping")

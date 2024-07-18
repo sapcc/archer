@@ -24,8 +24,8 @@ import (
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
-	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
+	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/networks"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -100,9 +100,8 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 	}
 
 	if params.Body.NetworkID != nil {
-		if network, err := networks.Get(c.neutron.ServiceClient, string(*params.Body.NetworkID)).Extract(); err != nil {
-			var errDefault404 gophercloud.ErrDefault404
-			if errors.As(err, &errDefault404) {
+		if network, err := networks.Get(params.HTTPRequest.Context(), c.neutron.ServiceClient, string(*params.Body.NetworkID)).Extract(); err != nil {
+			if gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
 				return service.NewPostServiceConflict().WithPayload(&models.Error{
 					Code:    http.StatusConflict,
 					Message: "Network not found.",

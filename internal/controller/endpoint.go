@@ -23,8 +23,8 @@ import (
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
-	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack"
+	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -180,11 +180,11 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, tok
 				Message: "target_port needs at least one IP address.",
 			})
 		}
-		var gopherCloudErr gophercloud.StatusCodeError
-		if errors.As(err, &gopherCloudErr) {
+		var codeError gophercloud.ErrUnexpectedResponseCode
+		if errors.As(err, &codeError) {
 			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
-				Code:    int64(gopherCloudErr.GetStatusCode()),
-				Message: gopherCloudErr.Error(),
+				Code:    int64(codeError.GetStatusCode()),
+				Message: codeError.Error(),
 			})
 		}
 		panic(err)

@@ -21,9 +21,9 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/gophercloud/gophercloud"
-	fake "github.com/gophercloud/gophercloud/openstack/networking/v2/common"
-	"github.com/gophercloud/gophercloud/testhelper/fixture"
+	"github.com/gophercloud/gophercloud/v2"
+	fake "github.com/gophercloud/gophercloud/v2/openstack/networking/v2/common"
+	"github.com/gophercloud/gophercloud/v2/testhelper/fixture"
 	"github.com/hashicorp/go-uuid"
 	"github.com/sapcc/go-bits/gopherpolicy"
 	"github.com/stretchr/testify/assert"
@@ -164,7 +164,7 @@ func (t *SuiteTest) TestEndpointTargetForeignNetwork() {
 	}}, &token)
 	assert.NotNil(t.T(), res)
 	assert.IsType(t.T(), &endpoint.PostEndpointBadRequest{}, res)
-	assert.Equal(t.T(), fmt.Sprintf("Resource not found: [GET http://127.0.0.1:8931/v2.0/networks/%s], error message: 404 page not found\n", network),
+	assert.Equal(t.T(), fmt.Sprintf("Expected HTTP response code [200] when accessing [GET http://127.0.0.1:8931/v2.0/networks/%s], but got 404 instead: 404 page not found", network),
 		res.(*endpoint.PostEndpointBadRequest).Payload.Message)
 }
 

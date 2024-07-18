@@ -17,12 +17,13 @@
 package auth
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/go-openapi/errors"
-	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack"
-	"github.com/gophercloud/gophercloud/openstack/identity/v3/tokens"
+	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack"
+	"github.com/gophercloud/gophercloud/v2/openstack/identity/v3/tokens"
 	"github.com/sapcc/go-bits/gopherpolicy"
 	log "github.com/sirupsen/logrus"
 
@@ -55,8 +56,9 @@ func InitializeKeystone(providerClient *gophercloud.ProviderClient) (*Keystone, 
 }
 
 func (k *Keystone) AuthenticateToken(tokenStr string) (any, error) {
-	token := k.tv.CheckCredentials(tokenStr, func() gopherpolicy.TokenResult {
-		return tokens.Get(k.tv.IdentityV3, tokenStr)
+	ctx := context.Background()
+	token := k.tv.CheckCredentials(ctx, tokenStr, func() gopherpolicy.TokenResult {
+		return tokens.Get(ctx, k.tv.IdentityV3, tokenStr)
 	})
 	token.Context.Logger = log.Debugf
 	log.Debugf("token has auth = %v", token.Context.Auth)

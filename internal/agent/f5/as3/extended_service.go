@@ -15,7 +15,7 @@
 package as3
 
 import (
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
 
 	"github.com/sapcc/archer/models"
 )

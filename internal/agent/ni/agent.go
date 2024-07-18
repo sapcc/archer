@@ -23,7 +23,7 @@ import (
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-co-op/gocron"
 	"github.com/go-openapi/strfmt"
-	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"

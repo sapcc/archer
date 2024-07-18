@@ -31,7 +31,7 @@ import (
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/swag"
-	"github.com/gophercloud/utils/openstack/clientconfig"
+	"github.com/gophercloud/utils/v2/openstack/clientconfig"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -102,7 +102,7 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 
 	// Keystone authentication
 	authInfo := clientconfig.AuthInfo(config.Global.ServiceAuth)
-	providerClient, err := clientconfig.AuthenticatedClient(&clientconfig.ClientOpts{
+	providerClient, err := clientconfig.AuthenticatedClient(context.Background(), &clientconfig.ClientOpts{
 		AuthInfo: &authInfo})
 	if err != nil {
 		log.Fatal(err.Error())

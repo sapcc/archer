@@ -15,21 +15,22 @@
 package neutron
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"net"
+	"net/http"
 	"strings"
 	"time"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/portsbinding"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/provider"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
-	"github.com/gophercloud/gophercloud/pagination"
+	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/portsbinding"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/provider"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/networks"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/subnets"
+	"github.com/gophercloud/gophercloud/v2/pagination"
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	log "github.com/sirupsen/logrus"
 
@@ -73,11 +74,10 @@ func ConnectToNeutron(providerClient *gophercloud.ProviderClient) (*NeutronClien
 // throws ErrNoPhysNetFound if the physical network is not found
 func (n *NeutronClient) GetNetworkSegment(networkID string) (int, error) {
 	var network provider.NetworkProviderExt
-	r := networks.Get(n.ServiceClient, networkID)
+	r := networks.Get(context.Background(), n.ServiceClient, networkID)
 	if err := r.ExtractInto(&network); err != nil {
-		var errDefault404 gophercloud.ErrDefault404
-		if errors.As(err, &errDefault404) {
-			return 0, fmt.Errorf("%w, network not found, %s", aErrors.ErrNoPhysNetFound, errDefault404.Error())
+		if gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
+			return 0, fmt.Errorf("%w, network not found, %s", aErrors.ErrNoPhysNetFound, err.Error())
 		}
 		return 0, err
 	}
@@ -95,10 +95,9 @@ func (n *NeutronClient) GetNetworkSegment(networkID string) (int, error) {
 func (n *NeutronClient) GetSubnetSegment(subnetID string) (int, error) {
 
 	subnet, err := n.getSubnet(subnetID)
-	var errDefault404 gophercloud.ErrDefault404
 	if err != nil {
-		if errors.As(err, &errDefault404) {
-			return 0, fmt.Errorf("%w, subnet not found, %s", aErrors.ErrNoPhysNetFound, errDefault404.Error())
+		if gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
+			return 0, fmt.Errorf("%w, subnet not found, %s", aErrors.ErrNoPhysNetFound, err.Error())
 		}
 		return 0, err
 	}
@@ -107,11 +106,11 @@ func (n *NeutronClient) GetSubnetSegment(subnetID string) (int, error) {
 }
 
 func (n *NeutronClient) GetPort(portId string) (*ports.Port, error) {
-	return ports.Get(n.ServiceClient, portId).Extract()
+	return ports.Get(context.Background(), n.ServiceClient, portId).Extract()
 }
 
 func (n *NeutronClient) DeletePort(portId string) error {
-	return ports.Delete(n.ServiceClient, portId).ExtractErr()
+	return ports.Delete(context.Background(), n.ServiceClient, portId).ExtractErr()
 }
 
 type fixedIP struct {
@@ -121,7 +120,7 @@ type fixedIP struct {
 func (n *NeutronClient) AllocateNeutronEndpointPort(target *models.EndpointTarget, endpoint *models.Endpoint,
 	projectID string, host string, client *gophercloud.ServiceClient) (*ports.Port, error) {
 	if target.Port != nil {
-		port, err := ports.Get(client, target.Port.String()).Extract()
+		port, err := ports.Get(context.Background(), client, target.Port.String()).Extract()
 		if err != nil {
 			return nil, err
 		}
@@ -139,7 +138,7 @@ func (n *NeutronClient) AllocateNeutronEndpointPort(target *models.EndpointTarge
 
 	var fixedIPs []fixedIP
 	if target.Network == nil {
-		subnet, err := subnets.Get(client, target.Subnet.String()).Extract()
+		subnet, err := subnets.Get(context.Background(), client, target.Subnet.String()).Extract()
 		if err != nil {
 			return nil, err
 		}
@@ -172,7 +171,7 @@ func (n *NeutronClient) AllocateNeutronEndpointPort(target *models.EndpointTarge
 		HostID: host,
 	}
 
-	res, err := ports.Create(n.ServiceClient, port).Extract()
+	res, err := ports.Create(context.Background(), n.ServiceClient, port).Extract()
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +196,7 @@ func (n *NeutronClient) FetchSNATPorts(networkID string) (map[string]*ports.Port
 		},
 		HostID: config.Global.Default.Host,
 	}
-	pages, err := ports.List(n.ServiceClient, opts).AllPages()
+	pages, err := ports.List(n.ServiceClient, opts).AllPages(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +219,7 @@ func (n *NeutronClient) GetNetwork(networkID string) (*networks.Network, error) 
 		return network, nil
 	}
 
-	network, err := networks.Get(n.ServiceClient, networkID).Extract()
+	network, err := networks.Get(context.Background(), n.ServiceClient, networkID).Extract()
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +232,7 @@ func (n *NeutronClient) getSubnet(subnetID string) (*subnets.Subnet, error) {
 		return network, nil
 	}
 
-	subnet, err := subnets.Get(n.ServiceClient, subnetID).Extract()
+	subnet, err := subnets.Get(context.Background(), n.ServiceClient, subnetID).Extract()
 	if err != nil {
 		return nil, err
 	}
@@ -249,7 +248,7 @@ func (n *NeutronClient) FetchSelfIPPorts() (map[string][]*ports.Port, error) {
 		},
 		HostID: config.Global.Default.Host,
 	}
-	pages, err := ports.List(n.ServiceClient, opts).AllPages()
+	pages, err := ports.List(n.ServiceClient, opts).AllPages(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -286,7 +285,7 @@ func (n *NeutronClient) EnsureNeutronSelfIPs(deviceIDs []string, subnetID string
 		},
 		HostID: config.Global.Default.Host,
 	}
-	pages, err = ports.List(n.ServiceClient, opts).AllPages()
+	pages, err = ports.List(n.ServiceClient, opts).AllPages(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -329,7 +328,7 @@ func (n *NeutronClient) EnsureNeutronSelfIPs(deviceIDs []string, subnetID string
 				HostID: config.Global.Default.Host,
 			}
 
-			selfIPs[deviceID], err = ports.Create(n.ServiceClient, port).Extract()
+			selfIPs[deviceID], err = ports.Create(context.Background(), n.ServiceClient, port).Extract()
 			if err != nil {
 				return nil, err
 			}

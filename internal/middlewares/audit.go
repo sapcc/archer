@@ -17,6 +17,7 @@
 package middlewares
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -57,7 +58,7 @@ func NewAuditController() *AuditController {
 		OnFailedPublish: func() {
 			log.Debug("Notification failed")
 		},
-	}.Commit(*transportURL, rabbitmqQueueName)
+	}.Commit(context.Background(), *transportURL, rabbitmqQueueName)
 	return &q
 }
 

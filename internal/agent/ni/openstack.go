@@ -17,14 +17,15 @@ limitations under the License.
 package ni
 
 import (
+	"context"
 	"os"
 	"time"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
-	"github.com/gophercloud/utils/openstack/clientconfig"
+	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
+	"github.com/gophercloud/utils/v2/openstack/clientconfig"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal/config"
@@ -44,7 +45,7 @@ func (a *Agent) SetupOpenStack() error {
 	// Allow automatically reauthenticate
 	authInfo.AllowReauth = true
 
-	providerClient, err := clientconfig.AuthenticatedClient(&clientconfig.ClientOpts{
+	providerClient, err := clientconfig.AuthenticatedClient(context.Background(), &clientconfig.ClientOpts{
 		AuthInfo: &authInfo})
 	if err != nil {
 		log.Fatal(err.Error())
@@ -73,7 +74,7 @@ func (a *Agent) SetupOpenStack() error {
 }
 
 func (a *Agent) EnableInjection(si *ServiceInjection) error {
-	injectorPort, err := ports.Get(a.neutron, si.PortId.String()).Extract()
+	injectorPort, err := ports.Get(context.Background(), a.neutron, si.PortId.String()).Extract()
 	if err != nil {
 		return err
 	}
@@ -129,7 +130,7 @@ func (a *Agent) EnableInjection(si *ServiceInjection) error {
 
 func (a *Agent) DisableInjection(si *ServiceInjection) error {
 	log.Debugf("DisableInjection(si='%+v')", si)
-	injectorPort, err := ports.Get(a.neutron, si.PortId.String()).Extract()
+	injectorPort, err := ports.Get(context.Background(), a.neutron, si.PortId.String()).Extract()
 	if err != nil {
 		return err
 	}

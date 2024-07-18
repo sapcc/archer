@@ -23,7 +23,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/go-co-op/gocron"
 	"github.com/go-openapi/strfmt"
-	"github.com/gophercloud/utils/openstack/clientconfig"
+	"github.com/gophercloud/utils/v2/openstack/clientconfig"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -106,7 +106,7 @@ func NewAgent() *Agent {
 	}
 
 	authInfo := clientconfig.AuthInfo(config.Global.ServiceAuth)
-	providerClient, err := clientconfig.AuthenticatedClient(&clientconfig.ClientOpts{
+	providerClient, err := clientconfig.AuthenticatedClient(context.Background(), &clientconfig.ClientOpts{
 		AuthInfo: &authInfo})
 	if err != nil {
 		log.WithError(err).Fatal("Error while connecting to Keystone")

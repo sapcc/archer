@@ -18,13 +18,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-openapi/strfmt"
-	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
-	"github.com/gophercloud/gophercloud/pagination"
+	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
+	"github.com/gophercloud/gophercloud/v2/pagination"
 	"github.com/jackc/pgx/v5"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -45,7 +46,7 @@ func (a *Agent) populateEndpointPorts(endpoints []*as3.ExtendedEndpoint) error {
 	}
 
 	var pages pagination.Page
-	pages, err := ports.List(a.neutron.ServiceClient, opts).AllPages()
+	pages, err := ports.List(a.neutron.ServiceClient, opts).AllPages(context.Background())
 	if err != nil {
 		return err
 	}
@@ -291,8 +292,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 			// Delete endpoint neutron port, if it exists and is owned by the agent
 			if endpoint.Target.Port != nil && endpoint.Owned {
 				if err = a.neutron.DeletePort(endpoint.Target.Port.String()); err != nil {
-					var errDefault404 gophercloud.ErrDefault404
-					if !errors.As(err, &errDefault404) {
+					if !gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
 						return err
 					}
 				}
@@ -308,8 +308,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 			// Delete endpoint neutron port, if it exists and is owned by the agent
 			if endpoint.Target.Port != nil && endpoint.Owned {
 				if err = a.neutron.DeletePort(endpoint.Target.Port.String()); err != nil {
-					var errDefault404 gophercloud.ErrDefault404
-					if !errors.As(err, &errDefault404) {
+					if !gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
 						return err
 					}
 				}

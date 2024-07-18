@@ -15,10 +15,11 @@
 package neutron
 
 import (
+	"fmt"
 	"net/url"
 
-	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
+	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
 )
 
 // PortListOptsExt adds the PortBinding options to the base port ListOpts.
@@ -40,7 +41,15 @@ func (opts PortListOptsExt) ToPortListQuery() (string, error) {
 
 	// From ListOpts.FixedIPs
 	for _, _fixedIP := range opts.ListOptsBuilder.(ports.ListOpts).FixedIPs {
-		params.Add("fixed_ips", _fixedIP.String())
+		if _fixedIP.IPAddress != "" {
+			params.Add("fixed_ips", fmt.Sprintf("ip_address=%s", _fixedIP.IPAddress))
+		}
+		if _fixedIP.IPAddressSubstr != "" {
+			params.Add("fixed_ips", fmt.Sprintf("ip_address_substr=%s", _fixedIP.IPAddressSubstr))
+		}
+		if _fixedIP.SubnetID != "" {
+			params.Add("fixed_ips", fmt.Sprintf("subnet_id=%s", _fixedIP.SubnetID))
+		}
 	}
 
 	if opts.HostID != "" {

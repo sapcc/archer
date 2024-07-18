@@ -19,9 +19,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
-	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/v2"
 	"github.com/jackc/pgx/v5"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -56,8 +57,7 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 			// TODO: tolerate deleted network in case the service is going to be deleted
 			network, err := a.neutron.GetNetwork(service.NetworkID.String())
 			if err != nil {
-				var errDefault404 gophercloud.ErrDefault404
-				if !errors.As(err, &errDefault404) || service.Status != models.ServiceStatusPENDINGDELETE {
+				if !gophercloud.ResponseCodeIs(err, http.StatusNotFound) || service.Status != models.ServiceStatusPENDINGDELETE {
 					return err
 				}
 				log.WithError(err).WithField("service", service.ID).Warning("ProcessServices(PENDING_DELETE): network not found")

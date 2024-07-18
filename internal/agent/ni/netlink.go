@@ -17,14 +17,15 @@ limitations under the License.
 package ni
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"runtime"
 	"strings"
 
-	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
+	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/subnets"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
 )
@@ -128,7 +129,7 @@ func EnsureNetworkNamespace(port *ports.Port, client *gophercloud.ServiceClient)
 			return nil, fmt.Errorf("failed parsing ip address '%s'", fixedIP.IPAddress)
 		}
 
-		subnet, err := subnets.Get(client, fixedIP.SubnetID).Extract()
+		subnet, err := subnets.Get(context.Background(), client, fixedIP.SubnetID).Extract()
 		if err != nil {
 			return nil, err
 		}

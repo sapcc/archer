@@ -23,7 +23,7 @@ import (
 	policy "github.com/databus23/goslo.policy"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/gophercloud/gophercloud/testhelper/fixture"
+	"github.com/gophercloud/gophercloud/v2/testhelper/fixture"
 	"github.com/sapcc/go-bits/gopherpolicy"
 	"github.com/stretchr/testify/assert"
 

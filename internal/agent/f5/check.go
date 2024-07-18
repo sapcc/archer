@@ -16,11 +16,11 @@ package f5
 
 import (
 	"context"
-	"errors"
+	"net/http"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
+	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/networks"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/sapcc/archer/internal/config"
@@ -101,8 +101,7 @@ func (a *Agent) checkCleanupSelfIPs(ctx context.Context, tx pgx.Tx, networkID st
 
 	var network *networks.Network
 	network, err = a.neutron.GetNetwork(networkID)
-	var errDefault404 gophercloud.ErrDefault404
-	if errors.As(err, &errDefault404) {
+	if gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
 		// The network is already deleted
 		return nil, false
 	} else if err != nil {
