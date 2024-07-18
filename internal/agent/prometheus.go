@@ -28,8 +28,9 @@ import (
 )
 
 type PrometheusMonitor struct {
-	processJobCount *prometheus.CounterVec
-	jobTiming       *prometheus.HistogramVec
+	processJobCount  *prometheus.CounterVec
+	jobTiming        *prometheus.HistogramVec
+	pendingJobTiming *prometheus.HistogramVec
 }
 
 func NewPrometheusMonitor() *PrometheusMonitor {
@@ -42,12 +43,18 @@ func NewPrometheusMonitor() *PrometheusMonitor {
 		Help:    "The time taken to process a job",
 		Buckets: prometheus.ExponentialBuckets(0.1, 2, 14),
 	}, []string{"name", "id"})
+	pendingJobTiming := prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "archer_sync_job_timing",
+		Help:    "The time taken to process a pending sync job",
+		Buckets: prometheus.DefBuckets,
+	}, nil)
 
-	prometheus.DefaultRegisterer.MustRegister(processJobCount, jobTiming)
+	prometheus.DefaultRegisterer.MustRegister(processJobCount, jobTiming, pendingJobTiming)
 
 	return &PrometheusMonitor{
-		processJobCount: processJobCount,
-		jobTiming:       jobTiming,
+		processJobCount:  processJobCount,
+		jobTiming:        jobTiming,
+		pendingJobTiming: pendingJobTiming,
 	}
 }
 
@@ -60,11 +67,15 @@ func (p PrometheusMonitor) IncrementJob(_ uuid.UUID, name string, tags []string,
 }
 
 func (p PrometheusMonitor) RecordJobTiming(startTime, endTime time.Time, _ uuid.UUID, name string, tags []string) {
-	labels := prometheus.Labels{"name": name, "id": ""}
-	if len(tags) == 1 {
-		labels["id"] = tags[0]
+	if name == "PendingSyncLoop" {
+		p.pendingJobTiming.WithLabelValues().Observe(endTime.Sub(startTime).Seconds())
+	} else {
+		labels := prometheus.Labels{"name": name, "id": ""}
+		if len(tags) == 1 {
+			labels["id"] = tags[0]
+		}
+		p.jobTiming.With(labels).Observe(endTime.Sub(startTime).Seconds())
 	}
-	p.jobTiming.With(labels).Observe(endTime.Sub(startTime).Seconds())
 }
 
 func PrometheusListenerThread() {
