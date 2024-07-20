@@ -12,7 +12,7 @@ require (
 	github.com/f5devcentral/go-bigip v0.0.0-20240614094559-88a99e648815
 	github.com/georgysavva/scany/v2 v2.1.3
 	github.com/getsentry/sentry-go v0.20.0
-	github.com/go-co-op/gocron/v2 v2.10.1
+	github.com/go-co-op/gocron/v2 v2.11.0
 	github.com/go-openapi/errors v0.22.0
 	github.com/go-openapi/loads v0.22.0
 	github.com/go-openapi/runtime v0.28.0
