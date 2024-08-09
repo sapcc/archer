@@ -78,36 +78,38 @@ func (*ServiceShow) Execute(_ []string) error {
 }
 
 type ServiceCreate struct {
-	Name            string        `short:"n" long:"name" description:"New service name"`
-	Description     string        `long:"description" description:"Set service description"`
-	Provider        *string       `long:"provider" description:"Provider type" choice:"tenant" choice:"cp"`
-	Enable          bool          `long:"enable" description:"Enable service"`
-	Disable         bool          `long:"disable" description:"Disable service"`
-	Network         strfmt.UUID   `long:"network" description:"Network id" required:"true"`
-	IPAddresses     []strfmt.IPv4 `long:"ip-address" description:"IP Addresses of the providing service, multiple addresses will be round robin load balanced." required:"true"`
-	Port            int32         `long:"port" description:"Port exposed by the service" required:"true"`
-	ProxyProtocol   bool          `long:"proxy-protocol" description:"Enable proxy protocol v2."`
-	RequireApproval bool          `long:"require-approval" description:"Require explicit project approval for the service owner."`
-	Tags            []string      `long:"tag" description:"Tag to be added to the service (repeat option to set multiple tags)"`
-	Visibility      *string       `long:"visibility" description:"Set global visibility of the service. For private visibility, RBAC policies can extend the visibility to specific projects" choice:"private" choice:"public"`
-	Wait            bool          `long:"wait" description:"Wait for service to be ready"`
+	Name             string        `short:"n" long:"name" description:"New service name"`
+	Description      string        `long:"description" description:"Set service description"`
+	Provider         *string       `long:"provider" description:"Provider type" choice:"tenant" choice:"cp"`
+	Enable           bool          `long:"enable" description:"Enable service"`
+	Disable          bool          `long:"disable" description:"Disable service"`
+	Network          strfmt.UUID   `long:"network" description:"Network id" required:"true"`
+	IPAddresses      []strfmt.IPv4 `long:"ip-address" description:"IP Addresses of the providing service, multiple addresses will be round robin load balanced." required:"true"`
+	Port             int32         `long:"port" description:"Port exposed by the service" required:"true"`
+	ProxyProtocol    bool          `long:"proxy-protocol" description:"Enable proxy protocol v2."`
+	RequireApproval  bool          `long:"require-approval" description:"Require explicit project approval for the service owner."`
+	Tags             []string      `long:"tag" description:"Tag to be added to the service (repeat option to set multiple tags)"`
+	Visibility       *string       `long:"visibility" description:"Set global visibility of the service. For private visibility, RBAC policies can extend the visibility to specific projects" choice:"private" choice:"public"`
+	Wait             bool          `long:"wait" description:"Wait for service to be ready"`
+	AvailabilityZone *string       `long:"availability-zone" description:"Availability zone for the service"`
 }
 
 func (*ServiceCreate) Execute(_ []string) error {
 	enabled := ServiceOptions.ServiceCreate.Enable || !ServiceOptions.ServiceCreate.Disable
 
 	sv := models.Service{
-		Name:            ServiceOptions.ServiceCreate.Name,
-		Description:     ServiceOptions.ServiceCreate.Description,
-		Provider:        ServiceOptions.ServiceCreate.Provider,
-		Enabled:         &enabled,
-		NetworkID:       &ServiceOptions.ServiceCreate.Network,
-		IPAddresses:     ServiceOptions.ServiceCreate.IPAddresses,
-		Port:            ServiceOptions.ServiceCreate.Port,
-		ProxyProtocol:   &ServiceOptions.ServiceCreate.ProxyProtocol,
-		RequireApproval: &ServiceOptions.ServiceCreate.RequireApproval,
-		Tags:            ServiceOptions.ServiceCreate.Tags,
-		Visibility:      ServiceOptions.ServiceCreate.Visibility,
+		Name:             ServiceOptions.ServiceCreate.Name,
+		Description:      ServiceOptions.ServiceCreate.Description,
+		Provider:         ServiceOptions.ServiceCreate.Provider,
+		Enabled:          &enabled,
+		NetworkID:        &ServiceOptions.ServiceCreate.Network,
+		IPAddresses:      ServiceOptions.ServiceCreate.IPAddresses,
+		Port:             ServiceOptions.ServiceCreate.Port,
+		ProxyProtocol:    &ServiceOptions.ServiceCreate.ProxyProtocol,
+		RequireApproval:  &ServiceOptions.ServiceCreate.RequireApproval,
+		Tags:             ServiceOptions.ServiceCreate.Tags,
+		Visibility:       ServiceOptions.ServiceCreate.Visibility,
+		AvailabilityZone: ServiceOptions.ServiceCreate.AvailabilityZone,
 	}
 	resp, err := ArcherClient.Service.PostService(service.NewPostServiceParams().WithBody(&sv), nil)
 	if err != nil {
