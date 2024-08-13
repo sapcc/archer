@@ -238,8 +238,8 @@ github.com/rogpeppe/go-internal v1.11.0/go.mod h1:ddIwULY96R17DhadqLgMfk9H9tvdUz
 github.com/rs/cors v1.11.0 h1:0B9GE/r9Bc2UxRMMtymBkHTenPkHDv0CW4Y98GBY+po=
 github.com/rs/cors v1.11.0/go.mod h1:XyqrcTp5zjWr1wsJ8PIRZssZ8b/WMcMf71DJnit4EMU=
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
-github.com/sapcc/go-api-declarations v1.12.1 h1:1/QfRD7D4OGfZv3F1HGFwwAJtiuYUvjqE/XhE4UnpCc=
-github.com/sapcc/go-api-declarations v1.12.1/go.mod h1:83R3hTANhuRXt/pXDby37IJetw8l7DG41s33Tp9NXxI=
+github.com/sapcc/go-api-declarations v1.12.3 h1:BlAavGQJiv1PqAiIaGXg8jqsCk/kB7lNTOxk0l0eyn8=
+github.com/sapcc/go-api-declarations v1.12.3/go.mod h1:83R3hTANhuRXt/pXDby37IJetw8l7DG41s33Tp9NXxI=
 github.com/sapcc/go-bits v0.0.0-20240813132200-cd5fc372129b h1:Q/SUDkYSvERukYB0Rpl45p1c+q1eDuWex7ziR2FsEyM=
 github.com/sapcc/go-bits v0.0.0-20240813132200-cd5fc372129b/go.mod h1:vympHlKZdpHnFq/CtNY+X83krW7F6qX1BYF0q/MtEns=
 github.com/sergi/go-diff v1.3.1 h1:xkr+Oxo4BOQKmkn/B9eMK0g5Kg/983T9DqqPHwYqD+8=
