@@ -7,7 +7,7 @@ RUN curl -sSLo /tmp/linkerd-await https://github.com/linkerd/linkerd-await/relea
 ################################################################################
 
 
-FROM golang:1.22-alpine as builder
+FROM golang:1.23-alpine as builder
 
 ENV CGO_ENABLED=0
 ARG TARGETOS
