@@ -33,7 +33,7 @@ require (
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/pashagolub/pgxmock/v4 v4.2.0
-	github.com/prometheus/client_golang v1.20.0
+	github.com/prometheus/client_golang v1.20.1
 	github.com/rs/cors v1.11.0
 	github.com/sapcc/go-api-declarations v1.12.4
 	github.com/sapcc/go-bits v0.0.0-20240820072956-98409d657331
