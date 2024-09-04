@@ -36,7 +36,7 @@ require (
 	github.com/prometheus/client_golang v1.20.2
 	github.com/rs/cors v1.11.1
 	github.com/sapcc/go-api-declarations v1.12.5
-	github.com/sapcc/go-bits v0.0.0-20240829073103-7495f31d66ad
+	github.com/sapcc/go-bits v0.0.0-20240904153235-12b0e9917e81
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.9.0
