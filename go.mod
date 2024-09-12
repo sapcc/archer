@@ -1,6 +1,8 @@
 module github.com/sapcc/archer
 
-go 1.22.5
+go 1.23
+
+toolchain go1.23.1
 
 require (
 	github.com/IBM/pgxpoolprometheus v1.1.1
@@ -35,8 +37,8 @@ require (
 	github.com/pashagolub/pgxmock/v4 v4.2.0
 	github.com/prometheus/client_golang v1.20.3
 	github.com/rs/cors v1.11.1
-	github.com/sapcc/go-api-declarations v1.12.5
-	github.com/sapcc/go-bits v0.0.0-20240905070742-0ac071bc79e7
+	github.com/sapcc/go-api-declarations v1.12.6
+	github.com/sapcc/go-bits v0.0.0-20240912081530-0967be9f0a6b
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.9.0
@@ -86,7 +88,7 @@ require (
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.58.0 // indirect
+	github.com/prometheus/common v0.59.1 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/rabbitmq/amqp091-go v1.10.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
