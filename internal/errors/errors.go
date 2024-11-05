@@ -27,4 +27,6 @@ var (
 	ErrNoVCMPFound      = errors.New("no VCMP guest found")
 	ErrQuotaExceeded    = errors.New("quota has been met")
 	ErrNoPhysNetFound   = errors.New("no physical network found")
+	ErrNoSubnetFound    = errors.New("no subnet(s) found")
+	ErrNoIPsAvailable   = errors.New("no IPs left")
 )

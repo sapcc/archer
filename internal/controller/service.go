@@ -25,6 +25,7 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/networkipavailabilities"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/networks"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
@@ -113,6 +114,22 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 			return service.NewPostServiceConflict().WithPayload(&models.Error{
 				Code:    http.StatusConflict,
 				Message: "Network not accessible.",
+			})
+		}
+
+		// check if subnet has ip addresses available
+		if networkIpAvailability, err := networkipavailabilities.Get(params.HTTPRequest.Context(), c.neutron.ServiceClient, string(*params.Body.NetworkID)).Extract(); err != nil {
+			if gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
+				return service.NewPostServiceConflict().WithPayload(&models.Error{
+					Code:    http.StatusConflict,
+					Message: "Network not found.",
+				})
+			}
+			panic(err)
+		} else if networkIpAvailability.UsedIPs >= networkIpAvailability.TotalIPs {
+			return service.NewPostServiceConflict().WithPayload(&models.Error{
+				Code:    http.StatusConflict,
+				Message: "No available IP addresses in network.",
 			})
 		}
 	}

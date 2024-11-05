@@ -414,6 +414,8 @@ func (t *SuiteTest) TestEndpointRequireApproval() {
 	t.addAgent(nil)
 	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(networkId), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
+	fixture.SetupHandler(t.T(), "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
+		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
 	serviceCopy := testService
 	serviceCopy.RequireApproval = swag.Bool(true)
 	res := t.c.PostServiceHandler(

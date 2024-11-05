@@ -70,7 +70,7 @@ const CreatePortResponseFixture = `
 const GetNetworkResponseFixture = `
 {
     "network": {
-        "id": "d714f65e-bffd-494f-8219-8eb0a85d7a2d]",
+        "id": "d714f65e-bffd-494f-8219-8eb0a85d7a2d",
         "subnets": ["a0304c3a-4f08-4c43-88af-d796509c97d2"],
 		"project_id": "test-project-1",
 		"segments": [
@@ -81,6 +81,30 @@ const GetNetworkResponseFixture = `
 			}
 		]
     }
+}
+`
+
+const GetNetworkIpAvailabilityResponseFixture = `
+{
+	"network_ip_availability": {
+		"network_id": "d714f65e-bffd-494f-8219-8eb0a85d7a2d",
+		"network_name": "test-network-1",
+		"tenant_id": "test-project-1",
+		"total_ips": 256,
+		"used_ips": 0
+	}
+}
+`
+
+const GetNetworkIpNoAvailabilityResponseFixture = `
+{
+	"network_ip_availability": {
+		"network_id": "d714f65e-bffd-494f-8219-8eb0a85d7a2d",
+		"network_name": "test-network-1",
+		"tenant_id": "test-project-1",
+		"total_ips": 0,
+		"used_ips": 0
+	}
 }
 `
 
