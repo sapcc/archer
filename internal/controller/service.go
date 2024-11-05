@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/v2/dbscan"
@@ -126,11 +127,20 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 				})
 			}
 			panic(err)
-		} else if networkIpAvailability.UsedIPs >= networkIpAvailability.TotalIPs {
-			return service.NewPostServiceConflict().WithPayload(&models.Error{
-				Code:    http.StatusConflict,
-				Message: "No available IP addresses in network.",
-			})
+		} else {
+			var totalIPs, usedIPs int
+			if usedIPs, err = strconv.Atoi(networkIpAvailability.UsedIPs); err != nil {
+				panic(err)
+			}
+			if totalIPs, err = strconv.Atoi(networkIpAvailability.TotalIPs); err != nil {
+				panic(err)
+			}
+			if usedIPs >= totalIPs {
+				return service.NewPostServiceConflict().WithPayload(&models.Error{
+					Code:    http.StatusConflict,
+					Message: "No available IP addresses in network.",
+				})
+			}
 		}
 	}
 
