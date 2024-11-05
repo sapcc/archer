@@ -9,7 +9,7 @@ require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/bcicen/go-haproxy v0.0.0-20210728173702-412d077dabc1
 	github.com/databus23/goslo.policy v0.0.0-20210929125152-81bf2876dbdb
-	github.com/didip/tollbooth/v7 v7.0.2
+	github.com/didip/tollbooth/v8 v8.0.0
 	github.com/dre1080/recovr v1.0.3
 	github.com/f5devcentral/go-bigip v0.0.0-20241021135443-33e2cde9829b
 	github.com/georgysavva/scany/v2 v2.1.3

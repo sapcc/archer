@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/IBM/pgxpoolprometheus"
-	"github.com/didip/tollbooth/v7"
+	"github.com/didip/tollbooth/v8"
 	"github.com/dre1080/recovr"
 	"github.com/getsentry/sentry-go"
 	sentryhttp "github.com/getsentry/sentry-go/http"
