@@ -10,7 +10,6 @@ require (
 	github.com/bcicen/go-haproxy v0.0.0-20210728173702-412d077dabc1
 	github.com/databus23/goslo.policy v0.0.0-20210929125152-81bf2876dbdb
 	github.com/didip/tollbooth/v7 v7.0.2
-	github.com/didip/tollbooth/v8 v8.0.0
 	github.com/dre1080/recovr v1.0.3
 	github.com/f5devcentral/go-bigip v0.0.0-20241021135443-33e2cde9829b
 	github.com/georgysavva/scany/v2 v2.1.3
@@ -39,7 +38,7 @@ require (
 	github.com/prometheus/client_golang v1.20.5
 	github.com/rs/cors v1.11.1
 	github.com/sapcc/go-api-declarations v1.12.9
-	github.com/sapcc/go-bits v0.0.0-20241104153112-e859150bf8d9
+	github.com/sapcc/go-bits v0.0.0-20241105152144-8029a9fd2533
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.9.0
