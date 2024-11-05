@@ -129,7 +129,6 @@ func NewAgent() *Agent {
 func (a *Agent) Run() {
 	go common.DBNotificationThread(context.Background(), a)
 	go common.PrometheusListenerThread()
-	a.scheduler.Start()
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -145,6 +144,7 @@ func (a *Agent) Run() {
 		gocron.DurationJob(config.Global.Agent.PendingSyncInterval),
 		gocron.NewTask(a.PendingSyncLoop),
 		gocron.WithName("PendingSyncLoop"),
+		gocron.WithStartAt(gocron.WithStartImmediately()),
 	); err != nil {
 		log.Fatal(err)
 	}
@@ -158,6 +158,9 @@ func (a *Agent) Run() {
 	); err != nil {
 		log.Fatal(err)
 	}
+
+	// start the scheduler
+	a.scheduler.Start()
 
 	// block until done
 	log.Infof("Agent running...")
