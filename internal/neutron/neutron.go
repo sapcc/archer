@@ -94,7 +94,7 @@ func (n *NeutronClient) GetNetworkSegment(networkID string) (int, error) {
 
 func (n *NeutronClient) GetSubnetSegment(subnetID string) (int, error) {
 
-	subnet, err := n.getSubnet(subnetID)
+	subnet, err := n.GetSubnet(subnetID)
 	if err != nil {
 		if gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
 			return 0, fmt.Errorf("%w, subnet not found, %s", aErrors.ErrNoPhysNetFound, err.Error())
@@ -227,7 +227,7 @@ func (n *NeutronClient) GetNetwork(networkID string) (*networks.Network, error) 
 	return network, nil
 }
 
-func (n *NeutronClient) getSubnet(subnetID string) (*subnets.Subnet, error) {
+func (n *NeutronClient) GetSubnet(subnetID string) (*subnets.Subnet, error) {
 	if network, ok := n.subnetCache.Get(subnetID); ok {
 		return network, nil
 	}
@@ -271,7 +271,7 @@ func (n *NeutronClient) EnsureNeutronSelfIPs(deviceIDs []string, subnetID string
 		"devices": deviceIDs,
 		"dry_run": dryRun,
 	}).Debug("EnsureNeutronSelfIPs")
-	subnet, err := n.getSubnet(subnetID)
+	subnet, err := n.GetSubnet(subnetID)
 	if err != nil {
 		return nil, err
 	}
@@ -338,7 +338,7 @@ func (n *NeutronClient) EnsureNeutronSelfIPs(deviceIDs []string, subnetID string
 }
 
 func (n *NeutronClient) GetMask(subnetID string) (int, error) {
-	subnet, err := n.getSubnet(subnetID)
+	subnet, err := n.GetSubnet(subnetID)
 	if err != nil {
 		return 0, err
 	}

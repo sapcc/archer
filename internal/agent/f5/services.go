@@ -19,9 +19,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/subnets"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal/agent/f5/as3"
@@ -50,13 +52,34 @@ func (a *Agent) getExtendedService(s *models.Service) (*as3.ExtendedService, err
 		return nil, fmt.Errorf("GetNetwork: %w", internal.ErrNoSubnetFound)
 	}
 
-	// Try to allocate SNAT ports from the first subnet that has available IPs
+	// Try to allocate SNAT ports from the subnet hat has the service in it
 	err = nil
-	for _, subnet := range network.Subnets {
+	for _, subnetID := range network.Subnets {
+		var subnet *subnets.Subnet
+		if subnet, err = a.neutron.GetSubnet(subnetID); err != nil {
+			return nil, fmt.Errorf("GetSubnet: %w", err)
+		}
+
+		var ipnet *net.IPNet
+		if _, ipnet, err = net.ParseCIDR(subnet.CIDR); err != nil {
+			return nil, fmt.Errorf("ParseCIDR: %w", err)
+		}
+
+		found := false
+		for _, ipAddress := range service.IPAddresses {
+			if ipnet.Contains(net.ParseIP(ipAddress.String())) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			continue
+		}
+
 		// Allocate SNAT ports as SelfIPs in Neutron
-		service.NeutronPorts, err = a.neutron.EnsureNeutronSelfIPs(deviceIDs, subnet, pendingDelete)
+		service.NeutronPorts, err = a.neutron.EnsureNeutronSelfIPs(deviceIDs, subnetID, pendingDelete)
 		if err == nil {
-			service.SubnetID = subnet
+			service.SubnetID = subnetID
 			break
 		}
 
