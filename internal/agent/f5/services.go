@@ -54,7 +54,7 @@ func (a *Agent) getExtendedService(s *models.Service) (*as3.ExtendedService, err
 
 	// Try to allocate SNAT ports from the subnet hat has the service in it
 	err = nil
-	for _, subnetID := range network.Subnets {
+	for i, subnetID := range network.Subnets {
 		var subnet *subnets.Subnet
 		if subnet, err = a.neutron.GetSubnet(subnetID); err != nil {
 			return nil, fmt.Errorf("GetSubnet: %w", err)
@@ -66,13 +66,20 @@ func (a *Agent) getExtendedService(s *models.Service) (*as3.ExtendedService, err
 		}
 
 		found := false
-		for _, ipAddress := range service.IPAddresses {
-			if ipnet.Contains(net.ParseIP(ipAddress.String())) {
+		for _, ip := range service.IPAddresses {
+			var ipAddress net.IP
+			if ipAddress, _, err = net.ParseCIDR(ip.String()); err != nil {
+				return nil, fmt.Errorf("ParseCIDR: %w", err)
+			}
+
+			if ipnet.Contains(ipAddress) {
 				found = true
 				break
 			}
 		}
-		if !found {
+		if !found && i < len(network.Subnets)-1 {
+			// Skip this subnet and try the next if there are more subnets
+			// for backwards compatibility - else just allow invalid configuration.
 			continue
 		}
 
