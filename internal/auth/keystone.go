@@ -26,6 +26,7 @@ import (
 	"github.com/gophercloud/gophercloud/v2/openstack/identity/v3/tokens"
 	"github.com/sapcc/go-bits/gopherpolicy"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 
 	"github.com/sapcc/archer/internal/config"
 )
@@ -48,7 +49,7 @@ func InitializeKeystone(providerClient *gophercloud.ProviderClient) (*Keystone, 
 		IdentityV3: keystoneV3,
 		Cacher:     gopherpolicy.InMemoryCacher(),
 	}
-	if err := tv.LoadPolicyFile(config.Global.ApiSettings.PolicyFile); err != nil {
+	if err := tv.LoadPolicyFile(config.Global.ApiSettings.PolicyFile, yaml.Unmarshal); err != nil {
 		return nil, err
 	}
 
