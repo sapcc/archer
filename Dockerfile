@@ -19,7 +19,7 @@ RUN make -C /src
 
 ################################################################################
 
-FROM alpine:3.20
+FROM alpine:3.21
 LABEL source_repository="https://github.com/sapcc/archer"
 
 # upgrade all installed packages to fix potential CVEs in advance
