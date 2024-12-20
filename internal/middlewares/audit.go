@@ -26,6 +26,7 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/sapcc/go-api-declarations/cadf"
 	"github.com/sapcc/go-bits/audittools"
+	"github.com/sapcc/go-bits/gopherpolicy"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal/config"
@@ -100,6 +101,7 @@ func (arw *AuditResponseWriter) WriteHeader(code int) {
 	resource := strings.Split(policy.RuleFromHTTPRequest(arw.request), ":")[0]
 	uprinc := middleware.SecurityPrincipalFrom(arw.request)
 	user := uprinc.(audittools.UserInfo)
+	token := uprinc.(gopherpolicy.Token)
 	if user == nil {
 		log.Error("Audit Middleware WriteHeader: missing token")
 		return
@@ -112,8 +114,8 @@ func (arw *AuditResponseWriter) WriteHeader(code int) {
 		ReasonCode: code,
 		Action:     cadf.GetAction(arw.request.Method),
 		Target: AuditResource{
-			user.ProjectScopeUUID(),
-			user.DomainScopeUUID(),
+			token.ProjectScopeUUID(),
+			token.DomainScopeUUID(),
 			resource,
 			mr.Params,
 			arw.Header().Get("X-Target-Id"),
