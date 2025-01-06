@@ -101,7 +101,7 @@ func (arw *AuditResponseWriter) WriteHeader(code int) {
 	resource := strings.Split(policy.RuleFromHTTPRequest(arw.request), ":")[0]
 	uprinc := middleware.SecurityPrincipalFrom(arw.request)
 	user := uprinc.(audittools.UserInfo)
-	token := uprinc.(gopherpolicy.Token)
+	token := uprinc.(*gopherpolicy.Token)
 	if user == nil {
 		log.Error("Audit Middleware WriteHeader: missing token")
 		return
