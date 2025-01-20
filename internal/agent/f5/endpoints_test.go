@@ -140,10 +140,10 @@ const PostBigIPFixture = `{
             "bigip": "/Common/Shared/pool-a0a0a0a0-a0a0-4a0a-8a0a-0a0a0a0a0a0a"
           },
           "profileL4": {
-            "bigip": "/Common/cc_fastL4_profile"
+            "bigip": "/Common/cc_fastL4_noaging_profile"
           },
           "profileTCP": {
-            "bigip": "/Common/cc_tcp_profile"
+            "bigip": "/Common/cc_tcp_archer_profile"
           },
           "snat": {
             "bigip": "/Common/Shared/snatpool-a0a0a0a0-a0a0-4a0a-8a0a-0a0a0a0a0a0a"
@@ -188,8 +188,8 @@ func TestAgent_ProcessEndpoint(t *testing.T) {
 	th.SetupPersistentPortHTTP(t, 8931)
 	defer th.TeardownHTTP()
 	config.Global.Agent.PhysicalNetwork = "physnet1"
-	config.Global.Agent.L4Profile = "/Common/cc_fastL4_profile"
-	config.Global.Agent.TCPProfile = "/Common/cc_tcp_profile"
+	config.Global.Agent.L4Profile = "/Common/cc_fastL4_noaging_profile"
+	config.Global.Agent.TCPProfile = "/Common/cc_tcp_archer_profile"
 	fixture.SetupHandler(t, "/v2.0/networks/"+network.String(), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
 	fixture.SetupHandler(t, "/v2.0/networks/"+serviceNetwork.String(), "GET",
