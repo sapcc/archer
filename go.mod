@@ -23,7 +23,7 @@ require (
 	github.com/go-openapi/swag v0.23.0
 	github.com/go-openapi/validate v0.24.0
 	github.com/google/uuid v1.6.0
-	github.com/gophercloud/gophercloud/v2 v2.4.0
+	github.com/gophercloud/gophercloud/v2 v2.5.0
 	github.com/gophercloud/utils/v2 v2.0.0-20250205065254-a1bff20237e7
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/golang-lru/v2 v2.0.7
