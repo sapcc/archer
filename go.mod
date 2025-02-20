@@ -1,8 +1,8 @@
 module github.com/sapcc/archer
 
-go 1.23
+go 1.24
 
-toolchain go1.23.6
+toolchain go1.24.0
 
 require (
 	github.com/IBM/pgxpoolprometheus v1.1.1
@@ -38,7 +38,7 @@ require (
 	github.com/prometheus/client_golang v1.21.0
 	github.com/rs/cors v1.11.1
 	github.com/sapcc/go-api-declarations v1.13.2
-	github.com/sapcc/go-bits v0.0.0-20250220003433-897a50882f6d
+	github.com/sapcc/go-bits v0.0.0-20250220135206-3e8d8756636d
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.10.0
