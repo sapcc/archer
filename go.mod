@@ -14,7 +14,7 @@ require (
 	github.com/f5devcentral/go-bigip v0.0.0-20250102172413-fd76522d9fab
 	github.com/georgysavva/scany/v2 v2.1.3
 	github.com/getsentry/sentry-go v0.20.0
-	github.com/go-co-op/gocron/v2 v2.15.0
+	github.com/go-co-op/gocron/v2 v2.16.0
 	github.com/go-openapi/errors v0.22.0
 	github.com/go-openapi/loads v0.22.0
 	github.com/go-openapi/runtime v0.28.0
@@ -70,7 +70,7 @@ require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
-	github.com/jonboulle/clockwork v0.4.0 // indirect
+	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/karrick/godirwalk v1.15.3 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
@@ -101,7 +101,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.24.0 // indirect
 	go.opentelemetry.io/otel/trace v1.24.0 // indirect
 	golang.org/x/crypto v0.33.0 // indirect
-	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8 // indirect
+	golang.org/x/mod v0.18.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/term v0.29.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
