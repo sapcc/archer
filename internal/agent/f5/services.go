@@ -48,6 +48,8 @@ func (a *Agent) getExtendedService(s *models.Service) (*as3.ExtendedService, err
 		return nil, fmt.Errorf("GetNetwork: %w", err)
 	}
 
+	service.MTU = network.MTU
+
 	if len(network.Subnets) == 0 {
 		return nil, fmt.Errorf("GetNetwork: %w", internal.ErrNoSubnetFound)
 	}
@@ -173,7 +175,7 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 	for _, service := range services {
 		service := service
 		if service.Status != "PENDING_DELETE" {
-			if err := a.EnsureL2(ctx, service.SegmentId, nil); err != nil {
+			if err := a.EnsureL2(ctx, service.SegmentId, nil, service.MTU); err != nil {
 				return err
 			}
 			if err := a.EnsureSelfIPs(service.SubnetID, true); err != nil {

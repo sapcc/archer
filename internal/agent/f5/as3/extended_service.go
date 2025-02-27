@@ -26,4 +26,5 @@ type ExtendedService struct {
 	NeutronPorts map[string]*ports.Port // SelfIPs / SNAT IPs
 	SubnetID     string
 	SegmentId    int
+	MTU          int
 }

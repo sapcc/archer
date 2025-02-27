@@ -29,6 +29,7 @@ type BigIPIface interface {
 	UpdateVcmpGuest(name string, config *bigip.VcmpGuest) error
 	Vlans() (*bigip.Vlans, error)
 	CreateVlan(config *bigip.Vlan) error
+	ModifyVlan(name string, config *bigip.Vlan) error
 	GetVlanInterfaces(vlan string) (*bigip.VlanInterfaces, error)
 	AddInterfaceToVlan(vlan, iface string, tagged bool) error
 	DeleteVlan(name string) error

@@ -193,12 +193,17 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	}
 
 	var serviceSegmentID int
+	var serviceMTU int
 	g, _ := errgroup.WithContext(ctx)
 
 	if !cleanupL2 {
 		g.Go(func() (err error) {
 			serviceSegmentID, err = a.neutron.GetNetworkSegment(endpoints[0].ServiceNetworkId.String())
 			return
+		})
+		g.Go(func() error {
+			serviceMTU, err = a.neutron.GetNetworkMTU(endpoints[0].ServiceNetworkId.String())
+			return err
 		})
 	}
 	g.Go(func() error {
@@ -222,7 +227,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	   ================================================== */
 	if !cleanupL2 {
 		// VCMP configuration
-		if err := a.EnsureL2(ctx, *endpoints[0].SegmentId, &serviceSegmentID); err != nil {
+		if err := a.EnsureL2(ctx, *endpoints[0].SegmentId, &serviceSegmentID, serviceMTU); err != nil {
 			return err
 		}
 	}

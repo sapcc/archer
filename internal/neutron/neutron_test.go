@@ -21,10 +21,8 @@ import (
 
 	"github.com/gophercloud/gophercloud/v2"
 	fake "github.com/gophercloud/gophercloud/v2/openstack/networking/v2/common"
-	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
 	th "github.com/gophercloud/gophercloud/v2/testhelper"
 	"github.com/gophercloud/gophercloud/v2/testhelper/fixture"
-	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/sapcc/archer/internal/config"
@@ -50,8 +48,6 @@ const GetNetworkResponseFixture = `
 `
 
 func TestNeutronClient_GetNetworkSegment(t *testing.T) {
-	var cache *expirable.LRU[string, map[string]*ports.Port]
-
 	th.SetupPersistentPortHTTP(t, 8931)
 	defer th.TeardownHTTP()
 	config.Global.Agent.PhysicalNetwork = "physnet1"
@@ -60,33 +56,29 @@ func TestNeutronClient_GetNetworkSegment(t *testing.T) {
 
 	n := &NeutronClient{
 		ServiceClient: fake.ServiceClient(),
-		portCache:     cache,
 	}
+	n.InitCache()
 	segID, err := n.GetNetworkSegment(NetworkIDFixture)
 	assert.Nil(t, err)
 	assert.Equal(t, 100, segID)
 }
 
 func TestNeutronClient_GetNetworkSegment404(t *testing.T) {
-	var cache *expirable.LRU[string, map[string]*ports.Port]
-
 	th.SetupPersistentPortHTTP(t, 8931)
 	defer th.TeardownHTTP()
 	config.Global.Agent.PhysicalNetwork = "physnet1"
 
 	n := &NeutronClient{
 		ServiceClient: fake.ServiceClient(),
-		portCache:     cache,
 	}
+	n.InitCache()
 	_, err := n.GetNetworkSegment(NetworkIDFixture)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, aErrors.ErrNoPhysNetFound))
 	assert.ErrorContains(t, err, "no physical network found, network not found")
 }
 
-func TestNeutronClient_GetNetworkSegmentMissing(t *testing.T) {
-	var cache *expirable.LRU[string, map[string]*ports.Port]
-
+func TestNeutronClient_GetNetworkSegmentMising(t *testing.T) {
 	th.SetupPersistentPortHTTP(t, 8931)
 	defer th.TeardownHTTP()
 	config.Global.Agent.PhysicalNetwork = "physnet2"
@@ -95,8 +87,8 @@ func TestNeutronClient_GetNetworkSegmentMissing(t *testing.T) {
 
 	n := &NeutronClient{
 		ServiceClient: fake.ServiceClient(),
-		portCache:     cache,
 	}
+	n.InitCache()
 	_, err := n.GetNetworkSegment(NetworkIDFixture)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, aErrors.ErrNoPhysNetFound))
@@ -104,8 +96,6 @@ func TestNeutronClient_GetNetworkSegmentMissing(t *testing.T) {
 }
 
 func TestNeutronClient_GetNetworkSegment500(t *testing.T) {
-	var cache *expirable.LRU[string, map[string]*ports.Port]
-
 	th.SetupPersistentPortHTTP(t, 8931)
 	defer th.TeardownHTTP()
 	config.Global.Agent.PhysicalNetwork = "physnet1"
@@ -114,8 +104,8 @@ func TestNeutronClient_GetNetworkSegment500(t *testing.T) {
 
 	n := &NeutronClient{
 		ServiceClient: fake.ServiceClient(),
-		portCache:     cache,
 	}
+	n.InitCache()
 	_, err := n.GetNetworkSegment(NetworkIDFixture)
 	assert.Error(t, err)
 	assert.False(t, errors.Is(err, aErrors.ErrNoPhysNetFound))
