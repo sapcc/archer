@@ -20,11 +20,11 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/gophercloud/gophercloud/v2"
-	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/networks"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
+	"github.com/sapcc/archer/internal/neutron"
 	"github.com/sapcc/archer/models"
 )
 
@@ -99,7 +99,7 @@ func (a *Agent) checkCleanupSelfIPs(ctx context.Context, tx pgx.Tx, networkID st
 		return nil, false
 	}
 
-	var network *networks.Network
+	var network *neutron.NetworkMTU
 	network, err = a.neutron.GetNetwork(networkID)
 	if gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
 		// The network is already deleted

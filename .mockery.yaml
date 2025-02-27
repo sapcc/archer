@@ -1,2 +1,9 @@
 inpackage: True
 with-expecter: true
+dir: "{{.InterfaceDir}}"
+resolve-type-alias: false
+issue-845-fix: true
+packages:
+  github.com/sapcc/archer/internal/agent/f5/as3:
+    interfaces:
+      BigIPIface:

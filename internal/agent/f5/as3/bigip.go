@@ -471,30 +471,49 @@ func (b *BigIP) SyncGuestVLANs(usedSegments map[int]string) error {
 	return errors.ErrNoVCMPFound
 }
 
-func (b *BigIP) EnsureVLAN(segmentId int) error {
+func (b *BigIP) EnsureVLAN(segmentId int, mtu int) error {
 	vlans, err := b.Vlans()
 	if err != nil {
 		return err
 	}
 
-	var found bool
+	var existingVLAN *bigip.Vlan
 	for _, vlan := range vlans.Vlans {
 		if vlan.Tag == segmentId {
-			found = true
+			existingVLAN = &vlan
 			break
 		}
 	}
 
-	if found {
-		return nil
+	if existingVLAN == nil {
+		// Create vlan
+		vlan := bigip.Vlan{
+			Name: fmt.Sprintf("vlan-%d", segmentId),
+			Tag:  segmentId,
+			MTU:  mtu,
+		}
+		return b.CreateVlan(&vlan)
 	}
 
-	// Create vlan
-	vlan := bigip.Vlan{
-		Name: fmt.Sprintf("vlan-%d", segmentId),
-		Tag:  segmentId,
+	if existingVLAN.MTU != mtu {
+		// update mtu
+		log.WithFields(log.Fields{
+			"host": b.GetHostname(),
+			"vlan": existingVLAN.Name,
+			"mtu":  mtu,
+		}).Debug("Updating VLAN MTU")
+
+		existingVLAN.MTU = mtu
+		if err = b.ModifyVlan(existingVLAN.Name, &bigip.Vlan{MTU: mtu}); err != nil {
+			// bug in bigip, ignore
+			if strings.Contains(err.Error(), "DAG adjustment is not supported on this platform") {
+				return nil
+			}
+			return err
+		}
 	}
-	return b.CreateVlan(&vlan)
+
+	return nil
 }
 
 func (b *BigIP) EnsureInterfaceVlan(segmentId int) error {

@@ -30,7 +30,7 @@ import (
 // --------------------------------------------------------------------------
 
 // EnsureL2 ensures that L2 configuration exists on BIG-IP(s) and VCMP(s) for the given segmentID.
-func (a *Agent) EnsureL2(ctx context.Context, segmentID int, parentSegmentID *int) error {
+func (a *Agent) EnsureL2(ctx context.Context, segmentID int, parentSegmentID *int, mtu int) error {
 	printSegementID := "nil"
 	if parentSegmentID != nil {
 		printSegementID = fmt.Sprint(*parentSegmentID)
@@ -40,7 +40,7 @@ func (a *Agent) EnsureL2(ctx context.Context, segmentID int, parentSegmentID *in
 	g, _ := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		for _, vcmp := range a.vcmps {
-			if err := vcmp.EnsureVLAN(segmentID); err != nil {
+			if err := vcmp.EnsureVLAN(segmentID, mtu); err != nil {
 				return fmt.Errorf("EnsureVLAN: %s", err.Error())
 			}
 			if err := vcmp.EnsureInterfaceVlan(segmentID); err != nil {
@@ -57,7 +57,7 @@ func (a *Agent) EnsureL2(ctx context.Context, segmentID int, parentSegmentID *in
 	g.Go(func() error {
 		// Ensure VLAN and Route Domain
 		for _, bigip := range a.bigips {
-			if err := bigip.EnsureVLAN(segmentID); err != nil {
+			if err := bigip.EnsureVLAN(segmentID, mtu); err != nil {
 				return fmt.Errorf("EnsureVLAN: %s", err.Error())
 			}
 			if err := bigip.EnsureRouteDomain(segmentID, parentSegmentID); err != nil {
