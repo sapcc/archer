@@ -25,6 +25,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/mtu"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/portsbinding"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/provider"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/networks"
@@ -39,17 +40,23 @@ import (
 	"github.com/sapcc/archer/models"
 )
 
+type NetworkMTU struct {
+	networks.Network
+	mtu.NetworkMTUExt
+	provider.NetworkProviderExt
+}
+
 type NeutronClient struct {
 	*gophercloud.ServiceClient
 	portCache    *expirable.LRU[string, map[string]*ports.Port] // networkID -> map[hostname]*ports.port, 10 min expiry
-	networkCache *expirable.LRU[string, *networks.Network]      // networkID -> *networks.network, expires after 10 mins
+	networkCache *expirable.LRU[string, *NetworkMTU]            // networkID -> *networks.network, expires after 10 mins
 	subnetCache  *expirable.LRU[string, *subnets.Subnet]        // subnetID -> *subnets.subnet, expires after 10 mins
 }
 
 func (n *NeutronClient) InitCache() {
 	// Initialize local cache
 	n.portCache = expirable.NewLRU[string, map[string]*ports.Port](32, nil, time.Minute*10)
-	n.networkCache = expirable.NewLRU[string, *networks.Network](32, nil, time.Minute*10)
+	n.networkCache = expirable.NewLRU[string, *NetworkMTU](32, nil, time.Minute*10)
 	n.subnetCache = expirable.NewLRU[string, *subnets.Subnet](32, nil, time.Minute*10)
 }
 
@@ -73,9 +80,8 @@ func ConnectToNeutron(providerClient *gophercloud.ProviderClient) (*NeutronClien
 // GetNetworkSegment return the segmentation ID for the given network
 // throws ErrNoPhysNetFound if the physical network is not found
 func (n *NeutronClient) GetNetworkSegment(networkID string) (int, error) {
-	var network provider.NetworkProviderExt
-	r := networks.Get(context.Background(), n.ServiceClient, networkID)
-	if err := r.ExtractInto(&network); err != nil {
+	network, err := n.GetNetwork(networkID)
+	if err != nil {
 		if gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
 			return 0, fmt.Errorf("%w, network not found, %s", aErrors.ErrNoPhysNetFound, err.Error())
 		}
@@ -103,6 +109,21 @@ func (n *NeutronClient) GetSubnetSegment(subnetID string) (int, error) {
 	}
 
 	return n.GetNetworkSegment(subnet.NetworkID)
+}
+
+// GetNetworkMTU returns the MTU of the network
+// throws ErrNoPhysNetFound if the physical network is not found
+func (n *NeutronClient) GetNetworkMTU(networkID string) (int, error) {
+	network, err := n.GetNetwork(networkID)
+	if err != nil {
+		if gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
+			return 0, fmt.Errorf("%w, network not found, %s", aErrors.ErrNoPhysNetFound, err.Error())
+		}
+
+		return 0, err
+	}
+
+	return network.MTU, nil
 }
 
 func (n *NeutronClient) GetPort(portId string) (*ports.Port, error) {
@@ -214,17 +235,18 @@ func (n *NeutronClient) FetchSNATPorts(networkID string) (map[string]*ports.Port
 	return portMap, nil
 }
 
-func (n *NeutronClient) GetNetwork(networkID string) (*networks.Network, error) {
+func (n *NeutronClient) GetNetwork(networkID string) (*NetworkMTU, error) {
 	if network, ok := n.networkCache.Get(networkID); ok {
 		return network, nil
 	}
 
-	network, err := networks.Get(context.Background(), n.ServiceClient, networkID).Extract()
+	var network NetworkMTU
+	err := networks.Get(context.Background(), n.ServiceClient, networkID).ExtractInto(&network)
 	if err != nil {
 		return nil, err
 	}
-	n.networkCache.Add(networkID, network)
-	return network, nil
+	n.networkCache.Add(networkID, &network)
+	return &network, nil
 }
 
 func (n *NeutronClient) GetSubnet(subnetID string) (*subnets.Subnet, error) {

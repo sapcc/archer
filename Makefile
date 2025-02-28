@@ -1,4 +1,4 @@
-.PHONY: build-all clean swagger release
+.PHONY: build-all clean swagger release mockery
 BIN = $(addprefix bin/,$(shell ls cmd))
 COMMIT ?= $(shell git rev-parse --short HEAD)
 DATE := $(shell date)
@@ -7,6 +7,9 @@ build-all: $(BIN)
 
 bin/%: cmd/%/main.go
 	GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-X 'github.com/sapcc/archer/internal/config.Version=$(COMMIT)' -X 'github.com/sapcc/archer/internal/config.BuildTime=$(DATE)'" -o $@ $<
+
+mockery:
+	mockery
 
 release:
 	GOOS=darwin GOARCH=amd64 go build -ldflags="-X 'github.com/sapcc/archer/internal/config.Version=$(COMMIT)' -X 'github.com/sapcc/archer/internal/config.BuildTime=$(DATE)'" -o bin/archerctl_darwin_adm64 cmd/archerctl/main.go
