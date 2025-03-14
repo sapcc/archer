@@ -17,6 +17,7 @@ package agent
 import (
 	"context"
 	"strings"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/go-co-op/gocron/v2"
@@ -55,9 +56,11 @@ type Worker interface {
 
 func NewScheduler() gocron.Scheduler {
 	scheduler, err := gocron.NewScheduler(
-		gocron.WithLimitConcurrentJobs(1, gocron.LimitModeReschedule),
+		gocron.WithLimitConcurrentJobs(1, gocron.LimitModeWait),
 		gocron.WithLogger(NewGoCronLogger()),
 		gocron.WithMonitor(NewPrometheusMonitor()),
+		gocron.WithMonitorStatus(&DebugMonitor{}),
+		gocron.WithStopTimeout(time.Second*30),
 	)
 	if err != nil {
 		log.Fatal(err)

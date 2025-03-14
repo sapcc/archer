@@ -132,6 +132,8 @@ func (a *Agent) Run() {
 		log.Fatal(err)
 	}
 
+	a.scheduler.Start()
+
 	// block until done
 	log.Infof("Agent running...")
 	<-done
@@ -151,6 +153,7 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 }
 
 func (a *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
+	log.Infof("Processing endpoint: %s", id)
 	return pgx.BeginFunc(context.Background(), a.pool, func(tx pgx.Tx) error {
 		var si ServiceInjection
 		var err error
@@ -216,11 +219,14 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
 				return err
 			}
 		}
+		log.Debugf("Endpoint processed: %s", id)
 		return nil
 	})
 }
 
 func (a *Agent) PendingSyncLoop(ctx context.Context, syncAll bool) error {
+	log.Debugf("PendingSyncLoop(syncAll=%t)", syncAll)
+
 	q := db.Select("id").
 		From("endpoint").
 		Where("service_id = ?", a.serviceID)
@@ -240,9 +246,10 @@ func (a *Agent) PendingSyncLoop(ctx context.Context, syncAll bool) error {
 		return err
 	}
 	_, err = pgx.ForEachRow(rows, []any{&id}, func() error {
-		if _, err := a.scheduler.NewJob(
+		log.Debugf("Scheduling ProcessEndpoint for %s", id)
+		if _, err = a.scheduler.NewJob(
 			gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
-			gocron.NewTask(a.ProcessEndpoint(context.Background(), id)),
+			gocron.NewTask(a.ProcessEndpoint, context.Background(), id),
 			gocron.WithName("ProcessEndpoint"),
 			gocron.WithTags(id.String()),
 		); err != nil {
