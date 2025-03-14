@@ -54,7 +54,8 @@ func (a *Agent) discoverService() error {
 					"project_id",
 					"port",
 					"host",
-					"ip_addresses").
+					"ip_addresses",
+					"protocol").
 				Values("Created by Network Injection agent",
 					"00000000-0000-0000-0000-000000000000",
 					"AVAILABLE",
@@ -67,6 +68,7 @@ func (a *Agent) discoverService() error {
 					config.Global.ServiceAuth.ProjectID,
 					config.Global.Agent.ServicePort,
 					config.Global.Default.Host,
+					config.Global.Agent.ServiceProtocol,
 					[]string{}).
 				Suffix("RETURNING id").
 				ToSql()

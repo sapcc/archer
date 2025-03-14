@@ -54,7 +54,7 @@ func init() {
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "version": "1.4.1",
+    "version": "1.5.0",
     "x-logo": {
       "altText": "Archer logo",
       "backgroundColor": "#FFFFFF",
@@ -1736,6 +1736,16 @@ func init() {
         "project_id": {
           "$ref": "#/definitions/Project"
         },
+        "protocol": {
+          "description": "Protocol type of the service.\n\n### protocol can be one of\n| protocol         | Description                            |\n| ---------------- | -------------------------------------- |\n| HTTP             | Service is HTTP based                  |\n| TCP              | Service is TCP based                   |\n",
+          "type": "string",
+          "default": "HTTP",
+          "enum": [
+            "HTTP",
+            "TCP"
+          ],
+          "x-nullable": true
+        },
         "provider": {
           "description": "Provider type, defaults to tenant type.",
           "type": "string",
@@ -2044,7 +2054,7 @@ func init() {
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "version": "1.4.1",
+    "version": "1.5.0",
     "x-logo": {
       "altText": "Archer logo",
       "backgroundColor": "#FFFFFF",
@@ -3866,6 +3876,16 @@ func init() {
         },
         "project_id": {
           "$ref": "#/definitions/Project"
+        },
+        "protocol": {
+          "description": "Protocol type of the service.\n\n### protocol can be one of\n| protocol         | Description                            |\n| ---------------- | -------------------------------------- |\n| HTTP             | Service is HTTP based                  |\n| TCP              | Service is TCP based                   |\n",
+          "type": "string",
+          "default": "HTTP",
+          "enum": [
+            "HTTP",
+            "TCP"
+          ],
+          "x-nullable": true
         },
         "provider": {
           "description": "Provider type, defaults to tenant type.",
