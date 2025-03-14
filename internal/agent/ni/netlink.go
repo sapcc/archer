@@ -26,6 +26,7 @@ import (
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/subnets"
+	log "github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
 )
@@ -37,6 +38,7 @@ type NetworkNamespace struct {
 }
 
 func (ns *NetworkNamespace) EnableNetworkNamespace() error {
+	log.Debugf("enabling network namespace '%s'", ns.newns.String())
 	if ns.enabled {
 		return fmt.Errorf("network namespace '%s' already enabled", ns.newns.String())
 	}
@@ -57,10 +59,10 @@ func (ns *NetworkNamespace) EnableNetworkNamespace() error {
 }
 
 func (ns *NetworkNamespace) DisableNetworkNamespace() error {
+	log.Debugf("disabling network namespace '%s'", ns.newns.String())
 	if !ns.enabled {
 		return fmt.Errorf("network namespace '%s' not enabled", ns.newns.String())
 	}
-	defer runtime.UnlockOSThread()
 
 	// Disable
 	if err := netns.Set(ns.origin); err != nil {
@@ -155,6 +157,8 @@ func EnsureNetworkNamespace(port *ports.Port, client *gophercloud.ServiceClient)
 }
 
 func createNamespace(name string) (netns.NsHandle, error) {
+	log.Debugf("creating network namespace '%s'", name)
+
 	// Lock the OS Thread, so we don't accidentally switch namespaces
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -182,6 +186,7 @@ func createNamespace(name string) (netns.NsHandle, error) {
 
 func DeleteNetworkNamespace(networkID string) error {
 	name := fmt.Sprintf("qinjector-%s", networkID)
+	log.Debugf("deleting network namespace '%s'", name)
 
 	// namespace already exists?
 	ns, err := netns.GetFromName(name)
