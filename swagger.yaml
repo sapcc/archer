@@ -1,6 +1,6 @@
 swagger: "2.0"
 info:
-  version: "1.4.1"
+  version: "1.5.0"
   title: "🏹 Archer"
   contact:
     name: SAP SE / Converged Cloud
@@ -1219,6 +1219,21 @@ definitions:
         enum:
           - tenant
           - cp
+        x-nullable: true
+      protocol:
+        type: string
+        description: |
+          Protocol type of the service.
+
+          ### protocol can be one of
+          | protocol         | Description                            |
+          | ---------------- | -------------------------------------- |
+          | HTTP             | Service is HTTP based                  |
+          | TCP              | Service is TCP based                   |
+        enum:
+          - HTTP
+          - TCP
+        default: HTTP
         x-nullable: true
       created_at:
         $ref: "#/definitions/Timestamp"

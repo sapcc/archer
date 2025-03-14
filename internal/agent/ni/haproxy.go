@@ -72,11 +72,13 @@ defaults
 
 frontend downstream
     bind *:80
-	mode http
+	mode {{.Protocol}}
 
 backend upstream
-    mode http
+    mode {{.Protocol}}
+{{- if eq .Protocol "http" }}
     http-request replace-header Host .* {{.UpstreamHost}}
+{{- end }}
     server upstream {{.ProxyPath}}
 `
 
@@ -139,7 +141,7 @@ func (h *HAProxyController) isRunning(networkID string) bool {
 	return process.Signal(syscall.Signal(0)) == nil
 }
 
-func (h *HAProxyController) addInstance(networkID string) (*haProxyInstance, error) {
+func (h *HAProxyController) addInstance(networkID string, protocol string) (*haProxyInstance, error) {
 	// create config
 	filename := fmt.Sprintf("%shaproxy-%s.conf", h.tempdir, networkID)
 	configFile, err := os.Create(filename)
@@ -161,6 +163,7 @@ func (h *HAProxyController) addInstance(networkID string) (*haProxyInstance, err
 		"ProxyPath":    config.Global.Agent.ServiceProxyPath,
 		"UpstreamHost": config.Global.Agent.ServiceUpstreamHost,
 		"Network":      networkID,
+		"Protocol":     protocol,
 	}
 	if err := t.Execute(configFile, data); err != nil {
 		tryRemoveFile(configFile.Name())

@@ -266,4 +266,13 @@ var Migrations = mgx.Migrations(
 		`)
 		return err
 	}),
+	// Migration for added protocol (TCP or HTTP) to service table
+	mgx.NewMigration("add_protocol", func(ctx context.Context, commands mgx.Commands) error {
+		_, err := commands.Exec(ctx, `
+			ALTER TABLE service
+			    ADD COLUMN protocol VARCHAR(5) NOT NULL DEFAULT 'HTTP'
+				CONSTRAINT protocol CHECK (protocol IN ('TCP', 'HTTP'));
+		`)
+		return err
+	}),
 )

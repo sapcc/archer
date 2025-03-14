@@ -85,6 +85,17 @@ type Service struct {
 	// project id
 	ProjectID Project `json:"project_id"`
 
+	// Protocol type of the service.
+	//
+	// ### protocol can be one of
+	// | protocol         | Description                            |
+	// | ---------------- | -------------------------------------- |
+	// | HTTP             | Service is HTTP based                  |
+	// | TCP              | Service is TCP based                   |
+	//
+	// Enum: [HTTP TCP]
+	Protocol *string `json:"protocol,omitempty"`
+
 	// Provider type, defaults to tenant type.
 	// Enum: [tenant cp]
 	Provider *string `json:"provider,omitempty"`
@@ -155,6 +166,10 @@ func (m *Service) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateProjectID(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateProtocol(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -292,6 +307,48 @@ func (m *Service) validateProjectID(formats strfmt.Registry) error {
 		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("project_id")
 		}
+		return err
+	}
+
+	return nil
+}
+
+var serviceTypeProtocolPropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["HTTP","TCP"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		serviceTypeProtocolPropEnum = append(serviceTypeProtocolPropEnum, v)
+	}
+}
+
+const (
+
+	// ServiceProtocolHTTP captures enum value "HTTP"
+	ServiceProtocolHTTP string = "HTTP"
+
+	// ServiceProtocolTCP captures enum value "TCP"
+	ServiceProtocolTCP string = "TCP"
+)
+
+// prop value enum
+func (m *Service) validateProtocolEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, serviceTypeProtocolPropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Service) validateProtocol(formats strfmt.Registry) error {
+	if swag.IsZero(m.Protocol) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateProtocolEnum("protocol", "body", *m.Protocol); err != nil {
 		return err
 	}
 
