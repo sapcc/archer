@@ -38,6 +38,7 @@ type ServiceInjection struct {
 	Network   strfmt.UUID
 	IpAddress strfmt.IPv4
 	Port      int
+	Protocol  string
 }
 
 func (a *Agent) SetupOpenStack() error {
@@ -118,7 +119,7 @@ func (a *Agent) EnableInjection(si *ServiceInjection) error {
 		return err
 	}
 	defer func() { _ = ns.Close() }()
-	if _, err := a.haproxy.addInstance(injectorPort.NetworkID); err != nil {
+	if _, err := a.haproxy.addInstance(injectorPort.NetworkID, si.Protocol); err != nil {
 		return err
 	}
 	if err := ns.DisableNetworkNamespace(); err != nil {
