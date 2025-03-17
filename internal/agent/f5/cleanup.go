@@ -294,7 +294,7 @@ func (a *Agent) cleanupOrphanedTenants(usedSegments map[int]string) error {
 			data := as3.GetAS3Declaration(map[string]as3.Tenant{
 				partition.Name: as3.GetEndpointTenants([]*as3.ExtendedEndpoint{}),
 			})
-			if err := a.bigip.PostBigIP(&data, partition.Name); err != nil {
+			if err := a.bigip.PostBigIP(&data, partition.Name, ""); err != nil {
 				return err
 			}
 		}

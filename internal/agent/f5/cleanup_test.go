@@ -170,7 +170,7 @@ func TestAgent_TestCleanupOrphanedTenants(t *testing.T) {
 }`
 
 	bigIPMock.EXPECT().
-		PostAs3Bigip(expectAS3, "net-delete-me").
+		PostAs3Bigip(expectAS3, "net-delete-me", "").
 		Return(nil, "blub", "bla")
 	// initialize agent
 	a := &Agent{

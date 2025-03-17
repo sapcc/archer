@@ -191,7 +191,7 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 		"Common": as3.GetServiceTenants(services),
 	})
 
-	if err = a.bigip.PostBigIP(&data, "Common"); err != nil {
+	if err = a.bigip.PostBigIP(&data, "Common", ""); err != nil {
 		return err
 	}
 

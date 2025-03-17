@@ -256,7 +256,7 @@ func (b *BigIP) GetHostname() string {
 	return b.Host
 }
 
-func (b *BigIP) PostBigIP(as3 *AS3, tenant string) error {
+func (b *BigIP) PostBigIP(as3 *AS3, tenant string, queryParam string) error {
 	data, err := json.MarshalIndent(as3, "", "  ")
 	if err != nil {
 		return err
@@ -268,7 +268,7 @@ func (b *BigIP) PostBigIP(as3 *AS3, tenant string) error {
 
 	r := retry.WithMaxRetries(3, retry.NewExponential(3*time.Second))
 	err = retry.Do(context.Background(), r, func(ctx context.Context) error {
-		err, _, _ = b.PostAs3Bigip(string(data), tenant)
+		err, _, _ = b.PostAs3Bigip(string(data), tenant, "")
 		return retry.RetryableError(err)
 	})
 	return err

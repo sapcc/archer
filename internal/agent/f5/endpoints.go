@@ -254,7 +254,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		tenantName: as3.GetEndpointTenants(endpoints),
 	})
 
-	if err := a.bigip.PostBigIP(&data, tenantName); err != nil {
+	if err := a.bigip.PostBigIP(&data, tenantName, ""); err != nil {
 		return err
 	}
 

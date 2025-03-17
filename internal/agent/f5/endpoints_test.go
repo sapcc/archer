@@ -224,7 +224,7 @@ func TestAgent_ProcessEndpoint(t *testing.T) {
 		}).
 		Return(nil)
 	bigiphost.EXPECT().
-		PostAs3Bigip(PostBigIPFixture, "net-35a3ca82-62af-4e0a-9472-92331500fb3a").
+		PostAs3Bigip(PostBigIPFixture, "net-35a3ca82-62af-4e0a-9472-92331500fb3a", "").
 		Return(nil, "", "")
 
 	config.Global.Default.Host = "host-123"
@@ -320,7 +320,7 @@ func TestAgent_DeleteEndpointWithDeletedNetwork(t *testing.T) {
 		WithArgs(subnet.String(), config.Global.Default.Host, models.ServiceProviderTenant, models.EndpointStatusPENDINGDELETE, models.EndpointStatusPENDINGREJECTED).
 		WillReturnResult(pgxmock.NewResult("SELECT", 0))
 	bigiphost.EXPECT().
-		PostAs3Bigip(BigIPCleanupFixture, "net-35a3ca82-62af-4e0a-9472-92331500fb3a").
+		PostAs3Bigip(BigIPCleanupFixture, "net-35a3ca82-62af-4e0a-9472-92331500fb3a", "").
 		Return(nil, "", "")
 	dbMock.ExpectExec("DELETE FROM endpoint WHERE id = $1").
 		WithArgs(endpoint).

@@ -87,7 +87,7 @@ func TestProcessServicesWithDeletedNetwork(t *testing.T) {
 		WithArgs("host-123", models.ServiceProviderTenant).
 		WillReturnRows(dbMock.NewRows([]string{"id", "network_id", "status"}).AddRow(service, &network, models.ServiceStatusPENDINGDELETE))
 	bigiphost.EXPECT().
-		PostAs3Bigip(PostAs3BigipFixture, "Common").
+		PostAs3Bigip(PostAs3BigipFixture, "Common", "").
 		Return(nil, "", "")
 	// delete service
 	dbMock.ExpectExec("DELETE FROM service WHERE id = $1 AND status = 'PENDING_DELETE';").
