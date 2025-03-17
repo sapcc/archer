@@ -18,7 +18,7 @@ import "github.com/f5devcentral/go-bigip"
 
 //go:generate mockery --name BigIPIface
 type BigIPIface interface {
-	PostAs3Bigip(as3NewJson string, tenantFilter string) (error, string, string)
+	PostAs3Bigip(as3NewJson, tenantFilter, queryParam string) (error, string, string)
 	GetDevices() ([]bigip.Device, error)
 	APICall(options *bigip.APIRequest) ([]byte, error)
 	SelfIP(selfip string) (*bigip.SelfIP, error)
