@@ -115,12 +115,13 @@ func (a *Agent) EnableInjection(si *ServiceInjection) error {
 	}
 
 	// Run haproxy inside network namespace
-	if err := ns.EnableNetworkNamespace(); err != nil {
+	if err = ns.EnableNetworkNamespace(); err != nil {
 		return err
 	}
 	defer func() { _ = ns.Close() }()
-	if _, err := a.haproxy.addInstance(injectorPort.NetworkID, si.Protocol); err != nil {
-		return err
+	if _, err = a.haproxy.addInstance(injectorPort.NetworkID, si.Protocol); err != nil {
+		log.Errorf("Error enabling haproxy: %s, dumping log", err)
+		a.haproxy.dumpLog(injectorPort.NetworkID)
 	}
 	if err := ns.DisableNetworkNamespace(); err != nil {
 		return err

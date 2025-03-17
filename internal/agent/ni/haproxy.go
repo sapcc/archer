@@ -19,16 +19,17 @@ package ni
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"syscall"
 	"text/template"
 
 	"github.com/bcicen/go-haproxy"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal/config"
 )
@@ -72,11 +73,11 @@ defaults
 
 frontend downstream
     bind *:80
-	mode {{.Protocol}}
+	mode {{lower .Protocol}}
 
 backend upstream
-    mode {{.Protocol}}
-{{- if eq .Protocol "http" }}
+    mode {{lower .Protocol}}
+{{- if eq .Protocol "HTTP" }}
     http-request replace-header Host .* {{.UpstreamHost}}
 {{- end }}
     server upstream {{.ProxyPath}}
@@ -113,7 +114,7 @@ func (h *HAProxyController) collectStats() {
 	for networkID, instance := range h.instances {
 		info, err := instance.client.Info()
 		if err != nil {
-			log.Printf("Failed fetching stats for instance '%s'", networkID)
+			log.Debugf("Failed fetching stats for instance '%s'", networkID)
 		}
 		totalBytesOut.WithLabelValues(networkID).Set(float64(info.TotalBytesOut))
 		currConns.WithLabelValues(networkID).Set(float64(info.CurrConns))
@@ -134,7 +135,7 @@ func (h *HAProxyController) isRunning(networkID string) bool {
 	}
 	process, err := os.FindProcess(pid)
 	if err != nil {
-		log.Printf("Failed to find process: %s", err)
+		log.Debugf("Failed to find process: %s", err)
 		return false
 	}
 
@@ -150,10 +151,14 @@ func (h *HAProxyController) addInstance(networkID string, protocol string) (*haP
 	}
 
 	defer func() { _ = configFile.Close() }()
-	log.Printf("Created HAProxy config file '%s'", configFile.Name())
+	log.Debugf("Created HAProxy config file '%s'", configFile.Name())
+
+	funcMap := template.FuncMap{
+		"lower": strings.ToLower,
+	}
 
 	// template config
-	t, err := template.New("haproxy").Parse(configTemplate)
+	t, err := template.New("haproxy").Funcs(funcMap).Parse(configTemplate)
 	if err != nil {
 		tryRemoveFile(configFile.Name())
 		return nil, err
@@ -170,7 +175,7 @@ func (h *HAProxyController) addInstance(networkID string, protocol string) (*haP
 		return nil, err
 	}
 
-	outfile, err := os.Create("/tmp/log.txt")
+	outfile, err := os.Create(getLogFilePath(h.tempdir, networkID))
 	if err != nil {
 		panic(err)
 	}
@@ -233,6 +238,15 @@ func (h *HAProxyController) removeInstance(networkID string) error {
 	return nil
 }
 
+func (h *HAProxyController) dumpLog(networkID string) {
+	logFile := getLogFilePath(h.tempdir, networkID)
+	d, err := os.ReadFile(logFile)
+	if err != nil {
+		log.Errorf("Failed to reading log file(path=%s): %s", logFile, err)
+	}
+	log.Print(string(d))
+}
+
 func readPidFile(pidFile string) (int, error) {
 	if pidFile == "" {
 		return 0, fmt.Errorf("no pidfile")
@@ -255,4 +269,8 @@ func tryRemoveFile(file string) {
 	if err := os.Remove(file); err != nil {
 		log.Print(err)
 	}
+}
+
+func getLogFilePath(tempdir string, networkID string) string {
+	return fmt.Sprintf("%shaproxy-%s.log", tempdir, networkID)
 }
