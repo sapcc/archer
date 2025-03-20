@@ -37,7 +37,7 @@ require (
 	github.com/pashagolub/pgxmock/v4 v4.6.0
 	github.com/prometheus/client_golang v1.21.1
 	github.com/rs/cors v1.11.1
-	github.com/sapcc/go-api-declarations v1.14.0
+	github.com/sapcc/go-api-declarations v1.14.1
 	github.com/sapcc/go-bits v0.0.0-20250320011137-5ec7b29ab444
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/sirupsen/logrus v1.9.3
