@@ -8,7 +8,7 @@ require (
 	github.com/IBM/pgxpoolprometheus v1.1.1
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/bcicen/go-haproxy v0.0.0-20210728173702-412d077dabc1
-	github.com/databus23/goslo.policy v0.0.0-20250324111434-7ec1c76ccc9a
+	github.com/databus23/goslo.policy v0.0.0-20250326134918-4afc2c56a903
 	github.com/didip/tollbooth/v8 v8.0.1
 	github.com/dre1080/recovr v1.0.3
 	github.com/f5devcentral/go-bigip v0.0.0-20250116053057-6ba73c2361f0
