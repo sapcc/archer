@@ -174,7 +174,11 @@ func WriteTable(data any) error {
 		}
 
 		for i, index := range indexMap {
-			Table.AppendRow([]any{header[i], formatValue(reflectx.FieldByIndexes(v, index))})
+			if opts.Formatters.Format == "value" {
+				Table.AppendRow(table.Row{formatValue(reflectx.FieldByIndexes(v, index))})
+			} else {
+				Table.AppendRow(table.Row{header[i], formatValue(reflectx.FieldByIndexes(v, index))})
+			}
 		}
 	}
 
