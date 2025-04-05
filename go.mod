@@ -46,7 +46,7 @@ require (
 	github.com/vishvananda/netns v0.0.5
 	github.com/z0ne-dev/mgx/v2 v2.0.1
 	golang.org/x/net v0.38.0
-	golang.org/x/sync v0.12.0
+	golang.org/x/sync v0.13.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
