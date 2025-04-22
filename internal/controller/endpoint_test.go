@@ -15,9 +15,11 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -400,6 +402,17 @@ func (t *SuiteTest) TestEndpointPut() {
 		Network: &network,
 	})
 
+	// Listen for Postgres notifications
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	conn, err := t.c.pool.Acquire(ctx)
+	assert.NoError(t.T(), err, "Failed to acquire connection")
+	defer conn.Release()
+
+	_, err = conn.Exec(ctx, "LISTEN endpoint;")
+	assert.NoError(t.T(), err, "Failed to listen to endpoint")
+
 	res = t.c.PutEndpointEndpointIDHandler(
 		endpoint.PutEndpointEndpointIDParams{HTTPRequest: &http.Request{}, EndpointID: payload.ID,
 			Body: endpoint.PutEndpointEndpointIDBody{Tags: []string{"a", "b", "c"}}},
@@ -407,6 +420,12 @@ func (t *SuiteTest) TestEndpointPut() {
 	assert.IsType(t.T(), &endpoint.PutEndpointEndpointIDOK{}, res)
 	assert.EqualValues(t.T(), []string{"a", "b", "c"}, res.(*endpoint.PutEndpointEndpointIDOK).Payload.Tags)
 	assert.Equal(t.T(), network, *res.(*endpoint.PutEndpointEndpointIDOK).Payload.Target.Network)
+
+	n, err := conn.Conn().WaitForNotification(ctx)
+	assert.Nil(t.T(), err)
+	assert.NotNil(t.T(), n, "Notification not received")
+	assert.Equal(t.T(), "endpoint", n.Channel)
+	assert.Equal(t.T(), fmt.Sprintf("%s:%s", "test-host", payload.ID), n.Payload)
 }
 
 func (t *SuiteTest) TestEndpointRequireApproval() {
