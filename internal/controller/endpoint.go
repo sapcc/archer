@@ -312,9 +312,13 @@ func (c *Controller) PutEndpointEndpointIDHandler(params endpoint.PutEndpointEnd
 		panic(err)
 	}
 
+	sql, args = db.Select("host").
+		From("service").
+		Join("endpoint ON endpoint.service_id = service.id").
+		Where("endpoint.id = ?", params.EndpointID).
+		MustSql()
 	var host string
-	if err := c.pool.QueryRow(params.HTTPRequest.Context(), `SELECT host FROM service WHERE id = $1`,
-		params.EndpointID).Scan(&host); err == nil {
+	if err := pgxscan.Get(params.HTTPRequest.Context(), c.pool, &host, sql, args...); err == nil {
 		c.notifyEndpoint(host, params.EndpointID)
 	}
 	return endpoint.NewPutEndpointEndpointIDOK().WithPayload(&endpointResponse)
