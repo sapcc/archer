@@ -215,7 +215,7 @@ func WriteTable(data any) error {
 		})
 		Table.Render()
 	default:
-		return fmt.Errorf("format option %s is not supported.", opts.Formatters.Format)
+		return fmt.Errorf("format option %s is not supported", opts.Formatters.Format)
 	}
 
 	return nil

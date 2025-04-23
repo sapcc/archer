@@ -156,7 +156,7 @@ func (*ServiceSet) Execute(_ []string) error {
 		if err != nil {
 			var getServiceServiceIDNotFound *service.GetServiceServiceIDNotFound
 			if errors.As(err, &getServiceServiceIDNotFound) {
-				return errors.New("Not Found")
+				return errors.New("not found")
 			}
 
 			return err

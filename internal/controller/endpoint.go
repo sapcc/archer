@@ -190,10 +190,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, tok
 		panic(err)
 	}
 
-	owned := true
-	if params.Body.Target.Port != nil {
-		owned = false
-	}
+	owned := params.Body.Target.Port == nil
 
 	if serviceNetwork == port.NetworkID {
 		if owned {
