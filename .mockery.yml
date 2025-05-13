@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: Copyright 2025 SAP SE or an SAP affiliate company
+#
+# SPDX-License-Identifier: Apache-2.0
+
+all: false
+dir: '{{.InterfaceDir}}'
+filename: 'mock_{{.InterfaceName}}.go'
+force-file-write: true
+formatter: goimports
+log-level: info
+structname: '{{.Mock}}{{.InterfaceName}}'
+pkgname: '{{.SrcPackageName}}'
+recursive: false
+require-template-schema-exists: true
+template: testify
+template-schema: '{{.Template}}.schema.json'
+template-data:
+  boilerplate-file: '.boilerplate.txt'
+packages:
+  github.com/sapcc/archer/internal/agent/f5/as3:
+    config:
+      all: true
