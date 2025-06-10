@@ -1,18 +1,28 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:base"
+    "config:recommended"
   ],
   "assignees": [
-    "notandy"
+    "notandy",
+    "ronchi-oss",
+    "sapcc/cc_github_managers_approval",
+    "notque"
   ],
   "packageRules": [
     {
-      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "digest"
+      ],
       "automerge": true
     },
     {
-      "matchPackageNames": ["github.com/getsentry/sentry-go"],
+      "matchPackageNames": [
+        "github.com/getsentry/sentry-go"
+      ],
       "enabled": false
     }
   ],
