@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: Copyright 2025 SAP SE or an SAP affiliate company
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Archer - CCloud Endpoint Service [![Go Reference](https://pkg.go.dev/badge/github.com/sapcc/archer.svg)](https://pkg.go.dev/github.com/sapcc/archer) [![Swagger](https://img.shields.io/badge/Swagger-UI-brightgreen)](https://sapcc.github.io/archer/) [![Go Report Card](https://goreportcard.com/badge/github.com/sapcc/archer)](https://goreportcard.com/report/github.com/sapcc/archer) [![Checks](https://github.com/sapcc/archer/actions/workflows/checks.yaml/badge.svg)](https://github.com/sapcc/archer/actions/workflows/checks.yaml) [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 Archer is an API service that can privately connect services from one private [OpenStack Network](https://docs.openstack.org/neutron/latest/admin/intro-os-networking.html) to another. Consumers can select a *service* from a service catalog and **inject** it to their network, which means making this *service* available via a private ip address.
@@ -161,3 +167,19 @@ Tag filters can also be combined in the same request:
 | 409  | Conflict                                                                                       |
 | 429  | You have reached maximum request limit                                                         |
 | 500  | Internal server error                                                                          |
+
+## Support, Feedback, Contributing
+
+This project is open to feature requests/suggestions, bug reports etc. via [GitHub issues](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/creating-an-issue). Contribution and feedback are encouraged and always welcome. For more information about how to contribute, the project structure, as well as additional contribution information, see our [Contribution Guidelines](https://github.com/SAP-cloud-infrastructure/.github/blob/main/CONTRIBUTING.md).
+
+## Security / Disclosure
+
+If you find any bug that may be a security problem, please follow our instructions [in our security policy](https://github.com/SAP-cloud-infrastructure/.github/blob/main/SECURITY.md) on how to report it. Please do not create GitHub issues for security-related doubts or problems.
+
+## Code of Conduct
+
+We as members, contributors, and leaders pledge to make participation in our community a harassment-free experience for everyone. By participating in this project, you agree to abide by its [Code of Conduct](https://github.com/SAP-cloud-infrastructure/.github/blob/main/CODE_OF_CONDUCT.md) at all times.
+
+## Licensing
+
+Copyright 2023-2025 SAP SE or an SAP affiliate company and archer contributors. Please see our [LICENSE](./LICENSE) for copyright and license information. Detailed information including third-party components and their licensing/copyright information is available [via the REUSE tool](https://api.reuse.software/info/github.com/sapcc/archer).
