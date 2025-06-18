@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: Copyright 2025 SAP SE or an SAP affiliate company
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # Create a base layer with linkerd-await from a recent release.
 FROM docker.io/curlimages/curl:latest AS linkerd
 ARG LINKERD_AWAIT_VERSION=v0.2.9
