@@ -57,15 +57,15 @@ func (a *Agent) cleanupL2() error {
 // cleanOrphanSelfIPs deletes SelfIPs that are not associated with a port
 func (a *Agent) cleanOrphanSelfIPs() error {
 	log.Debug("Running CleanOrphanSelfIPs")
-	for _, bigip := range a.bigips {
-		selfips, err := bigip.SelfIPs()
+	for _, bigip := range a.devices {
+		selfips, err := bigip.GetSelfIPs()
 		if err != nil {
 			return err
 		}
 
-		for _, selfip := range selfips.SelfIPs {
+		for _, selfip := range selfips {
 			var portID string
-			if n, err := fmt.Sscanf(selfip.Name, "selfip-%s", &portID); err != nil || n != 1 {
+			if n, err := fmt.Sscanf(selfip, "selfip-%s", &portID); err != nil || n != 1 {
 				continue
 			}
 
@@ -79,7 +79,7 @@ func (a *Agent) cleanOrphanSelfIPs() error {
 					}).Warning("Found orphan SelfIP, deleting")
 
 					// port should not exist, delete selfip
-					if err := bigip.DeleteSelfIP(selfip.Name); err != nil {
+					if err := bigip.DeleteSelfIP(selfip); err != nil {
 						log.
 							WithField("host", bigip.GetHostname()).
 							WithError(err).
@@ -138,16 +138,16 @@ func (a *Agent) getUsedSegments() (map[int]string, error) {
 func (a *Agent) cleanOrphanedRDs(usedSegments map[int]string) error {
 	log.WithField("usedSegments", usedSegments).Debug("Running cleanOrphanedRDs")
 
-	for _, bigip := range a.bigips {
-		routeDomains, err := bigip.RouteDomains()
+	for _, bigip := range a.devices {
+		routeDomains, err := bigip.GetRouteDomains()
 		if err != nil {
 			return err
 		}
 
-		for _, routeDomain := range routeDomains.RouteDomains {
+		for _, routeDomain := range routeDomains {
 			// Check that routeDomain starts with vlan-
 			var id int
-			if n, err := fmt.Sscanf(routeDomain.Name, "vlan-%d", &id); err != nil || n != 1 {
+			if n, err := fmt.Sscanf(routeDomain, "vlan-%d", &id); err != nil || n != 1 {
 				continue
 			}
 
@@ -156,8 +156,8 @@ func (a *Agent) cleanOrphanedRDs(usedSegments map[int]string) error {
 				continue
 			}
 			log.WithField("host", bigip.GetHostname()).
-				Warningf("found orphan routeDomain %s, deleting", routeDomain.Name)
-			if err := bigip.DeleteRouteDomain(routeDomain.Name); err != nil {
+				Warningf("found orphan routeDomain %s, deleting", routeDomain)
+			if err := bigip.DeleteRouteDomain(id); err != nil {
 				log.Warningf("skipping routeDomain due interdependency: %s", err.Error())
 			}
 		}
@@ -169,16 +169,16 @@ func (a *Agent) cleanOrphanedRDs(usedSegments map[int]string) error {
 func (a *Agent) cleanOrphanedVLANs(usedSegments map[int]string) error {
 	log.WithField("usedSegments", usedSegments).Debug("Running cleanOrphanedVLANs")
 
-	for _, bigip := range a.bigips {
-		vlans, err := bigip.Vlans()
+	for _, device := range a.devices {
+		vlans, err := device.GetVLANs()
 		if err != nil {
 			return err
 		}
 
-		for _, vlan := range vlans.Vlans {
+		for _, vlan := range vlans {
 			// Check that routeDomain starts with vlan-
 			var segment int
-			if n, err := fmt.Sscanf(vlan.Name, "vlan-%d", &segment); err != nil || n != 1 {
+			if n, err := fmt.Sscanf(vlan, "vlan-%d", &segment); err != nil || n != 1 {
 				continue
 			}
 
@@ -186,9 +186,9 @@ func (a *Agent) cleanOrphanedVLANs(usedSegments map[int]string) error {
 			if _, ok := usedSegments[segment]; ok {
 				continue
 			}
-			log.WithField("host", bigip.GetHostname()).
-				Infof(" - Found orphan vlan %s, deleting", vlan.Name)
-			if err := bigip.DeleteVlan(vlan.Name); err != nil {
+			log.WithField("host", device.GetHostname()).
+				Infof(" - Found orphan vlan %s, deleting", vlan)
+			if err := device.DeleteVLAN(segment); err != nil {
 				log.Error(err)
 			}
 		}
@@ -201,8 +201,8 @@ func (a *Agent) cleanOrphanedVLANs(usedSegments map[int]string) error {
 func (a *Agent) cleanOrphanedVCMPVLANs(usedSegments map[int]string) error {
 	log.WithField("usedSegments", usedSegments).Debug("Running cleanOrphanedVCMPVLANs")
 
-	for _, b := range a.vcmps {
-		if err := b.SyncGuestVLANs(usedSegments); err != nil {
+	for _, h := range a.hosts {
+		if err := h.SyncGuestVLANs(usedSegments); err != nil {
 			return err
 		}
 	}
@@ -249,28 +249,28 @@ func (a *Agent) cleanOrphanedNeutronPorts(usedSegments map[int]string) error {
 func (a *Agent) cleanupOrphanedTenants(usedSegments map[int]string) error {
 	log.Debug("Running cleanupOrphanedTenants")
 
-	for _, bigip := range a.bigips {
+	for _, bigip := range a.devices {
 		// Fetch all partitions
-		partitions, err := bigip.TMPartitions()
+		partitions, err := bigip.GetPartitions()
 		if err != nil {
 			return err
 		}
 
-		for _, partition := range partitions.TMPartitions {
+		for _, partition := range partitions {
 			// skip Common partition
-			if partition.Name == "Common" {
+			if partition == "Common" {
 				continue
 			}
 
 			// skip non-net partitions
-			if !strings.HasPrefix(partition.Name, "net-") {
+			if !strings.HasPrefix(partition, "net-") {
 				continue
 			}
 
 			// Check if partition is used
 			used := false
 			for _, networkID := range usedSegments {
-				if as3.GetEndpointTenantName(strfmt.UUID(networkID)) == partition.Name {
+				if as3.GetEndpointTenantName(strfmt.UUID(networkID)) == partition {
 					used = true
 					break
 				}
@@ -279,12 +279,12 @@ func (a *Agent) cleanupOrphanedTenants(usedSegments map[int]string) error {
 				continue
 			}
 
-			log.WithFields(log.Fields{"host": bigip.GetHostname(), "partition": partition.Name}).
+			log.WithFields(log.Fields{"host": bigip.GetHostname(), "partition": partition}).
 				Warning("Found orphaned tenant, deleting")
 			data := as3.GetAS3Declaration(map[string]as3.Tenant{
-				partition.Name: as3.GetEndpointTenants([]*as3.ExtendedEndpoint{}),
+				partition: as3.GetEndpointTenants([]*as3.ExtendedEndpoint{}),
 			})
-			if err := a.bigip.PostBigIP(&data, partition.Name, ""); err != nil {
+			if err := a.active.PostAS3(&data, partition); err != nil {
 				return err
 			}
 		}

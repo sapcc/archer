@@ -107,7 +107,7 @@ func (a *Agent) Run() {
 	// background job for pending services
 	if _, err := a.scheduler.NewJob(
 		gocron.DurationJob(config.Global.Agent.PendingSyncInterval),
-		gocron.NewTask(a.PendingSyncLoop, context.Background(), false),
+		gocron.NewTask(a.PendingSyncLoop, false),
 		gocron.WithName("PendingSyncLoop"),
 	); err != nil {
 		log.Fatal(err)
@@ -240,7 +240,7 @@ func (a *Agent) PendingSyncLoop(ctx context.Context, syncAll bool) error {
 		log.Debugf("Scheduling ProcessEndpoint for %s", id)
 		if _, err = a.scheduler.NewJob(
 			gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
-			gocron.NewTask(a.ProcessEndpoint, context.Background(), id),
+			gocron.NewTask(a.ProcessEndpoint, id),
 			gocron.WithName("ProcessEndpoint"),
 			gocron.WithTags(id.String()),
 		); err != nil {

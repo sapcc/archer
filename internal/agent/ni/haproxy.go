@@ -255,7 +255,7 @@ func readPidFile(pidFile string) (int, error) {
 
 func tryRemoveFile(file string) {
 	if err := os.Remove(file); err != nil {
-		log.Print(err)
+		log.WithError(err).Warnf("Failed to remove file '%s'", file)
 	}
 }
 

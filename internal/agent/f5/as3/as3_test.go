@@ -18,7 +18,6 @@ import (
 )
 
 func TestGetEndpointTenants(t *testing.T) {
-
 	config.Global.Agent.L4Profile = "test-l4-profile"
 	config.Global.Agent.TCPProfile = "test-tcp-profile"
 	endpoints := []*ExtendedEndpoint{
@@ -48,5 +47,4 @@ func TestGetEndpointTenants(t *testing.T) {
 
 	expectedJSON := `{"class":"Tenant","si-endpoints":{"class":"Application","endpoint-3ad9b1f0-4e5a-44c3-ada6-71696925ae64":{"label":"endpoint-3ad9b1f0-4e5a-44c3-ada6-71696925ae64","class":"Service_L4","allowVlans":["/Common/vlan-1"],"iRules":[],"mirroring":"L4","persistenceMethods":[],"pool":{"bigip":"/Common/Shared/pool-4e50bf87-e597-41f2-9ce0-83d3e24dedf3"},"profileL4":{"bigip":"test-l4-profile"},"profileTCP":{"bigip":"test-tcp-profile"},"snat":{"bigip":"/Common/Shared/snatpool-4e50bf87-e597-41f2-9ce0-83d3e24dedf3"},"virtualAddresses":["1.2.3.4%1"],"translateServerPort":true,"virtualPort":0},"template":"generic"}}`
 	assert.JSONEq(t, expectedJSON, string(json), "Tenant JSON should be equal")
-
 }

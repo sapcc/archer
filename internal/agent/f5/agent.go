@@ -23,7 +23,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	common "github.com/sapcc/archer/internal/agent"
-	"github.com/sapcc/archer/internal/agent/f5/as3"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
 	"github.com/sapcc/archer/internal/neutron"
@@ -34,9 +33,9 @@ type Agent struct {
 	scheduler gocron.Scheduler
 	pool      db.PgxIface // thread safe
 	neutron   *neutron.NeutronClient
-	bigips    []*as3.BigIP
-	vcmps     []*as3.BigIP
-	bigip     *as3.BigIP // active target
+	devices   []F5Device
+	hosts     []F5Device
+	active    F5Device // active target
 }
 
 func (a *Agent) GetScheduler() gocron.Scheduler {
@@ -75,28 +74,28 @@ func NewAgent() *Agent {
 	log.Infof("Physical Interface Mapping: physical_network=%s, interface=%s",
 		config.Global.Agent.PhysicalNetwork, config.Global.Agent.PhysicalInterface)
 
-	// bigips
+	// ltm guests
 	for _, url := range config.Global.Agent.Devices {
-		var big *as3.BigIP
-		big, err = as3.GetBigIPSession(url)
+		var f5device F5Device
+		f5device, err = GetF5DeviceSession(url)
 		if err != nil {
-			log.Fatalf("BigIP session: %v", err)
+			log.Fatalf("failed initialize F5 device: %v", err)
 		}
-		agent.bigips = append(agent.bigips, big)
-		if big.GetBigIPDevice(url).FailoverState == "active" {
-			agent.bigip = big
+		agent.devices = append(agent.devices, f5device)
+		if f5device.GetFailoverState() == "active" {
+			agent.active = f5device
 		}
 	}
 
-	// vcmps
+	// hosts
 	for _, url := range config.Global.Agent.VCMPs {
-		var big *as3.BigIP
-		big, err = as3.GetBigIPSession(url)
+		var f5device F5Device
+		f5device, err = GetF5DeviceSession(url)
 		if err != nil {
-			log.Fatalf("BigIP session: %v", err)
+			log.Fatalf("F5 session: %v", err)
 		}
 
-		agent.vcmps = append(agent.vcmps, big)
+		agent.hosts = append(agent.hosts, f5device)
 	}
 
 	authInfo := clientconfig.AuthInfo(config.Global.ServiceAuth)
@@ -183,7 +182,7 @@ func (a *Agent) PendingSyncLoop() error {
 	if ret.RowsAffected() > 0 {
 		if _, err := a.scheduler.NewJob(
 			gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
-			gocron.NewTask(a.ProcessServices(context.Background())),
+			gocron.NewTask(a.ProcessServices),
 			gocron.WithName("ProcessServices"),
 		); err != nil {
 			return err
@@ -215,7 +214,7 @@ func (a *Agent) PendingSyncLoop() error {
 	if _, err = pgx.ForEachRow(rows, []any{&id}, func() error {
 		if _, err := a.scheduler.NewJob(
 			gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
-			gocron.NewTask(a.ProcessEndpoint(context.Background(), id)),
+			gocron.NewTask(a.ProcessEndpoint, id),
 			gocron.WithName("ProcessEndpoint"),
 			gocron.WithTags(id.String()),
 		); err != nil {

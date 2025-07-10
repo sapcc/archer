@@ -89,7 +89,6 @@ func (n *NeutronClient) GetNetworkSegment(networkID string) (int, error) {
 }
 
 func (n *NeutronClient) GetSubnetSegment(subnetID string) (int, error) {
-
 	subnet, err := n.GetSubnet(subnetID)
 	if err != nil {
 		if gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
@@ -130,6 +129,7 @@ type fixedIP struct {
 
 func (n *NeutronClient) AllocateNeutronEndpointPort(target *models.EndpointTarget, endpoint *models.Endpoint,
 	projectID string, host string, client *gophercloud.ServiceClient) (*ports.Port, error) {
+
 	if target.Port != nil {
 		port, err := ports.Get(context.Background(), client, target.Port.String()).Extract()
 		if err != nil {
@@ -217,7 +217,6 @@ func (n *NeutronClient) FetchSNATPorts(networkID string) (map[string]*ports.Port
 	}
 
 	for _, port := range snatPorts {
-		port := port
 		hostname := strings.TrimPrefix(port.Name, "local-")
 		portMap[hostname] = &port
 	}
@@ -270,7 +269,6 @@ func (n *NeutronClient) FetchSelfIPPorts() (map[string][]*ports.Port, error) {
 	}
 
 	for _, port := range selfIPPorts {
-		port := port
 		portMap[port.NetworkID] = append(portMap[port.NetworkID], &port)
 	}
 	return portMap, nil

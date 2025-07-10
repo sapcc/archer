@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: Copyright 2025 SAP SE or an SAP affiliate company
+#
+# SPDX-License-Identifier: Apache-2.0
+
+packages:
+  github.com/sapcc/archer/internal/agent/f5:
+    interfaces:
+      F5Device:
