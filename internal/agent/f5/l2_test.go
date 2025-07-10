@@ -8,14 +8,12 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/f5devcentral/go-bigip"
 	fake "github.com/gophercloud/gophercloud/v2/openstack/networking/v2/common"
 	th "github.com/gophercloud/gophercloud/v2/testhelper"
 	"github.com/gophercloud/gophercloud/v2/testhelper/fixture"
 	"github.com/pashagolub/pgxmock/v4"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/sapcc/archer/internal/agent/f5/as3"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/neutron"
 )
@@ -45,25 +43,21 @@ func TestAgent_EnsureSelfIPs_Create(t *testing.T) {
 	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient()}
 	neutronClient.InitCache()
 
-	bigIPMock := as3.NewMockBigIPIface(t)
-	// we don't have the selfip yet, let it create it
-	bigIPMock.EXPECT().
-		SelfIP("selfip-5a8ad669-4ffe-4133-b9f9-6de62cd654a4").
-		Return(nil, nil)
-	bigIPMock.EXPECT().
-		CreateSelfIP(&bigip.SelfIP{
-			Name:    "selfip-5a8ad669-4ffe-4133-b9f9-6de62cd654a4",
-			Address: "42.42.42.42%123/8",
-			Vlan:    "/Common/vlan-123",
-		}).
-		Return(nil)
+	f5DeviceHost := NewMockF5Device(t)
+	f5DeviceHost.On("GetHostname").Return("dummybigiphost")
+	f5DeviceHost.EXPECT().
+		EnsureBigIPSelfIP(
+			"selfip-5a8ad669-4ffe-4133-b9f9-6de62cd654a4",
+			"42.42.42.42%123/8",
+			123,
+		).Return(nil)
 
 	a := &Agent{
 		pool:    dbMock,
 		neutron: &neutronClient,
-		bigips:  []*as3.BigIP{{Host: "dummybigiphost", BigIPIface: bigIPMock}},
-		vcmps:   []*as3.BigIP{},
-		bigip:   &as3.BigIP{Host: "dummybigiphost", BigIPIface: bigIPMock},
+		devices: []F5Device{f5DeviceHost},
+		hosts:   []F5Device{},
+		active:  f5DeviceHost,
 	}
 
 	subnetID := "e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e"
@@ -95,22 +89,24 @@ func TestAgent_EnsureSelfIPs_NoOp(t *testing.T) {
 	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient()}
 	neutronClient.InitCache()
 
-	bigIPMock := as3.NewMockBigIPIface(t)
+	f5DeviceHost := NewMockF5Device(t)
+	f5DeviceHost.EXPECT().
+		GetHostname().
+		Return("dummybigiphost")
 	// we don't have the selfip yet, let it create it
-	bigIPMock.EXPECT().
-		SelfIP("selfip-5a8ad669-4ffe-4133-b9f9-6de62cd654a4").
-		Return(&bigip.SelfIP{
-			Name:    "selfip-5a8ad669-4ffe-4133-b9f9-6de62cd654a4",
-			Address: "42.42.42.42%1234/8",
-			Vlan:    "/Common/vlan-1234",
-		}, nil)
+	f5DeviceHost.EXPECT().
+		EnsureBigIPSelfIP(
+			"selfip-5a8ad669-4ffe-4133-b9f9-6de62cd654a4",
+			"42.42.42.42%123/8",
+			123,
+		).Return(nil)
 
 	a := &Agent{
 		pool:    dbMock,
 		neutron: &neutronClient,
-		bigips:  []*as3.BigIP{{Host: "dummybigiphost", BigIPIface: bigIPMock}},
-		vcmps:   []*as3.BigIP{},
-		bigip:   &as3.BigIP{Host: "dummybigiphost", BigIPIface: bigIPMock},
+		devices: []F5Device{f5DeviceHost},
+		hosts:   []F5Device{},
+		active:  f5DeviceHost,
 	}
 
 	subnetID := "e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e"
@@ -138,25 +134,18 @@ func TestAgent_CleanupSelfIPs(t *testing.T) {
 	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient()}
 	neutronClient.InitCache()
 
-	bigIPMock := as3.NewMockBigIPIface(t)
-	// we don't have the selfip yet, let it create it
-	bigIPMock.EXPECT().
-		SelfIP("selfip-5a8ad669-4ffe-4133-b9f9-6de62cd654a4").
-		Return(&bigip.SelfIP{
-			Name:    "selfip-5a8ad669-4ffe-4133-b9f9-6de62cd654a4",
-			Address: "42.42.42.42%1234/8",
-			Vlan:    "/Common/vlan-1234",
-		}, nil)
-	bigIPMock.EXPECT().
+	f5DeviceHost := NewMockF5Device(t)
+	f5DeviceHost.On("GetHostname").Return("dummybigiphost")
+	f5DeviceHost.EXPECT().
 		DeleteSelfIP("selfip-5a8ad669-4ffe-4133-b9f9-6de62cd654a4").
 		Return(nil)
 
 	a := &Agent{
 		pool:    dbMock,
 		neutron: &neutronClient,
-		bigips:  []*as3.BigIP{{Host: "dummybigiphost", BigIPIface: bigIPMock}},
-		vcmps:   []*as3.BigIP{},
-		bigip:   &as3.BigIP{Host: "dummybigiphost", BigIPIface: bigIPMock},
+		devices: []F5Device{f5DeviceHost},
+		hosts:   []F5Device{},
+		active:  f5DeviceHost,
 	}
 
 	// Port should be deleted

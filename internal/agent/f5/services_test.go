@@ -21,24 +21,28 @@ import (
 	"github.com/sapcc/archer/models"
 )
 
-const PostAs3BigipFixture = `{
-  "persist": false,
-  "class": "AS3",
-  "action": "deploy",
-  "declaration": {
-    "Common": {
-      "Shared": {
-        "class": "Application",
-        "template": "shared"
-      },
-      "class": "Tenant"
-    },
-    "class": "ADC",
-    "id": "urn:uuid:07649173-4AF7-48DF-963F-84000C70F0DD",
-    "schemaVersion": "3.36.0",
-    "updateMode": "selective"
-  }
-}`
+var PostAs3BigipFixture = &as3.AS3{
+	Persist: false,
+	Class:   "AS3",
+	Action:  "deploy", Declaration: as3.ADC{
+		Class:         "ADC",
+		SchemaVersion: "3.36.0",
+		UpdateMode:    "selective",
+		Id:            "urn:uuid:07649173-4AF7-48DF-963F-84000C70F0DD",
+		Tenants: map[string]as3.Tenant{
+			"Common": {
+				Class: "Tenant",
+				Applications: map[string]as3.Application{
+					"Shared": {
+						Class:    "Application",
+						Template: "shared",
+						Services: map[string]any{},
+					},
+				},
+			},
+		},
+	},
+}
 
 func TestProcessServicesWithDeletedNetwork(t *testing.T) {
 	network := strfmt.UUID("3cf2f3fb-7527-45aa-accc-6880e783e5c8")
@@ -59,7 +63,8 @@ func TestProcessServicesWithDeletedNetwork(t *testing.T) {
 		dbMock.Close()
 	}()
 
-	bigiphost := as3.NewMockBigIPIface(t)
+	f5DeviceHost := NewMockF5Device(t)
+	f5DeviceHost.On("GetHostname").Return("dummybigiphost")
 
 	config.Global.Default.Host = "host-123"
 	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient()}
@@ -67,18 +72,18 @@ func TestProcessServicesWithDeletedNetwork(t *testing.T) {
 	a := &Agent{
 		pool:    dbMock,
 		neutron: &neutronClient,
-		bigips:  []*as3.BigIP{{Host: "dummybigiphost", BigIPIface: bigiphost}},
-		vcmps:   []*as3.BigIP{},
-		bigip:   &as3.BigIP{Host: "dummybigiphost", BigIPIface: bigiphost},
+		devices: []F5Device{f5DeviceHost},
+		hosts:   []F5Device{},
+		active:  f5DeviceHost,
 	}
 
 	dbMock.ExpectBegin()
 	dbMock.ExpectQuery("SELECT * FROM service WHERE host = $1 AND provider = $2 FOR UPDATE OF service").
 		WithArgs("host-123", models.ServiceProviderTenant).
 		WillReturnRows(dbMock.NewRows([]string{"id", "network_id", "status"}).AddRow(service, &network, models.ServiceStatusPENDINGDELETE))
-	bigiphost.EXPECT().
-		PostAs3Bigip(PostAs3BigipFixture, "Common", "").
-		Return(nil, "", "")
+	f5DeviceHost.EXPECT().
+		PostAS3(PostAs3BigipFixture, "Common").
+		Return(nil)
 	// delete service
 	dbMock.ExpectExec("DELETE FROM service WHERE id = $1 AND status = 'PENDING_DELETE';").
 		WithArgs(service).

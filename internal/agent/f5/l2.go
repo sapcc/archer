@@ -19,7 +19,7 @@ import (
 // L2 (VLAN, Route Domain, Guest VLAN)
 // --------------------------------------------------------------------------
 
-// EnsureL2 ensures that L2 configuration exists on BIG-IP(s) and VCMP(s) for the given segmentID.
+// EnsureL2 ensures that L2 configuration exists on BIG-IP Guest(s) and Host(s) for the given segmentID.
 func (a *Agent) EnsureL2(ctx context.Context, segmentID int, parentSegmentID *int, mtu int) error {
 	printSegementID := "nil"
 	if parentSegmentID != nil {
@@ -29,14 +29,14 @@ func (a *Agent) EnsureL2(ctx context.Context, segmentID int, parentSegmentID *in
 
 	g, _ := errgroup.WithContext(ctx)
 	g.Go(func() error {
-		for _, vcmp := range a.vcmps {
-			if err := vcmp.EnsureVLAN(segmentID, mtu); err != nil {
+		for _, host := range a.hosts {
+			if err := host.EnsureVLAN(segmentID, mtu); err != nil {
 				return fmt.Errorf("EnsureVLAN: %s", err.Error())
 			}
-			if err := vcmp.EnsureInterfaceVlan(segmentID); err != nil {
+			if err := host.EnsureInterfaceVlan(segmentID); err != nil {
 				return fmt.Errorf("EnsureInterfaceVlan: %s", err.Error())
 			}
-			if err := vcmp.EnsureGuestVlan(segmentID); err != nil {
+			if err := host.EnsureGuestVlan(segmentID); err != nil {
 				return fmt.Errorf("EnsureGuestVlan: %s", err.Error())
 			}
 		}
@@ -46,7 +46,7 @@ func (a *Agent) EnsureL2(ctx context.Context, segmentID int, parentSegmentID *in
 	// Guest configuration
 	g.Go(func() error {
 		// Ensure VLAN and Route Domain
-		for _, bigip := range a.bigips {
+		for _, bigip := range a.devices {
 			if err := bigip.EnsureVLAN(segmentID, mtu); err != nil {
 				return fmt.Errorf("EnsureVLAN: %s", err.Error())
 			}
@@ -73,12 +73,12 @@ func (a *Agent) CleanupL2(ctx context.Context, segmentID int) error {
 
 	// Cleanup VCMP
 	g.Go(func() error {
-		for _, vcmp := range a.vcmps {
+		for _, vcmp := range a.hosts {
 			logger.WithField("vcmp", vcmp.GetHostname()).Debug("CleanupL2: cleaning up VCMP L2 configuration")
-			if err := vcmp.CleanupGuestVlan(segmentID); err != nil {
+			if err := vcmp.DeleteGuestVLAN(segmentID); err != nil {
 				return fmt.Errorf("CleanupGuestVlan: %s", err.Error())
 			}
-			if err := vcmp.CleanupVLAN(segmentID); err != nil {
+			if err := vcmp.DeleteVLAN(segmentID); err != nil {
 				return fmt.Errorf("CleanupVLAN: %s", err.Error())
 			}
 		}
@@ -87,12 +87,12 @@ func (a *Agent) CleanupL2(ctx context.Context, segmentID int) error {
 
 	// Cleanup Guest
 	g.Go(func() error {
-		for _, bigip := range a.bigips {
+		for _, bigip := range a.devices {
 			logger.WithField("bigip", bigip.GetHostname()).Debug("CleanupL2: cleaning up Guest L2 configuration")
-			if err := bigip.CleanupRouteDomain(segmentID); err != nil {
+			if err := bigip.DeleteRouteDomain(segmentID); err != nil {
 				return fmt.Errorf("CleanupRouteDomain: device=%s %s", bigip.GetHostname(), err.Error())
 			}
-			if err := bigip.CleanupVLAN(segmentID); err != nil {
+			if err := bigip.DeleteVLAN(segmentID); err != nil {
 				return fmt.Errorf("CleanupVLAN: %s", err.Error())
 			}
 		}
@@ -124,9 +124,7 @@ func (a *Agent) EnsureSelfIPs(subnetID string, dryRun bool) error {
 		return err
 	}
 
-	for _, big := range a.bigips {
-		big := big
-
+	for _, big := range a.devices {
 		// Fetch netmask
 		mask, err := a.neutron.GetMask(subnetID)
 		if err != nil {
@@ -153,14 +151,12 @@ func (a *Agent) CleanupSelfIPs(subnetID string) error {
 	}
 
 	// delete from device
-	for _, big := range a.bigips {
-		big := big
-
+	for _, big := range a.devices {
 		if port, ok := neutronPorts[big.GetHostname()]; ok {
 			name := fmt.Sprint("selfip-", port.ID)
 			logger := log.WithFields(log.Fields{"name": name, "device": big.GetHostname()})
 			logger.Debug("CleanupSelfIPs: deleting SelfIP on device")
-			if err = big.CleanupSelfIP(name); err != nil {
+			if err = big.DeleteSelfIP(name); err != nil {
 				if !strings.Contains(err.Error(), "was not found") {
 					return err
 				}
@@ -191,14 +187,12 @@ func (a *Agent) CleanupSNATPorts(networkID string) error {
 	}
 
 	// delete from device
-	for _, big := range a.bigips {
-		big := big
-
+	for _, big := range a.devices {
 		if port, ok := ports[big.GetHostname()]; ok {
 			name := fmt.Sprint("snat-", port.ID)
 			logger := log.WithFields(log.Fields{"name": name, "device": big.GetHostname()})
 			logger.Debug("CleanupSNATPorts: deleting SNAT port on device")
-			if err = big.CleanupSelfIP(name); err != nil {
+			if err = big.DeleteSelfIP(name); err != nil {
 				if !strings.Contains(err.Error(), "was not found") {
 					return err
 				}
@@ -227,7 +221,7 @@ func (a *Agent) CleanupSNATPorts(networkID string) error {
 // getDeviceIDs returns a list of device IDs for all BIG-IPs
 func (a *Agent) getDeviceIDs() []string {
 	var deviceIDs []string
-	for _, big := range a.bigips {
+	for _, big := range a.devices {
 		deviceIDs = append(deviceIDs, big.GetHostname())
 	}
 	return deviceIDs

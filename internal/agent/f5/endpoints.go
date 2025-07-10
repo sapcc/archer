@@ -197,7 +197,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		})
 	}
 	g.Go(func() error {
-		err := a.populateEndpointPorts(endpoints)
+		err = a.populateEndpointPorts(endpoints)
 		if err != nil && cleanupL2 {
 			// ignore missing ports if all endpoints are about to be deleted, print warning instead
 			log.WithError(err).
@@ -224,7 +224,6 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 
 	// (Re-)Sync SelfIPs of all endpoints in the same segment
 	for _, ep := range endpoints {
-		ep := ep
 		if ep.Status != models.EndpointStatusPENDINGDELETE && ep.Status != models.EndpointStatusPENDINGREJECTED {
 			// SelfIPs
 			if len(ep.Port.FixedIPs) == 0 {
@@ -244,7 +243,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		tenantName: as3.GetEndpointTenants(endpoints),
 	})
 
-	if err := a.bigip.PostBigIP(&data, tenantName, ""); err != nil {
+	if err := a.active.PostAS3(&data, tenantName); err != nil {
 		return err
 	}
 

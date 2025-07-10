@@ -44,15 +44,18 @@ func (d *DebugMonitor) RecordJobTiming(startTime, endTime time.Time, id uuid.UUI
 }
 
 func (d *DebugMonitor) RecordJobTimingWithStatus(startTime, endTime time.Time, id uuid.UUID, name string, tags []string, status gocron.JobStatus, err error) {
-	log.WithFields(log.Fields{
+	logWithFields := log.WithFields(log.Fields{
 		"id":       id,
 		"tags":     tags,
 		"status":   status,
-		"error":    err,
 		"duration": endTime.Sub(startTime),
-	}).Debugf("Job %s", name)
+	})
 
 	if err != nil {
+		logWithFields.WithError(err).Errorf("Job %s", name)
 		sentry.CaptureException(err)
+		return
 	}
+
+	logWithFields.Debugf("Job %s", name)
 }

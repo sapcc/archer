@@ -23,10 +23,8 @@ func (c *Controller) SetModelDefaults(s any) error {
 	}
 	for specDefinitionName, specDefinitionModel := range c.spec.Spec().Definitions {
 		if specDefinitionName == instanceType {
-
 			// Found the swagger model
 			for propName, property := range specDefinitionModel.SchemaProps.Properties {
-
 				// Check if model has default set
 				if property.Default != nil {
 					propertyField := reflect.ValueOf(s).Elem().FieldByName(strcase.ToCamel(propName))

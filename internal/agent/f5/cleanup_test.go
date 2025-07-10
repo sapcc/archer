@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/f5devcentral/go-bigip"
 	fake "github.com/gophercloud/gophercloud/v2/openstack/networking/v2/common"
 	th "github.com/gophercloud/gophercloud/v2/testhelper"
 	"github.com/gophercloud/gophercloud/v2/testhelper/fixture"
@@ -131,41 +130,45 @@ func TestAgent_TestCleanOrphanedNeutronPorts(t *testing.T) {
 }
 
 func TestAgent_TestCleanupOrphanedTenants(t *testing.T) {
-	bigIPMock := as3.NewMockBigIPIface(t)
+	f5DeviceMock := NewMockF5Device(t)
+	f5DeviceMock.On("GetHostname").Return("host-123")
 	// we don't have the selfip yet, let it create it
-	bigIPMock.EXPECT().
-		TMPartitions().
-		Return(&bigip.TMPartitions{
-			TMPartitions: []*bigip.TMPartition{
-				{Name: "Common"},
-				{Name: "net-4f891be2-c32f-4356-81c4-056b6101463a"},
-				{Name: "something-manual-don't-touch-me"},
-				{Name: "net-delete-me"},
-			},
+	f5DeviceMock.EXPECT().
+		GetPartitions().
+		Return([]string{
+			"Common",
+			"net-4f891be2-c32f-4356-81c4-056b6101463a",
+			"something-manual-don't-touch-me",
+			"net-delete-me",
 		}, nil)
 
-	const expectAS3 = `{
-  "persist": false,
-  "class": "AS3",
-  "action": "deploy",
-  "declaration": {
-    "class": "ADC",
-    "id": "urn:uuid:07649173-4AF7-48DF-963F-84000C70F0DD",
-    "net-delete-me": {
-      "class": "Tenant"
-    },
-    "schemaVersion": "3.36.0",
-    "updateMode": "selective"
-  }
-}`
+	expectAS3 := &as3.AS3{
+		Persist: false,
+		Class:   "AS3",
+		Action:  "deploy",
+		Declaration: as3.ADC{
+			Class:         "ADC",
+			SchemaVersion: "3.36.0",
+			UpdateMode:    "selective",
+			Id:            "urn:uuid:07649173-4AF7-48DF-963F-84000C70F0DD",
+			Tenants: map[string]as3.Tenant{
+				"net-delete-me": {
+					Class:        "Tenant",
+					Label:        "",
+					Remark:       "",
+					Applications: map[string]as3.Application(nil),
+				},
+			},
+		},
+	}
 
-	bigIPMock.EXPECT().
-		PostAs3Bigip(expectAS3, "net-delete-me", "").
-		Return(nil, "blub", "bla")
+	f5DeviceMock.EXPECT().
+		PostAS3(expectAS3, "net-delete-me").
+		Return(nil)
 	// initialize agent
 	a := &Agent{
-		bigip:  &as3.BigIP{Host: "dummybigiphost", BigIPIface: bigIPMock},
-		bigips: []*as3.BigIP{{Host: "dummybigiphost", BigIPIface: bigIPMock}},
+		devices: []F5Device{f5DeviceMock},
+		active:  f5DeviceMock,
 	}
 
 	// run the test function
