@@ -14,12 +14,13 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/jessevdk/go-flags"
+	"github.com/sapcc/go-api-declarations/bininfo"
 	log "github.com/sirupsen/logrus"
 )
 
 var (
-	Version   string
-	BuildTime string
+	Version   = bininfo.Version()
+	BuildTime = bininfo.BuildDate()
 	Global    Archer
 )
 
@@ -75,8 +76,8 @@ type Audit struct {
 }
 
 type Agent struct {
-	Devices                []string      `long:"device" ini-name:"device[]" description:"F5 BigIP Hostnames"`
-	VCMPs                  []string      `long:"vcmp" ini-name:"vcmp[]" description:"F5 BigIP VCMP Hostnames"`
+	Devices                []string      `long:"device" ini-name:"device[]" description:"F5 Hostnames"`
+	VCMPs                  []string      `long:"vcmp" ini-name:"vcmp[]" description:"F5 Platform Hostnames"`
 	ValidateCert           bool          `long:"validate-certificates" ini-name:"validate_certificates" description:"Validate HTTPS Certificate."`
 	PhysicalNetwork        string        `long:"physical-network" ini-name:"physical_network" description:"Physical Network"`
 	PhysicalInterface      string        `long:"physical-interface" ini-name:"physical_interface" description:"Physical Interface" default:"portchannel1"`
@@ -90,6 +91,8 @@ type Agent struct {
 	ServiceProtocol        string        `long:"service-protocol" ini-name:"service_protocol" description:"Service protocol."`
 	L4Profile              string        `long:"l4-profile" ini-name:"l4_profile" description:"L4 profile to use for F5 endpoint service." default:"/Common/fastL4"`
 	TCPProfile             string        `long:"tcp-profile" ini-name:"tcp_profile" description:"TCP profile to use for F5 endpoint service." default:"/Common/tcp"`
+	MaxRetries             uint64        `long:"max-retries" ini-name:"max_retries" description:"Maximum number of retries for F5 operations." default:"5"`
+	MaxDuration            time.Duration `long:"max-duration" ini-name:"max_duration" description:"Maximum duration for F5 operations, supports suffix (e.g. 10s)." default:"30s"`
 }
 
 type AuthInfo struct {

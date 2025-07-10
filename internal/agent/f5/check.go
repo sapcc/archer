@@ -20,6 +20,7 @@ import (
 
 func checkCleanupL2(ctx context.Context, tx pgx.Tx, networkID string,
 	ignorePendingEndpoint bool, ignorePendingService bool) (error, bool) {
+
 	q := db.Select("1").
 		From("service").
 		Where("network_id = ?", networkID).

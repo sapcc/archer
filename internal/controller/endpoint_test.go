@@ -459,7 +459,6 @@ func (t *SuiteTest) TestEndpointRequireApproval() {
 	payload = res.(*endpoint.GetEndpointEndpointIDOK).Payload
 	assert.NotNil(t.T(), payload)
 	assert.Equal(t.T(), models.EndpointStatusPENDINGDELETE, payload.Status)
-
 }
 
 func (t *SuiteTest) TestEndpointDelete() {

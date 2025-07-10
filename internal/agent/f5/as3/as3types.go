@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"reflect"
 	"strings"
 )
@@ -85,9 +86,10 @@ func (a Application) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 
-	for name, service := range a.Services {
+	/*for name, service := range a.Services {
 		application[name] = service
-	}
+	}*/
+	maps.Copy(application, a.Services)
 	return json.Marshal(application)
 }
 

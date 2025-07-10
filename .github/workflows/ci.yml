@@ -1,0 +1,66 @@
+# SPDX-FileCopyrightText: Copyright 2025 SAP SE or an SAP affiliate company
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: CI
+
+on:
+  push:
+    tags:
+      - v*
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+  pull_request:
+    branches:
+      - '*'
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch: {}
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          check-latest: true
+          go-version: 1.24.4
+      - name: Build all binaries
+        run: make build-all
+  test:
+    name: Test
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      - name: Run PostgreSQL
+        uses: harmon758/postgresql-action@v1
+        with:
+          postgresql version: '15'
+          postgresql db: 'test_suite_controller'
+          postgresql user: root
+          postgresql password: root
+      - name: Run tests and generate coverage report
+        run: make build/cover.out
+        env:
+          DB_URL: postgresql://root:root@localhost/test_suite_controller?sslmode=disable
+      - name: Upload coverage report to Coveralls
+        env:
+          COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIT_BRANCH: ${{ github.head_ref }}
+        run: |
+          go install github.com/mattn/goveralls@latest
+          goveralls -service=github -coverprofile=build/cover.out

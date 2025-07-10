@@ -114,7 +114,6 @@ func (c *Controller) GetRbacPoliciesRbacPolicyIDHandler(params rbac.GetRbacPolic
 	}
 
 	return rbac.NewGetRbacPoliciesRbacPolicyIDOK().WithPayload(&rbacResponse)
-
 }
 
 func (c *Controller) PutRbacPoliciesRbacPolicyIDHandler(params rbac.PutRbacPoliciesRbacPolicyIDParams, _ any) middleware.Responder {

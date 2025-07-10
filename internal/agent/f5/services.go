@@ -163,7 +163,6 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 	   L2 Configuration
 	   ================================================== */
 	for _, service := range services {
-		service := service
 		if service.Status != "PENDING_DELETE" {
 			if err := a.EnsureL2(ctx, service.SegmentId, nil, service.MTU); err != nil {
 				return err
@@ -181,7 +180,7 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 		"Common": as3.GetServiceTenants(services),
 	})
 
-	if err = a.bigip.PostBigIP(&data, "Common", ""); err != nil {
+	if err = a.active.PostAS3(&data, "Common"); err != nil {
 		return err
 	}
 

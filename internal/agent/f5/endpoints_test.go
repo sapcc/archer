@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/f5devcentral/go-bigip"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	fake "github.com/gophercloud/gophercloud/v2/openstack/networking/v2/common"
 	th "github.com/gophercloud/gophercloud/v2/testhelper"
 	"github.com/gophercloud/gophercloud/v2/testhelper/fixture"
@@ -95,77 +95,60 @@ const GetPortListResponseFixture = `
 }
 `
 
-const RouteDomainFixture = `{
-  "items": [
-    {
-	  "id": 123,
-      "name": "net-35a3ca82-62af-4e0a-9472-92331500fb3a",
-      "parent": "/Common/vlan-666"
-    }
-  ]
+var PostBigIPFixture = &as3.AS3{
+	Persist: false,
+	Class:   "AS3",
+	Action:  "deploy",
+	Declaration: as3.ADC{
+		Class:         "ADC",
+		SchemaVersion: "3.36.0",
+		UpdateMode:    "selective",
+		Id:            "urn:uuid:07649173-4AF7-48DF-963F-84000C70F0DD",
+		Tenants: map[string]as3.Tenant{
+			"net-35a3ca82-62af-4e0a-9472-92331500fb3a": {
+				Class: "Tenant",
+				Applications: map[string]as3.Application{
+					"si-endpoints": {
+						Class:    "Application",
+						Template: "generic", Services: map[string]any{
+							"endpoint-95dbe813-62f9-47f1-90ba-09f2dadcaefa": as3.Service{
+								Label:      "endpoint-95dbe813-62f9-47f1-90ba-09f2dadcaefa",
+								Class:      "Service_L4",
+								AllowVlans: []string{"/Common/vlan-123"},
+								IRules:     []as3.Pointer{}, Mirroring: "L4",
+								PersistanceMethods: []string{}, Pool: as3.Pointer{
+									BigIP: "/Common/Shared/pool-a0a0a0a0-a0a0-4a0a-8a0a-0a0a0a0a0a0a"},
+								ProfileL4:  &as3.Pointer{BigIP: "/Common/cc_fastL4_noaging_profile"},
+								ProfileTCP: &as3.Pointer{BigIP: "/Common/cc_tcp_archer_profile"},
+								Snat: as3.Pointer{
+									BigIP: "/Common/Shared/snatpool-a0a0a0a0-a0a0-4a0a-8a0a-0a0a0a0a0a0a",
+								},
+								VirtualAddresses:    []string{"2.3.4.5%123"},
+								TranslateServerPort: true, VirtualPort: 80},
+						},
+					},
+				},
+			},
+		},
+	},
 }
-`
 
-const PostBigIPFixture = `{
-  "persist": false,
-  "class": "AS3",
-  "action": "deploy",
-  "declaration": {
-    "class": "ADC",
-    "id": "urn:uuid:07649173-4AF7-48DF-963F-84000C70F0DD",
-    "net-35a3ca82-62af-4e0a-9472-92331500fb3a": {
-      "class": "Tenant",
-      "si-endpoints": {
-        "class": "Application",
-        "endpoint-95dbe813-62f9-47f1-90ba-09f2dadcaefa": {
-          "label": "endpoint-95dbe813-62f9-47f1-90ba-09f2dadcaefa",
-          "class": "Service_L4",
-          "allowVlans": [
-            "/Common/vlan-123"
-          ],
-          "iRules": [],
-          "mirroring": "L4",
-          "persistenceMethods": [],
-          "pool": {
-            "bigip": "/Common/Shared/pool-a0a0a0a0-a0a0-4a0a-8a0a-0a0a0a0a0a0a"
-          },
-          "profileL4": {
-            "bigip": "/Common/cc_fastL4_noaging_profile"
-          },
-          "profileTCP": {
-            "bigip": "/Common/cc_tcp_archer_profile"
-          },
-          "snat": {
-            "bigip": "/Common/Shared/snatpool-a0a0a0a0-a0a0-4a0a-8a0a-0a0a0a0a0a0a"
-          },
-          "virtualAddresses": [
-            "2.3.4.5%123"
-          ],
-          "translateServerPort": true,
-          "virtualPort": 80
-        },
-        "template": "generic"
-      }
-    },
-    "schemaVersion": "3.36.0",
-    "updateMode": "selective"
-  }
-}`
-
-const BigIPCleanupFixture = `{
-  "persist": false,
-  "class": "AS3",
-  "action": "deploy",
-  "declaration": {
-    "class": "ADC",
-    "id": "urn:uuid:07649173-4AF7-48DF-963F-84000C70F0DD",
-    "net-35a3ca82-62af-4e0a-9472-92331500fb3a": {
-      "class": "Tenant"
-    },
-    "schemaVersion": "3.36.0",
-    "updateMode": "selective"
-  }
-}`
+var BigIPCleanupFixture = &as3.AS3{
+	Persist: false,
+	Class:   "AS3",
+	Action:  "deploy",
+	Declaration: as3.ADC{
+		Class: "ADC", SchemaVersion: "3.36.0",
+		UpdateMode: "selective",
+		Id:         "urn:uuid:07649173-4AF7-48DF-963F-84000C70F0DD",
+		Tenants: map[string]as3.Tenant{
+			"net-35a3ca82-62af-4e0a-9472-92331500fb3a": {
+				Class:        "Tenant",
+				Applications: map[string]as3.Application(nil),
+			},
+		},
+	},
+}
 
 func TestAgent_ProcessEndpoint(t *testing.T) {
 	endpoint := strfmt.UUID("95dbe813-62f9-47f1-90ba-09f2dadcaefa")
@@ -196,26 +179,23 @@ func TestAgent_ProcessEndpoint(t *testing.T) {
 	}
 	defer dbMock.Close()
 
-	bigiphost := as3.NewMockBigIPIface(t)
-	bigiphost.EXPECT().
-		Vlans().
-		Return(&bigip.Vlans{Vlans: []bigip.Vlan{{Name: "/Common/vlan-123", Tag: 123}}}, nil)
-	bigiphost.EXPECT().
-		APICall(&bigip.APIRequest{Method: "get", URL: "net/route-domain", ContentType: "application/json"}).
-		Return([]byte(RouteDomainFixture), nil)
-	bigiphost.EXPECT().
-		SelfIP("selfip-5a8ad669-4ffe-4133-b9f9-6de62cd654a4").
-		Return(nil, nil)
-	bigiphost.EXPECT().
-		CreateSelfIP(&bigip.SelfIP{
-			Name:    "selfip-5a8ad669-4ffe-4133-b9f9-6de62cd654a4",
-			Address: "42.42.42.42%123/8",
-			Vlan:    "/Common/vlan-123",
-		}).
+	f5DeviceHost := NewMockF5Device(t)
+	f5DeviceHost.On("GetHostname").Return("dummybigiphost")
+	f5DeviceHost.EXPECT().
+		EnsureVLAN(123, 0).
 		Return(nil)
-	bigiphost.EXPECT().
-		PostAs3Bigip(PostBigIPFixture, "net-35a3ca82-62af-4e0a-9472-92331500fb3a", "").
-		Return(nil, "", "")
+	f5DeviceHost.EXPECT().
+		EnsureRouteDomain(123, swag.Int(666)).
+		Return(nil)
+	f5DeviceHost.EXPECT().
+		EnsureBigIPSelfIP(
+			"selfip-5a8ad669-4ffe-4133-b9f9-6de62cd654a4",
+			"42.42.42.42%123/8",
+			123,
+		).Return(nil)
+	f5DeviceHost.EXPECT().
+		PostAS3(PostBigIPFixture, "net-35a3ca82-62af-4e0a-9472-92331500fb3a").
+		Return(nil)
 
 	config.Global.Default.Host = "host-123"
 	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient()}
@@ -223,9 +203,9 @@ func TestAgent_ProcessEndpoint(t *testing.T) {
 	a := &Agent{
 		pool:    dbMock,
 		neutron: &neutronClient,
-		bigips:  []*as3.BigIP{{Host: "dummybigiphost", BigIPIface: bigiphost}},
-		vcmps:   []*as3.BigIP{},
-		bigip:   &as3.BigIP{Host: "dummybigiphost", BigIPIface: bigiphost},
+		devices: []F5Device{f5DeviceHost},
+		hosts:   []F5Device{},
+		active:  f5DeviceHost,
 	}
 	dbMock.
 		ExpectBegin()
@@ -277,7 +257,7 @@ func TestAgent_DeleteEndpointWithDeletedNetwork(t *testing.T) {
 	}
 	defer dbMock.Close()
 
-	bigiphost := as3.NewMockBigIPIface(t)
+	f5DeviceHost := NewMockF5Device(t)
 
 	config.Global.Default.Host = "host-123"
 	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient()}
@@ -285,9 +265,9 @@ func TestAgent_DeleteEndpointWithDeletedNetwork(t *testing.T) {
 	a := &Agent{
 		pool:    dbMock,
 		neutron: &neutronClient,
-		bigips:  []*as3.BigIP{{Host: "dummybigiphost", BigIPIface: bigiphost}},
-		vcmps:   []*as3.BigIP{},
-		bigip:   &as3.BigIP{Host: "dummybigiphost", BigIPIface: bigiphost},
+		devices: []F5Device{f5DeviceHost},
+		hosts:   []F5Device{},
+		active:  f5DeviceHost,
 	}
 
 	dbMock.
@@ -309,9 +289,9 @@ func TestAgent_DeleteEndpointWithDeletedNetwork(t *testing.T) {
 	dbMock.ExpectExec("SELECT 1 FROM endpoint INNER JOIN service ON endpoint.service_id = service.id JOIN endpoint_port ON endpoint_id = endpoint.id WHERE endpoint_port.subnet = $1 AND service.host = $2 AND service.provider = $3 AND endpoint.status NOT IN ($4,$5)").
 		WithArgs(subnet.String(), config.Global.Default.Host, models.ServiceProviderTenant, models.EndpointStatusPENDINGDELETE, models.EndpointStatusPENDINGREJECTED).
 		WillReturnResult(pgxmock.NewResult("SELECT", 0))
-	bigiphost.EXPECT().
-		PostAs3Bigip(BigIPCleanupFixture, "net-35a3ca82-62af-4e0a-9472-92331500fb3a", "").
-		Return(nil, "", "")
+	f5DeviceHost.EXPECT().
+		PostAS3(BigIPCleanupFixture, "net-35a3ca82-62af-4e0a-9472-92331500fb3a").
+		Return(nil)
 	dbMock.ExpectExec("DELETE FROM endpoint WHERE id = $1").
 		WithArgs(endpoint).
 		WillReturnResult(pgxmock.NewResult("SELECT", 1))

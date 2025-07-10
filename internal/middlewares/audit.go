@@ -1,5 +1,4 @@
-// SPDX-FileCopyrightText: Copyright 2025 SAP SE or an SAP affiliate company
-//
+// SPDX-FileCopyrightText: 2022 SAP SE or an SAP affiliate company
 // SPDX-License-Identifier: Apache-2.0
 
 package middlewares
@@ -118,7 +117,7 @@ func (ac *AuditController) NewAuditResponseWriter(w http.ResponseWriter, r *http
 // AuditHandler provides the audit handling.
 func (ac *AuditController) AuditHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" {
+		if r.Method == http.MethodGet {
 			next.ServeHTTP(w, r)
 			return
 		}
