@@ -1,8 +1,7 @@
-// SPDX-FileCopyrightText: Copyright 2025 SAP SE or an SAP affiliate company
-//
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company
 // SPDX-License-Identifier: Apache-2.0
 
-package as3
+package bigip
 
 import (
 	"encoding/json"
@@ -21,7 +20,7 @@ type RouteDomains struct {
 	RouteDomains []routeDomain `json:"items"`
 }
 
-func getRouteDomain(big *BigIP, name string) (*routeDomain, error) {
+func getRouteDomain(b *BigIP, name string) (*routeDomain, error) {
 	var rd routeDomain
 	req := &bigip.APIRequest{
 		Method:      "get",
@@ -29,7 +28,7 @@ func getRouteDomain(big *BigIP, name string) (*routeDomain, error) {
 		ContentType: "application/json",
 	}
 
-	resp, err := big.APICall(req)
+	resp, err := (*bigip.BigIP)(b).APICall(req)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +41,7 @@ func getRouteDomain(big *BigIP, name string) (*routeDomain, error) {
 	return &rd, nil
 }
 
-func (rd *routeDomain) Update(big *BigIP) error {
+func (rd *routeDomain) Update(b *BigIP) error {
 	m, err := json.Marshal(rd)
 	if err != nil {
 		return err
@@ -55,13 +54,13 @@ func (rd *routeDomain) Update(big *BigIP) error {
 		ContentType: "application/json",
 	}
 
-	if _, err := getRouteDomain(big, rd.Name); err == nil {
+	if _, err := getRouteDomain(b, rd.Name); err == nil {
 		// Modify instead
 		req.Method = "put"
 		req.URL = fmt.Sprint(req.URL, "/", rd.Name)
 	}
 
-	if _, err = big.APICall(req); err != nil {
+	if _, err = (*bigip.BigIP)(b).APICall(req); err != nil {
 		return err
 	}
 	return nil
@@ -75,7 +74,7 @@ func (b *BigIP) RouteDomains() (*RouteDomains, error) {
 		ContentType: "application/json",
 	}
 
-	resp, err := b.APICall(req)
+	resp, err := (*bigip.BigIP)(b).APICall(req)
 	if err != nil {
 		return nil, err
 	}

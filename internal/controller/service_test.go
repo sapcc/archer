@@ -283,7 +283,6 @@ func (t *SuiteTest) TestServicePut() {
 			Body:      &models.ServiceUpdatable{Name: &name}},
 		nil)
 	assert.IsType(t.T(), &service.PutServiceServiceIDNotFound{}, res)
-
 }
 
 func (t *SuiteTest) TestServiceDelete() {
@@ -515,7 +514,7 @@ func (t *SuiteTest) TestPutServiceServiceIDAcceptEndpointHandlerMultipleServices
 	assert.IsType(t.T(), &service.PostServiceCreated{}, res)
 	serviceID2 := res.(*service.PostServiceCreated).Payload.ID
 
-	// create endpoints for for both services
+	// create endpoints for both services
 	var network strfmt.UUID
 	network = "d714f65e-bffd-494f-8219-8eb0a85d7a2d"
 	t.createEndpoint(serviceID1, models.EndpointTarget{Network: &network})

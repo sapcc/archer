@@ -14,6 +14,7 @@ import (
 
 func TestRegisterAgent(t *testing.T) {
 	config.Global.Default.Host = "test-host"
+	config.Global.Default.AvailabilityZone = ""
 	dbMock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
 	if err != nil {
 		t.Fatal(err)

@@ -17,7 +17,7 @@ import (
 	"github.com/sapcc/archer/restapi/operations/service"
 )
 
-func (t *SuiteTest) createRbac(target string) strfmt.UUID {
+func (t *SuiteTest) createRbac(target string) strfmt.UUID { //nolint:unparam
 	service := t.createService(testService)
 	s := models.Rbacpolicy{
 		ServiceID:  &service,

@@ -1,0 +1,62 @@
+# Configuration file for <https://github.com/sapcc/archer>
+
+metadata:
+  url: https://github.com/sapcc/archer
+
+binaries:
+  - name:        archer-server
+    fromPackage: ./cmd/archer-server
+    installTo:   bin/
+  - name:        archer-f5-agent
+    fromPackage: ./cmd/archer-f5-agent
+    installTo:   bin/
+  - name:        archerctl
+    fromPackage: ./cmd/archerctl
+    installTo:   bin/
+  - name:        archer-migrate
+    fromPackage: ./cmd/archer-migrate
+    installTo:   bin/
+  - name:        archer-ni-agent
+    fromPackage: ./cmd/archer-ni-agent
+    installTo:   bin/
+
+golang:
+  autoupdateableDeps: ^github.com/(?:sapcc|sap-cloud-infrastructure)/
+  setGoModVersion: true
+
+golangciLint:
+  createConfig: false
+
+githubWorkflow:
+  ci:
+    # too opinionated for us
+    enabled: false
+  global:
+    defaultBranch: main
+
+renovate:
+  enabled: true
+  assignees:
+    - notandy
+    - ronchi-oss
+    - notque
+    - sapcc/cc_github_managers_approval
+
+reuse:
+  annotations:
+    - paths:
+        - etc/*
+        - internal/agent/f5/mocks_test.go
+        - build/*
+      SPDX-FileCopyrightText: 'SAP SE or an SAP affiliate company'
+      SPDX-License-Identifier: Apache-2.0
+
+verbatim: |
+  mockery:
+      mockery
+  swagger:
+      swagger generate server --exclude-main --copyright-file COPYRIGHT.txt
+      swagger generate model --copyright-file COPYRIGHT.txt
+      swagger generate client --copyright-file COPYRIGHT.txt
+  markdown:
+      swagger generate markdown --copyright-file COPYRIGHT.txt --output= docs/api.md
