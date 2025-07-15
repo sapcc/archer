@@ -92,7 +92,7 @@ func (f *F5OS) newRequest(method, path string, body any) *http.Request {
 }
 
 // apiCall performs an API call to the F5OS device using the provided request.
-func (f *F5OS) apiCall(req *http.Request, v any) error {
+func (f *F5OS) apiCall(req *http.Request, response any, expected ...int) error {
 	// Set the Authorization header
 	if f.token.Valid() {
 		req.Header.Set("X-Auth-Token", string(f.token))
@@ -120,6 +120,14 @@ func (f *F5OS) apiCall(req *http.Request, v any) error {
 			"url":    req.URL.Redacted(),
 			"status": resp.StatusCode,
 		}).Debug("F5OS API call")
+
+		for _, e := range expected {
+			if resp.StatusCode == e {
+				log.Debugf("Expected status code %d for %s", e, req.URL.Redacted())
+				return nil
+			}
+		}
+
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			body, _ := io.ReadAll(resp.Body)
 			return retry.RetryableError(fmt.Errorf("unexpected status code for %s %d: %s",
@@ -135,7 +143,7 @@ func (f *F5OS) apiCall(req *http.Request, v any) error {
 			}
 		}
 
-		if err = json.NewDecoder(resp.Body).Decode(v); err != nil {
+		if err = json.NewDecoder(resp.Body).Decode(response); err != nil {
 			if errors.Is(err, io.EOF) {
 				// If the body is empty, we can return nil
 				return nil
@@ -360,7 +368,9 @@ func (f *F5OS) DeleteVLAN(segmentId int) error {
 
 	path := fmt.Sprintf("api/data/openconfig-vlan:vlans/vlan=%d", segmentId)
 	req := f.newRequest("DELETE", path, nil)
-	if err := f.apiCall(req, nil); err != nil {
+
+	// We expect a 404 if the VLAN does not exist, so we tolerate that error
+	if err := f.apiCall(req, nil, http.StatusNotFound); err != nil {
 		return fmt.Errorf("error deleting VLAN %d on %s: %w", segmentId, f.uri.Host, err)
 	}
 	return nil
@@ -373,26 +383,11 @@ func (f *F5OS) DeleteSelfIP(_ string) error {
 func (f *F5OS) DeleteInterfaceVlan(segmentID int) error {
 	path := "api/data/openconfig-interfaces:interfaces/interface=" +
 		config.Global.Agent.PhysicalInterface +
-		"/openconfig-if-aggregate:aggregation/openconfig-vlan:switched-vlan/config/trunk-vlans"
+		"/openconfig-if-aggregate:aggregation/openconfig-vlan:switched-vlan/config/trunk-vlans" +
+		"=" + fmt.Sprintf("%d", segmentID)
 
-	var vlans trunkVlans
-	if err := f.apiCall(f.newRequest("GET", path, nil), &vlans); err != nil {
-		return fmt.Errorf("error fetching trunk VLANs: %w", err)
-	}
-
-	b := make([]int, 0, len(vlans.OpenconfigVlanTrunkVlans)-1)
-	for _, v := range vlans.OpenconfigVlanTrunkVlans {
-		if v != segmentID {
-			b = append(b, v)
-		}
-	}
-	if len(b) == len(vlans.OpenconfigVlanTrunkVlans) {
-		return nil // nothing to delete
-	}
-	vlans.OpenconfigVlanTrunkVlans = b
-
-	req := f.newRequest("PUT", path, vlans)
-	if err := f.apiCall(req, nil); err != nil {
+	req := f.newRequest("DELETE", path, nil)
+	if err := f.apiCall(req, nil, http.StatusNotFound); err != nil {
 		return fmt.Errorf("error deleting interface VLAN %d on %s: %w", segmentID, f.uri.Host, err)
 	}
 	return nil
