@@ -29,6 +29,6 @@ LABEL source_repository="https://github.com/sapcc/archer"
 # upgrade all installed packages to fix potential CVEs in advance
 RUN apk upgrade --no-cache --no-progress \
   && apk add --no-cache ca-certificates haproxy
-COPY --from=builder /src/bin/ /usr/bin/
+COPY --from=builder /src/build/ /usr/bin/
 COPY --from=linkerd /tmp/linkerd-await /linkerd-await
 ENTRYPOINT [ "/usr/bin/archer-server" ]
