@@ -6,7 +6,7 @@ module github.com/sapcc/archer
 
 go 1.24
 
-toolchain go1.24.4
+toolchain go1.24.5
 
 require (
 	github.com/IBM/pgxpoolprometheus v1.1.2
@@ -17,7 +17,7 @@ require (
 	github.com/dre1080/recovr v1.0.3
 	github.com/f5devcentral/go-bigip v0.0.0-20250702152414-3ab735e221a2
 	github.com/georgysavva/scany/v2 v2.1.4
-	github.com/getsentry/sentry-go v0.20.0
+	github.com/getsentry/sentry-go v0.34.1
 	github.com/go-co-op/gocron/v2 v2.16.2
 	github.com/go-openapi/errors v0.22.1
 	github.com/go-openapi/loads v0.22.0
@@ -28,7 +28,7 @@ require (
 	github.com/go-openapi/validate v0.24.0
 	github.com/google/uuid v1.6.0
 	github.com/gophercloud/gophercloud/v2 v2.7.0
-	github.com/gophercloud/utils/v2 v2.0.0-20250617123236-b0c67de63928
+	github.com/gophercloud/utils/v2 v2.0.0-20250711132455-9770683b100a
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/iancoleman/strcase v0.3.0
@@ -49,8 +49,8 @@ require (
 	github.com/vishvananda/netlink v1.3.1
 	github.com/vishvananda/netns v0.0.5
 	github.com/z0ne-dev/mgx/v2 v2.0.1
-	golang.org/x/net v0.41.0
-	golang.org/x/sync v0.15.0
+	golang.org/x/net v0.42.0
+	golang.org/x/sync v0.16.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -103,10 +103,10 @@ require (
 	go.opentelemetry.io/otel v1.24.0 // indirect
 	go.opentelemetry.io/otel/metric v1.24.0 // indirect
 	go.opentelemetry.io/otel/trace v1.24.0 // indirect
-	golang.org/x/crypto v0.39.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/term v0.32.0 // indirect
-	golang.org/x/text v0.26.0 // indirect
+	golang.org/x/crypto v0.40.0 // indirect
+	golang.org/x/sys v0.34.0 // indirect
+	golang.org/x/term v0.33.0 // indirect
+	golang.org/x/text v0.27.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
