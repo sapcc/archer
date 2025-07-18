@@ -60,8 +60,8 @@ defaults
     default_backend         upstream
 
 frontend downstream
-    bind *:80
-	mode {{lower .Protocol}}
+    bind *:{{.UpstreamPort}}
+    mode {{lower .Protocol}}
 
 backend upstream
     mode {{lower .Protocol}}
@@ -151,10 +151,11 @@ func (h *HAProxyController) addInstance(networkID string, protocol string) (*haP
 		tryRemoveFile(configFile.Name())
 		return nil, err
 	}
-	data := map[string]string{
+	data := map[string]any{
 		"TempDir":      h.tempdir,
 		"ProxyPath":    config.Global.Agent.ServiceProxyPath,
 		"UpstreamHost": config.Global.Agent.ServiceUpstreamHost,
+		"UpstreamPort": config.Global.Agent.ServicePort,
 		"Network":      networkID,
 		"Protocol":     protocol,
 	}
