@@ -56,6 +56,17 @@ func (n *NeutronClient) ResetCache() {
 	n.subnetCache.Purge()
 }
 
+func (n *NeutronClient) RemoveFromCache(id string) {
+	// Remove from port cache
+	n.portCache.Remove(id)
+
+	// Remove from network cache
+	n.networkCache.Remove(id)
+
+	// Remove from subnet cache
+	n.subnetCache.Remove(id)
+}
+
 func ConnectToNeutron(providerClient *gophercloud.ProviderClient) (*NeutronClient, error) {
 	serviceClient, err := openstack.NewNetworkV2(providerClient, gophercloud.EndpointOpts{})
 	if err != nil {
@@ -186,11 +197,9 @@ func (n *NeutronClient) AllocateNeutronEndpointPort(target *models.EndpointTarge
 	if err != nil {
 		return nil, err
 	}
+	// to ensure fresh segment cache
+	n.RemoveFromCache(res.NetworkID)
 	return res, nil
-}
-
-func (n NeutronClient) ClearCache(networkID string) {
-	n.portCache.Remove(networkID)
 }
 
 // TODO: Remove after a while
@@ -342,6 +351,8 @@ func (n *NeutronClient) EnsureNeutronSelfIPs(deviceIDs []string, subnetID string
 			if err != nil {
 				return nil, err
 			}
+			// to ensure fresh segment cache
+			n.RemoveFromCache(subnet.NetworkID)
 		}
 	}
 	return selfIPs, nil
