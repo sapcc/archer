@@ -18,6 +18,7 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/sapcc/go-bits/gopherpolicy"
 	log "github.com/sirupsen/logrus"
 
@@ -192,21 +193,37 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, tok
 		})
 	}
 
-	/* TODO: need to fetch physical network from agent to get the correct segment, can be fetched later by the agent
-	// Fetch segment ID from neutron
-	endpointSegmentID, err := c.neutron.GetNetworkSegment(port.NetworkID)
-	if err != nil {
-		log.WithError(err).WithField("port_id", port.ID).Warning("Could not find valid segment")
-		return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
-			Code:    500,
-			Message: "Internal server error: segment could not be found.",
-		})
-	}*/
+	sql, args = db.Select("physnet").
+		From("agents").
+		Where("host = ?", host).
+		MustSql()
+	var physnet pgtype.Text
+	if err = pgxscan.Get(ctx, tx, &physnet, sql, args...); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
+				Code:    400,
+				Message: fmt.Sprintf("No agent found for host '%s'.", host),
+			})
+		}
+		panic(err)
+	}
+	var endpointSegmentID *int
+	if physnet.Valid {
+		// Fetch segment ID from neutron
+		*endpointSegmentID, err = c.neutron.GetNetworkSegment(port.NetworkID, physnet.String)
+		if err != nil {
+			log.WithError(err).WithField("port_id", port.ID).Warning("Could not find valid segment")
+			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
+				Code:    500,
+				Message: "Internal server error: segment could not be found.",
+			})
+		}
+	}
 
 	sql, args = db.Insert("endpoint_port").
-		Columns("endpoint_id", "port_id", "subnet", "network", "ip_address", "owned").
+		Columns("endpoint_id", "port_id", "subnet", "network", "ip_address", "owned", "segment_id").
 		Values(endpointResponse.ID, port.ID, port.FixedIPs[0].SubnetID, port.NetworkID, port.FixedIPs[0].IPAddress,
-			owned).
+			owned, endpointSegmentID).
 		Suffix("RETURNING port_id, subnet, network").
 		MustSql()
 	row := tx.QueryRow(params.HTTPRequest.Context(), sql, args...)

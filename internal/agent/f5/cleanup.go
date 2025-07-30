@@ -131,7 +131,7 @@ func (a *Agent) getUsedSegments() (map[int]string, error) {
 			// add endpoint to used segment map
 			usedSegments[int(segmentID.Int32)] = epNetworkID.String()
 		}
-		serviceSegment, err := a.neutron.GetNetworkSegment(networkID)
+		serviceSegment, err := a.neutron.GetNetworkSegment(networkID, config.Global.Agent.PhysicalNetwork)
 		if err != nil {
 			return nil, err
 		}
@@ -228,7 +228,7 @@ func (a *Agent) cleanOrphanedNeutronPorts(usedSegments map[int]string) error {
 
 	// Fetch all segments for every selfip network
 	for networkID, ports := range selfips {
-		segment, err := a.neutron.GetNetworkSegment(networkID)
+		segment, err := a.neutron.GetNetworkSegment(networkID, config.Global.Agent.PhysicalNetwork)
 		if err != nil {
 			log.Errorf("cleanOrphanedNeutronPorts: %s", err.Error())
 			continue

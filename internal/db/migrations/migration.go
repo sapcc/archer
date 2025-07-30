@@ -265,4 +265,11 @@ var Migrations = mgx.Migrations(
 		`)
 		return err
 	}),
+	// Migration for physical network support
+	mgx.NewMigration("add_physnet", func(ctx context.Context, commands mgx.Commands) error {
+		_, err := commands.Exec(ctx, `
+			ALTER TABLE agents ADD COLUMN physnet VARCHAR(64) NULL;
+		`)
+		return err
+	}),
 )
