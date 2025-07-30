@@ -102,7 +102,8 @@ func (a *Agent) getExtendedService(s *models.Service) (*as3.ExtendedService, err
 	// Fetch segmentID for the network
 	if len(service.NeutronPorts) > 0 {
 		// we only expect a valid segment if we have at least one Service port bound
-		if service.SegmentId, err = a.neutron.GetNetworkSegment(service.NetworkID.String()); err != nil {
+		if service.SegmentId, err = a.neutron.GetNetworkSegment(service.NetworkID.String(),
+			config.Global.Agent.PhysicalNetwork); err != nil {
 			return nil, fmt.Errorf("GetNetworkSegment: %w", err)
 		}
 	}
@@ -212,7 +213,7 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 			// segment
 			var segmentID int
 			if cleanupL2 {
-				segmentID, err = a.neutron.GetSubnetSegment(service.SubnetID)
+				segmentID, err = a.neutron.GetSubnetSegment(service.SubnetID, config.Global.Agent.PhysicalNetwork)
 				if errors.Is(err, internal.ErrNoPhysNetFound) {
 					// No segment found, skip L2 cleanup
 					cleanupL2 = false

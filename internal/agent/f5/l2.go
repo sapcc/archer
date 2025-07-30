@@ -13,6 +13,8 @@ import (
 	"github.com/gophercloud/gophercloud/v2"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/sapcc/archer/internal/config"
 )
 
 // --------------------------------------------------------------------------
@@ -119,7 +121,7 @@ func (a *Agent) EnsureSelfIPs(subnetID string, dryRun bool) error {
 		return err
 	}
 
-	segmentID, err := a.neutron.GetSubnetSegment(subnetID)
+	segmentID, err := a.neutron.GetSubnetSegment(subnetID, config.Global.Agent.PhysicalNetwork)
 	if err != nil {
 		return err
 	}

@@ -69,7 +69,7 @@ func refreshSegments(ctx context.Context, pool db.PgxIface, endpoints []*as3.Ext
 			// we loose the segment-id and therefor the ability to delete the l2 configuration
 			var err error
 			var segmentId int
-			segmentId, err = n.GetNetworkSegment(endpoint.Target.Network.String())
+			segmentId, err = n.GetNetworkSegment(endpoint.Target.Network.String(), config.Global.Agent.PhysicalNetwork)
 			if err != nil {
 				logger.WithError(err).Warning("ProcessEndpoint: Could not find valid segment")
 				continue
@@ -188,7 +188,8 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 
 	if !cleanupL2 {
 		g.Go(func() (err error) {
-			serviceSegmentID, err = a.neutron.GetNetworkSegment(endpoints[0].ServiceNetworkId.String())
+			serviceSegmentID, err = a.neutron.GetNetworkSegment(endpoints[0].ServiceNetworkId.String(),
+				config.Global.Agent.PhysicalNetwork)
 			return
 		})
 		g.Go(func() error {
@@ -256,7 +257,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	// Get segmentID for subnet before we delete SelfIPs, since they could be the last ports holding the segment
 	var segmentID int
 	if cleanupL2 {
-		segmentID, err = a.neutron.GetSubnetSegment(subnetID)
+		segmentID, err = a.neutron.GetSubnetSegment(subnetID, config.Global.Agent.PhysicalNetwork)
 		if err != nil {
 			if !errors.Is(err, aErrors.ErrNoPhysNetFound) {
 				return err
