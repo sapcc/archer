@@ -120,7 +120,8 @@ func (a *Agent) getUsedSegments() (map[int]string, error) {
 		if epNetworkID.Valid && !segmentID.Valid {
 			// refresh segmentID from neutron
 			var tmp int
-			if tmp, err = a.neutron.GetNetworkSegment(epNetworkID.String()); err != nil {
+			if tmp, err = a.neutron.GetNetworkSegment(epNetworkID.String(),
+				config.Global.Agent.PhysicalNetwork); err != nil {
 				return nil, err
 			}
 			if err = segmentID.Scan(int64(tmp)); err != nil {

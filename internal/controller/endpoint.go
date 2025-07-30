@@ -205,18 +205,24 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, tok
 				Message: fmt.Sprintf("No agent found for host '%s'.", host),
 			})
 		}
-		panic(err)
+		log.WithError(err).Errorf("Failed to get physical network for host '%s'", host)
 	}
-	var endpointSegmentID *int
+	var endpointSegmentID pgtype.Int4
 	if physnet.Valid {
 		// Fetch segment ID from neutron
-		*endpointSegmentID, err = c.neutron.GetNetworkSegment(port.NetworkID, physnet.String)
+		var seg int
+		seg, err = c.neutron.GetNetworkSegment(port.NetworkID, physnet.String)
 		if err != nil {
-			log.WithError(err).WithField("port_id", port.ID).Warning("Could not find valid segment")
-			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
-				Code:    500,
-				Message: "Internal server error: segment could not be found.",
-			})
+			if errors.Is(err, aerr.ErrNoPhysNetFound) {
+				log.WithError(err)
+				return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
+					Code:    400,
+					Message: fmt.Sprintf("No segment found for network '%s' on host '%s'.", port.NetworkID, host),
+				})
+			}
+			log.WithError(err).Errorf("Failed to get segment for network '%s' on host '%s'", port.NetworkID, host)
+		} else {
+			_ = endpointSegmentID.Scan(int64(seg))
 		}
 	}
 
