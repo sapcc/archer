@@ -375,6 +375,40 @@ func (t *SuiteTest) TestEndpointPortAlreadyUsed() {
 	assert.Equal(t.T(), expectedMessage, res.(*endpoint.PostEndpointBadRequest).Payload.Message)
 }
 
+func (t *SuiteTest) TestEndpointSegmentCouldNotBeFound() {
+	serviceId := t.createService(testService)
+	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
+	s := models.Endpoint{
+		ServiceID: serviceId,
+		Target:    models.EndpointTarget{Network: &network},
+		ProjectID: testProject1,
+	}
+
+	t.ResetHttpServer()
+	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(network), "GET",
+		"", GetNetworkResponseFixture, http.StatusOK)
+	portID, _ := uuid.GenerateUUID()
+	fixture.SetupHandler(t.T(), "/v2.0/ports", "POST", "",
+		fmt.Sprintf(CreatePortResponseFixture, portID, string(network)), http.StatusCreated)
+	fixture.SetupHandler(t.T(), "/v2.0/ports/"+portID, "GET", "",
+		fmt.Sprintf(CreatePortResponseFixture, portID, string(network)), http.StatusOK)
+
+	// manipulate physical of the agent to require a segment that does not exist
+	_, _ = t.c.pool.Exec(context.Background(), `UPDATE agents SET physnet = 'phys_unknown';`)
+	defer func() {
+		_, _ = t.c.pool.Exec(context.Background(), `UPDATE agents SET physnet=$1;`,
+			config.Global.Agent.PhysicalNetwork)
+	}()
+
+	// create endpoint
+	res := t.c.PostEndpointHandler(endpoint.PostEndpointParams{HTTPRequest: &http.Request{}, Body: &s},
+		nil)
+
+	// assert that the error message is as expected
+	assert.IsType(t.T(), &endpoint.PostEndpointBadRequest{}, res)
+	assert.Contains(t.T(), res.(*endpoint.PostEndpointBadRequest).Payload.Message, "No segment found for network")
+}
+
 func (t *SuiteTest) TestEndpointPut() {
 	// put not found
 	res := t.c.PutEndpointEndpointIDHandler(

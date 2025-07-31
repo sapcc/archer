@@ -40,8 +40,8 @@ var (
 
 func (t *SuiteTest) addAgent(az *string) {
 	sql, args := db.Insert("agents").
-		Columns("host", "availability_zone").
-		Values("test-host", az).
+		Columns("host", "availability_zone", "physnet").
+		Values("test-host", az, config.Global.Agent.PhysicalNetwork).
 		Suffix("ON CONFLICT DO NOTHING").
 		MustSql()
 	if _, err := t.c.pool.Exec(context.Background(), sql, args...); err != nil {

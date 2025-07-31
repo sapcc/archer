@@ -56,6 +56,17 @@ func (n *NeutronClient) ResetCache() {
 	n.subnetCache.Purge()
 }
 
+func (n *NeutronClient) RemoveFromCache(id string) {
+	// Remove from port cache
+	n.portCache.Remove(id)
+
+	// Remove from network cache
+	n.networkCache.Remove(id)
+
+	// Remove from subnet cache
+	n.subnetCache.Remove(id)
+}
+
 func ConnectToNeutron(providerClient *gophercloud.ProviderClient) (*NeutronClient, error) {
 	serviceClient, err := openstack.NewNetworkV2(providerClient, gophercloud.EndpointOpts{})
 	if err != nil {
@@ -69,7 +80,7 @@ func ConnectToNeutron(providerClient *gophercloud.ProviderClient) (*NeutronClien
 
 // GetNetworkSegment return the segmentation ID for the given network
 // throws ErrNoPhysNetFound if the physical network is not found
-func (n *NeutronClient) GetNetworkSegment(networkID string) (int, error) {
+func (n *NeutronClient) GetNetworkSegment(networkID, physnet string) (int, error) {
 	network, err := n.GetNetwork(networkID)
 	if err != nil {
 		if gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
@@ -79,16 +90,16 @@ func (n *NeutronClient) GetNetworkSegment(networkID string) (int, error) {
 	}
 
 	for _, segment := range network.Segments {
-		if segment.PhysicalNetwork == config.Global.Agent.PhysicalNetwork {
+		if segment.PhysicalNetwork == physnet {
 			return segment.SegmentationID, nil
 		}
 	}
 
 	return 0, fmt.Errorf("%w, physnet '%s' not found for network '%s'",
-		aErrors.ErrNoPhysNetFound, config.Global.Agent.PhysicalNetwork, networkID)
+		aErrors.ErrNoPhysNetFound, physnet, networkID)
 }
 
-func (n *NeutronClient) GetSubnetSegment(subnetID string) (int, error) {
+func (n *NeutronClient) GetSubnetSegment(subnetID, physnet string) (int, error) {
 	subnet, err := n.GetSubnet(subnetID)
 	if err != nil {
 		if gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
@@ -97,7 +108,7 @@ func (n *NeutronClient) GetSubnetSegment(subnetID string) (int, error) {
 		return 0, err
 	}
 
-	return n.GetNetworkSegment(subnet.NetworkID)
+	return n.GetNetworkSegment(subnet.NetworkID, physnet)
 }
 
 // GetNetworkMTU returns the MTU of the network
@@ -186,11 +197,9 @@ func (n *NeutronClient) AllocateNeutronEndpointPort(target *models.EndpointTarge
 	if err != nil {
 		return nil, err
 	}
+	// to ensure fresh segment cache
+	n.RemoveFromCache(res.NetworkID)
 	return res, nil
-}
-
-func (n NeutronClient) ClearCache(networkID string) {
-	n.portCache.Remove(networkID)
 }
 
 // TODO: Remove after a while
@@ -342,6 +351,8 @@ func (n *NeutronClient) EnsureNeutronSelfIPs(deviceIDs []string, subnetID string
 			if err != nil {
 				return nil, err
 			}
+			// to ensure fresh segment cache
+			n.RemoveFromCache(subnet.NetworkID)
 		}
 	}
 	return selfIPs, nil

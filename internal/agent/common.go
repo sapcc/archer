@@ -21,14 +21,19 @@ import (
 
 func RegisterAgent(pool db.PgxIface, provider string) {
 	var az *string
+	var physnet *string
 	if config.Global.Default.AvailabilityZone != "" {
 		az = &config.Global.Default.AvailabilityZone
 	}
+	if config.Global.Agent.PhysicalNetwork != "" {
+		physnet = &config.Global.Agent.PhysicalNetwork
+	}
 	sql, args := db.Insert("agents").
-		Columns("host", "availability_zone", "provider").
-		Values(config.Global.Default.Host, az, provider).
+		Columns("host", "availability_zone", "provider", "physnet").
+		Values(config.Global.Default.Host, az, provider, physnet).
 		Suffix("ON CONFLICT (host) DO UPDATE SET").
 		SuffixExpr(sq.Expr("availability_zone = ?,", az)).
+		SuffixExpr(sq.Expr("physnet = ?,", physnet)).
 		Suffix("updated_at = now()").
 		MustSql()
 

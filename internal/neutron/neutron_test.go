@@ -48,7 +48,7 @@ func TestNeutronClient_GetNetworkSegment(t *testing.T) {
 		ServiceClient: fake.ServiceClient(),
 	}
 	n.InitCache()
-	segID, err := n.GetNetworkSegment(NetworkIDFixture)
+	segID, err := n.GetNetworkSegment(NetworkIDFixture, config.Global.Agent.PhysicalNetwork)
 	assert.Nil(t, err)
 	assert.Equal(t, 100, segID)
 }
@@ -62,7 +62,7 @@ func TestNeutronClient_GetNetworkSegment404(t *testing.T) {
 		ServiceClient: fake.ServiceClient(),
 	}
 	n.InitCache()
-	_, err := n.GetNetworkSegment(NetworkIDFixture)
+	_, err := n.GetNetworkSegment(NetworkIDFixture, config.Global.Agent.PhysicalNetwork)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, aErrors.ErrNoPhysNetFound))
 	assert.ErrorContains(t, err, "no physical network found, network not found")
@@ -79,7 +79,7 @@ func TestNeutronClient_GetNetworkSegmentMising(t *testing.T) {
 		ServiceClient: fake.ServiceClient(),
 	}
 	n.InitCache()
-	_, err := n.GetNetworkSegment(NetworkIDFixture)
+	_, err := n.GetNetworkSegment(NetworkIDFixture, config.Global.Agent.PhysicalNetwork)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, aErrors.ErrNoPhysNetFound))
 	assert.ErrorContains(t, err, "no physical network found, physnet 'physnet2' not found for network")
@@ -96,7 +96,7 @@ func TestNeutronClient_GetNetworkSegment500(t *testing.T) {
 		ServiceClient: fake.ServiceClient(),
 	}
 	n.InitCache()
-	_, err := n.GetNetworkSegment(NetworkIDFixture)
+	_, err := n.GetNetworkSegment(NetworkIDFixture, config.Global.Agent.PhysicalNetwork)
 	assert.Error(t, err)
 	assert.False(t, errors.Is(err, aErrors.ErrNoPhysNetFound))
 	assert.True(t, gophercloud.ResponseCodeIs(err, http.StatusInternalServerError))
