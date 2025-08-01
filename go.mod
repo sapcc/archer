@@ -17,8 +17,8 @@ require (
 	github.com/dre1080/recovr v1.0.3
 	github.com/f5devcentral/go-bigip v0.0.0-20250702152414-3ab735e221a2
 	github.com/georgysavva/scany/v2 v2.1.4
-	github.com/getsentry/sentry-go v0.34.1
-	github.com/go-co-op/gocron/v2 v2.16.2
+	github.com/getsentry/sentry-go v0.35.0
+	github.com/go-co-op/gocron/v2 v2.16.3
 	github.com/go-openapi/errors v0.22.1
 	github.com/go-openapi/loads v0.22.0
 	github.com/go-openapi/runtime v0.28.0
@@ -35,7 +35,7 @@ require (
 	github.com/jackc/pgerrcode v0.0.0-20240316143900-6e2875d9b438
 	github.com/jackc/pgx-logrus v0.0.0-20220919124836-b099d8ce75da
 	github.com/jackc/pgx/v5 v5.7.5
-	github.com/jedib0t/go-pretty/v6 v6.6.7
+	github.com/jedib0t/go-pretty/v6 v6.6.8
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/pashagolub/pgxmock/v4 v4.8.0
