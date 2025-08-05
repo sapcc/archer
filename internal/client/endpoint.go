@@ -209,7 +209,7 @@ func init() {
 func waitForEndpoint(id strfmt.UUID, deleted bool) (*models.Endpoint, error) {
 	var res *models.Endpoint
 	b := retry.NewConstant(1 * time.Second)
-	b = retry.WithMaxDuration(60*time.Second, b)
+	b = retry.WithMaxDuration(opts.Timeout, b)
 	if err := retry.Do(context.Background(), b, func(ctx context.Context) error {
 		params := endpoint.NewGetEndpointEndpointIDParams().WithEndpointID(id)
 		r, err := ArcherClient.Endpoint.GetEndpointEndpointID(params, nil)
