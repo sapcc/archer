@@ -317,7 +317,7 @@ func waitForService(id strfmt.UUID, deleted bool) (*models.Service, error) {
 	var res *models.Service
 
 	b := retry.NewConstant(1 * time.Second)
-	b = retry.WithMaxDuration(60*time.Second, b)
+	b = retry.WithMaxDuration(opts.Timeout, b)
 	if err := retry.Do(context.Background(), b, func(ctx context.Context) error {
 		params := service.NewGetServiceServiceIDParams().WithServiceID(id)
 		r, err := ArcherClient.Service.GetServiceServiceID(params, nil)

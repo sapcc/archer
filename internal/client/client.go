@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/go-openapi/runtime"
 	runtimeclient "github.com/go-openapi/runtime/client"
@@ -46,6 +47,7 @@ type outputFormatters struct {
 var opts struct {
 	Debug      bool             `long:"debug" description:"Show verbose debug information"`
 	Formatters outputFormatters `group:"Output formatters"`
+	Timeout    time.Duration    `long:"timeout" description:"Timeout for requests, defaults to 120s" default:"120s"`
 
 	OSEndpoint          string `long:"os-endpoint" env:"OS_ENDPOINT" description:"The endpoint that will always be used"`
 	OSAuthUrl           string `long:"os-auth-url" env:"OS_AUTH_URL" description:"Authentication URL"`
