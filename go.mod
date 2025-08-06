@@ -39,10 +39,10 @@ require (
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/pashagolub/pgxmock/v4 v4.8.0
-	github.com/prometheus/client_golang v1.22.0
+	github.com/prometheus/client_golang v1.23.0
 	github.com/rs/cors v1.11.1
-	github.com/sapcc/go-api-declarations v1.17.1
-	github.com/sapcc/go-bits v0.0.0-20250722084227-7a82273f02ae
+	github.com/sapcc/go-api-declarations v1.17.2
+	github.com/sapcc/go-bits v0.0.0-20250804090407-8c55156bef1d
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.10.0
@@ -92,7 +92,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.65.0 // indirect
-	github.com/prometheus/procfs v0.15.1 // indirect
+	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/rabbitmq/amqp091-go v1.10.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
