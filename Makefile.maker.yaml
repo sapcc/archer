@@ -41,6 +41,9 @@ renovate:
     - ronchi-oss
     - notque
     - sapcc/cc_github_managers_approval
+  packageRules:
+    - matchPackageNames: [ "github.com/getsentry/sentry-go" ]
+      allowedVersions: v0.20.0
 
 reuse:
   annotations:
