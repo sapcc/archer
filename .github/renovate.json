@@ -46,6 +46,12 @@
         "patch"
       ],
       "groupName": "External dependencies"
+    },
+    {
+      "matchPackageNames": [
+        "github.com/getsentry/sentry-go"
+      ],
+      "allowedVersions": "v0.20.0"
     }
   ],
   "prHourlyLimit": 0,
