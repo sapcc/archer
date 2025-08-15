@@ -17,7 +17,7 @@ require (
 	github.com/dre1080/recovr v1.0.3
 	github.com/f5devcentral/go-bigip v0.0.0-20250812165400-06e558f89430
 	github.com/georgysavva/scany/v2 v2.1.4
-	github.com/getsentry/sentry-go v0.35.0
+	github.com/getsentry/sentry-go v0.20.0
 	github.com/go-co-op/gocron/v2 v2.16.3
 	github.com/go-openapi/errors v0.22.2
 	github.com/go-openapi/loads v0.22.0
