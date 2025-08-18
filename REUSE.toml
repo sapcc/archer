@@ -22,8 +22,8 @@ SPDX-License-Identifier = "Apache-2.0"
 [[annotations]]
 path = [
   "etc/*",
-  "build/*",
   "internal/agent/f5/mocks_test.go",
+  "build/*",
 ]
 SPDX-FileCopyrightText = "SAP SE or an SAP affiliate company"
 SPDX-License-Identifier = "Apache-2.0"

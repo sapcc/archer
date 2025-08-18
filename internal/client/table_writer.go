@@ -41,7 +41,7 @@ func getRow(row reflect.Value, iMap [][]int) table.Row {
 	}
 
 	r := make([]any, 0)
-	for i := 0; i < len(iMap); i++ {
+	for i := range iMap {
 		r = append(r, formatValue(reflectx.FieldByIndexes(row, iMap[i])))
 	}
 	return r

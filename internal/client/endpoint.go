@@ -13,6 +13,7 @@ import (
 	"github.com/sethvargo/go-retry"
 
 	"github.com/sapcc/archer/client/endpoint"
+	"github.com/sapcc/archer/client/service"
 	"github.com/sapcc/archer/models"
 )
 
@@ -31,6 +32,12 @@ type EndpointList struct {
 	NotAnyTags []string     `long:"not-any-tags" description:"Exclude endpoints which have any given tag(s) (repeat option for multiple tags)"`
 	Project    *string      `short:"p" long:"project" description:"List endpoints in the given project (ID)"`
 	Service    *strfmt.UUID `short:"s" long:"service" description:"List endpoints for the given service (ID)"`
+}
+
+type cliEndpoint struct {
+	*models.Endpoint
+	ServiceName string `json:"service_name"`
+	ServicePort int32  `json:"service_port"`
 }
 
 func (*EndpointList) Execute(_ []string) error {
@@ -62,12 +69,22 @@ type EndpointShow struct {
 }
 
 func (*EndpointShow) Execute(_ []string) error {
+	var e cliEndpoint
 	params := endpoint.NewGetEndpointEndpointIDParams().WithEndpointID(EndpointOptions.EndpointShow.Positional.Endpoint)
 	resp, err := ArcherClient.Endpoint.GetEndpointEndpointID(params, nil)
 	if err != nil {
 		return err
 	}
-	return WriteTable(resp.GetPayload())
+	e.Endpoint = resp.GetPayload()
+
+	if resp, err := ArcherClient.Service.GetServiceServiceID(
+		service.NewGetServiceServiceIDParams().WithServiceID(e.ServiceID),
+		nil); resp != nil && err == nil {
+		e.ServiceName = resp.GetPayload().Name
+		e.ServicePort = resp.GetPayload().Port
+	}
+
+	return WriteTable(e)
 }
 
 type EndpointCreate struct {

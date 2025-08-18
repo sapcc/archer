@@ -11,6 +11,8 @@ mkShell {
     go-licence-detector
     go_1_24
     gotools # goimports
+    postgresql_17
+    reuse
     # keep this line if you use bash
     bashInteractive
   ];

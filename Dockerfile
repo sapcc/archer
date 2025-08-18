@@ -28,7 +28,9 @@ LABEL source_repository="https://github.com/sapcc/archer"
 
 # upgrade all installed packages to fix potential CVEs in advance
 RUN apk upgrade --no-cache --no-progress \
-  && apk add --no-cache ca-certificates haproxy
-COPY --from=builder /src/bin/ /usr/bin/
+  && apk add --no-cache ca-certificates haproxy \
+  && wget https://cacerts.digicert.com/DigiCertGlobalG2TLSRSASHA2562020CA1-1.crt.pem -O /usr/local/share/ca-certificates/zDigiCertGlobalG2TLSRSASHA2562020CA1-1.crt.pem \
+  && update-ca-certificates
+COPY --from=builder /src/build/ /usr/bin/
 COPY --from=linkerd /tmp/linkerd-await /linkerd-await
 ENTRYPOINT [ "/usr/bin/archer-server" ]

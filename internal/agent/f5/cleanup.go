@@ -117,15 +117,22 @@ func (a *Agent) getUsedSegments() (map[int]string, error) {
 		if err = rows.Scan(&networkID, &segmentID, &epNetworkID); err != nil {
 			return nil, err
 		}
-		if segmentID.Valid {
-			// add to used segment map
-			uuid, err := epNetworkID.Value()
-			if err != nil {
+		if epNetworkID.Valid && !segmentID.Valid {
+			// refresh segmentID from neutron
+			var tmp int
+			if tmp, err = a.neutron.GetNetworkSegment(epNetworkID.String(),
+				config.Global.Agent.PhysicalNetwork); err != nil {
 				return nil, err
 			}
-			usedSegments[int(segmentID.Int32)] = uuid.(string)
+			if err = segmentID.Scan(int64(tmp)); err != nil {
+				return nil, err
+			}
 		}
-		serviceSegment, err := a.neutron.GetNetworkSegment(networkID)
+		if segmentID.Valid && epNetworkID.Valid {
+			// add endpoint to used segment map
+			usedSegments[int(segmentID.Int32)] = epNetworkID.String()
+		}
+		serviceSegment, err := a.neutron.GetNetworkSegment(networkID, config.Global.Agent.PhysicalNetwork)
 		if err != nil {
 			return nil, err
 		}
@@ -222,7 +229,7 @@ func (a *Agent) cleanOrphanedNeutronPorts(usedSegments map[int]string) error {
 
 	// Fetch all segments for every selfip network
 	for networkID, ports := range selfips {
-		segment, err := a.neutron.GetNetworkSegment(networkID)
+		segment, err := a.neutron.GetNetworkSegment(networkID, config.Global.Agent.PhysicalNetwork)
 		if err != nil {
 			log.Errorf("cleanOrphanedNeutronPorts: %s", err.Error())
 			continue

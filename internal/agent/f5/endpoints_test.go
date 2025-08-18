@@ -39,6 +39,23 @@ const GetNetworkResponseFixture = `
 }
 `
 
+const GetNetworkResponseAnotherOneFixture = `
+{
+    "network": {
+        "id": "ba578650-e29d-4c63-8847-59ebeedf4629",
+        "subnets": ["e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e"],
+		"project_id": "test-project-1",
+		"segments": [
+			{
+				"provider:physical_network": "physnet1",
+				"provider:network_type": "vlan",
+				"provider:segmentation_id": 999
+			}
+		]
+    }
+}
+`
+
 const GetSubnetResponseFixture = `
 {
 	"subnet": {

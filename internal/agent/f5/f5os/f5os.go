@@ -6,6 +6,7 @@ package f5os
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -15,6 +16,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -41,7 +43,7 @@ func (t token) Valid() bool {
 		return false
 	}
 
-	var payload map[string]interface{}
+	var payload map[string]any
 	if err = json.Unmarshal(decoded, &payload); err != nil {
 		log.Errorf("error unmarshalling JWT payload: %v", err)
 		return false
@@ -230,15 +232,13 @@ func (f *F5OS) EnsureInterfaceVlan(segmentID int) error {
 		return fmt.Errorf("error fetching trunk VLANs: %w", err)
 	}
 
-	for _, v := range vlans.OpenconfigVlanTrunkVlans {
-		if v == segmentID {
-			log.WithFields(log.Fields{
-				"host":      f.GetHostname(),
-				"segmentID": segmentID,
-				"interface": config.Global.Agent.PhysicalInterface,
-			}).Debug("Trunk VLAN already exists")
-			return nil
-		}
+	if slices.Contains(vlans.OpenconfigVlanTrunkVlans, segmentID) {
+		log.WithFields(log.Fields{
+			"host":      f.GetHostname(),
+			"segmentID": segmentID,
+			"interface": config.Global.Agent.PhysicalInterface,
+		}).Debug("Trunk VLAN already exists")
+		return nil
 	}
 
 	vlans.OpenconfigVlanTrunkVlans = append(vlans.OpenconfigVlanTrunkVlans, segmentID)
@@ -256,12 +256,10 @@ func (f *F5OS) EnsureGuestVlan(segmentId int) error {
 		return fmt.Errorf("error getTenant: %w", err)
 	}
 
-	for _, v := range tenant.State.Vlans {
-		if v == segmentId {
-			log.WithField("host", f.GetHostname()).
-				Debugf("Guest VLAN %d already exists on tenant %s", segmentId, tenant.Name)
-			return nil
-		}
+	if slices.Contains(tenant.State.Vlans, segmentId) {
+		log.WithField("host", f.GetHostname()).
+			Debugf("Guest VLAN %d already exists on tenant %s", segmentId, tenant.Name)
+		return nil
 	}
 
 	path := fmt.Sprintf("api/data/f5-tenants:tenants/tenant=%s/config/vlans", tenant.Name)
@@ -269,10 +267,8 @@ func (f *F5OS) EnsureGuestVlan(segmentId int) error {
 		F5TenantsVlans: tenant.State.Vlans,
 	}
 
-	for _, v := range existingVlans.F5TenantsVlans {
-		if v == segmentId {
-			return nil
-		}
+	if slices.Contains(existingVlans.F5TenantsVlans, segmentId) {
+		return nil
 	}
 
 	existingVlans.F5TenantsVlans = append(existingVlans.F5TenantsVlans, segmentId)
@@ -323,15 +319,7 @@ func (f *F5OS) SyncGuestVLANs(usedSegments map[int]string) error {
 	}
 
 	for _, vid := range tenant.State.Vlans {
-		managed := false
-		for _, vlanName := range VlanNames {
-			if fmt.Sprintf("vlan-%d", vid) == vlanName {
-				managed = true
-				break
-			}
-		}
-
-		if !managed {
+		if !slices.Contains(VlanNames, fmt.Sprintf("vlan-%d", vid)) {
 			// it is a management VLAN, keep it
 			updatedVlans = append(updatedVlans, vid)
 			continue
@@ -430,6 +418,9 @@ func NewSession(uri *url.URL) (*F5OS, error) {
 	client := &http.Client{
 		Timeout: time.Second * 10,
 		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: !config.Global.Agent.ValidateCert,
+			},
 			DialContext: (&net.Dialer{
 				Timeout: 5 * time.Second,
 			}).DialContext,

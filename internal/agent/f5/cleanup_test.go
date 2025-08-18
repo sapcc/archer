@@ -26,6 +26,7 @@ func TestAgent_TestGetUsedSegments(t *testing.T) {
 	var dbMock pgxmock.PgxPoolIface
 	serviceNetwork := "b0b0b0b0-b0b0-4b0b-8b0b-0b0b0b0b0b0b"
 	someOtherNetwork := "35a3ca82-62af-4e0a-9472-92331500fb3a"
+	anotherOneBitesTheDust := "ba578650-e29d-4c63-8847-59ebeedf4629"
 
 	// prepare sql mock
 	dbMock, err = pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
@@ -48,6 +49,8 @@ func TestAgent_TestGetUsedSegments(t *testing.T) {
 		"", GetServiceNetworkResponseFixture, http.StatusOK)
 	fixture.SetupHandler(t, "/v2.0/networks/"+someOtherNetwork, "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
+	fixture.SetupHandler(t, "/v2.0/networks/"+anotherOneBitesTheDust, "GET",
+		"", GetNetworkResponseAnotherOneFixture, http.StatusOK)
 
 	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient()}
 	neutronClient.InitCache()
@@ -69,13 +72,14 @@ func TestAgent_TestGetUsedSegments(t *testing.T) {
 		WithArgs("host-123", models.ServiceProviderTenant).
 		WillReturnRows(pgxmock.NewRows([]string{"network_id", "segment_id", "network"}).
 			AddRow(serviceNetwork, segementID, epNetworkID).
-			AddRow(someOtherNetwork, nil, nil))
+			AddRow(someOtherNetwork, nil, nil).
+			AddRow(serviceNetwork, nil, anotherOneBitesTheDust))
 
 	// run the test function
 	var usedSegments map[int]string
 	usedSegments, err = a.getUsedSegments()
 	assert.Nil(t, err)
-	assert.EqualValues(t, map[int]string{123: someOtherNetwork, 666: serviceNetwork}, usedSegments)
+	assert.EqualValues(t, map[int]string{123: someOtherNetwork, 666: serviceNetwork, 999: anotherOneBitesTheDust}, usedSegments)
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
