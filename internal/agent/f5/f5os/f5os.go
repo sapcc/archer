@@ -95,16 +95,16 @@ func (f *F5OS) newRequest(method, path string, body any) *http.Request {
 
 // apiCall performs an API call to the F5OS device using the provided request.
 func (f *F5OS) apiCall(req *http.Request, v any) error {
-	// Set the Authorization header
-	if f.token.Valid() {
-		req.Header.Set("X-Auth-Token", string(f.token))
-		req.Header.Set("Authorization", string("Bearer "+f.token))
-	} else {
-		req.SetBasicAuth(f.user, f.password)
-	}
-
-	var resp *http.Response
 	return retry.Do(req.Context(), f.backoff, func(ctx context.Context) error {
+		// Set the Authorization header
+		if f.token.Valid() {
+			req.Header.Set("X-Auth-Token", string(f.token))
+			req.Header.Set("Authorization", string("Bearer "+f.token))
+		} else {
+			req.SetBasicAuth(f.user, f.password)
+		}
+
+		var resp *http.Response
 		var err error
 		resp, err = f.client.Do(req)
 		if err != nil {
@@ -122,6 +122,14 @@ func (f *F5OS) apiCall(req *http.Request, v any) error {
 			"url":    req.URL.Redacted(),
 			"status": resp.StatusCode,
 		}).Debug("F5OS API call")
+
+		if resp.StatusCode == http.StatusUnauthorized {
+			log.Warningf("unauthorized request to %s, token may be expired", req.URL.Redacted())
+			// If the token is invalid, we need to re-authenticate
+			f.token = "" // Clear the token to force re-authentication
+			return retry.RetryableError(fmt.Errorf("unauthorized request to %s", req.URL.Redacted()))
+		}
+
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			body, _ := io.ReadAll(resp.Body)
 			return retry.RetryableError(fmt.Errorf("unexpected status code for %s %d: %s",
