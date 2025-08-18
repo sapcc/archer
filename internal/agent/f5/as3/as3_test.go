@@ -120,7 +120,7 @@ func TestGetServiceTenants(t *testing.T) {
 			Label:    "",
 			Remark:   "",
 			Template: "shared",
-			Services: map[string]interface{}{
+			Services: map[string]any{
 				"pool-test-service-id": Pool{
 					Class:  "Pool",
 					Label:  "service-test-service-id",
@@ -151,6 +151,6 @@ func TestGetServiceTenants(t *testing.T) {
 }
 
 func TestGetServiceTenantsWithoutServices(t *testing.T) {
-	expected := Tenant{Class: "Tenant", Label: "", Remark: "", Applications: map[string]Application{"Shared": {Class: "Application", Label: "", Remark: "", Template: "shared", Services: map[string]interface{}{}}}}
+	expected := Tenant{Class: "Tenant", Label: "", Remark: "", Applications: map[string]Application{"Shared": {Class: "Application", Label: "", Remark: "", Template: "shared", Services: map[string]any{}}}}
 	assert.EqualValues(t, expected, GetServiceTenants([]*ExtendedService{}))
 }
