@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -240,11 +241,9 @@ func (b *BigIP) EnsureGuestVlan(segmentId int) error {
 		for _, deviceHost := range config.Global.Agent.Devices {
 			if strings.HasSuffix(deviceHost, guest.Hostname) {
 				vlanName := fmt.Sprintf("/Common/vlan-%d", segmentId)
-				for _, vlan := range guest.Vlans {
-					if vlan == vlanName {
-						// found, nothing to do
-						return nil
-					}
+				if slices.Contains(guest.Vlans, vlanName) {
+					// found, nothing to do
+					return nil
 				}
 				newGuest := bigip.VcmpGuest{Vlans: internal.Unique(append(guest.Vlans, vlanName))}
 				return (*bigip.BigIP)(b).UpdateVcmpGuest(guest.Name, &newGuest)

@@ -17,7 +17,7 @@ type vlan struct {
 	} `json:"config"`
 	Members struct {
 		Member []member `json:"member,omitempty"`
-	} `json:"members,omitempty"`
+	} `json:"members"`
 }
 
 type trunkVlans struct {
