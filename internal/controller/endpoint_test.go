@@ -34,12 +34,12 @@ func (t *SuiteTest) createEndpoint(serviceId strfmt.UUID, target models.Endpoint
 	}
 
 	t.ResetHttpServer()
-	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(*target.Network), "GET",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(*target.Network), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
 	portID, _ := uuid.GenerateUUID()
-	fixture.SetupHandler(t.T(), "/v2.0/ports", "POST", "",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/ports", "POST", "",
 		fmt.Sprintf(CreatePortResponseFixture, portID, string(*target.Network)), http.StatusCreated)
-	fixture.SetupHandler(t.T(), "/v2.0/ports/"+portID, "GET", "",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/ports/"+portID, "GET", "",
 		fmt.Sprintf(CreatePortResponseFixture, portID, string(*target.Network)), http.StatusOK)
 
 	res := t.c.PostEndpointHandler(endpoint.PostEndpointParams{HTTPRequest: &http.Request{}, Body: &s},
@@ -128,7 +128,7 @@ func (t *SuiteTest) TestEndpointTargetNetworkUnknown() {
 
 	notFoundBody := fmt.Sprintf(`{"NeutronError": {"type": "NetworkNotFound", "message": "Network %s could not be found.", "detail": ""}}`,
 		network)
-	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(network), "GET",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(network), "GET",
 		"", notFoundBody, http.StatusNotFound)
 	res := t.c.PostEndpointHandler(endpoint.PostEndpointParams{HTTPRequest: &http.Request{}, Body: &models.Endpoint{
 		ServiceID: serviceId,
@@ -144,7 +144,7 @@ func (t *SuiteTest) TestEndpointTargetForeignNetwork() {
 	serviceId := t.createService(testService)
 	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
 
-	fakeServiceClient := fake.ServiceClient()
+	fakeServiceClient := fake.ServiceClient(t.fakeServer)
 	fakeServiceClient.EndpointLocator = func(opts gophercloud.EndpointOpts) (string, error) {
 		return "http://127.0.0.1:8931/", nil
 	}
@@ -171,7 +171,7 @@ func (t *SuiteTest) TestEndpointTargetPortUnknown() {
 
 	notFoundBody := fmt.Sprintf(`{"NeutronError": {"type": "PortNotFound", "message": "Port %s could not be found.", "detail": ""}}`,
 		unknownPort)
-	fixture.SetupHandler(t.T(), fmt.Sprintf("/v2.0/ports/%s", unknownPort), "GET", "",
+	fixture.SetupHandler(t.T(), t.fakeServer, fmt.Sprintf("/v2.0/ports/%s", unknownPort), "GET", "",
 		notFoundBody, http.StatusNotFound)
 
 	res := t.c.PostEndpointHandler(endpoint.PostEndpointParams{HTTPRequest: &http.Request{}, Body: &s},
@@ -205,7 +205,7 @@ func (t *SuiteTest) TestEndpointTargetPortNotSameProject() {
     }
 }
 `
-	fixture.SetupHandler(t.T(), fmt.Sprintf("/v2.0/ports/%s", portId), "GET", "",
+	fixture.SetupHandler(t.T(), t.fakeServer, fmt.Sprintf("/v2.0/ports/%s", portId), "GET", "",
 		portFromAnotherProject, http.StatusOK)
 
 	res := t.c.PostEndpointHandler(endpoint.PostEndpointParams{HTTPRequest: &http.Request{}, Body: &s},
@@ -234,7 +234,7 @@ func (t *SuiteTest) TestEndpointTargetPortMissingIPAdddress() {
 			"project_id": "test-project-1"
     	}
 	}`
-	fixture.SetupHandler(t.T(), fmt.Sprintf("/v2.0/ports/%s", portId), "GET", "",
+	fixture.SetupHandler(t.T(), t.fakeServer, fmt.Sprintf("/v2.0/ports/%s", portId), "GET", "",
 		PortWithoutIPAddress, http.StatusOK)
 
 	res := t.c.PostEndpointHandler(endpoint.PostEndpointParams{HTTPRequest: &http.Request{}, Body: &s},
@@ -254,7 +254,7 @@ func (t *SuiteTest) TestEndpointTargetPortSameNetworkAsService() {
 		ProjectID: testProject1,
 	}
 
-	fixture.SetupHandler(t.T(), fmt.Sprintf("/v2.0/ports/%s", portId), "GET", "",
+	fixture.SetupHandler(t.T(), t.fakeServer, fmt.Sprintf("/v2.0/ports/%s", portId), "GET", "",
 		fmt.Sprintf(CreatePortResponseFixture, portId, networkId), http.StatusOK)
 
 	res := t.c.PostEndpointHandler(endpoint.PostEndpointParams{HTTPRequest: &http.Request{}, Body: &s},
@@ -271,10 +271,10 @@ func (t *SuiteTest) TestEndpointScopes() {
 
 	// prepare endpoint
 	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
-	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(network), "GET",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(network), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
 	portID, _ := uuid.GenerateUUID()
-	fixture.SetupHandler(t.T(), "/v2.0/ports", "POST", "",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/ports", "POST", "",
 		fmt.Sprintf(CreatePortResponseFixture, portID, string(network)), http.StatusCreated)
 	s := models.Endpoint{
 		ServiceID: serviceId,
@@ -311,10 +311,10 @@ func (t *SuiteTest) TestEndpointWithQuota() {
 		ProjectID: testProject1,
 	}
 
-	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(network), "GET",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(network), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
 	portID, _ := uuid.GenerateUUID()
-	fixture.SetupHandler(t.T(), "/v2.0/ports", "POST", "",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/ports", "POST", "",
 		fmt.Sprintf(CreatePortResponseFixture, portID, string(network)), http.StatusCreated)
 
 	config.Global.Quota.Enabled = true
@@ -385,12 +385,12 @@ func (t *SuiteTest) TestEndpointSegmentCouldNotBeFound() {
 	}
 
 	t.ResetHttpServer()
-	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(network), "GET",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(network), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
 	portID, _ := uuid.GenerateUUID()
-	fixture.SetupHandler(t.T(), "/v2.0/ports", "POST", "",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/ports", "POST", "",
 		fmt.Sprintf(CreatePortResponseFixture, portID, string(network)), http.StatusCreated)
-	fixture.SetupHandler(t.T(), "/v2.0/ports/"+portID, "GET", "",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/ports/"+portID, "GET", "",
 		fmt.Sprintf(CreatePortResponseFixture, portID, string(network)), http.StatusOK)
 
 	// manipulate physical of the agent to require a segment that does not exist
@@ -455,9 +455,9 @@ func (t *SuiteTest) TestEndpointPut() {
 func (t *SuiteTest) TestEndpointRequireApproval() {
 	// create service with require approval
 	t.addAgent(nil)
-	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(networkId), "GET",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t.T(), "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
 		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
 	serviceCopy := testService
 	serviceCopy.RequireApproval = swag.Bool(true)

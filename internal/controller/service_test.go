@@ -52,9 +52,9 @@ func (t *SuiteTest) addAgent(az *string) {
 func (t *SuiteTest) createService(svc models.Service) strfmt.UUID {
 	t.addAgent(nil)
 	t.ResetHttpServer()
-	fixture.SetupHandler(t.T(), "/v2.0/networks/"+svc.NetworkID.String(), "GET",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+svc.NetworkID.String(), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t.T(), "/v2.0/network-ip-availabilities/"+svc.NetworkID.String(), "GET",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+svc.NetworkID.String(), "GET",
 		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
 	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &svc},
 		nil)
@@ -123,9 +123,9 @@ func (t *SuiteTest) TestServiceAZPost() {
 	testServiceWithAZ := testService
 	testServiceWithAZ.AvailabilityZone = swag.String("test-az")
 
-	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(networkId), "GET",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t.T(), "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
 		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
 
 	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1,
@@ -164,7 +164,7 @@ func (t *SuiteTest) TestServicePostNetworkNotFound() {
 }
 
 func (t *SuiteTest) TestServicePostNetworkNotAccessible() {
-	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(networkId), "GET",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
 	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject2,
 		Body: &testService}, nil)
@@ -176,9 +176,9 @@ func (t *SuiteTest) TestServicePostNetworkNotAccessible() {
 
 func (t *SuiteTest) TestServicePostNetwortNoIpAvailability() {
 	t.addAgent(nil)
-	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(networkId), "GET",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t.T(), "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
 		"", GetNetworkIpNoAvailabilityResponseFixture, http.StatusOK)
 	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1,
 		Body: &testService}, nil)
@@ -191,9 +191,9 @@ func (t *SuiteTest) TestServicePostNetwortNoIpAvailability() {
 
 func (t *SuiteTest) TestServiceNegativeAZPost() {
 	t.addAgent(swag.String("test-az")) // only az-aware agent
-	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(networkId), "GET",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t.T(), "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
 		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
 
 	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1,
@@ -211,9 +211,9 @@ func (t *TestEnforcerDenyAll) Enforce(_ string, _ policy.Context) bool {
 func (t *SuiteTest) TestServicePostNotTenant() {
 	testServiceNotTenantProvider := testService
 	testServiceNotTenantProvider.Provider = swag.String("cp")
-	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(networkId), "GET",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t.T(), "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
 		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
 	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1,
 		Body: &testServiceNotTenantProvider}, &gopherpolicy.Token{Enforcer: &TestEnforcerDenyAll{}})
@@ -223,9 +223,9 @@ func (t *SuiteTest) TestServicePostNotTenant() {
 }
 
 func (t *SuiteTest) TestServicePostNoAgentFound() {
-	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(networkId), "GET",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t.T(), "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
 		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
 	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1,
 		Body: &testService}, nil)
@@ -312,9 +312,9 @@ func (t *SuiteTest) TestServiceDelete() {
 }
 
 func (t *SuiteTest) TestServiceDuplicatePayload() {
-	fixture.SetupHandler(t.T(), "/v2.0/networks/"+string(networkId), "GET",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t.T(), "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
 		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
 
 	t.addAgent(swag.String("zone1"))

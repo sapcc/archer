@@ -64,9 +64,9 @@ func TestCheckCleanupSelfIPs(t *testing.T) {
 		dbMock.Close()
 	}()
 
-	th.SetupPersistentPortHTTP(t, 8931)
-	defer th.TeardownHTTP()
-	fixture.SetupHandler(t, "/v2.0/networks/"+networkID, "GET",
+	fakeServer := th.SetupPersistentPortHTTP(t, 8931)
+	defer fakeServer.Teardown()
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/"+networkID, "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
 
 	dbMock.ExpectBegin()
@@ -76,7 +76,7 @@ func TestCheckCleanupSelfIPs(t *testing.T) {
 
 	ctx := context.TODO()
 	tx, _ := dbMock.Begin(ctx)
-	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient()}
+	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)}
 	neutronClient.InitCache()
 	a := &Agent{
 		neutron: &neutronClient,
@@ -104,9 +104,9 @@ func TestCheckCleanupSelfIPs_negative(t *testing.T) {
 		dbMock.Close()
 	}()
 
-	th.SetupPersistentPortHTTP(t, 8931)
-	defer th.TeardownHTTP()
-	fixture.SetupHandler(t, "/v2.0/networks/"+networkID, "GET",
+	fakeServer := th.SetupPersistentPortHTTP(t, 8931)
+	defer fakeServer.Teardown()
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/"+networkID, "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
 
 	dbMock.ExpectBegin()
@@ -119,7 +119,7 @@ func TestCheckCleanupSelfIPs_negative(t *testing.T) {
 
 	ctx := context.TODO()
 	tx, _ := dbMock.Begin(ctx)
-	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient()}
+	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)}
 	neutronClient.InitCache()
 	a := &Agent{
 		neutron: &neutronClient,

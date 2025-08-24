@@ -48,10 +48,10 @@ func TestProcessServicesWithDeletedNetwork(t *testing.T) {
 	network := strfmt.UUID("3cf2f3fb-7527-45aa-accc-6880e783e5c8")
 	service := strfmt.UUID("2975c302-4a0d-47ab-82df-42e7597ae41f")
 
-	th.SetupPersistentPortHTTP(t, 8931)
-	defer th.TeardownHTTP()
+	fakeServer := th.SetupPersistentPortHTTP(t, 8931)
+	defer fakeServer.Teardown()
 	config.Global.Agent.PhysicalNetwork = "physnet1"
-	fixture.SetupHandler(t, "/v2.0/networks/"+network.String(), "GET",
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/"+network.String(), "GET",
 		"", GetNetworkResponseFixture, http.StatusNotFound)
 
 	ctx := context.Background()
@@ -67,7 +67,7 @@ func TestProcessServicesWithDeletedNetwork(t *testing.T) {
 	f5DeviceHost.On("GetHostname").Return("dummybigiphost")
 
 	config.Global.Default.Host = "host-123"
-	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient()}
+	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)}
 	neutronClient.InitCache()
 	a := &Agent{
 		pool:    dbMock,

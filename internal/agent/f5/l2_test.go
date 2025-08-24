@@ -31,16 +31,16 @@ func TestAgent_EnsureSelfIPs_Create(t *testing.T) {
 	config.Global.Default.Host = "host-1234"
 	config.Global.Agent.PhysicalNetwork = "physnet1"
 
-	th.SetupPersistentPortHTTP(t, 8931)
-	defer th.TeardownHTTP()
-	fixture.SetupHandler(t, "/v2.0/subnets/e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e", "GET", "",
+	fakeServer := th.SetupPersistentPortHTTP(t, 8931)
+	defer fakeServer.Teardown()
+	fixture.SetupHandler(t, fakeServer, "/v2.0/subnets/e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e", "GET", "",
 		GetSubnetResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t, "/v2.0/networks/35a3ca82-62af-4e0a-9472-92331500fb3a", "GET", "",
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/35a3ca82-62af-4e0a-9472-92331500fb3a", "GET", "",
 		GetNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t, "/v2.0/ports", "GET", "",
+	fixture.SetupHandler(t, fakeServer, "/v2.0/ports", "GET", "",
 		GetPortListResponseFixture, http.StatusOK)
 
-	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient()}
+	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)}
 	neutronClient.InitCache()
 
 	f5DeviceHost := NewMockF5Device(t)
@@ -77,16 +77,16 @@ func TestAgent_EnsureSelfIPs_NoOp(t *testing.T) {
 	config.Global.Default.Host = "host-1234"
 	config.Global.Agent.PhysicalNetwork = "physnet1"
 
-	th.SetupPersistentPortHTTP(t, 8931)
-	defer th.TeardownHTTP()
-	fixture.SetupHandler(t, "/v2.0/subnets/e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e", "GET", "",
+	fakeServer := th.SetupPersistentPortHTTP(t, 8931)
+	defer fakeServer.Teardown()
+	fixture.SetupHandler(t, fakeServer, "/v2.0/subnets/e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e", "GET", "",
 		GetSubnetResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t, "/v2.0/networks/35a3ca82-62af-4e0a-9472-92331500fb3a", "GET", "",
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/35a3ca82-62af-4e0a-9472-92331500fb3a", "GET", "",
 		GetNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t, "/v2.0/ports", "GET", "",
+	fixture.SetupHandler(t, fakeServer, "/v2.0/ports", "GET", "",
 		GetPortListResponseFixture, http.StatusOK)
 
-	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient()}
+	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)}
 	neutronClient.InitCache()
 
 	f5DeviceHost := NewMockF5Device(t)
@@ -122,16 +122,16 @@ func TestAgent_CleanupSelfIPs(t *testing.T) {
 		dbMock.Close()
 	}()
 
-	th.SetupPersistentPortHTTP(t, 8931)
-	defer th.TeardownHTTP()
-	fixture.SetupHandler(t, "/v2.0/subnets/e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e", "GET", "",
+	fakeServer := th.SetupPersistentPortHTTP(t, 8931)
+	defer fakeServer.Teardown()
+	fixture.SetupHandler(t, fakeServer, "/v2.0/subnets/e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e", "GET", "",
 		GetSubnetResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t, "/v2.0/ports", "GET", "",
+	fixture.SetupHandler(t, fakeServer, "/v2.0/ports", "GET", "",
 		GetPortListResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t, "/v2.0/ports/5a8ad669-4ffe-4133-b9f9-6de62cd654a4", "DELETE", "",
+	fixture.SetupHandler(t, fakeServer, "/v2.0/ports/5a8ad669-4ffe-4133-b9f9-6de62cd654a4", "DELETE", "",
 		"", http.StatusAccepted)
 
-	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient()}
+	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)}
 	neutronClient.InitCache()
 
 	f5DeviceHost := NewMockF5Device(t)

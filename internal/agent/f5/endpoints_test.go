@@ -175,18 +175,18 @@ func TestAgent_ProcessEndpoint(t *testing.T) {
 	service := strfmt.UUID("a0a0a0a0-a0a0-4a0a-8a0a-0a0a0a0a0a0a")
 	serviceNetwork := strfmt.UUID("b0b0b0b0-b0b0-4b0b-8b0b-0b0b0b0b0b0b")
 
-	th.SetupPersistentPortHTTP(t, 8931)
-	defer th.TeardownHTTP()
+	fakeServer := th.SetupPersistentPortHTTP(t, 8931)
+	defer fakeServer.Teardown()
 	config.Global.Agent.PhysicalNetwork = "physnet1"
 	config.Global.Agent.L4Profile = "/Common/cc_fastL4_noaging_profile"
 	config.Global.Agent.TCPProfile = "/Common/cc_tcp_archer_profile"
-	fixture.SetupHandler(t, "/v2.0/networks/"+network.String(), "GET",
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/"+network.String(), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t, "/v2.0/networks/"+serviceNetwork.String(), "GET",
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/"+serviceNetwork.String(), "GET",
 		"", GetServiceNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t, "/v2.0/ports", "GET", "",
+	fixture.SetupHandler(t, fakeServer, "/v2.0/ports", "GET", "",
 		GetPortListResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t, "/v2.0/subnets/"+subnet.String(), "GET", "",
+	fixture.SetupHandler(t, fakeServer, "/v2.0/subnets/"+subnet.String(), "GET", "",
 		GetSubnetResponseFixture, http.StatusOK)
 
 	ctx := context.Background()
@@ -215,7 +215,7 @@ func TestAgent_ProcessEndpoint(t *testing.T) {
 		Return(nil)
 
 	config.Global.Default.Host = "host-123"
-	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient()}
+	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)}
 	neutronClient.InitCache()
 	a := &Agent{
 		pool:    dbMock,
@@ -261,10 +261,10 @@ func TestAgent_DeleteEndpointWithDeletedNetwork(t *testing.T) {
 	service := strfmt.UUID("a0a0a0a0-a0a0-4a0a-8a0a-0a0a0a0a0a0a")
 	serviceNetwork := strfmt.UUID("b0b0b0b0-b0b0-4b0b-8b0b-0b0b0b0b0b0b")
 
-	th.SetupPersistentPortHTTP(t, 8931)
-	defer th.TeardownHTTP()
+	fakeServer := th.SetupPersistentPortHTTP(t, 8931)
+	defer fakeServer.Teardown()
 	config.Global.Agent.PhysicalNetwork = "physnet1"
-	fixture.SetupHandler(t, "/v2.0/networks/"+network.String(), "GET",
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/"+network.String(), "GET",
 		"", GetNetworkResponseFixture, http.StatusNotFound)
 
 	ctx := context.Background()
@@ -277,7 +277,7 @@ func TestAgent_DeleteEndpointWithDeletedNetwork(t *testing.T) {
 	f5DeviceHost := NewMockF5Device(t)
 
 	config.Global.Default.Host = "host-123"
-	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient()}
+	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)}
 	neutronClient.InitCache()
 	a := &Agent{
 		pool:    dbMock,
