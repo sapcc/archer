@@ -33,7 +33,8 @@ var (
 
 type SuiteTest struct {
 	suite.Suite
-	c *Controller
+	c          *Controller
+	fakeServer th.FakeServer
 }
 
 func TestSuite(t *testing.T) {
@@ -119,13 +120,13 @@ func (t *SuiteTest) GetMockedController() *MockedController {
 		t.FailNow(err.Error())
 	}
 
-	c := NewController(dbMock, spec, &neutron.NeutronClient{ServiceClient: fake.ServiceClient()})
+	c := NewController(dbMock, spec, &neutron.NeutronClient{ServiceClient: fake.ServiceClient(t.fakeServer)})
 	return &MockedController{c, dbMock}
 }
 
 func (t *SuiteTest) ResetHttpServer() {
-	th.TeardownHTTP()
-	th.SetupPersistentPortHTTP(t.T(), 8931)
+	t.fakeServer.Teardown()
+	t.fakeServer = th.SetupPersistentPortHTTP(t.T(), 8931)
 }
 
 // Setup db value
@@ -149,8 +150,8 @@ func (t *SuiteTest) SetupSuite() {
 		t.FailNow("Failed loading swagger spec - ensure running test from source root", err)
 	}
 
-	th.SetupPersistentPortHTTP(t.T(), 8931)
-	t.c = NewController(pool, spec, &neutron.NeutronClient{ServiceClient: fake.ServiceClient()})
+	t.fakeServer = th.SetupPersistentPortHTTP(t.T(), 8931)
+	t.c = NewController(pool, spec, &neutron.NeutronClient{ServiceClient: fake.ServiceClient(t.fakeServer)})
 	t.c.neutron.InitCache()
 
 	// Run migration
@@ -176,7 +177,7 @@ func (t *SuiteTest) TearDownSuite() {
 		t.FailNow("Failed cleanup", err)
 	}
 
-	th.TeardownHTTP()
+	t.fakeServer.Teardown()
 }
 
 // Run After a Test

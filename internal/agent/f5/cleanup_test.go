@@ -42,17 +42,17 @@ func TestAgent_TestGetUsedSegments(t *testing.T) {
 	config.Global.Agent.PhysicalNetwork = "physnet1"
 
 	// setup neutron "server
-	th.SetupPersistentPortHTTP(t, 8931)
-	defer th.TeardownHTTP()
+	fakeServer := th.SetupPersistentPortHTTP(t, 8931)
+	defer fakeServer.Teardown()
 	config.Global.Agent.PhysicalNetwork = "physnet1"
-	fixture.SetupHandler(t, "/v2.0/networks/"+serviceNetwork, "GET",
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/"+serviceNetwork, "GET",
 		"", GetServiceNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t, "/v2.0/networks/"+someOtherNetwork, "GET",
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/"+someOtherNetwork, "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t, "/v2.0/networks/"+anotherOneBitesTheDust, "GET",
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/"+anotherOneBitesTheDust, "GET",
 		"", GetNetworkResponseAnotherOneFixture, http.StatusOK)
 
-	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient()}
+	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)}
 	neutronClient.InitCache()
 
 	// initialize agent
@@ -110,18 +110,18 @@ func TestAgent_TestCleanOrphanedNeutronPorts(t *testing.T) {
 	config.Global.Agent.PhysicalNetwork = "physnet1"
 
 	// setup neutron "server
-	th.SetupPersistentPortHTTP(t, 8931)
-	defer th.TeardownHTTP()
-	fixture.SetupHandler(t, "/v2.0/ports", "GET", "",
+	fakeServer := th.SetupPersistentPortHTTP(t, 8931)
+	defer fakeServer.Teardown()
+	fixture.SetupHandler(t, fakeServer, "/v2.0/ports", "GET", "",
 		GetPortListSelfIPsResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t, "/v2.0/networks/b0b0b0b0-b0b0-4b0b-8b0b-0b0b0b0b0b0b", "GET",
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/b0b0b0b0-b0b0-4b0b-8b0b-0b0b0b0b0b0b", "GET",
 		"", GetServiceNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t, "/v2.0/networks/35a3ca82-62af-4e0a-9472-92331500fb3a", "GET",
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/35a3ca82-62af-4e0a-9472-92331500fb3a", "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t, "/v2.0/ports/c0c0c0c0-c0c0-4c0c-8c0c-0c0c0c0c0c0c", "DELETE",
+	fixture.SetupHandler(t, fakeServer, "/v2.0/ports/c0c0c0c0-c0c0-4c0c-8c0c-0c0c0c0c0c0c", "DELETE",
 		"", "", http.StatusNoContent)
 
-	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient()}
+	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)}
 	neutronClient.InitCache()
 	// initialize agent
 	a := &Agent{neutron: &neutronClient}

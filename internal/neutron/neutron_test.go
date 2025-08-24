@@ -38,14 +38,14 @@ const GetNetworkResponseFixture = `
 `
 
 func TestNeutronClient_GetNetworkSegment(t *testing.T) {
-	th.SetupPersistentPortHTTP(t, 8931)
-	defer th.TeardownHTTP()
+	fakeServer := th.SetupPersistentPortHTTP(t, 8931)
+	defer fakeServer.Teardown()
 	config.Global.Agent.PhysicalNetwork = "physnet1"
-	fixture.SetupHandler(t, "/v2.0/networks/"+NetworkIDFixture, "GET",
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/"+NetworkIDFixture, "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
 
 	n := &NeutronClient{
-		ServiceClient: fake.ServiceClient(),
+		ServiceClient: fake.ServiceClient(fakeServer),
 	}
 	n.InitCache()
 	segID, err := n.GetNetworkSegment(NetworkIDFixture, config.Global.Agent.PhysicalNetwork)
@@ -54,12 +54,12 @@ func TestNeutronClient_GetNetworkSegment(t *testing.T) {
 }
 
 func TestNeutronClient_GetNetworkSegment404(t *testing.T) {
-	th.SetupPersistentPortHTTP(t, 8931)
-	defer th.TeardownHTTP()
+	fakeServer := th.SetupPersistentPortHTTP(t, 8931)
+	defer fakeServer.Teardown()
 	config.Global.Agent.PhysicalNetwork = "physnet1"
 
 	n := &NeutronClient{
-		ServiceClient: fake.ServiceClient(),
+		ServiceClient: fake.ServiceClient(fakeServer),
 	}
 	n.InitCache()
 	_, err := n.GetNetworkSegment(NetworkIDFixture, config.Global.Agent.PhysicalNetwork)
@@ -69,14 +69,14 @@ func TestNeutronClient_GetNetworkSegment404(t *testing.T) {
 }
 
 func TestNeutronClient_GetNetworkSegmentMising(t *testing.T) {
-	th.SetupPersistentPortHTTP(t, 8931)
-	defer th.TeardownHTTP()
+	fakeServer := th.SetupPersistentPortHTTP(t, 8931)
+	defer fakeServer.Teardown()
 	config.Global.Agent.PhysicalNetwork = "physnet2"
-	fixture.SetupHandler(t, "/v2.0/networks/"+NetworkIDFixture, "GET",
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/"+NetworkIDFixture, "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
 
 	n := &NeutronClient{
-		ServiceClient: fake.ServiceClient(),
+		ServiceClient: fake.ServiceClient(fakeServer),
 	}
 	n.InitCache()
 	_, err := n.GetNetworkSegment(NetworkIDFixture, config.Global.Agent.PhysicalNetwork)
@@ -86,14 +86,14 @@ func TestNeutronClient_GetNetworkSegmentMising(t *testing.T) {
 }
 
 func TestNeutronClient_GetNetworkSegment500(t *testing.T) {
-	th.SetupPersistentPortHTTP(t, 8931)
-	defer th.TeardownHTTP()
+	fakeServer := th.SetupPersistentPortHTTP(t, 8931)
+	defer fakeServer.Teardown()
 	config.Global.Agent.PhysicalNetwork = "physnet1"
-	fixture.SetupHandler(t, "/v2.0/networks/"+NetworkIDFixture, "GET",
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/"+NetworkIDFixture, "GET",
 		"", "internal server error", http.StatusInternalServerError)
 
 	n := &NeutronClient{
-		ServiceClient: fake.ServiceClient(),
+		ServiceClient: fake.ServiceClient(fakeServer),
 	}
 	n.InitCache()
 	_, err := n.GetNetworkSegment(NetworkIDFixture, config.Global.Agent.PhysicalNetwork)
