@@ -6,8 +6,6 @@ module github.com/sapcc/archer
 
 go 1.24
 
-toolchain go1.25.0
-
 require (
 	github.com/IBM/pgxpoolprometheus v1.1.2
 	github.com/Masterminds/squirrel v1.5.4
