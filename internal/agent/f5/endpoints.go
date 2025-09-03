@@ -293,7 +293,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 				}
 			}
 
-			log.Debugf("ProcessEndpoint: Rejecting endpoint %s", endpoint.ID)
+			log.Infof("ProcessEndpoint: Rejecting endpoint %s", endpoint.ID)
 			sql, args = db.
 				Update("endpoint").
 				Set("status", models.EndpointStatusREJECTED).
