@@ -16,11 +16,11 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal/config"
+	"github.com/sapcc/archer/models"
 )
 
 type ServiceInjection struct {
-	Id        strfmt.UUID
-	Status    string
+	models.Endpoint
 	PortId    strfmt.UUID
 	Network   strfmt.UUID
 	IpAddress strfmt.IPv4

@@ -26,6 +26,7 @@ import (
 	common "github.com/sapcc/archer/internal/agent"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
+	"github.com/sapcc/archer/models"
 )
 
 type Agent struct {
@@ -135,7 +136,7 @@ func (a *Agent) Run() {
 func (a *Agent) ProcessServices(ctx context.Context) error {
 	// Cleanup pending delete services
 	sql, args := db.Delete("service").
-		Where("status = 'PENDING_DELETE'").
+		Where("status = ?", models.ServiceStatusPENDINGDELETE).
 		Where("provider = 'cp'").
 		MustSql()
 	_, err := a.pool.Exec(ctx, sql, args...)
@@ -161,24 +162,25 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
 		}
 
 		switch si.Status {
-		case "PENDING_REJECTED":
+		case models.EndpointStatusPENDINGREJECTED:
+			log.Infof("ProcessEndpoint: Rejecting endpoint %s", si.ID)
 			if err = a.DisableInjection(&si); err != nil {
 				return err
 			}
 			sql, args = db.Update("endpoint").
-				Set("status", "REJECTED").
+				Set("status", models.EndpointStatusREJECTED).
 				Set("updated_at", sq.Expr("NOW()")).
-				Where("id = ?", si.Id).
+				Where("id = ?", si.ID).
 				MustSql()
 			if _, err = tx.Exec(ctx, sql, args...); err != nil {
 				return err
 			}
-		case "PENDING_DELETE":
+		case models.EndpointStatusPENDINGDELETE:
 			if err = a.DisableInjection(&si); err != nil {
 				return err
 			}
 			sql, args, err = db.Delete("endpoint").
-				Where("id = ?", si.Id).
+				Where("id = ?", si.ID).
 				ToSql()
 			if err != nil {
 				return err
@@ -186,22 +188,22 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
 			if _, err = a.pool.Exec(ctx, sql, args...); err != nil {
 				return err
 			}
-		case "AVAILABLE":
+		case models.EndpointStatusAVAILABLE:
 			if err = a.EnableInjection(&si); err != nil {
 				return err
 			}
-		case "PENDING_UPDATE":
+		case models.EndpointStatusPENDINGUPDATE:
 			fallthrough
-		case "FAILED":
+		case models.EndpointStatusFAILED:
 			fallthrough
-		case "PENDING_CREATE":
+		case models.EndpointStatusPENDINGCREATE:
 			if err = a.EnableInjection(&si); err != nil {
 				return err
 			}
 			sql, args, err = db.Update("endpoint").
-				Set("status", "AVAILABLE").
+				Set("status", models.EndpointStatusAVAILABLE).
 				Set("updated_at", sq.Expr("NOW()")).
-				Where("id = ?", si.Id).
+				Where("id = ?", si.ID).
 				ToSql()
 			if err != nil {
 				return err
@@ -224,10 +226,15 @@ func (a *Agent) PendingSyncLoop(ctx context.Context, syncAll bool) error {
 
 	if syncAll {
 		// initial run, sync everything
-		q = q.Where("status != 'REJECTED'")
+		q = q.Where("status != ?", models.EndpointStatusREJECTED)
 	} else {
 		// sync only pending
-		q = q.Where("status IN ('PENDING_CREATE', 'PENDING_REJECTED', 'PENDING_DELETE', 'FAILED')")
+		q = q.Where(sq.Eq{"status": []models.EndpointStatus{
+			models.EndpointStatusPENDINGCREATE,
+			models.EndpointStatusREJECTED,
+			models.EndpointStatusPENDINGREJECTED,
+			models.EndpointStatusPENDINGDELETE,
+			models.EndpointStatusFAILED}})
 	}
 
 	var id strfmt.UUID
