@@ -29,8 +29,7 @@ golangciLint:
 
 githubWorkflow:
   ci:
-    # too opinionated for us
-    enabled: false
+    enabled: true
   global:
     defaultBranch: main
 

@@ -16,6 +16,7 @@ import (
 	th "github.com/gophercloud/gophercloud/v2/testhelper"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pashagolub/pgxmock/v4"
+	"github.com/sapcc/go-bits/easypg"
 	"github.com/sapcc/go-bits/osext"
 	"github.com/stretchr/testify/suite"
 	"github.com/z0ne-dev/mgx/v2"
@@ -129,10 +130,14 @@ func (t *SuiteTest) ResetHttpServer() {
 	t.fakeServer = th.SetupPersistentPortHTTP(t.T(), 8931)
 }
 
+func TestMain(m *testing.M) {
+	easypg.WithTestDB(m, func() int { return m.Run() })
+}
+
 // Setup db value
 func (t *SuiteTest) SetupSuite() {
 	config.Global.Database.Connection = osext.GetenvOrDefault(
-		"DB_URL", "postgresql://localhost/test_suite_controller")
+		"DB_URL", "postgres://postgres:postgres@127.0.0.1:54320/postgres?sslmode=disable")
 	pool, err := pgxpool.New(context.Background(), config.Global.Database.Connection)
 	if err != nil {
 		t.FailNow("Failed connecting to Database", err)
