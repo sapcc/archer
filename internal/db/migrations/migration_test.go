@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/sapcc/go-bits/easypg"
 	"github.com/sapcc/go-bits/osext"
 	"github.com/z0ne-dev/mgx/v2"
 )
@@ -18,7 +19,7 @@ func connectToDatabase(t *testing.T) *pgx.Conn {
 
 	// create db connection
 	url := osext.GetenvOrDefault(
-		"DB_URL", "postgresql://localhost/test_suite_controller")
+		"DB_URL", "postgres://postgres:postgres@127.0.0.1:54320/postgres?sslmode=disable")
 	if url == "" {
 		t.Fatal("DB_URL env variable is not set")
 	}
@@ -35,6 +36,10 @@ func connectToDatabase(t *testing.T) *pgx.Conn {
 		t.Fatal(err)
 	}
 	return db
+}
+
+func TestMain(m *testing.M) {
+	easypg.WithTestDB(m, func() int { return m.Run() })
 }
 
 func TestMigrate(t *testing.T) {
