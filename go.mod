@@ -23,6 +23,8 @@ require (
 	github.com/go-openapi/spec v0.21.0
 	github.com/go-openapi/strfmt v0.23.0
 	github.com/go-openapi/swag v0.24.1
+	github.com/go-openapi/swag/cmdutils v0.24.0
+	github.com/go-openapi/swag/conv v0.24.0
 	github.com/go-openapi/validate v0.24.0
 	github.com/google/uuid v1.6.0
 	github.com/gophercloud/gophercloud/v2 v2.8.0
@@ -63,8 +65,6 @@ require (
 	github.com/go-openapi/analysis v0.23.0 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/jsonreference v0.21.0 // indirect
-	github.com/go-openapi/swag/cmdutils v0.24.0 // indirect
-	github.com/go-openapi/swag/conv v0.24.0 // indirect
 	github.com/go-openapi/swag/fileutils v0.24.0 // indirect
 	github.com/go-openapi/swag/jsonname v0.24.0 // indirect
 	github.com/go-openapi/swag/jsonutils v0.24.0 // indirect

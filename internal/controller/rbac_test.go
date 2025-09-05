@@ -9,7 +9,7 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
+	"github.com/go-openapi/swag/conv"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/sapcc/archer/models"
@@ -22,7 +22,7 @@ func (t *SuiteTest) createRbac(target string) strfmt.UUID { //nolint:unparam
 	s := models.Rbacpolicy{
 		ServiceID:  &service,
 		Target:     target,
-		TargetType: swag.String(models.RbacpolicyTargetTypeProject),
+		TargetType: conv.Pointer(models.RbacpolicyTargetTypeProject),
 	}
 
 	res := t.c.PostRbacPoliciesHandler(rbac.PostRbacPoliciesParams{HTTPRequest: &http.Request{}, Body: &s},
@@ -115,7 +115,7 @@ func (t *SuiteTest) TestRbacConflict() {
 	p := models.Rbacpolicy{
 		ServiceID:  &s,
 		Target:     target,
-		TargetType: swag.String(models.RbacpolicyTargetTypeProject),
+		TargetType: conv.Pointer(models.RbacpolicyTargetTypeProject),
 	}
 
 	// post

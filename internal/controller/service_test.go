@@ -12,7 +12,7 @@ import (
 
 	policy "github.com/databus23/goslo.policy"
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
+	"github.com/go-openapi/swag/conv"
 	"github.com/gophercloud/gophercloud/v2/testhelper/fixture"
 	"github.com/sapcc/go-bits/gopherpolicy"
 	"github.com/stretchr/testify/assert"
@@ -82,7 +82,7 @@ func (t *SuiteTest) TestGetServiceHandler() {
 func (t *SuiteTest) TestGetServiceHandlerUnknownSortColumn() {
 	header := headerProject1
 	header.URL = new(url.URL)
-	res := t.c.GetServiceHandler(service.GetServiceParams{HTTPRequest: &header, Sort: swag.String("unknown")}, nil)
+	res := t.c.GetServiceHandler(service.GetServiceParams{HTTPRequest: &header, Sort: conv.Pointer("unknown")}, nil)
 	assert.IsType(t.T(), &service.GetServiceBadRequest{}, res)
 	assert.Equal(t.T(), "Unknown sort column.", res.(*service.GetServiceBadRequest).Payload.Message)
 }
@@ -121,7 +121,7 @@ func (t *SuiteTest) TestServicePostScoped() {
 func (t *SuiteTest) TestServiceAZPost() {
 	// post and get
 	testServiceWithAZ := testService
-	testServiceWithAZ.AvailabilityZone = swag.String("test-az")
+	testServiceWithAZ.AvailabilityZone = conv.Pointer("test-az")
 
 	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
@@ -133,7 +133,7 @@ func (t *SuiteTest) TestServiceAZPost() {
 	assert.IsType(t.T(), &service.PostServiceConflict{}, res)
 	assert.Equal(t.T(), "No available host agent found.", res.(*service.PostServiceConflict).Payload.Message)
 
-	t.addAgent(swag.String("test-az"))
+	t.addAgent(conv.Pointer("test-az"))
 	res = t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1,
 		Body: &testServiceWithAZ}, nil)
 	assert.IsType(t.T(), &service.PostServiceCreated{}, res)
@@ -190,7 +190,7 @@ func (t *SuiteTest) TestServicePostNetwortNoIpAvailability() {
 }
 
 func (t *SuiteTest) TestServiceNegativeAZPost() {
-	t.addAgent(swag.String("test-az")) // only az-aware agent
+	t.addAgent(conv.Pointer("test-az")) // only az-aware agent
 	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
 	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
@@ -210,7 +210,7 @@ func (t *TestEnforcerDenyAll) Enforce(_ string, _ policy.Context) bool {
 
 func (t *SuiteTest) TestServicePostNotTenant() {
 	testServiceNotTenantProvider := testService
-	testServiceNotTenantProvider.Provider = swag.String("cp")
+	testServiceNotTenantProvider.Provider = conv.Pointer("cp")
 	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
 	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
@@ -317,12 +317,12 @@ func (t *SuiteTest) TestServiceDuplicatePayload() {
 	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
 		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
 
-	t.addAgent(swag.String("zone1"))
+	t.addAgent(conv.Pointer("zone1"))
 	s := models.Service{
 		Name:             "test",
 		NetworkID:        &networkId,
 		IPAddresses:      []strfmt.IPv4{"1.2.3.4"},
-		AvailabilityZone: swag.String("zone1"),
+		AvailabilityZone: conv.Pointer("zone1"),
 	}
 
 	// post two identical services
@@ -389,7 +389,7 @@ func (t *SuiteTest) TestGetServiceServiceIDEndpointsHandlerNotFound() {
 func (t *SuiteTest) TestGetServiceServiceIDEndpointsHandlerUnknownSortColumn() {
 	serviceId := t.createService(testService)
 	params := service.GetServiceServiceIDEndpointsParams{HTTPRequest: &headerProject1,
-		Sort: swag.String("unknown"), ServiceID: serviceId}
+		Sort: conv.Pointer("unknown"), ServiceID: serviceId}
 	res := t.c.GetServiceServiceIDEndpointsHandler(params, nil)
 	assert.IsType(t.T(), &service.GetServiceServiceIDEndpointsBadRequest{}, res)
 	assert.Equal(t.T(), "Unknown sort column.", res.(*service.GetServiceServiceIDEndpointsBadRequest).Payload.Message)
@@ -400,7 +400,7 @@ func (t *SuiteTest) TestPutServiceServiceIDAcceptEndpointsHandler() {
 	serviceId := t.createService(testService)
 	params := service.PutServiceServiceIDParams{
 		HTTPRequest: &headerProject1,
-		Body:        &models.ServiceUpdatable{RequireApproval: swag.Bool(true)},
+		Body:        &models.ServiceUpdatable{RequireApproval: conv.Pointer(true)},
 		ServiceID:   serviceId,
 	}
 	assert.IsType(t.T(), &service.PutServiceServiceIDOK{}, t.c.PutServiceServiceIDHandler(params, nil))
@@ -453,7 +453,7 @@ func (t *SuiteTest) TestPutServiceServiceIDAcceptEndpointsHandler() {
 func (t *SuiteTest) TestPutServiceServiceIDRejectEndpointsHandler() {
 	// create service with require approval
 	svcReqApproval := testService
-	svcReqApproval.RequireApproval = swag.Bool(true)
+	svcReqApproval.RequireApproval = conv.Pointer(true)
 	serviceId := t.createService(testService)
 
 	// create endpoint
@@ -504,7 +504,7 @@ func (t *SuiteTest) TestPutServiceServiceIDRejectEndpointsHandler() {
 func (t *SuiteTest) TestPutServiceServiceIDAcceptEndpointHandlerMultipleServices() {
 	// create two services with require approval
 	svcReqApproval := testService
-	svcReqApproval.RequireApproval = swag.Bool(true)
+	svcReqApproval.RequireApproval = conv.Pointer(true)
 	serviceID1 := t.createService(testService)
 
 	svcReqApproval.Name = "test2"

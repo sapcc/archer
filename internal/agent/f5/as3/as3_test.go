@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
+	"github.com/go-openapi/swag/conv"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
 	"github.com/stretchr/testify/assert"
 
@@ -37,7 +37,7 @@ func TestGetEndpointTenants(t *testing.T) {
 			Port: &ports.Port{
 				FixedIPs: []ports.IP{{IPAddress: "1.2.3.4"}},
 			},
-			SegmentId: swag.Int(1),
+			SegmentId: conv.Pointer(1),
 		},
 	}
 	tenant := GetEndpointTenants(endpoints)
@@ -93,7 +93,7 @@ func TestGetServiceTenants(t *testing.T) {
 	services := []*ExtendedService{
 		{
 			Service: models.Service{
-				AvailabilityZone: swag.String("abc"),
+				AvailabilityZone: conv.Pointer("abc"),
 				CreatedAt:        time.Time{},
 				Description:      "test",
 				ID:               "test-service-id",

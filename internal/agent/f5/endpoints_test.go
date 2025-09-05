@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
+	"github.com/go-openapi/swag/conv"
 	fake "github.com/gophercloud/gophercloud/v2/openstack/networking/v2/common"
 	th "github.com/gophercloud/gophercloud/v2/testhelper"
 	"github.com/gophercloud/gophercloud/v2/testhelper/fixture"
@@ -202,7 +202,7 @@ func TestAgent_ProcessEndpoint(t *testing.T) {
 		EnsureVLAN(123, 0).
 		Return(nil)
 	f5DeviceHost.EXPECT().
-		EnsureRouteDomain(123, swag.Int(666)).
+		EnsureRouteDomain(123, conv.Pointer(666)).
 		Return(nil)
 	f5DeviceHost.EXPECT().
 		EnsureBigIPSelfIP(
