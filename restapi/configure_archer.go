@@ -20,7 +20,7 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/swag"
+	"github.com/go-openapi/swag/cmdutils"
 	"github.com/gophercloud/utils/v2/openstack/clientconfig"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
@@ -52,7 +52,7 @@ var (
 )
 
 func configureFlags(api *operations.ArcherAPI) {
-	api.CommandLineOptionsGroups = []swag.CommandLineOptionsGroup{
+	api.CommandLineOptionsGroups = []cmdutils.CommandLineOptionsGroup{
 		{
 			ShortDescription: "Archer Flags",
 			LongDescription:  "Archer specific flags",

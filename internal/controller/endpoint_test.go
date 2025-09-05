@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
+	"github.com/go-openapi/swag/conv"
 	"github.com/gophercloud/gophercloud/v2"
 	fake "github.com/gophercloud/gophercloud/v2/openstack/networking/v2/common"
 	"github.com/gophercloud/gophercloud/v2/testhelper/fixture"
@@ -71,7 +71,7 @@ func (t *SuiteTest) TestEndpointList() {
 func (t *SuiteTest) TestEndpointListUnknownSortColumn() {
 	header := headerProject1
 	header.URL = new(url.URL)
-	res := t.c.GetEndpointHandler(endpoint.GetEndpointParams{HTTPRequest: &header, Sort: swag.String("unknown")},
+	res := t.c.GetEndpointHandler(endpoint.GetEndpointParams{HTTPRequest: &header, Sort: conv.Pointer("unknown")},
 		nil)
 	assert.IsType(t.T(), &endpoint.GetEndpointBadRequest{}, res)
 	assert.Equal(t.T(), "Unknown sort column.", res.(*endpoint.GetEndpointBadRequest).Payload.Message)
@@ -460,7 +460,7 @@ func (t *SuiteTest) TestEndpointRequireApproval() {
 	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
 		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
 	serviceCopy := testService
-	serviceCopy.RequireApproval = swag.Bool(true)
+	serviceCopy.RequireApproval = conv.Pointer(true)
 	res := t.c.PostServiceHandler(
 		service.PostServiceParams{HTTPRequest: &headerProject1, Body: &serviceCopy}, nil)
 	assert.EqualValues(t.T(), *res.(*service.PostServiceCreated).Payload.RequireApproval, true)
@@ -475,7 +475,7 @@ func (t *SuiteTest) TestEndpointRequireApproval() {
 	// changes won't change the approval status
 	res = t.c.PutEndpointEndpointIDHandler(
 		endpoint.PutEndpointEndpointIDParams{HTTPRequest: &http.Request{}, EndpointID: payload.ID,
-			Body: endpoint.PutEndpointEndpointIDBody{Name: swag.String("testPut")}}, nil)
+			Body: endpoint.PutEndpointEndpointIDBody{Name: conv.Pointer("testPut")}}, nil)
 	assert.IsType(t.T(), &endpoint.PutEndpointEndpointIDOK{}, res)
 	payload = res.(*endpoint.PutEndpointEndpointIDOK).Payload
 	assert.Equal(t.T(), "testPut", payload.Name)
