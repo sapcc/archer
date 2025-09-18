@@ -25,6 +25,7 @@ import (
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jessevdk/go-flags"
 	"github.com/jmoiron/sqlx/reflectx"
+	"github.com/sapcc/go-api-declarations/bininfo"
 
 	"github.com/sapcc/archer/client"
 )
@@ -48,6 +49,7 @@ var opts struct {
 	Debug      bool             `long:"debug" description:"Show verbose debug information"`
 	Formatters outputFormatters `group:"Output formatters"`
 	Timeout    time.Duration    `long:"timeout" description:"Timeout for requests, defaults to 120s" default:"120s"`
+	Version    func()           `short:"v" long:"version" description:"Show application version"`
 
 	OSEndpoint          string `long:"os-endpoint" env:"OS_ENDPOINT" description:"The endpoint that will always be used"`
 	OSAuthUrl           string `long:"os-auth-url" env:"OS_AUTH_URL" description:"Authentication URL"`
@@ -62,6 +64,11 @@ var opts struct {
 
 func SetupClient() {
 	Table.SetOutputMirror(os.Stdout)
+
+	opts.Version = func() {
+		fmt.Printf("%s version %s\n", bininfo.Component(), bininfo.Version())
+		os.Exit(0)
+	}
 
 	Parser.CommandHandler = func(command flags.Commander, args []string) error {
 		if command == nil {

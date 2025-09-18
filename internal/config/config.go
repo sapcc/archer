@@ -7,6 +7,7 @@
 package config
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -25,6 +26,8 @@ var (
 )
 
 type Archer struct {
+	Version func() `short:"v" long:"version" description:"Show application version"`
+
 	ConfigFile  []string    `long:"config-file" description:"Use config file"`
 	Default     Default     `group:"DEFAULT"`
 	Database    Database    `group:"database"`
@@ -115,6 +118,13 @@ type AuthInfo struct {
 	DomainID                    string `ini-name:"domain_id"`
 	DefaultDomain               string `ini-name:"default_domain"`
 	AllowReauth                 bool   `ini-name:"allow_reauth"`
+}
+
+func init() {
+	Global.Version = func() {
+		fmt.Printf("%s version %s\n", bininfo.Component(), bininfo.Version())
+		os.Exit(0)
+	}
 }
 
 func IsDebug() bool {
