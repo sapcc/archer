@@ -14,6 +14,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 RUN wget https://cacerts.digicert.com/DigiCertGlobalG2TLSRSASHA2562020CA1-1.crt.pem -O /usr/local/share/ca-certificates/zDigiCertGlobalG2TLSRSASHA2562020CA1-1.crt.pem \
   && update-ca-certificates
 
+
 ################################################################################
 
 FROM alpine:3.22
