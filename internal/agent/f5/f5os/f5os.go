@@ -67,7 +67,6 @@ type F5OS struct {
 	password string
 	token    token
 	uri      *url.URL
-	backoff  retry.Backoff
 }
 
 func (f *F5OS) newRequest(method, path string, body any) *http.Request {
@@ -95,7 +94,12 @@ func (f *F5OS) newRequest(method, path string, body any) *http.Request {
 
 // apiCall performs an API call to the F5OS device using the provided request.
 func (f *F5OS) apiCall(req *http.Request, v any) error {
-	return retry.Do(req.Context(), f.backoff, func(ctx context.Context) error {
+	// use configured retry backoff for all API calls
+	backoff := retry.WithMaxDuration(config.Global.Agent.MaxDuration,
+		retry.WithMaxRetries(config.Global.Agent.MaxRetries,
+			retry.NewFibonacci(2*time.Second)))
+
+	return retry.Do(req.Context(), backoff, func(ctx context.Context) error {
 		// Set the Authorization header
 		if f.token.Valid() {
 			req.Header.Set("X-Auth-Token", string(f.token))
@@ -460,14 +464,11 @@ func NewSession(uri *url.URL) (*F5OS, error) {
 		}
 	}
 
-	backoff := retry.WithMaxRetries(1, retry.NewConstant(3*time.Second))
-
 	f5os := &F5OS{
 		uri:      uri,
 		client:   client,
 		user:     user,
 		password: password,
-		backoff:  backoff,
 	}
 
 	// Try to identify the device type
@@ -483,11 +484,6 @@ func NewSession(uri *url.URL) (*F5OS, error) {
 		f5os.GetHostname(),
 		platformState.OpenconfigPlatformState.PartNo,
 	)
-
-	// use configured retry backoff for all API calls
-	f5os.backoff = retry.WithMaxDuration(config.Global.Agent.MaxDuration,
-		retry.WithMaxRetries(config.Global.Agent.MaxRetries,
-			retry.NewExponential(5*time.Second)))
 
 	return f5os, nil
 }

@@ -94,8 +94,8 @@ type Agent struct {
 	ServiceProtocol        string        `long:"service-protocol" ini-name:"service_protocol" description:"Service protocol."`
 	L4Profile              string        `long:"l4-profile" ini-name:"l4_profile" description:"L4 profile to use for F5 endpoint service." default:"/Common/fastL4"`
 	TCPProfile             string        `long:"tcp-profile" ini-name:"tcp_profile" description:"TCP profile to use for F5 endpoint service." default:"/Common/tcp"`
-	MaxRetries             uint64        `long:"max-retries" ini-name:"max_retries" description:"Maximum number of retries for F5 operations." default:"5"`
-	MaxDuration            time.Duration `long:"max-duration" ini-name:"max_duration" description:"Maximum duration for F5 operations, supports suffix (e.g. 10s)." default:"30s"`
+	MaxRetries             uint64        `long:"max-retries" ini-name:"max_retries" description:"Maximum number of retries for F5 operations." default:"3"`
+	MaxDuration            time.Duration `long:"max-duration" ini-name:"max_duration" description:"Maximum duration for F5 operations, supports suffix (e.g. 10s)." default:"1.5m"`
 }
 
 type AuthInfo struct {
