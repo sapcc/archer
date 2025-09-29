@@ -7,9 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
-	"github.com/sethvargo/go-retry"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +25,6 @@ func TestF5os_apiCall(t *testing.T) {
 
 	f5 := F5OS{
 		client:   testServer.Client(),
-		backoff:  retry.WithMaxRetries(2, retry.NewConstant(1*time.Second)),
 		user:     "test-user",
 		password: "test-password",
 		token:    "invalid-token",
