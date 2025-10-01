@@ -99,6 +99,13 @@ func (f *F5OS) apiCall(req *http.Request, v any) error {
 		retry.WithMaxRetries(config.Global.Agent.MaxRetries,
 			retry.NewFibonacci(2*time.Second)))
 
+	// We need to preserve the request body for retries
+	var body []byte
+	if req.Body != nil && req.Body != http.NoBody {
+		body, _ = io.ReadAll(req.Body)
+		_ = req.Body.Close()
+	}
+
 	return retry.Do(req.Context(), backoff, func(ctx context.Context) error {
 		// Set the Authorization header
 		if f.token.Valid() {
@@ -110,6 +117,11 @@ func (f *F5OS) apiCall(req *http.Request, v any) error {
 
 		var resp *http.Response
 		var err error
+
+		// Restore the request body for retries
+		if body != nil {
+			req.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		resp, err = f.client.Do(req)
 		if err != nil {
 			select {
