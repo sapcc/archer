@@ -28,7 +28,7 @@ require (
 	github.com/go-openapi/validate v0.25.0
 	github.com/google/uuid v1.6.0
 	github.com/gophercloud/gophercloud/v2 v2.8.0
-	github.com/gophercloud/utils/v2 v2.0.0-20250924123217-7e7b84132d8a
+	github.com/gophercloud/utils/v2 v2.0.0-20250930154317-576cdf6142a7
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/iancoleman/strcase v0.3.0
@@ -38,7 +38,7 @@ require (
 	github.com/jedib0t/go-pretty/v6 v6.6.8
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/jmoiron/sqlx v1.4.0
-	github.com/pashagolub/pgxmock/v4 v4.8.0
+	github.com/pashagolub/pgxmock/v4 v4.9.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rs/cors v1.11.1
 	github.com/sapcc/go-api-declarations v1.17.4
