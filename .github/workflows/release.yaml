@@ -30,4 +30,4 @@ jobs:
           goarch: ${{ matrix.goarch }}
           binary_name: archerctl
           project_path: "./cmd/archerctl"
-          extra_files: LICENSE README.md
+          extra_files: LICENSE README.md LICENSES
