@@ -272,4 +272,12 @@ var Migrations = mgx.Migrations(
 		`)
 		return err
 	}),
+	// Fix service constraint: unique(network_id, ip_addresses, port, availability_zone)
+	mgx.NewMigration("fix_service_constraint", func(ctx context.Context, commands mgx.Commands) error {
+		_, err := commands.Exec(ctx, `
+			ALTER TABLE service DROP CONSTRAINT service_const;
+			ALTER TABLE service ADD CONSTRAINT service_const UNIQUE (host, network_id, ip_addresses, availability_zone, port);
+		`)
+		return err
+	}),
 )
