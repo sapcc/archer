@@ -204,7 +204,7 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 		if errors.As(err, &pe) && pgerrcode.IsIntegrityConstraintViolation(pe.Code) {
 			return service.NewPostServiceConflict().WithPayload(&models.Error{
 				Code:    409,
-				Message: "Entry for network_id, ip_address and availability_zone already exists.",
+				Message: "Entry for network_id, ip_address and port already exists.",
 			})
 		}
 		panic(err)
