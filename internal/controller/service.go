@@ -148,7 +148,7 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 	}
 
 	var host string
-	if err := pgx.BeginFunc(context.Background(), c.pool, func(tx pgx.Tx) error {
+	if err := pgx.BeginFunc(ctx, c.pool, func(tx pgx.Tx) error {
 		// schedule
 		q := db.Select("agents.host", "COUNT(service.id) AS usage").
 			From("agents").
@@ -168,7 +168,7 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 		}
 
 		var usage int
-		if err = c.pool.QueryRow(context.Background(), sql, args...).Scan(&host, &usage); err != nil {
+		if err = c.pool.QueryRow(ctx, sql, args...).Scan(&host, &usage); err != nil {
 			return err
 		}
 
@@ -176,13 +176,23 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 			params.Body.Provider)
 		params.Body.Host = &host
 
+		// check for conflicts
+		check := &ServiceConflictChecker{
+			networkID:   *params.Body.NetworkID,
+			ipAddresses: params.Body.IPAddresses,
+			ports:       params.Body.Ports,
+		}
+		if err = check.checkForServiceConflict(ctx, tx); err != nil {
+			return err
+		}
+
 		sql, args, err = db.Insert("service").
 			Columns("enabled", "name", "description", "network_id", "ip_addresses", "require_approval",
-				"visibility", "availability_zone", "proxy_protocol", "project_id", "port", "tags", "provider", "host").
+				"visibility", "availability_zone", "proxy_protocol", "project_id", "ports", "tags", "provider", "host").
 			Values(params.Body.Enabled, params.Body.Name, params.Body.Description, params.Body.NetworkID,
 				params.Body.IPAddresses, params.Body.RequireApproval, params.Body.Visibility,
 				params.Body.AvailabilityZone, params.Body.ProxyProtocol, params.Body.ProjectID,
-				params.Body.Port, internal.Unique(params.Body.Tags), params.Body.Provider, params.Body.Host).
+				params.Body.Ports, internal.Unique(params.Body.Tags), params.Body.Provider, params.Body.Host).
 			Suffix("RETURNING *").ToSql()
 		if err != nil {
 			return err
@@ -204,7 +214,7 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 		if errors.As(err, &pe) && pgerrcode.IsIntegrityConstraintViolation(pe.Code) {
 			return service.NewPostServiceConflict().WithPayload(&models.Error{
 				Code:    409,
-				Message: "Entry for network_id, ip_address and port already exists.",
+				Message: "Entry for network_id, ip_address and port(s) already exists.",
 			})
 		}
 		panic(err)
@@ -245,28 +255,62 @@ func (c *Controller) GetServiceServiceIDHandler(params service.GetServiceService
 
 func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceServiceIDParams, _ any) middleware.Responder {
 	upd := db.Update("service")
+	ctx := params.HTTPRequest.Context()
 
 	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
 		upd = upd.Where("project_id = ?", projectId)
 	}
 
-	upd = upd.Set("enabled", sq.Expr("COALESCE(?, enabled)", params.Body.Enabled)).
-		Set("name", sq.Expr("COALESCE(?, name)", params.Body.Name)).
-		Set("description", sq.Expr("COALESCE(?, description)", params.Body.Description)).
-		Set("require_approval", sq.Expr("COALESCE(?, require_approval)", params.Body.RequireApproval)).
-		Set("proxy_protocol", sq.Expr("COALESCE(?, proxy_protocol)", params.Body.ProxyProtocol)).
-		Set("port", sq.Expr("COALESCE(?, port)", params.Body.Port)).
-		Set("ip_addresses", sq.Expr("COALESCE(?, ip_addresses)", params.Body.IPAddresses)).
-		Set("visibility", sq.Expr("COALESCE(?, visibility)", params.Body.Visibility)).
-		Set("tags", sq.Expr("COALESCE(?, tags)", internal.Unique(params.Body.Tags))).
-		Set("status", "PENDING_UPDATE").
-		Set("updated_at", sq.Expr("NOW()")).
-		Where("id = ?", params.ServiceID).
-		Suffix("RETURNING *")
-
-	sql, args := upd.MustSql()
 	var serviceResponse models.Service
-	if err := pgxscan.Get(params.HTTPRequest.Context(), c.pool, &serviceResponse, sql, args...); err != nil {
+	if err := pgx.BeginFunc(ctx, c.pool, func(tx pgx.Tx) error {
+		if params.Body.IPAddresses != nil || params.Body.Ports != nil {
+			// Fetch ipaddress and ports for conflict check
+			var networkID *strfmt.UUID
+			var ipAddresses []strfmt.IPv4
+			var ports []int32
+			q := db.Select("network_id", "ip_addresses", "ports").
+				From("service").
+				Where("id = ?", params.ServiceID)
+			sql, args := q.MustSql()
+			if err := tx.QueryRow(ctx, sql, args...).Scan(&networkID, &ipAddresses, &ports); err != nil {
+				return err
+			}
+			if params.Body.IPAddresses != nil {
+				ipAddresses = params.Body.IPAddresses
+			}
+			if params.Body.Ports != nil {
+				ports = params.Body.Ports
+			}
+
+			// check for conflicts
+			check := &ServiceConflictChecker{
+				networkID:   *networkID,
+				ipAddresses: ipAddresses,
+				ports:       ports,
+				serviceID:   &params.ServiceID,
+			}
+			if err := check.checkForServiceConflict(ctx, tx); err != nil {
+				return err
+			}
+		}
+
+		upd = upd.Set("enabled", sq.Expr("COALESCE(?, enabled)", params.Body.Enabled)).
+			Set("name", sq.Expr("COALESCE(?, name)", params.Body.Name)).
+			Set("description", sq.Expr("COALESCE(?, description)", params.Body.Description)).
+			Set("require_approval", sq.Expr("COALESCE(?, require_approval)", params.Body.RequireApproval)).
+			Set("proxy_protocol", sq.Expr("COALESCE(?, proxy_protocol)", params.Body.ProxyProtocol)).
+			Set("ports", sq.Expr("COALESCE(?, ports)", params.Body.Ports)).
+			Set("ip_addresses", sq.Expr("COALESCE(?, ip_addresses)", params.Body.IPAddresses)).
+			Set("visibility", sq.Expr("COALESCE(?, visibility)", params.Body.Visibility)).
+			Set("tags", sq.Expr("COALESCE(?, tags)", internal.Unique(params.Body.Tags))).
+			Set("status", "PENDING_UPDATE").
+			Set("updated_at", sq.Expr("NOW()")).
+			Where("id = ?", params.ServiceID).
+			Suffix("RETURNING *")
+
+		sql, args := upd.MustSql()
+		return pgxscan.Get(ctx, tx, &serviceResponse, sql, args...)
+	}); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return service.NewPutServiceServiceIDNotFound()
 		}
@@ -275,7 +319,7 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 		if errors.As(err, &pe) && pgerrcode.IsIntegrityConstraintViolation(pe.Code) {
 			return service.NewPutServiceServiceIDConflict().WithPayload(&models.Error{
 				Code:    409,
-				Message: "Entry for network_id, ip_address and availability_zone already exists.",
+				Message: "Entry for network_id, ip_address and port(s) already exists.",
 			})
 		}
 		panic(err)
@@ -484,4 +528,43 @@ func commonEndpointsActionHandler(pool db.PgxIface, body any, _ any) ([]*models.
 	}
 
 	return endpointConsumers, nil
+}
+
+type ServiceConflictChecker struct {
+	networkID   strfmt.UUID
+	ipAddresses []strfmt.IPv4
+	ports       []int32
+	serviceID   *strfmt.UUID
+}
+
+func (s *ServiceConflictChecker) checkForServiceConflict(ctx context.Context, tx pgx.Tx) error {
+	// Extra check if port/ip/network combination already exists
+	q := db.Select("1").
+		From("service").
+		Where(sq.And{
+			sq.Eq{"network_id": s.networkID},
+			sq.Expr("ip_addresses && ?", s.ipAddresses),
+			sq.Expr("ports && ?", s.ports),
+		})
+
+	// Exclude self in case of update
+	if s.serviceID != nil {
+		q = q.Where(sq.NotEq{"id": *s.serviceID})
+	}
+	sql, args, err := q.ToSql()
+	if err != nil {
+		return err
+	}
+
+	var ct int
+	if err = tx.QueryRow(ctx, sql, args...).Scan(&ct); err != nil {
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		// no existing entry, continue
+	}
+	if ct > 0 {
+		return &pgconn.PgError{Code: pgerrcode.CheckViolation}
+	}
+	return nil
 }

@@ -97,6 +97,7 @@ func TestGetServiceTenants(t *testing.T) {
 				CreatedAt:        time.Time{},
 				Description:      "test",
 				ID:               "test-service-id",
+				Ports:            []int32{0},
 			},
 			NeutronPorts: map[string]*ports.Port{
 				"snat-port-1": {

@@ -79,17 +79,22 @@ func GetServiceTenants(endpointServices []*ExtendedService) Tenant {
 			adminState = "disable"
 		}
 
-		services[GetServicePoolName(service.ID)] = Pool{
-			Class: "Pool",
-			Label: GetServiceName(service.ID),
-			Members: []PoolMember{{
+		var poolMembers []PoolMember
+		for _, port := range service.Ports {
+			poolMembers = append(poolMembers, PoolMember{
 				Enable:          true,
 				AdminState:      adminState,
 				RouteDomain:     service.SegmentId,
-				ServicePort:     service.Port,
+				ServicePort:     port,
 				ServerAddresses: serverAddresses,
 				Remark:          GetServiceName(service.ID),
-			}},
+			})
+		}
+
+		services[GetServicePoolName(service.ID)] = Pool{
+			Class:   "Pool",
+			Label:   GetServiceName(service.ID),
+			Members: poolMembers,
 			Monitors: []Pointer{
 				{BigIP: "/Common/cc_gwicmp_monitor"},
 			},

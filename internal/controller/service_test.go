@@ -34,6 +34,7 @@ var (
 		Name:        "test",
 		NetworkID:   &networkId,
 		IPAddresses: []strfmt.IPv4{"1.2.3.4"},
+		Ports:       []int32{0},
 		ProjectID:   testProject1,
 	}
 )
@@ -137,6 +138,34 @@ func (t *SuiteTest) TestServiceAZPost() {
 	res = t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1,
 		Body: &testServiceWithAZ}, nil)
 	assert.IsType(t.T(), &service.PostServiceCreated{}, res)
+}
+
+func (t *SuiteTest) TestServicePostPorts() {
+	// post and get
+	serviceId := t.createService(testService)
+	testServiceOtherPort := testService
+	testServiceOtherPort.Ports = []int32{8080, 9090, 10000}
+
+	res := t.c.GetServiceServiceIDHandler(
+		service.GetServiceServiceIDParams{HTTPRequest: &http.Request{}, ServiceID: serviceId},
+		nil)
+	assert.IsType(t.T(), &service.GetServiceServiceIDOK{}, res)
+}
+
+func (t *SuiteTest) TestServicePostConflicPorts() {
+	// post and get
+	t.createService(testService)
+
+	// same IP with same port overlap -> conflict
+	testServiceOtherPort := testService
+	testServiceOtherPort.Ports = []int32{0, 1234}
+
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &testServiceOtherPort},
+		nil)
+	assert.NotNil(t.T(), res)
+	assert.IsType(t.T(), &service.PostServiceConflict{}, res)
+	assert.Equal(t.T(), "Entry for network_id, ip_address and port(s) already exists.",
+		res.(*service.PostServiceConflict).Payload.Message)
 }
 
 func (t *SuiteTest) TestServicePostQuotaMet() {
@@ -322,6 +351,7 @@ func (t *SuiteTest) TestServiceDuplicatePayload() {
 		Name:             "test",
 		NetworkID:        &networkId,
 		IPAddresses:      []strfmt.IPv4{"1.2.3.4"},
+		Ports:            []int32{0},
 		AvailabilityZone: conv.Pointer("zone1"),
 	}
 
@@ -508,7 +538,8 @@ func (t *SuiteTest) TestPutServiceServiceIDAcceptEndpointHandlerMultipleServices
 	serviceID1 := t.createService(testService)
 
 	svcReqApproval.Name = "test2"
-	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &testService},
+	svcReqApproval.IPAddresses = []strfmt.IPv4{"2.3.4.5"}
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &svcReqApproval},
 		nil)
 	assert.NotNil(t.T(), res)
 	assert.IsType(t.T(), &service.PostServiceCreated{}, res)
@@ -533,4 +564,27 @@ func (t *SuiteTest) TestPutServiceServiceIDAcceptEndpointHandlerMultipleServices
 	assert.Len(t.T(), res.(*service.PutServiceServiceIDAcceptEndpointsOK).Payload, 1)
 	assert.Equal(t.T(), models.EndpointStatusPENDINGCREATE,
 		res.(*service.PutServiceServiceIDAcceptEndpointsOK).Payload[0].Status)
+}
+
+func (t *SuiteTest) TestServicePutConflictPorts() {
+	// post and get
+	svc := t.createService(testService)
+
+	testServiceOtherPort := testService
+	testServiceOtherPort.Ports = []int32{1234, 2345}
+
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &testServiceOtherPort},
+		nil)
+	assert.NotNil(t.T(), res)
+	assert.IsType(t.T(), &service.PostServiceCreated{}, res)
+
+	// update to port 2345 -> conflict
+	res = t.c.PutServiceServiceIDHandler(
+		service.PutServiceServiceIDParams{HTTPRequest: &headerProject1,
+			ServiceID: svc, Body: &models.ServiceUpdatable{Ports: []int32{2345, 3456}}},
+		nil)
+	assert.NotNil(t.T(), res)
+	assert.IsType(t.T(), &service.PutServiceServiceIDConflict{}, res)
+	assert.Equal(t.T(), "Entry for network_id, ip_address and port(s) already exists.",
+		res.(*service.PutServiceServiceIDConflict).Payload.Message)
 }

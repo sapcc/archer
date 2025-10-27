@@ -36,8 +36,8 @@ type EndpointList struct {
 
 type cliEndpoint struct {
 	*models.Endpoint
-	ServiceName string `json:"service_name"`
-	ServicePort int32  `json:"service_port"`
+	ServiceName  string  `json:"service_name"`
+	ServicePorts []int32 `json:"service_ports"`
 }
 
 func (*EndpointList) Execute(_ []string) error {
@@ -81,7 +81,7 @@ func (*EndpointShow) Execute(_ []string) error {
 		service.NewGetServiceServiceIDParams().WithServiceID(e.ServiceID),
 		nil); resp != nil && err == nil {
 		e.ServiceName = resp.GetPayload().Name
-		e.ServicePort = resp.GetPayload().Port
+		e.ServicePorts = resp.GetPayload().Ports
 	}
 
 	return WriteTable(e)

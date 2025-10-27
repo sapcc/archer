@@ -6,6 +6,7 @@ package controller
 
 import (
 	"context"
+	"os"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -16,9 +17,8 @@ import (
 	th "github.com/gophercloud/gophercloud/v2/testhelper"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pashagolub/pgxmock/v4"
-	"github.com/sapcc/go-bits/easypg"
-	"github.com/sapcc/go-bits/osext"
 	"github.com/stretchr/testify/suite"
+	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/z0ne-dev/mgx/v2"
 
 	"github.com/sapcc/archer/internal/config"
@@ -34,8 +34,10 @@ var (
 
 type SuiteTest struct {
 	suite.Suite
-	c          *Controller
-	fakeServer th.FakeServer
+	c           *Controller
+	fakeServer  th.FakeServer
+	ctx         context.Context
+	pgContainer *postgres.PostgresContainer
 }
 
 func TestSuite(t *testing.T) {
@@ -130,14 +132,27 @@ func (t *SuiteTest) ResetHttpServer() {
 	t.fakeServer = th.SetupPersistentPortHTTP(t.T(), 8931)
 }
 
-func TestMain(m *testing.M) {
-	easypg.WithTestDB(m, func() int { return m.Run() })
-}
-
 // Setup db value
 func (t *SuiteTest) SetupSuite() {
-	config.Global.Database.Connection = osext.GetenvOrDefault(
-		"DB_URL", "postgres://postgres:postgres@127.0.0.1:54320/postgres?sslmode=disable")
+	var ok bool
+	if config.Global.Database.Connection, ok = os.LookupEnv("DB_URL"); !ok {
+		t.ctx = context.Background()
+		var err error
+		if t.pgContainer, err = postgres.Run(t.ctx,
+			"postgres:16-alpine",
+			postgres.WithDatabase("test-db"),
+			postgres.WithUsername("postgres"),
+			postgres.WithPassword("postgres"),
+			postgres.BasicWaitStrategies(),
+		); err != nil {
+			t.FailNow("Failed starting postgres container", err)
+		}
+
+		if config.Global.Database.Connection, err = t.pgContainer.ConnectionString(t.ctx, "sslmode=disable"); err != nil {
+			t.FailNow("Failed getting connection string", err)
+		}
+	}
+
 	pool, err := pgxpool.New(context.Background(), config.Global.Database.Connection)
 	if err != nil {
 		t.FailNow("Failed connecting to Database", err)
@@ -180,6 +195,12 @@ func (t *SuiteTest) TearDownSuite() {
 
 	if _, err := t.c.pool.Exec(context.Background(), sql); err != nil {
 		t.FailNow("Failed cleanup", err)
+	}
+
+	if t.pgContainer != nil {
+		if err := t.pgContainer.Terminate(t.ctx); err != nil {
+			t.FailNow("Failed terminating postgres container", err)
+		}
 	}
 
 	t.fakeServer.Teardown()

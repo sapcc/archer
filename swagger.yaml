@@ -1114,7 +1114,7 @@ parameters:
 definitions:
   Service:
     required:
-      - port
+      - ports
       - network_id
       - ip_addresses
     type: object
@@ -1140,14 +1140,18 @@ definitions:
         example: An example of an Service.
         maxLength: 255
         x-omitempty: false
-      port:
-        type: integer
-        format: int32
-        minimum: 1
-        maximum: 65535
-        example: 80
-        description: Port exposed by the service.
+      ports:
+        type: array
+        items:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 65535
+          example: 80
+        description: Ports exposed by the service.
         x-nullable: false
+        minItems: 1
+        uniqueItems: true
       network_id:
         type: string
         format: uuid
@@ -1273,14 +1277,17 @@ definitions:
           format: ipv4
           description: IP Address of the providing service.
           example: 1.2.3.4
-      port:
-        type: integer
-        format: int32
-        minimum: 1
-        maximum: 65535
-        example: 80
-        description: Port exposed by the service.
-        x-nullable: true
+      ports:
+        type: array
+        items:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 65535
+          example: 80
+        description: Ports exposed by the service.
+        minItems: 0
+        uniqueItems: true
       require_approval:
         type: boolean
         description: Require explicit project approval for the service owner.

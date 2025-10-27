@@ -280,4 +280,12 @@ var Migrations = mgx.Migrations(
 		`)
 		return err
 	}),
+	mgx.NewMigration("port_array", func(ctx context.Context, commands mgx.Commands) error {
+		_, err := commands.Exec(ctx, `
+			ALTER TABLE service ALTER COLUMN port TYPE INTEGER[] USING ARRAY[port];
+			-- rename port to ports
+			ALTER TABLE service RENAME COLUMN port TO ports;
+		`)
+		return err
+	}),
 )

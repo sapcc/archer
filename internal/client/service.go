@@ -45,7 +45,7 @@ func (*ServiceList) Execute(_ []string) error {
 	if err != nil {
 		return err
 	}
-	DefaultColumns = []string{"id", "name", "port", "enabled", "provider", "status", "visibility", "availability_zone", "project_id"}
+	DefaultColumns = []string{"id", "name", "ports", "enabled", "provider", "status", "visibility", "availability_zone", "project_id"}
 	return WriteTable(resp.GetPayload().Items)
 }
 
@@ -73,7 +73,7 @@ type ServiceCreate struct {
 	Disable          bool          `long:"disable" description:"Disable service"`
 	Network          strfmt.UUID   `long:"network" description:"Network id" required:"true"`
 	IPAddresses      []strfmt.IPv4 `long:"ip-address" description:"IP Addresses of the providing service, multiple addresses will be round robin load balanced." required:"true"`
-	Port             int32         `long:"port" description:"Port exposed by the service" required:"true"`
+	Port             []int32       `long:"port" description:"Port exposed by the service (repeat option to set multiple ports)" required:"true"`
 	ProxyProtocol    bool          `long:"proxy-protocol" description:"Enable proxy protocol v2."`
 	RequireApproval  bool          `long:"require-approval" description:"Require explicit project approval for the service owner."`
 	Tags             []string      `long:"tag" description:"Tag to be added to the service (repeat option to set multiple tags)"`
@@ -92,7 +92,7 @@ func (*ServiceCreate) Execute(_ []string) error {
 		Enabled:          &enabled,
 		NetworkID:        &ServiceOptions.ServiceCreate.Network,
 		IPAddresses:      ServiceOptions.ServiceCreate.IPAddresses,
-		Port:             ServiceOptions.ServiceCreate.Port,
+		Ports:            ServiceOptions.ServiceCreate.Port,
 		ProxyProtocol:    &ServiceOptions.ServiceCreate.ProxyProtocol,
 		RequireApproval:  &ServiceOptions.ServiceCreate.RequireApproval,
 		Tags:             ServiceOptions.ServiceCreate.Tags,
@@ -125,7 +125,7 @@ type ServiceSet struct {
 	Disable         bool          `long:"disable" description:"Disable service" optional-value:"false"`
 	IPAddresses     []strfmt.IPv4 `long:"ip-address" description:"IP Addresses of the providing service, multiple addresses will be round robin load balanced."`
 	Name            *string       `long:"name" description:"Service name"`
-	Port            *int32        `long:"port" description:"Port exposed by the service"`
+	Port            []int32       `long:"port" description:"Port exposed by the service (repeat option to set multiple ports)"`
 	ProxyProtocol   *bool         `long:"proxy-protocol" description:"Enable proxy protocol v2."`
 	RequireApproval *bool         `long:"require-approval" description:"Require explicit project approval for the service owner."`
 	Visibility      *string       `long:"visibility" description:"Set global visibility of the service. For private visibility, RBAC policies can extend the visibility to specific projects" choice:"private" choice:"public"`
@@ -166,7 +166,7 @@ func (*ServiceSet) Execute(_ []string) error {
 		Enabled:         enabled,
 		IPAddresses:     ServiceOptions.ServiceSet.IPAddresses,
 		Name:            ServiceOptions.ServiceSet.Name,
-		Port:            ServiceOptions.ServiceSet.Port,
+		Ports:           ServiceOptions.ServiceSet.Port,
 		ProxyProtocol:   ServiceOptions.ServiceSet.ProxyProtocol,
 		RequireApproval: ServiceOptions.ServiceSet.RequireApproval,
 		Tags:            tags,

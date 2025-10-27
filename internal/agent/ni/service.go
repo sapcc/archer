@@ -29,7 +29,7 @@ func createService(tx pgx.Tx, serviceID *strfmt.UUID) error {
 			"require_approval",
 			"availability_zone",
 			"project_id",
-			"port",
+			"ports",
 			"host",
 			"ip_addresses",
 			"protocol").
@@ -43,7 +43,7 @@ func createService(tx pgx.Tx, serviceID *strfmt.UUID) error {
 			config.Global.Agent.ServiceRequireApproval,
 			config.Global.Default.AvailabilityZone,
 			config.Global.ServiceAuth.ProjectID,
-			config.Global.Agent.ServicePort,
+			[]int{config.Global.Agent.ServicePort},
 			config.Global.Default.Host,
 			[]string{},
 			config.Global.Agent.ServiceProtocol,
@@ -63,7 +63,7 @@ func (a *Agent) discoverService() error {
 		Where("host = ?", config.Global.Default.Host).
 		Where("availability_zone = ?", config.Global.Default.AvailabilityZone).
 		Where("name = ?", config.Global.Agent.ServiceName).
-		Where("port = ?", config.Global.Agent.ServicePort).
+		Where("ports[1] = ?", config.Global.Agent.ServicePort).
 		Where("provider = 'cp'").
 		ToSql()
 	if err != nil {
