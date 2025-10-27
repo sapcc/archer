@@ -19,10 +19,21 @@ repos:
     hooks:
       - id: go-fmt
       - id: go-imports
-      - id: go-unit-tests
-      - id: go-build
       - id: go-mod-tidy
-  - repo: https://github.com/fsfe/reuse-tool
-    rev: v5.0.2
+  - repo: local
     hooks:
-      - id: reuse
+      - id: go-unit
+        name: go unit tests
+        entry: sh -c "gmake check || make check"
+        language: system
+        pass_filenames: false
+      - id: swagger
+        name: swagger
+        entry: sh -c "gmake swagger || make swagger"
+        language: system
+        pass_filenames: false
+      - id: go-build
+        name: go build
+        entry: sh -c "gmake build-all || make build-all"
+        language: system
+        pass_filenames: false
