@@ -1504,7 +1504,7 @@ func init() {
       }
     },
     "EndpointStatus": {
-      "description": "Status of the endpoint\n\n### Status can be one of\n| Status             | Description                           |\n| ------------------ | ------------------------------------- |\n| AVAILABLE          | Endpoint is avaiable for consumption  |\n| PENDING_APPROVAL   | Endpoint is waiting for approval      |\n| PENDING_CREATE     | Endpoint is being set up              |\n| PENDING_UPDATE     | Endpoint is being updated             |\n| PENDING_REJECTED   | Endpoint is being rejected            |\n| PENDING_DELETE     | Endpoint is being deleted             |\n| REJECTED           | Endpoint was rejected                 |\n| FAILED             | Endpoint setup failed                 |\n",
+      "description": "Status of the endpoint\n\n### Status can be one of\n| Status             | Description                           |\n| ------------------ | ------------------------------------- |\n| AVAILABLE          | Endpoint is available for consumption  |\n| PENDING_APPROVAL   | Endpoint is waiting for approval      |\n| PENDING_CREATE     | Endpoint is being set up              |\n| PENDING_UPDATE     | Endpoint is being updated             |\n| PENDING_REJECTED   | Endpoint is being rejected            |\n| PENDING_DELETE     | Endpoint is being deleted             |\n| REJECTED           | Endpoint was rejected                 |\n| FAILED             | Endpoint setup failed                 |\n",
       "type": "string",
       "enum": [
         "AVAILABLE",
@@ -3607,7 +3607,7 @@ func init() {
       }
     },
     "EndpointStatus": {
-      "description": "Status of the endpoint\n\n### Status can be one of\n| Status             | Description                           |\n| ------------------ | ------------------------------------- |\n| AVAILABLE          | Endpoint is avaiable for consumption  |\n| PENDING_APPROVAL   | Endpoint is waiting for approval      |\n| PENDING_CREATE     | Endpoint is being set up              |\n| PENDING_UPDATE     | Endpoint is being updated             |\n| PENDING_REJECTED   | Endpoint is being rejected            |\n| PENDING_DELETE     | Endpoint is being deleted             |\n| REJECTED           | Endpoint was rejected                 |\n| FAILED             | Endpoint setup failed                 |\n",
+      "description": "Status of the endpoint\n\n### Status can be one of\n| Status             | Description                           |\n| ------------------ | ------------------------------------- |\n| AVAILABLE          | Endpoint is available for consumption  |\n| PENDING_APPROVAL   | Endpoint is waiting for approval      |\n| PENDING_CREATE     | Endpoint is being set up              |\n| PENDING_UPDATE     | Endpoint is being updated             |\n| PENDING_REJECTED   | Endpoint is being rejected            |\n| PENDING_DELETE     | Endpoint is being deleted             |\n| REJECTED           | Endpoint was rejected                 |\n| FAILED             | Endpoint setup failed                 |\n",
       "type": "string",
       "enum": [
         "AVAILABLE",

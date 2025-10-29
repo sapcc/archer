@@ -35,7 +35,7 @@ import (
 // ### Status can be one of
 // | Status             | Description                           |
 // | ------------------ | ------------------------------------- |
-// | AVAILABLE          | Endpoint is avaiable for consumption  |
+// | AVAILABLE          | Endpoint is available for consumption  |
 // | PENDING_APPROVAL   | Endpoint is waiting for approval      |
 // | PENDING_CREATE     | Endpoint is being set up              |
 // | PENDING_UPDATE     | Endpoint is being updated             |
