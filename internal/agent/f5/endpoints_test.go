@@ -128,13 +128,13 @@ var PostBigIPFixture = &as3.AS3{
 					"si-endpoints": {
 						Class:    "Application",
 						Template: "generic", Services: map[string]any{
-							"endpoint-95dbe813-62f9-47f1-90ba-09f2dadcaefa": as3.Service{
-								Label:      "endpoint-95dbe813-62f9-47f1-90ba-09f2dadcaefa",
+							"endpoint-80-95dbe813-62f9-47f1-90ba-09f2dadcaefa": as3.Service{
+								Label:      "endpoint-80-95dbe813-62f9-47f1-90ba-09f2dadcaefa",
 								Class:      "Service_L4",
 								AllowVlans: []string{"/Common/vlan-123"},
 								IRules:     []as3.Pointer{}, Mirroring: "L4",
 								PersistanceMethods: []string{}, Pool: as3.Pointer{
-									BigIP: "/Common/Shared/pool-a0a0a0a0-a0a0-4a0a-8a0a-0a0a0a0a0a0a"},
+									BigIP: "/Common/Shared/pool-a0a0a0a0-a0a0-4a0a-8a0a-0a0a0a0a0a0a-80"},
 								ProfileL4:  &as3.Pointer{BigIP: "/Common/cc_fastL4_noaging_profile"},
 								ProfileTCP: &as3.Pointer{BigIP: "/Common/cc_tcp_archer_profile"},
 								Snat: as3.Pointer{
@@ -229,11 +229,11 @@ func TestAgent_ProcessEndpoint(t *testing.T) {
 	dbMock.ExpectQuery("SELECT network, subnet FROM endpoint_port WHERE endpoint_id = $1").
 		WithArgs(endpoint).
 		WillReturnRows(pgxmock.NewRows([]string{"network", "subnet"}).AddRow(network, subnet.String()))
-	dbMock.ExpectQuery("SELECT endpoint.*, service.port AS service_port_nr, service.proxy_protocol, service.network_id AS service_network_id, endpoint_port.segment_id, endpoint_port.port_id AS \"target.port\", endpoint_port.network AS \"target.network\", endpoint_port.subnet AS \"target.subnet\", endpoint_port.owned FROM endpoint INNER JOIN service ON endpoint.service_id = service.id JOIN endpoint_port ON endpoint_id = endpoint.id WHERE endpoint.status NOT IN ($1,$2) AND network = $3 AND service.host = $4 AND service.provider = $5 FOR UPDATE OF endpoint").
+	dbMock.ExpectQuery("SELECT endpoint.*, service.ports AS service_ports, service.proxy_protocol, service.network_id AS service_network_id, endpoint_port.segment_id, endpoint_port.port_id AS \"target.port\", endpoint_port.network AS \"target.network\", endpoint_port.subnet AS \"target.subnet\", endpoint_port.owned FROM endpoint INNER JOIN service ON endpoint.service_id = service.id JOIN endpoint_port ON endpoint_id = endpoint.id WHERE endpoint.status NOT IN ($1,$2) AND network = $3 AND service.host = $4 AND service.provider = $5 FOR UPDATE OF endpoint").
 		WithArgs(models.EndpointStatusPENDINGAPPROVAL, models.EndpointStatusREJECTED, network, config.Global.Default.Host, models.ServiceProviderTenant).
 		WillReturnRows(pgxmock.
-			NewRows([]string{"id", "service_id", "name", "service_port_nr", "proxy_protocol", "service_network_id", "segment_id", "target.port", "target.network", "target.subnet"}).
-			AddRow(endpoint, service, "test-service", int32(80), false, serviceNetwork, nil, &port, &network, &subnet))
+			NewRows([]string{"id", "service_id", "name", "service_ports", "proxy_protocol", "service_network_id", "segment_id", "target.port", "target.network", "target.subnet"}).
+			AddRow(endpoint, service, "test-service", []int32{80}, false, serviceNetwork, nil, &port, &network, &subnet))
 	dbMock.ExpectExec("UPDATE endpoint_port SET segment_id = $1 WHERE endpoint_id = $2").
 		WithArgs(123, endpoint).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
@@ -292,11 +292,11 @@ func TestAgent_DeleteEndpointWithDeletedNetwork(t *testing.T) {
 	dbMock.ExpectQuery("SELECT network, subnet FROM endpoint_port WHERE endpoint_id = $1").
 		WithArgs(endpoint).
 		WillReturnRows(pgxmock.NewRows([]string{"network", "subnet"}).AddRow(network, subnet.String()))
-	dbMock.ExpectQuery("SELECT endpoint.*, service.port AS service_port_nr, service.proxy_protocol, service.network_id AS service_network_id, endpoint_port.segment_id, endpoint_port.port_id AS \"target.port\", endpoint_port.network AS \"target.network\", endpoint_port.subnet AS \"target.subnet\", endpoint_port.owned FROM endpoint INNER JOIN service ON endpoint.service_id = service.id JOIN endpoint_port ON endpoint_id = endpoint.id WHERE endpoint.status NOT IN ($1,$2) AND network = $3 AND service.host = $4 AND service.provider = $5 FOR UPDATE OF endpoint").
+	dbMock.ExpectQuery("SELECT endpoint.*, service.ports AS service_ports, service.proxy_protocol, service.network_id AS service_network_id, endpoint_port.segment_id, endpoint_port.port_id AS \"target.port\", endpoint_port.network AS \"target.network\", endpoint_port.subnet AS \"target.subnet\", endpoint_port.owned FROM endpoint INNER JOIN service ON endpoint.service_id = service.id JOIN endpoint_port ON endpoint_id = endpoint.id WHERE endpoint.status NOT IN ($1,$2) AND network = $3 AND service.host = $4 AND service.provider = $5 FOR UPDATE OF endpoint").
 		WithArgs(models.EndpointStatusPENDINGAPPROVAL, models.EndpointStatusREJECTED, network, config.Global.Default.Host, models.ServiceProviderTenant).
 		WillReturnRows(pgxmock.
-			NewRows([]string{"id", "service_id", "status", "name", "service_port_nr", "proxy_protocol", "service_network_id", "segment_id", "target.port", "target.network", "target.subnet"}).
-			AddRow(endpoint, service, models.EndpointStatusPENDINGDELETE, "test-service", int32(80), false, serviceNetwork, nil, &port, &network, &subnet))
+			NewRows([]string{"id", "service_id", "status", "name", "service_ports", "proxy_protocol", "service_network_id", "segment_id", "target.port", "target.network", "target.subnet"}).
+			AddRow(endpoint, service, models.EndpointStatusPENDINGDELETE, "test-service", []int32{80}, false, serviceNetwork, nil, &port, &network, &subnet))
 	dbMock.ExpectExec("SELECT 1 FROM service WHERE network_id = $1 AND host = $2 AND provider = $3").
 		WithArgs(network.String(), config.Global.Default.Host, models.ServiceProviderTenant).
 		WillReturnResult(pgxmock.NewResult("SELECT", 0))
@@ -340,10 +340,10 @@ func TestAgent_TestEndpointRequiringApproval(t *testing.T) {
 	dbMock.ExpectQuery("SELECT network, subnet FROM endpoint_port WHERE endpoint_id = $1").
 		WithArgs(endpoint).
 		WillReturnRows(pgxmock.NewRows([]string{"network", "subnet"}).AddRow(network, subnet.String()))
-	dbMock.ExpectQuery("SELECT endpoint.*, service.port AS service_port_nr, service.proxy_protocol, service.network_id AS service_network_id, endpoint_port.segment_id, endpoint_port.port_id AS \"target.port\", endpoint_port.network AS \"target.network\", endpoint_port.subnet AS \"target.subnet\", endpoint_port.owned FROM endpoint INNER JOIN service ON endpoint.service_id = service.id JOIN endpoint_port ON endpoint_id = endpoint.id WHERE endpoint.status NOT IN ($1,$2) AND network = $3 AND service.host = $4 AND service.provider = $5 FOR UPDATE OF endpoint").
+	dbMock.ExpectQuery("SELECT endpoint.*, service.ports AS service_ports, service.proxy_protocol, service.network_id AS service_network_id, endpoint_port.segment_id, endpoint_port.port_id AS \"target.port\", endpoint_port.network AS \"target.network\", endpoint_port.subnet AS \"target.subnet\", endpoint_port.owned FROM endpoint INNER JOIN service ON endpoint.service_id = service.id JOIN endpoint_port ON endpoint_id = endpoint.id WHERE endpoint.status NOT IN ($1,$2) AND network = $3 AND service.host = $4 AND service.provider = $5 FOR UPDATE OF endpoint").
 		WithArgs(models.EndpointStatusPENDINGAPPROVAL, models.EndpointStatusREJECTED, network, config.Global.Default.Host, models.ServiceProviderTenant).
 		WillReturnRows(pgxmock.
-			NewRows([]string{"id", "service_id", "status", "name", "service_port_nr", "proxy_protocol", "service_network_id", "segment_id", "target.port", "target.network", "target.subnet"}))
+			NewRows([]string{"id", "service_id", "status", "name", "service_ports", "proxy_protocol", "service_network_id", "segment_id", "target.port", "target.network", "target.subnet"}))
 
 	if err = agent.ProcessEndpoint(context.Background(), endpoint); err != nil {
 		t.Errorf("Agent.ProcessEndpoint() error = %v", err)

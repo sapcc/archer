@@ -133,7 +133,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 
 	// Sync endpoint segment cache, is a no-op if already cached
 	sql, args = db.Select("endpoint.*",
-		"service.port AS service_port_nr",
+		"service.ports AS service_ports",
 		"service.proxy_protocol",
 		"service.network_id AS service_network_id",
 		"endpoint_port.segment_id",

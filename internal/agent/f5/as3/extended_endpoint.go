@@ -15,7 +15,7 @@ import (
 type ExtendedEndpoint struct {
 	models.Endpoint
 	Port             *ports.Port
-	ServicePortNr    int32
+	ServicePorts     []int32
 	ServiceNetworkId strfmt.UUID
 	SegmentId        *int
 	ProxyProtocol    bool
