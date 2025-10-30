@@ -18,8 +18,8 @@ func GetServiceSnatPoolName(Id strfmt.UUID) string {
 	return fmt.Sprintf("snatpool-%s", Id)
 }
 
-func GetServicePoolName(Id strfmt.UUID) string {
-	return fmt.Sprintf("pool-%s", Id)
+func GetServicePoolName(Id strfmt.UUID, Port int32) string {
+	return fmt.Sprintf("pool-%s-%d", Id, Port)
 }
 
 func GetServiceName(Id strfmt.UUID) string {
@@ -89,15 +89,15 @@ func GetServiceTenants(endpointServices []*ExtendedService) Tenant {
 				ServerAddresses: serverAddresses,
 				Remark:          GetServiceName(service.ID),
 			})
-		}
 
-		services[GetServicePoolName(service.ID)] = Pool{
-			Class:   "Pool",
-			Label:   GetServiceName(service.ID),
-			Members: poolMembers,
-			Monitors: []Pointer{
-				{BigIP: "/Common/cc_gwicmp_monitor"},
-			},
+			services[GetServicePoolName(service.ID, port)] = Pool{
+				Class:   "Pool",
+				Label:   GetServicePoolName(service.ID, port),
+				Members: poolMembers,
+				Monitors: []Pointer{
+					{BigIP: "/Common/cc_gwicmp_monitor"},
+				},
+			}
 		}
 	}
 
@@ -124,7 +124,6 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 
 		endpointName := fmt.Sprintf("endpoint-%s", endpoint.ID)
 		iRuleName := fmt.Sprintf("irule-%s", endpoint.ID)
-		pool := fmt.Sprintf("/Common/Shared/%s", GetServicePoolName(endpoint.ServiceID))
 		snat := fmt.Sprintf("/Common/Shared/%s", GetServiceSnatPoolName(endpoint.ServiceID))
 		var virtualAddresses []string
 		for _, fixedIP := range endpoint.Port.FixedIPs {
@@ -151,22 +150,27 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 			l4profile = &Pointer{BigIP: config.Global.Agent.L4Profile}
 		}
 
-		services[endpointName] = Service{
-			Label:               endpointName,
-			Class:               class,
-			IRules:              iRules,
-			Mirroring:           "L4",
-			PersistanceMethods:  []string{},
-			Pool:                Pointer{BigIP: pool},
-			ProfileL4:           l4profile,
-			ProfileTCP:          &Pointer{BigIP: config.Global.Agent.TCPProfile},
-			Snat:                Pointer{BigIP: snat},
-			TranslateServerPort: true,
-			VirtualPort:         endpoint.ServicePortNr,
-			AllowVlans: []string{
-				fmt.Sprintf("/Common/vlan-%d", *endpoint.SegmentId),
-			},
-			VirtualAddresses: virtualAddresses,
+		for _, port := range endpoint.ServicePorts {
+			endpointName = fmt.Sprintf("endpoint-%d-%s", port, endpoint.ID)
+			pool := fmt.Sprintf("/Common/Shared/%s", GetServicePoolName(endpoint.ServiceID, port))
+
+			services[endpointName] = Service{
+				Label:               endpointName,
+				Class:               class,
+				IRules:              iRules,
+				Mirroring:           "L4",
+				PersistanceMethods:  []string{},
+				Pool:                Pointer{BigIP: pool},
+				ProfileL4:           l4profile,
+				ProfileTCP:          &Pointer{BigIP: config.Global.Agent.TCPProfile},
+				Snat:                Pointer{BigIP: snat},
+				TranslateServerPort: true,
+				VirtualPort:         port,
+				AllowVlans: []string{
+					fmt.Sprintf("/Common/vlan-%d", *endpoint.SegmentId),
+				},
+				VirtualAddresses: virtualAddresses,
+			}
 		}
 	}
 

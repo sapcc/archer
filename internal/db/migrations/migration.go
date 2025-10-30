@@ -285,6 +285,8 @@ var Migrations = mgx.Migrations(
 			ALTER TABLE service ALTER COLUMN port TYPE INTEGER[] USING ARRAY[port];
 			-- rename port to ports
 			ALTER TABLE service RENAME COLUMN port TO ports;
+			UPDATE service SET status = 'PENDING_UPDATE' WHERE status = 'AVAILABLE';
+			UPDATE endpoint SET status = 'PENDING_UPDATE' WHERE status = 'AVAILABLE';
 		`)
 		return err
 	}),
