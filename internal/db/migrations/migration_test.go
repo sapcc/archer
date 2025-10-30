@@ -9,41 +9,31 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/sapcc/go-bits/easypg"
-	"github.com/sapcc/go-bits/osext"
+	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/z0ne-dev/mgx/v2"
 )
 
-func connectToDatabase(t *testing.T) *pgx.Conn {
-	t.Helper()
-
-	// create db connection
-	url := osext.GetenvOrDefault(
-		"DB_URL", "postgres://postgres:postgres@127.0.0.1:54320/postgres?sslmode=disable")
-	if url == "" {
-		t.Fatal("DB_URL env variable is not set")
+func TestMigrate(t *testing.T) {
+	// start postgres container
+	pgContainer, err := postgres.Run(t.Context(),
+		"postgres:16-alpine",
+		postgres.BasicWaitStrategies(),
+	)
+	if err != nil {
+		t.Fatal("Failed starting postgres container", err)
 	}
+	defer func(pgContainer *postgres.PostgresContainer, ctx context.Context) {
+		if err := pgContainer.Terminate(ctx); err != nil {
+			t.Fatal("Failed terminating postgres container", err)
+		}
+	}(pgContainer, t.Context())
 
+	// connect to database
+	url := pgContainer.MustConnectionString(t.Context(), "sslmode=disable")
 	db, err := pgx.Connect(context.Background(), url)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("Failed connecting to database", err)
 	}
-
-	if _, err := db.Exec(context.Background(), "DROP SCHEMA public CASCADE"); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := db.Exec(context.Background(), "CREATE SCHEMA public"); err != nil {
-		t.Fatal(err)
-	}
-	return db
-}
-
-func TestMain(m *testing.M) {
-	easypg.WithTestDB(m, func() int { return m.Run() })
-}
-
-func TestMigrate(t *testing.T) {
-	db := connectToDatabase(t)
 	defer func(db *pgx.Conn, ctx context.Context) {
 		_ = db.Close(ctx)
 	}(db, context.Background())
