@@ -9,11 +9,16 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/sapcc/go-bits/osext"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/z0ne-dev/mgx/v2"
 )
 
 func TestMigrate(t *testing.T) {
+	if osext.GetenvBool("CHECK_SKIPS_FUNCTIONAL_TEST") {
+		t.Skip("Skipping migration test as CHECK_SKIPS_FUNCTIONAL_TEST is set")
+	}
+
 	// start postgres container
 	pgContainer, err := postgres.Run(t.Context(),
 		"postgres:16-alpine",
