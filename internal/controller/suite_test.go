@@ -17,6 +17,7 @@ import (
 	th "github.com/gophercloud/gophercloud/v2/testhelper"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pashagolub/pgxmock/v4"
+	"github.com/sapcc/go-bits/osext"
 	"github.com/stretchr/testify/suite"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/z0ne-dev/mgx/v2"
@@ -223,4 +224,11 @@ func (t *SuiteTest) AfterTest(_, _ string) {
 
 	t.ResetHttpServer()
 	t.c.neutron.ResetCache()
+}
+
+// Run Before a Test
+func (t *SuiteTest) BeforeTest(_, _ string) {
+	if osext.GetenvBool("CHECK_SKIPS_FUNCTIONAL_TEST") {
+		t.T().Skip("Skipping functional test as CHECK_SKIPS_FUNCTIONAL_TEST is set")
+	}
 }
