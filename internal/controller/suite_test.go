@@ -135,6 +135,11 @@ func (t *SuiteTest) ResetHttpServer() {
 
 // Setup db value
 func (t *SuiteTest) SetupSuite() {
+	// this flag is set in CI jobs where running rootless Docker is not possible
+	if osext.GetenvBool("CHECK_SKIPS_FUNCTIONAL_TEST") {
+		t.T().Skip("Skipping functional test as CHECK_SKIPS_FUNCTIONAL_TEST is set")
+	}
+
 	var ok bool
 	if config.Global.Database.Connection, ok = os.LookupEnv("DB_URL"); !ok {
 		t.ctx = context.Background()
@@ -224,11 +229,4 @@ func (t *SuiteTest) AfterTest(_, _ string) {
 
 	t.ResetHttpServer()
 	t.c.neutron.ResetCache()
-}
-
-// Run Before a Test
-func (t *SuiteTest) BeforeTest(_, _ string) {
-	if osext.GetenvBool("CHECK_SKIPS_FUNCTIONAL_TEST") {
-		t.T().Skip("Skipping functional test as CHECK_SKIPS_FUNCTIONAL_TEST is set")
-	}
 }
