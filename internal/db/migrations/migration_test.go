@@ -15,6 +15,7 @@ import (
 )
 
 func TestMigrate(t *testing.T) {
+	// this flag is set in CI jobs where running rootless Docker is not possible
 	if osext.GetenvBool("CHECK_SKIPS_FUNCTIONAL_TEST") {
 		t.Skip("Skipping migration test as CHECK_SKIPS_FUNCTIONAL_TEST is set")
 	}
