@@ -171,7 +171,7 @@ func (t *SuiteTest) TestRbacServiceCascadeDelete() {
 	assert.IsType(t.T(), &service.DeleteServiceServiceIDAccepted{}, res)
 
 	// emulate real delete from backend
-	sql := `DELETE FROM service WHERE id = $1 and status = 'PENDING_DELETE'`
+	sql := `DELETE FROM service WHERE id = $1 and status = '` + models.ServiceStatusPENDINGDELETE + `'`
 	ct, err := t.c.pool.Exec(context.Background(), sql, serviceId)
 	assert.Nil(t.T(), err)
 	assert.NotZero(t.T(), ct.RowsAffected())
