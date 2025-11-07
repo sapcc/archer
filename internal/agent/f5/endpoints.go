@@ -298,6 +298,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 				Update("endpoint").
 				Set("status", models.EndpointStatusREJECTED).
 				Set("updated_at", sq.Expr("NOW()")).
+				Where("id = ?", endpoint.ID).
 				MustSql()
 		case models.EndpointStatusPENDINGDELETE:
 			// Delete endpoint neutron port, if it exists and is owned by the agent

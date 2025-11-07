@@ -164,7 +164,7 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 	   L2 Configuration
 	   ================================================== */
 	for _, service := range services {
-		if service.Status != "PENDING_DELETE" {
+		if service.Status != models.ServiceStatusPENDINGDELETE {
 			if err := a.EnsureL2(ctx, service.SegmentId, nil, service.MTU); err != nil {
 				return err
 			}
@@ -189,7 +189,7 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 	   L2 Configuration Cleanup
 	   ================================================== */
 	for _, service := range services {
-		if service.Status == "PENDING_DELETE" {
+		if service.Status == models.ServiceStatusPENDINGDELETE {
 			logWith := log.WithField("service", service.ID)
 			service := service
 
