@@ -78,3 +78,7 @@ verbatim: |
 
 coverageTest:
   only: '/internal'
+
+goReleaser:
+  createConfig: true
+  files: [ LICENSES/**, LICENSE, README.md ]
