@@ -14,7 +14,7 @@ archives:
       - README.md
 
 builds:
-  - binary: 'archer-server'
+  - binary: 'archerctl'
     env:
       - CGO_ENABLED=0
     goos:
@@ -29,11 +29,11 @@ builds:
         goarch: arm64
     ldflags:
       - -s -w
-      - -X github.com/sapcc/go-api-declarations/bininfo.binName=archer-server
+      - -X github.com/sapcc/go-api-declarations/bininfo.binName=archerctl
       - -X github.com/sapcc/go-api-declarations/bininfo.version={{ .Version }}
       - -X github.com/sapcc/go-api-declarations/bininfo.commit={{ .FullCommit  }}
       - -X github.com/sapcc/go-api-declarations/bininfo.buildDate={{ .CommitDate }} # use CommitDate instead of Date for reproducibility
-    main: ./cmd/archer-server
+    main: ./cmd/archerctl
     # Set the modified timestamp on the output binary to ensure that builds are reproducible.
     mod_timestamp: "{{ .CommitTimestamp }}"
 

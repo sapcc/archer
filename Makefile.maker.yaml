@@ -82,3 +82,4 @@ coverageTest:
 goReleaser:
   createConfig: true
   files: [ LICENSES/**, LICENSE, README.md ]
+  binaryName: archerctl
