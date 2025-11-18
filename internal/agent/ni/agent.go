@@ -149,8 +149,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
 		var si ServiceInjection
 		var err error
 
-		sql, args := db.Select("e.id", "e.status", "ep.port_id", "ep.network", "ep.ip_address",
-			"s.port", "s.protocol").
+		sql, args := db.Select("e.id", "e.status", "ep.port_id", "ep.network", "ep.ip_address", "s.protocol").
 			From("endpoint e").
 			Join("endpoint_port ep ON ep.endpoint_id = e.id").
 			Join("service s ON s.id = service_id").

@@ -24,7 +24,6 @@ type ServiceInjection struct {
 	PortId    strfmt.UUID
 	Network   strfmt.UUID
 	IpAddress strfmt.IPv4
-	Port      int
 	Protocol  string
 }
 
