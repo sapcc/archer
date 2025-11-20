@@ -27,7 +27,7 @@ require (
 	github.com/go-openapi/swag/conv v0.25.1
 	github.com/go-openapi/validate v0.25.1
 	github.com/google/uuid v1.6.0
-	github.com/gophercloud/gophercloud/v2 v2.8.0
+	github.com/gophercloud/gophercloud/v2 v2.9.0
 	github.com/gophercloud/utils/v2 v2.0.0-20251103115625-7dba497d90f8
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/golang-lru/v2 v2.0.7
@@ -42,7 +42,7 @@ require (
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rs/cors v1.11.1
 	github.com/sapcc/go-api-declarations v1.17.4
-	github.com/sapcc/go-bits v0.0.0-20251113131016-b7245870e76e
+	github.com/sapcc/go-bits v0.0.0-20251119215428-a048ca8f6eba
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.11.1
@@ -128,7 +128,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
-	github.com/prometheus/common v0.67.2 // indirect
+	github.com/prometheus/common v0.67.3 // indirect
 	github.com/prometheus/procfs v0.17.0 // indirect
 	github.com/rabbitmq/amqp091-go v1.10.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
