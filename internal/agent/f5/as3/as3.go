@@ -79,16 +79,15 @@ func GetServiceTenants(endpointServices []*ExtendedService) Tenant {
 			adminState = "disable"
 		}
 
-		var poolMembers []PoolMember
 		for _, port := range service.Ports {
-			poolMembers = append(poolMembers, PoolMember{
+			poolMembers := []PoolMember{{
 				Enable:          true,
 				AdminState:      adminState,
 				RouteDomain:     service.SegmentId,
 				ServicePort:     port,
 				ServerAddresses: serverAddresses,
 				Remark:          GetServiceName(service.ID),
-			})
+			}}
 
 			services[GetServicePoolName(service.ID, port)] = Pool{
 				Class:   "Pool",
