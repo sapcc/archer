@@ -38,7 +38,7 @@ RUN apk add --no-cache --no-progress git make py3-pip postgresql \
 COPY --from=builder /go /go
 COPY --from=builder /src /src
 
-RUN make -C /src static-check
+RUN CHECK_SKIPS_FUNCTIONAL_TEST=true make -C /src static-check
 
 # Some things like postgres do not like to run as root. For simplicity, just always run as an unprivileged user,
 # but for it to be able to read the go cache, we need to allow it.

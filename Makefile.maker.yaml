@@ -22,6 +22,8 @@ binaries:
 
 dockerfile:
   enabled: true
+  checkEnv:
+    - CHECK_SKIPS_FUNCTIONAL_TEST=true
   entrypoint: [ "/usr/bin/archer-server" ]
   extraPackages: [ "haproxy" ]
   extraBuildDirectives:
