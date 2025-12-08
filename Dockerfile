@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company
 # SPDX-License-Identifier: Apache-2.0
 
-FROM golang:1.25.4-alpine3.22 AS builder
+FROM golang:1.25.5-alpine3.23 AS builder
 
 RUN apk add --no-cache --no-progress ca-certificates gcc git make musl-dev
 
@@ -20,7 +20,7 @@ RUN wget https://cacerts.digicert.com/DigiCertGlobalG2TLSRSASHA2562020CA1-1.crt.
 # To only build the tests run: docker build . --target test
 # We can't do `FROM builder AS test` here, as then make prepare-static-check would not be cached during interactive use when developing
 # and caching all the tools, especially golangci-lint, takes a few minutes.
-FROM golang:1.25.4-alpine3.22 AS test
+FROM golang:1.25.5-alpine3.23 AS test
 
 COPY Makefile /src/Makefile
 
@@ -50,7 +50,7 @@ RUN cd /src \
 
 ################################################################################
 
-FROM alpine:3.22
+FROM alpine:3.23
 
 # upgrade all installed packages to fix potential CVEs in advance
 # also remove apk package manager to hopefully remove dependency on OpenSSL 🤞
