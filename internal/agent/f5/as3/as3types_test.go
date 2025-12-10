@@ -38,7 +38,7 @@ func TestApplication_MarshalJSON(t *testing.T) {
 					AllowVlans:          nil,
 					IRules:              nil,
 					Mirroring:           "",
-					PersistanceMethods:  nil,
+					PersistenceMethods:  nil,
 					Pool:                Pointer{},
 					ProfileL4:           nil,
 					ProfileTCP:          nil,

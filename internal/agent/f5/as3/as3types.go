@@ -130,7 +130,7 @@ type Service struct {
 	AllowVlans          []string  `json:"allowVlans"`
 	IRules              []Pointer `json:"iRules"`
 	Mirroring           string    `json:"mirroring"`
-	PersistanceMethods  []string  `json:"persistenceMethods"`
+	PersistenceMethods  []string  `json:"persistenceMethods"`
 	Pool                Pointer   `json:"pool"`
 	ProfileL4           *Pointer  `json:"profileL4,omitempty"`
 	ProfileTCP          *Pointer  `json:"profileTCP,omitempty"`
