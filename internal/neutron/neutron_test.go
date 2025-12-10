@@ -68,7 +68,7 @@ func TestNeutronClient_GetNetworkSegment404(t *testing.T) {
 	assert.ErrorContains(t, err, "no physical network found, network not found")
 }
 
-func TestNeutronClient_GetNetworkSegmentMising(t *testing.T) {
+func TestNeutronClient_GetNetworkSegmentMissing(t *testing.T) {
 	fakeServer := th.SetupPersistentPortHTTP(t, 8931)
 	defer fakeServer.Teardown()
 	config.Global.Agent.PhysicalNetwork = "physnet2"

@@ -158,7 +158,7 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 				Class:               class,
 				IRules:              iRules,
 				Mirroring:           "L4",
-				PersistanceMethods:  []string{},
+				PersistenceMethods:  []string{},
 				Pool:                Pointer{BigIP: pool},
 				ProfileL4:           l4profile,
 				ProfileTCP:          &Pointer{BigIP: config.Global.Agent.TCPProfile},

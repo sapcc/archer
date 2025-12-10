@@ -152,7 +152,7 @@ func (t *SuiteTest) TestServicePostPorts() {
 	assert.IsType(t.T(), &service.GetServiceServiceIDOK{}, res)
 }
 
-func (t *SuiteTest) TestServicePostConflicPorts() {
+func (t *SuiteTest) TestServicePostConflictPorts() {
 	// post and get
 	t.createService(testService)
 
