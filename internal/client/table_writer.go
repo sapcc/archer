@@ -80,7 +80,7 @@ func getIndexMap(v reflect.Value) ([][]int, []any, error) {
 				for tagName := range Mapper.TypeMap(v.Type()).Names {
 					names = append(names, tagName)
 				}
-				err := fmt.Errorf("column '%s' is not a valid column filter, possbile filters: %+v",
+				err := fmt.Errorf("column '%s' is not a valid column filter, possible filters: %+v",
 					filterColumns[column], names)
 				return nil, nil, err
 			}

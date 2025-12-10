@@ -216,7 +216,7 @@ func (t *SuiteTest) TestEndpointTargetPortNotSameProject() {
 		res.(*endpoint.PostEndpointBadRequest).Payload.Message)
 }
 
-func (t *SuiteTest) TestEndpointTargetPortMissingIPAdddress() {
+func (t *SuiteTest) TestEndpointTargetPortMissingIPAddress() {
 	serviceId := t.createService(testService)
 	portId := strfmt.UUID("89f3b416-affd-4e4f-8468-f9fc5f141cd9")
 	s := models.Endpoint{
