@@ -23,11 +23,11 @@ import (
 
 // EnsureL2 ensures that L2 configuration exists on BIG-IP Guest(s) and Host(s) for the given segmentID.
 func (a *Agent) EnsureL2(ctx context.Context, segmentID int, parentSegmentID *int, mtu int) error {
-	printSegementID := "nil"
+	printSegmentID := "nil"
 	if parentSegmentID != nil {
-		printSegementID = fmt.Sprint(*parentSegmentID)
+		printSegmentID = fmt.Sprint(*parentSegmentID)
 	}
-	log.WithFields(log.Fields{"segmentID": segmentID, "parentSegmentID": printSegementID}).Debug("EnsureL2")
+	log.WithFields(log.Fields{"segmentID": segmentID, "parentSegmentID": printSegmentID}).Debug("EnsureL2")
 
 	g, _ := errgroup.WithContext(ctx)
 	g.Go(func() error {

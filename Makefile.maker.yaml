@@ -84,3 +84,8 @@ goReleaser:
   createConfig: true
   files: [ LICENSES/**, LICENSE, README.md ]
   binaryName: archerctl
+
+typos:
+  enabled: true
+  extendWords:
+    recovr: recovr

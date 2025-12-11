@@ -133,7 +133,7 @@ var PostBigIPFixture = &as3.AS3{
 								Class:      "Service_L4",
 								AllowVlans: []string{"/Common/vlan-123"},
 								IRules:     []as3.Pointer{}, Mirroring: "L4",
-								PersistanceMethods: []string{}, Pool: as3.Pointer{
+								PersistenceMethods: []string{}, Pool: as3.Pointer{
 									BigIP: "/Common/Shared/pool-a0a0a0a0-a0a0-4a0a-8a0a-0a0a0a0a0a0a-80"},
 								ProfileL4:  &as3.Pointer{BigIP: "/Common/cc_fastL4_noaging_profile"},
 								ProfileTCP: &as3.Pointer{BigIP: "/Common/cc_tcp_archer_profile"},

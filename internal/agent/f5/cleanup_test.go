@@ -61,8 +61,8 @@ func TestAgent_TestGetUsedSegments(t *testing.T) {
 		neutron: &neutronClient,
 	}
 
-	var segementID pgtype.Int4
-	_ = segementID.Scan(int64(123))
+	var segmentID pgtype.Int4
+	_ = segmentID.Scan(int64(123))
 	var epNetworkID pgtype.UUID
 	_ = epNetworkID.Scan(someOtherNetwork)
 
@@ -71,7 +71,7 @@ func TestAgent_TestGetUsedSegments(t *testing.T) {
 		ExpectQuery(sql).
 		WithArgs("host-123", models.ServiceProviderTenant).
 		WillReturnRows(pgxmock.NewRows([]string{"network_id", "segment_id", "network"}).
-			AddRow(serviceNetwork, segementID, epNetworkID).
+			AddRow(serviceNetwork, segmentID, epNetworkID).
 			AddRow(someOtherNetwork, nil, nil).
 			AddRow(serviceNetwork, nil, anotherOneBitesTheDust))
 
