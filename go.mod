@@ -16,11 +16,11 @@ require (
 	github.com/f5devcentral/go-bigip v0.0.0-20250928174250-859d6942bc8a
 	github.com/georgysavva/scany/v2 v2.1.4
 	github.com/getsentry/sentry-go v0.20.0
-	github.com/go-co-op/gocron/v2 v2.18.2
-	github.com/go-openapi/errors v0.22.5
+	github.com/go-co-op/gocron/v2 v2.19.0
+	github.com/go-openapi/errors v0.22.6
 	github.com/go-openapi/loads v0.23.2
 	github.com/go-openapi/runtime v0.29.2
-	github.com/go-openapi/spec v0.22.2
+	github.com/go-openapi/spec v0.22.3
 	github.com/go-openapi/strfmt v0.25.0
 	github.com/go-openapi/swag v0.25.4
 	github.com/go-openapi/swag/cmdutils v0.25.4
@@ -34,8 +34,8 @@ require (
 	github.com/iancoleman/strcase v0.3.0
 	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
 	github.com/jackc/pgx-logrus v0.0.0-20220919124836-b099d8ce75da
-	github.com/jackc/pgx/v5 v5.7.6
-	github.com/jedib0t/go-pretty/v6 v6.7.7
+	github.com/jackc/pgx/v5 v5.8.0
+	github.com/jedib0t/go-pretty/v6 v6.7.8
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/pashagolub/pgxmock/v4 v4.9.0
