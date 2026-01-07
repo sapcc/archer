@@ -6,8 +6,6 @@ package ni
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -24,6 +22,9 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	common "github.com/sapcc/archer/internal/agent"
+	"github.com/sapcc/archer/internal/agent/ni/haproxy"
+	ni "github.com/sapcc/archer/internal/agent/ni/models"
+	"github.com/sapcc/archer/internal/agent/ni/proxy"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
 	"github.com/sapcc/archer/models"
@@ -33,8 +34,9 @@ type Agent struct {
 	scheduler gocron.Scheduler
 	pool      *pgxpool.Pool // thread safe
 	neutron   *gophercloud.ServiceClient
-	haproxy   *HAProxyController
-	serviceID strfmt.UUID
+	haproxy   haproxy.HAProxy
+	service   models.Service // service associated with this agent
+	upstream  string
 }
 
 func (a *Agent) GetScheduler() gocron.Scheduler {
@@ -53,8 +55,8 @@ func NewAgent() *Agent {
 
 	// Connect to database
 	connConfig, err := pgxpool.ParseConfig(config.Global.Database.Connection)
-	if err != nil {
-		log.Fatal(err.Error())
+	if err != nil || connConfig == nil {
+		log.Fatalf("PGX Pool connection failed: %v", err)
 	}
 	connConfig.ConnConfig.Tracer = db.GetTracer()
 	connConfig.ConnConfig.RuntimeParams["application_name"] = "archer-ni-agent"
@@ -78,6 +80,8 @@ func NewAgent() *Agent {
 		log.Infof("Availability zone: %s", config.Global.Default.AvailabilityZone)
 	}
 
+	agent.upstream = config.Global.Agent.ServiceUpstreamHost
+	agent.haproxy = haproxy.NewHAProxyController()
 	if err := agent.discoverService(); err != nil {
 		log.Fatal(err.Error())
 	}
@@ -87,18 +91,12 @@ func NewAgent() *Agent {
 }
 
 func (a *Agent) Run() {
-	go common.DBNotificationThread(context.Background(), a)
-	go common.PrometheusListenerThread()
-
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	done := make(chan bool, 1)
-	go func() {
-		sig := <-sigs
-		fmt.Println()
-		fmt.Println(sig)
-		done <- true
-	}()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	prom := common.NewPrometheusListener()
+	go prom.Run()
+	go common.DBNotificationThread(ctx, a)
+	go proxy.UnixListenersThread(ctx, a.upstream, a.service.Ports)
 
 	// sync immediately
 	if err := a.PendingSyncLoop(context.Background(), true); err != nil {
@@ -125,12 +123,15 @@ func (a *Agent) Run() {
 
 	a.scheduler.Start()
 
-	// block until done
 	log.Infof("Agent running...")
-	<-done
-	if err := a.scheduler.Shutdown(); err != nil {
-		log.Fatal(err)
-	}
+
+	// block until done
+	<-ctx.Done()
+
+	log.Infof("Agent shutting down...")
+	_ = prom.Shutdown(context.Background())
+	_ = a.scheduler.Shutdown()
+	time.Sleep(5 * time.Second)
 }
 
 func (a *Agent) ProcessServices(ctx context.Context) error {
@@ -146,10 +147,11 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 func (a *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
 	log.Infof("Processing endpoint: %s", id)
 	return pgx.BeginFunc(context.Background(), a.pool, func(tx pgx.Tx) error {
-		var si ServiceInjection
+		var si ni.ServiceInjection
 		var err error
 
-		sql, args := db.Select("e.id", "e.status", "ep.port_id", "ep.network", "ep.ip_address", "s.protocol").
+		sql, args := db.Select("e.id", "e.status", "ep.port_id", "ep.network", "ep.ip_address",
+			"s.protocol AS service_protocol", "s.ports AS service_ports").
 			From("endpoint e").
 			Join("endpoint_port ep ON ep.endpoint_id = e.id").
 			Join("service s ON s.id = service_id").
@@ -221,7 +223,7 @@ func (a *Agent) PendingSyncLoop(ctx context.Context, syncAll bool) error {
 
 	q := db.Select("id").
 		From("endpoint").
-		Where("service_id = ?", a.serviceID)
+		Where("service_id = ?", a.service.ID)
 
 	if syncAll {
 		// initial run, sync everything
