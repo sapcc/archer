@@ -1,7 +1,9 @@
 // SPDX-FileCopyrightText: 2022 SAP SE or an SAP affiliate company
 // SPDX-License-Identifier: Apache-2.0
 
-package ni
+//go:build linux
+
+package netlink
 
 import (
 	"context"
@@ -9,6 +11,7 @@ import (
 	"net"
 	"runtime"
 	"strings"
+	"testing"
 
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
@@ -18,15 +21,22 @@ import (
 	"github.com/vishvananda/netns"
 )
 
-type NetworkNamespace struct {
-	newns   netns.NsHandle
-	origin  netns.NsHandle
-	enabled bool
+type LinuxNetworkNamespace struct {
+	name   string
+	newns  netns.NsHandle
+	origin netns.NsHandle
 }
 
-func (ns *NetworkNamespace) EnableNetworkNamespace() error {
+func NewLinuxNetworkNamespace() *LinuxNetworkNamespace {
+	return &LinuxNetworkNamespace{
+		origin: -1,
+	}
+}
+
+// EnableNetworkNamespace switches the current thread to the network namespace
+func (ns *LinuxNetworkNamespace) EnableNetworkNamespace() error {
 	log.Debugf("enabling network namespace '%s'", ns.newns.String())
-	if ns.enabled {
+	if ns.origin != -1 {
 		return fmt.Errorf("network namespace '%s' already enabled", ns.newns.String())
 	}
 	runtime.LockOSThread()
@@ -41,13 +51,13 @@ func (ns *NetworkNamespace) EnableNetworkNamespace() error {
 	if err = netns.Set(ns.newns); err != nil {
 		return err
 	}
-	ns.enabled = true
 	return nil
 }
 
-func (ns *NetworkNamespace) DisableNetworkNamespace() error {
+// DisableNetworkNamespace switches back to the original network namespace
+func (ns *LinuxNetworkNamespace) DisableNetworkNamespace() error {
 	log.Debugf("disabling network namespace '%s'", ns.newns.String())
-	if !ns.enabled {
+	if ns.origin == -1 {
 		return fmt.Errorf("network namespace '%s' not enabled", ns.newns.String())
 	}
 
@@ -55,19 +65,26 @@ func (ns *NetworkNamespace) DisableNetworkNamespace() error {
 	if err := netns.Set(ns.origin); err != nil {
 		return err
 	}
-	ns.enabled = false
+	ns.origin = -1
 	return nil
 }
 
-func (ns *NetworkNamespace) Close() error {
+// Close closes the network namespace handle
+func (ns *LinuxNetworkNamespace) Close() error {
 	return ns.newns.Close()
 }
 
-func EnsureNetworkNamespace(port *ports.Port, client *gophercloud.ServiceClient) (*NetworkNamespace, error) {
+// EnsureNetworkNamespace ensures that a network namespace for the given port exists
+func (ns *LinuxNetworkNamespace) EnsureNetworkNamespace(port *ports.Port, client *gophercloud.ServiceClient) error {
 	name := fmt.Sprintf("qinjector-%s", port.NetworkID)
 	// namespace already exists?
-	if ns, err := netns.GetFromName(name); err == nil {
-		return &NetworkNamespace{ns, -1, false}, err
+	if existingNS, err := netns.GetFromName(name); err == nil {
+		if ns.Valid() && existingNS != ns.newns {
+			return fmt.Errorf("existing Namespace (%d) associated to other Namespace (%d)", existingNS, ns.newns)
+		}
+		ns.name = name
+		ns.newns = existingNS
+		return nil
 	}
 
 	// TODO: check if namespace exists but veth pair is not valid
@@ -75,7 +92,7 @@ func EnsureNetworkNamespace(port *ports.Port, client *gophercloud.ServiceClient)
 	// create veth pair
 	mac, err := net.ParseMAC(port.MACAddress)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	veth := netlink.Veth{
 		LinkAttrs: netlink.LinkAttrs{
@@ -85,62 +102,63 @@ func EnsureNetworkNamespace(port *ports.Port, client *gophercloud.ServiceClient)
 		// Magic name tap<port-id> is detected by linuxbridge agent
 		PeerName: fmt.Sprintf("tap%s", port.ID[:11]),
 	}
-	if err := netlink.LinkAdd(&veth); err != nil {
-		return nil, err
+	if err = netlink.LinkAdd(&veth); err != nil {
+		return err
 	}
 
 	// create network namespace and associate handle
 	newns, err := createNamespace(name)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	handle, err := netlink.NewHandleAt(newns)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// bring up loopback device
 	link, err := handle.LinkByName("lo")
 	if err != nil {
-		return nil, err
+		return err
 	}
-	if err := handle.LinkSetUp(link); err != nil {
-		return nil, err
+	if err = handle.LinkSetUp(link); err != nil {
+		return err
 	}
 
 	// Put veth0 into network namespace and set ip addresses
-	if err := netlink.LinkSetNsFd(&veth, int(newns)); err != nil {
-		return nil, err
+	if err = netlink.LinkSetNsFd(&veth, int(newns)); err != nil {
+		return err
 	}
 	for _, fixedIP := range port.FixedIPs {
 		ip := net.ParseIP(fixedIP.IPAddress)
 		if ip == nil {
-			return nil, fmt.Errorf("failed parsing ip address '%s'", fixedIP.IPAddress)
+			return fmt.Errorf("failed parsing ip address '%s'", fixedIP.IPAddress)
 		}
 
 		subnet, err := subnets.Get(context.Background(), client, fixedIP.SubnetID).Extract()
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		prefix := subnet.CIDR[strings.Index(subnet.CIDR, "/"):]
 		ipaddress := fmt.Sprintf("%s%s", ip.String(), prefix)
 		addr, err := netlink.ParseAddr(ipaddress)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		if err := handle.AddrAdd(&veth, addr); err != nil {
-			return nil, err
+		if err = handle.AddrAdd(&veth, addr); err != nil {
+			return err
 		}
 	}
 
 	// set veth0 up
 	if err := handle.LinkSetUp(&veth); err != nil {
-		return nil, err
+		return err
 	}
 
-	return &NetworkNamespace{newns, -1, false}, err
+	ns.newns = newns
+	return nil
 }
 
 func createNamespace(name string) (netns.NsHandle, error) {
@@ -171,23 +189,36 @@ func createNamespace(name string) (netns.NsHandle, error) {
 	return newns, nil
 }
 
-func DeleteNetworkNamespace(networkID string) error {
-	name := fmt.Sprintf("qinjector-%s", networkID)
-	log.Debugf("deleting network namespace '%s'", name)
+// DeleteNetworkNamespace deletes the network namespace for the given network ID
+func (ns *LinuxNetworkNamespace) DeleteNetworkNamespace() error {
+	log.Debugf("deleting network namespace '%s'", ns.name)
 
-	// namespace already exists?
-	ns, err := netns.GetFromName(name)
-	if err != nil {
-		return err
+	if _, err := netns.GetFromName(ns.name); err != nil {
+		return fmt.Errorf("network namespace '%s' not found", ns.name)
+	}
+
+	if !ns.Valid() {
+		return fmt.Errorf("network namespace '%s' is not valid", ns.name)
 	}
 
 	if err := ns.Close(); err != nil {
 		return err
 	}
 
-	if err := netns.DeleteNamed(name); err != nil {
+	if err := netns.DeleteNamed(ns.name); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (ns *LinuxNetworkNamespace) Valid() bool {
+	return ns.newns != -1
+}
+
+func NewNetworkNamespace() Netlink {
+	if testing.Testing() {
+		return NewFakeNetlink()
+	}
+	return NewLinuxNetworkNamespace()
 }

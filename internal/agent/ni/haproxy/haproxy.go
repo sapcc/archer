@@ -2,9 +2,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package ni
+package haproxy
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"os"
@@ -17,22 +18,12 @@ import (
 	"github.com/bcicen/go-haproxy"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/sapcc/archer/internal/agent/ni/models"
+	"github.com/sapcc/archer/internal/agent/ni/proxy"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal/config"
 )
-
-type haProxyInstance struct {
-	cmd    *exec.Cmd
-	config *os.File
-	client *haproxy.HAProxyClient
-	pid    int
-}
-
-type HAProxyController struct {
-	instances map[string]*haProxyInstance
-	tempdir   string
-}
 
 var configTemplate = `
 global
@@ -40,8 +31,8 @@ global
     stats       socket "{{.TempDir}}haproxy-stats-{{.Network}}.sock"
     maxconn     1024
     pidfile     "{{.TempDir}}haproxy-{{.Network}}.pid"
-    user haproxy
-    group haproxy
+    #user        haproxy
+    #group       haproxy
     daemon
 
 defaults
@@ -57,19 +48,36 @@ defaults
     timeout client          32s
     timeout server          32s
     timeout http-keep-alive 30s
-    default_backend         upstream
 
-frontend downstream
-    bind *:{{.UpstreamPort}}
-    mode {{lower .Protocol}}
+{{- $protocol := .Protocol }}
+{{- $upstream := .UpstreamHost }}
 
-backend upstream
-    mode {{lower .Protocol}}
-{{- if eq .Protocol "HTTP" }}
-    http-request replace-header Host .* {{.UpstreamHost}}
-{{- end }}
-    server upstream {{.ProxyPath}}
+{{ range .UpstreamPorts }}
+frontend fronted_{{ . }}
+    bind *:{{ . }}
+    mode {{ lower $protocol }}
+    default_backend backend_{{ . }}
+
+backend backend_{{ . }}
+    mode {{ lower $protocol }}
+	{{- if eq $protocol "HTTP" }}
+    http-request replace-header Host .* {{ $upstream }}
+	{{- end }}
+    server upstream {{ . | getProxyPath }}
+
+{{ end }}
 `
+
+type haProxyInstance struct {
+	cmd    *exec.Cmd
+	config *os.File
+	client *haproxy.HAProxyClient
+	pid    int
+}
+
+type HAProxyController struct {
+	instances map[string]*haProxyInstance
+}
 
 var (
 	totalBytesOut = promauto.NewGaugeVec(prometheus.GaugeOpts{
@@ -87,18 +95,12 @@ var (
 )
 
 func NewHAProxyController() *HAProxyController {
-	tempdir := os.TempDir()
-	if tempdir[len(tempdir)-1:] != "/" {
-		tempdir = tempdir + "/"
-	}
-
 	return &HAProxyController{
-		instances: make(map[string]*haProxyInstance),
-		tempdir:   tempdir,
+		make(map[string]*haProxyInstance),
 	}
 }
 
-func (h *HAProxyController) collectStats() {
+func (h *HAProxyController) CollectStats() {
 	for networkID, instance := range h.instances {
 		info, err := instance.client.Info()
 		if err != nil {
@@ -110,14 +112,14 @@ func (h *HAProxyController) collectStats() {
 	}
 }
 
-func (h *HAProxyController) isRunning(networkID string) bool {
+func (h *HAProxyController) IsRunning(networkID string) bool {
 	_, ok := h.instances[networkID]
 	if !ok {
 		return false
 	}
 
 	// read pid and check if process exists
-	pid, err := readPidFile(fmt.Sprintf("%shaproxy-%s.pid", h.tempdir, networkID))
+	pid, err := readPidFile(fmt.Sprintf("%shaproxy-%s.pid", config.Global.Agent.TempDir, networkID))
 	if err != nil {
 		return false
 	}
@@ -130,41 +132,39 @@ func (h *HAProxyController) isRunning(networkID string) bool {
 	return process.Signal(syscall.Signal(0)) == nil
 }
 
-func (h *HAProxyController) addInstance(networkID string, protocol string) (*haProxyInstance, error) {
+func (h *HAProxyController) AddInstance(si *models.ServiceInjection) error {
 	// create config
-	filename := fmt.Sprintf("%shaproxy-%s.conf", h.tempdir, networkID)
+	filename := GetConfigFilePath(config.Global.Agent.TempDir, si.Network.String())
 	configFile, err := os.Create(filename)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	defer func() { _ = configFile.Close() }()
 	log.Debugf("Created HAProxy config file '%s'", configFile.Name())
 
 	funcMap := template.FuncMap{
-		"lower": strings.ToLower,
+		"lower":        strings.ToLower,
+		"getProxyPath": proxy.GetSocketPath,
 	}
 
 	// template config
 	t, err := template.New("haproxy").Funcs(funcMap).Parse(configTemplate)
 	if err != nil {
-		tryRemoveFile(configFile.Name())
-		return nil, err
+		return err
 	}
 	data := map[string]any{
-		"TempDir":      h.tempdir,
-		"ProxyPath":    config.Global.Agent.ServiceProxyPath,
-		"UpstreamHost": config.Global.Agent.ServiceUpstreamHost,
-		"UpstreamPort": config.Global.Agent.ServicePort,
-		"Network":      networkID,
-		"Protocol":     protocol,
+		"TempDir":       config.Global.Agent.TempDir,
+		"UpstreamHost":  config.Global.Agent.ServiceUpstreamHost,
+		"UpstreamPorts": si.ServicePorts,
+		"Network":       si.Network,
+		"Protocol":      si.ServiceProtocol,
 	}
-	if err := t.Execute(configFile, data); err != nil {
-		tryRemoveFile(configFile.Name())
-		return nil, err
+	if err = t.Execute(configFile, data); err != nil {
+		return err
 	}
 
-	outfile, err := os.Create(getLogFilePath(h.tempdir, networkID))
+	outfile, err := os.Create(GetLogFilePath(config.Global.Agent.TempDir, si.Network.String()))
 	if err != nil {
 		panic(err)
 	}
@@ -174,28 +174,25 @@ func (h *HAProxyController) addInstance(networkID string, protocol string) (*haP
 	cmd := exec.Command("haproxy", "-f", configFile.Name())
 	cmd.Stdout = outfile
 	cmd.Stderr = outfile
-	if err := cmd.Run(); err != nil {
-		tryRemoveFile(configFile.Name())
-		return nil, err
+	if err = cmd.Run(); err != nil {
+		return err
 	}
 
 	// read pid
-	pid, err := readPidFile(fmt.Sprintf("%shaproxy-%s.pid", h.tempdir, networkID))
+	pid, err := readPidFile(fmt.Sprintf("%shaproxy-%s.pid", config.Global.Agent.TempDir, si.Network))
 	if err != nil {
-		tryRemoveFile(configFile.Name())
-		return nil, err
+		return err
 	}
 
 	// init haproxy stats client
 	haProxyClient := haproxy.HAProxyClient{
-		Addr: fmt.Sprintf("unix://%shaproxy-stats-%s.sock", h.tempdir, networkID),
+		Addr: fmt.Sprintf("unix://%shaproxy-stats-%s.sock", config.Global.Agent.TempDir, si.Network),
 	}
 	info, err := haProxyClient.Info()
 	if err != nil {
-		tryRemoveFile(configFile.Name())
-		return nil, err
+		return err
 	}
-	log.Printf("Running %s version %s PID %d for %s\n", info.Name, info.Version, pid, networkID)
+	log.Printf("Running %s version %s PID %d for %s\n", info.Name, info.Version, pid, si.Network)
 
 	instance := haProxyInstance{
 		cmd:    cmd,
@@ -204,11 +201,11 @@ func (h *HAProxyController) addInstance(networkID string, protocol string) (*haP
 		pid:    pid,
 	}
 
-	h.instances[networkID] = &instance
-	return &instance, nil
+	h.instances[si.Network.String()] = &instance
+	return nil
 }
 
-func (h *HAProxyController) removeInstance(networkID string) error {
+func (h *HAProxyController) RemoveInstance(networkID string) error {
 	instance, ok := h.instances[networkID]
 	if !ok {
 		return fmt.Errorf("instance '%s' not found", networkID)
@@ -220,20 +217,24 @@ func (h *HAProxyController) removeInstance(networkID string) error {
 	}
 
 	// Remove config and pidfile
-	tryRemoveFile(instance.config.Name())
-	tryRemoveFile(fmt.Sprintf("%shaproxy-%s.pid", h.tempdir, networkID))
+	TryRemoveFile(instance.config.Name())
+	TryRemoveFile(fmt.Sprintf("%shaproxy-%s.pid", config.Global.Agent.TempDir, networkID))
 
 	delete(h.instances, networkID)
 	return nil
 }
 
-func (h *HAProxyController) dumpLog(networkID string) {
-	logFile := getLogFilePath(h.tempdir, networkID)
-	d, err := os.ReadFile(logFile)
+func Dump(file string) {
+	d, err := os.Open(file)
 	if err != nil {
-		log.Errorf("Failed to reading log file(path=%s): %s", logFile, err)
+		log.Errorf("Failed to opening file(path=%s): %s", file, err)
 	}
-	log.Print(string(d))
+	defer func() { _ = d.Close() }()
+	scanner := bufio.NewScanner(d)
+	log.Infof("###### Dumping file '%s'", file)
+	for scanner.Scan() {
+		log.Error(scanner.Text())
+	}
 }
 
 func readPidFile(pidFile string) (int, error) {
@@ -254,12 +255,16 @@ func readPidFile(pidFile string) (int, error) {
 	return pid, nil
 }
 
-func tryRemoveFile(file string) {
+func TryRemoveFile(file string) {
 	if err := os.Remove(file); err != nil {
 		log.WithError(err).Warnf("Failed to remove file '%s'", file)
 	}
 }
 
-func getLogFilePath(tempdir string, networkID string) string {
+func GetLogFilePath(tempdir string, networkID string) string {
 	return fmt.Sprintf("%shaproxy-%s.log", tempdir, networkID)
+}
+
+func GetConfigFilePath(tempdir string, networkID string) string {
+	return fmt.Sprintf("%shaproxy-%s.conf", tempdir, networkID)
 }
