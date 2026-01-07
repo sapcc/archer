@@ -88,10 +88,11 @@ type Agent struct {
 	CreateService          bool          `long:"create-service" ini-name:"create_service" description:"Auto-create Service for network injection agent."`
 	ServiceName            string        `long:"service-name" ini-name:"service_name" description:"Service name for auto-created service."`
 	ServicePort            int           `long:"service-port" ini-name:"service_port" description:"Service port for auto-created service."`
+	ServicePorts           []int         `long:"service-ports" ini-name:"service_ports[]" description:"Service ports for auto-created service."`
 	ServiceRequireApproval bool          `long:"service-require-approval" ini-name:"service_require_approval" description:"Service requires approval."`
 	ServiceUpstreamHost    string        `long:"service-upstream-host" ini-name:"service_upstream_host" description:"Service upstream host."`
-	ServiceProxyPath       string        `long:"service-proxy-path" ini-name:"service_proxy_path" description:"Service proxy path." default:"/var/run/socat-proxy/proxy.sock"`
 	ServiceProtocol        string        `long:"service-protocol" ini-name:"service_protocol" description:"Service protocol."`
+	TempDir                string        `long:"temp-dir" ini-name:"temp_dir" description:"Temporary directory used for temporary files" default:"/tmp"`
 	L4Profile              string        `long:"l4-profile" ini-name:"l4_profile" description:"L4 profile to use for F5 endpoint service." default:"/Common/fastL4"`
 	TCPProfile             string        `long:"tcp-profile" ini-name:"tcp_profile" description:"TCP profile to use for F5 endpoint service." default:"/Common/tcp"`
 	MaxRetries             uint64        `long:"max-retries" ini-name:"max_retries" description:"Maximum number of retries for F5 operations." default:"3"`

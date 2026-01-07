@@ -82,7 +82,7 @@ func DBNotificationThread(ctx context.Context, w Worker) {
 		notification, err := conn.Conn().WaitForNotification(ctx)
 		if err != nil {
 			if !pgconn.Timeout(err) {
-				log.Fatal(err.Error())
+				log.Warnf("DBNotificationThread: Wait for Notification timeout: %v", err)
 			}
 			continue
 		}
