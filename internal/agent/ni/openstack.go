@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2022 SAP SE or an SAP affiliate company
+// SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company
 // SPDX-License-Identifier: Apache-2.0
 
 package ni
@@ -8,24 +8,17 @@ import (
 	"os"
 	"time"
 
-	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
 	"github.com/gophercloud/utils/v2/openstack/clientconfig"
+	"github.com/sapcc/archer/internal/agent/ni/haproxy"
+	"github.com/sapcc/archer/internal/agent/ni/models"
+	"github.com/sapcc/archer/internal/agent/ni/netlink"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/models"
 )
-
-type ServiceInjection struct {
-	models.Endpoint
-	PortId    strfmt.UUID
-	Network   strfmt.UUID
-	IpAddress strfmt.IPv4
-	Protocol  string
-}
 
 func (a *Agent) SetupOpenStack() error {
 	authInfo := clientconfig.AuthInfo(config.Global.ServiceAuth)
@@ -55,12 +48,10 @@ func (a *Agent) SetupOpenStack() error {
 	}
 	// Set timeout to 10 secs
 	a.neutron.HTTPClient.Timeout = time.Second * 10
-
-	a.haproxy = NewHAProxyController()
 	return nil
 }
 
-func (a *Agent) EnableInjection(si *ServiceInjection) error {
+func (a *Agent) EnableInjection(si *models.ServiceInjection) error {
 	injectorPort, err := ports.Get(context.Background(), a.neutron, si.PortId.String()).Extract()
 	if err != nil {
 		return err
@@ -90,12 +81,12 @@ func (a *Agent) EnableInjection(si *ServiceInjection) error {
 	//}
 
 	// Create network namespace with ip/mac
-	ns, err := EnsureNetworkNamespace(injectorPort, a.neutron)
-	if err != nil {
+	ns := netlink.NewNetworkNamespace()
+	if err = ns.EnsureNetworkNamespace(injectorPort, a.neutron); err != nil {
 		return err
 	}
 
-	if a.haproxy.isRunning(injectorPort.NetworkID) {
+	if a.haproxy.IsRunning(injectorPort.NetworkID) {
 		// Nothing to do
 		return nil
 	}
@@ -105,9 +96,12 @@ func (a *Agent) EnableInjection(si *ServiceInjection) error {
 		return err
 	}
 	defer func() { _ = ns.Close() }()
-	if _, err = a.haproxy.addInstance(injectorPort.NetworkID, si.Protocol); err != nil {
-		log.Errorf("Error enabling haproxy: %s, dumping log", err)
-		a.haproxy.dumpLog(injectorPort.NetworkID)
+	if err = a.haproxy.AddInstance(si); err != nil {
+		log.Errorf("Error enabling haproxy: %s, dumping conf/log", err)
+		haproxy.Dump(haproxy.GetLogFilePath(config.Global.Agent.TempDir, si.Network.String()))
+		haproxy.Dump(haproxy.GetConfigFilePath(config.Global.Agent.TempDir, si.Network.String()))
+		haproxy.TryRemoveFile(haproxy.GetConfigFilePath(config.Global.Agent.TempDir, si.Network.String()))
+		haproxy.TryRemoveFile(haproxy.GetLogFilePath(config.Global.Agent.TempDir, si.Network.String()))
 	}
 	if err := ns.DisableNetworkNamespace(); err != nil {
 		return err
@@ -116,20 +110,25 @@ func (a *Agent) EnableInjection(si *ServiceInjection) error {
 	return nil
 }
 
-func (a *Agent) DisableInjection(si *ServiceInjection) error {
+func (a *Agent) DisableInjection(si *models.ServiceInjection) error {
 	log.Debugf("DisableInjection(si='%+v')", si)
 	injectorPort, err := ports.Get(context.Background(), a.neutron, si.PortId.String()).Extract()
 	if err != nil {
 		return err
 	}
 
-	if a.haproxy.isRunning(injectorPort.NetworkID) {
-		if err := a.haproxy.removeInstance(injectorPort.NetworkID); err != nil {
+	if a.haproxy.IsRunning(injectorPort.NetworkID) {
+		if err := a.haproxy.RemoveInstance(injectorPort.NetworkID); err != nil {
 			return err
 		}
 	}
 
-	if err := DeleteNetworkNamespace(injectorPort.NetworkID); err != nil {
+	ns := netlink.NewNetworkNamespace()
+	if err = ns.EnsureNetworkNamespace(injectorPort, a.neutron); err != nil {
+		return err
+	}
+
+	if err = ns.DeleteNetworkNamespace(); err != nil {
 		// namespace does not exist
 		if os.IsNotExist(err) {
 			return nil
@@ -140,5 +139,5 @@ func (a *Agent) DisableInjection(si *ServiceInjection) error {
 }
 
 func (a *Agent) CollectStats() {
-	a.haproxy.collectStats()
+	a.haproxy.CollectStats()
 }

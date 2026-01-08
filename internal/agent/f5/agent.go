@@ -117,7 +117,8 @@ func NewAgent() *Agent {
 
 func (a *Agent) Run() {
 	go common.DBNotificationThread(context.Background(), a)
-	go common.PrometheusListenerThread()
+	prom := common.NewPrometheusListener()
+	go prom.Run()
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
