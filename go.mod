@@ -28,7 +28,7 @@ require (
 	github.com/go-openapi/validate v0.25.1
 	github.com/google/uuid v1.6.0
 	github.com/gophercloud/gophercloud/v2 v2.10.0
-	github.com/gophercloud/utils/v2 v2.0.0-20251121145439-0a38d66a3d88
+	github.com/gophercloud/utils/v2 v2.0.0-20260107124036-1d7954eb9711
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/iancoleman/strcase v0.3.0
