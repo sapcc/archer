@@ -8,7 +8,6 @@ import (
 	"context"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
-	"github.com/go-openapi/strfmt"
 	"github.com/jackc/pgx/v5"
 	log "github.com/sirupsen/logrus"
 
@@ -16,8 +15,12 @@ import (
 	"github.com/sapcc/archer/internal/db"
 )
 
-func createService(tx pgx.Tx, serviceID *strfmt.UUID) error {
+func (a *Agent) createService(tx pgx.Tx) error {
 	log.Infof("Creating service record %s in database", config.Global.Agent.ServiceName)
+	var servicePorts = []int{config.Global.Agent.ServicePort}
+	if len(config.Global.Agent.ServicePorts) > 0 {
+		servicePorts = config.Global.Agent.ServicePorts
+	}
 	sql, args, err := db.Insert("service").
 		Columns("description",
 			"network_id",
@@ -43,27 +46,27 @@ func createService(tx pgx.Tx, serviceID *strfmt.UUID) error {
 			config.Global.Agent.ServiceRequireApproval,
 			config.Global.Default.AvailabilityZone,
 			config.Global.ServiceAuth.ProjectID,
-			[]int{config.Global.Agent.ServicePort},
+			servicePorts,
 			config.Global.Default.Host,
 			[]string{},
 			config.Global.Agent.ServiceProtocol,
 		).
-		Suffix("RETURNING id").
+		Suffix("RETURNING *").
 		ToSql()
 	if err != nil {
 		return err
 	}
 
-	return pgxscan.Get(context.Background(), tx, serviceID, sql, args...)
+	return pgxscan.Get(context.Background(), tx, &a.service, sql, args...)
 }
 
 func (a *Agent) discoverService() error {
-	sql, args, err := db.Select("id").
+	sql, args, err := db.
+		Select("*").
 		From("service").
 		Where("host = ?", config.Global.Default.Host).
 		Where("availability_zone = ?", config.Global.Default.AvailabilityZone).
 		Where("name = ?", config.Global.Agent.ServiceName).
-		Where("ports[1] = ?", config.Global.Agent.ServicePort).
 		Where("provider = 'cp'").
 		ToSql()
 	if err != nil {
@@ -71,10 +74,10 @@ func (a *Agent) discoverService() error {
 	}
 
 	if err = pgx.BeginFunc(context.Background(), a.pool, func(tx pgx.Tx) error {
-		err = pgxscan.Get(context.Background(), tx, &a.serviceID, sql, args...)
+		err = pgxscan.Get(context.Background(), tx, &a.service, sql, args...)
 		if err != nil {
 			if pgxscan.NotFound(err) && config.Global.Agent.CreateService {
-				if err = createService(tx, &a.serviceID); err != nil {
+				if err = a.createService(tx); err != nil {
 					return err
 				}
 			} else {
@@ -86,6 +89,6 @@ func (a *Agent) discoverService() error {
 		return err
 	}
 
-	log.Infof("Agent associated to service %s", a.serviceID)
+	log.Infof("Agent associated to service %s (%s)", a.service.Name, a.service.ID)
 	return nil
 }
