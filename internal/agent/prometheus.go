@@ -68,12 +68,20 @@ func (p PrometheusMonitor) RecordJobTiming(startTime, endTime time.Time, _ uuid.
 	}
 }
 
-func PrometheusListenerThread() {
+type PrometheusListener struct {
+	*http.Server
+}
+
+func NewPrometheusListener() *PrometheusListener {
+	http.Handle("/metrics", promhttp.Handler())
+	return &PrometheusListener{&http.Server{Addr: config.Global.Default.PrometheusListen}}
+}
+
+func (pl *PrometheusListener) Run() {
 	if config.Global.Default.Prometheus {
-		http.Handle("/metrics", promhttp.Handler())
 		log.Infof("Serving prometheus metrics to %s/metrics", config.Global.Default.PrometheusListen)
-		if err := http.ListenAndServe(config.Global.Default.PrometheusListen, nil); err != nil {
-			log.Fatal(err.Error())
+		if err := pl.ListenAndServe(); err != nil {
+			log.Warnf("Prometheus listener exited: %v", err)
 		}
 	}
 }
