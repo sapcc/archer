@@ -6,6 +6,7 @@ package ni
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
@@ -18,8 +19,10 @@ import (
 func (a *Agent) createService(tx pgx.Tx) error {
 	log.Infof("Creating service record %s in database", config.Global.Agent.ServiceName)
 	var servicePorts = []int{config.Global.Agent.ServicePort}
-	if len(config.Global.Agent.ServicePorts) > 0 {
-		servicePorts = config.Global.Agent.ServicePorts
+	for _, port := range config.Global.Agent.ServicePorts {
+		if i, err := strconv.Atoi(port); err == nil {
+			servicePorts = append(servicePorts, i)
+		}
 	}
 	sql, args, err := db.Insert("service").
 		Columns("description",
