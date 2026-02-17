@@ -7,6 +7,7 @@ package haproxy
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -28,9 +29,10 @@ import (
 var configTemplate = `
 global
     log         stdout format raw local0
-    stats       socket "{{.TempDir}}haproxy-stats-{{.Network}}.sock"
+    stats       socket "{{getStatsSocketPath .Network}}" mode 600 level admin
+    stats       timeout 2m
     maxconn     1024
-    pidfile     "{{.TempDir}}haproxy-{{.Network}}.pid"
+    pidfile     "{{getPidFilePath .Network}}"
     #user        haproxy
     #group       haproxy
     daemon
@@ -63,7 +65,7 @@ backend backend_{{ . }}
 	{{- if eq $protocol "HTTP" }}
     http-request replace-header Host .* {{ $upstream }}
 	{{- end }}
-    server upstream {{ . | getProxyPath }}
+    server upstream {{ . | getSocketPath }}
 
 {{ end }}
 `
@@ -119,7 +121,7 @@ func (h *HAProxyController) IsRunning(networkID string) bool {
 	}
 
 	// read pid and check if process exists
-	pid, err := readPidFile(fmt.Sprintf("%shaproxy-%s.pid", config.Global.Agent.TempDir, networkID))
+	pid, err := readPidFile(GetPidFilePath(networkID))
 	if err != nil {
 		return false
 	}
@@ -134,7 +136,7 @@ func (h *HAProxyController) IsRunning(networkID string) bool {
 
 func (h *HAProxyController) AddInstance(si *models.ServiceInjection) error {
 	// create config
-	filename := GetConfigFilePath(config.Global.Agent.TempDir, si.Network.String())
+	filename := GetConfigFilePath(si.Network.String())
 	configFile, err := os.Create(filename)
 	if err != nil {
 		return err
@@ -144,8 +146,10 @@ func (h *HAProxyController) AddInstance(si *models.ServiceInjection) error {
 	log.Debugf("Created HAProxy config file '%s'", configFile.Name())
 
 	funcMap := template.FuncMap{
-		"lower":        strings.ToLower,
-		"getProxyPath": proxy.GetSocketPath,
+		"lower":              strings.ToLower,
+		"getSocketPath":      proxy.GetSocketPath,
+		"getStatsSocketPath": GetStatsSocketPath,
+		"getPidFilePath":     GetPidFilePath,
 	}
 
 	// template config
@@ -154,17 +158,16 @@ func (h *HAProxyController) AddInstance(si *models.ServiceInjection) error {
 		return err
 	}
 	data := map[string]any{
-		"TempDir":       config.Global.Agent.TempDir,
 		"UpstreamHost":  config.Global.Agent.ServiceUpstreamHost,
 		"UpstreamPorts": si.ServicePorts,
-		"Network":       si.Network,
+		"Network":       si.Network.String(),
 		"Protocol":      si.ServiceProtocol,
 	}
 	if err = t.Execute(configFile, data); err != nil {
 		return err
 	}
 
-	outfile, err := os.Create(GetLogFilePath(config.Global.Agent.TempDir, si.Network.String()))
+	outfile, err := os.Create(GetLogFilePath(si.Network.String()))
 	if err != nil {
 		panic(err)
 	}
@@ -179,20 +182,20 @@ func (h *HAProxyController) AddInstance(si *models.ServiceInjection) error {
 	}
 
 	// read pid
-	pid, err := readPidFile(fmt.Sprintf("%shaproxy-%s.pid", config.Global.Agent.TempDir, si.Network))
+	pid, err := readPidFile(GetPidFilePath(si.Network.String()))
 	if err != nil {
 		return err
 	}
 
 	// init haproxy stats client
 	haProxyClient := haproxy.HAProxyClient{
-		Addr: fmt.Sprintf("unix://%shaproxy-stats-%s.sock", config.Global.Agent.TempDir, si.Network),
+		Addr: fmt.Sprintf("unix://%s", GetStatsSocketPath(si.Network.String())),
 	}
 	info, err := haProxyClient.Info()
 	if err != nil {
 		return err
 	}
-	log.Printf("Running %s version %s PID %d for %s\n", info.Name, info.Version, pid, si.Network)
+	log.Printf("Running %s version %s PID %d for %s", info.Name, info.Version, pid, si.Network)
 
 	instance := haProxyInstance{
 		cmd:    cmd,
@@ -218,10 +221,20 @@ func (h *HAProxyController) RemoveInstance(networkID string) error {
 
 	// Remove config and pidfile
 	TryRemoveFile(instance.config.Name())
-	TryRemoveFile(fmt.Sprintf("%shaproxy-%s.pid", config.Global.Agent.TempDir, networkID))
+	TryRemoveFile(GetPidFilePath(networkID))
 
 	delete(h.instances, networkID)
 	return nil
+}
+
+func (h *HAProxyController) Run(ctx context.Context) {
+	<-ctx.Done()
+	log.Debug("Shutting down HAProxy instances...")
+	for networkID := range h.instances {
+		if err := h.RemoveInstance(networkID); err != nil {
+			log.Errorf("Failed to remove instance '%s': %s", networkID, err)
+		}
+	}
 }
 
 func Dump(file string) {
@@ -261,10 +274,18 @@ func TryRemoveFile(file string) {
 	}
 }
 
-func GetLogFilePath(tempdir string, networkID string) string {
-	return fmt.Sprintf("%shaproxy-%s.log", tempdir, networkID)
+func GetStatsSocketPath(networkID string) string {
+	return fmt.Sprintf("%s/haproxy-stats-%s.sock", config.Global.Agent.TempDir, networkID)
 }
 
-func GetConfigFilePath(tempdir string, networkID string) string {
-	return fmt.Sprintf("%shaproxy-%s.conf", tempdir, networkID)
+func GetPidFilePath(networkID string) string {
+	return fmt.Sprintf("%s/haproxy-%s.pid", config.Global.Agent.TempDir, networkID)
+}
+
+func GetLogFilePath(networkID string) string {
+	return fmt.Sprintf("%s/haproxy-%s.log", config.Global.Agent.TempDir, networkID)
+}
+
+func GetConfigFilePath(networkID string) string {
+	return fmt.Sprintf("%s/haproxy-%s.conf", config.Global.Agent.TempDir, networkID)
 }

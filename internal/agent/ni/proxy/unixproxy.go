@@ -31,7 +31,6 @@ func (up *unixProxy) proxy(unixConn *net.UnixConn, tcpConn *net.TCPConn) {
 
 	// Goroutine to copy data from conn2 to conn1
 	wg.Go(func() {
-		defer wg.Done()
 		if _, err := io.Copy(unixConn, tcpConn); err != nil && err != io.EOF && !errors.Is(err, unix.EPIPE) {
 			log.Errorf("unixproxy: io.Copy(unixConn, tcpConn): %v\n", err)
 		}
@@ -41,7 +40,6 @@ func (up *unixProxy) proxy(unixConn *net.UnixConn, tcpConn *net.TCPConn) {
 
 	// Goroutine to copy data from conn1 to conn2
 	wg.Go(func() {
-		defer wg.Done()
 		if _, err := io.Copy(tcpConn, unixConn); err != nil && err != io.EOF {
 			log.Errorf("unixproxy: io.Copy(tcpConn, unixConn): %v\n", err)
 		}
@@ -92,6 +90,7 @@ func UnixListenersThread(ctx context.Context, upstream string, Ports []int32) {
 	var wg sync.WaitGroup
 	var listeners []*net.UnixListener
 
+	log.Debugf("unixproxy: listening on ports: %v, forwarding to upstream: %s", Ports, upstream)
 	ips, err := net.LookupIP(upstream) // Resolves IPv4 and IPv6 addresses
 	if err != nil {
 		log.Fatalf("unixproxy: LookupIP error: %v\n", err)

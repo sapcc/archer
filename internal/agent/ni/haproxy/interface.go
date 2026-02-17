@@ -5,6 +5,8 @@
 package haproxy
 
 import (
+	"context"
+
 	"github.com/sapcc/archer/internal/agent/ni/models"
 )
 
@@ -13,4 +15,5 @@ type HAProxy interface {
 	IsRunning(string) bool
 	AddInstance(injection *models.ServiceInjection) error
 	RemoveInstance(networkID string) error
+	Run(ctx context.Context)
 }

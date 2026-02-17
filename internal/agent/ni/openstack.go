@@ -98,10 +98,10 @@ func (a *Agent) EnableInjection(si *models.ServiceInjection) error {
 	defer func() { _ = ns.Close() }()
 	if err = a.haproxy.AddInstance(si); err != nil {
 		log.Errorf("Error enabling haproxy: %s, dumping conf/log", err)
-		haproxy.Dump(haproxy.GetLogFilePath(config.Global.Agent.TempDir, si.Network.String()))
-		haproxy.Dump(haproxy.GetConfigFilePath(config.Global.Agent.TempDir, si.Network.String()))
-		haproxy.TryRemoveFile(haproxy.GetConfigFilePath(config.Global.Agent.TempDir, si.Network.String()))
-		haproxy.TryRemoveFile(haproxy.GetLogFilePath(config.Global.Agent.TempDir, si.Network.String()))
+		haproxy.Dump(haproxy.GetLogFilePath(si.Network.String()))
+		haproxy.Dump(haproxy.GetConfigFilePath(si.Network.String()))
+		haproxy.TryRemoveFile(haproxy.GetConfigFilePath(si.Network.String()))
+		haproxy.TryRemoveFile(haproxy.GetLogFilePath(si.Network.String()))
 	}
 	if err := ns.DisableNetworkNamespace(); err != nil {
 		return err

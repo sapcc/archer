@@ -5,6 +5,8 @@
 package haproxy
 
 import (
+	"context"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal/agent/ni/models"
@@ -36,4 +38,10 @@ func (h *FakeHaproxy) AddInstance(injection *models.ServiceInjection) error {
 func (h *FakeHaproxy) RemoveInstance(networkID string) error {
 	log.Debugf("removing instance %s", networkID)
 	return nil
+}
+
+func (h *FakeHaproxy) Run(ctx context.Context) {
+	log.Debug("running haproxy (fake)")
+	<-ctx.Done()
+	log.Debug("stopping haproxy (fake)")
 }

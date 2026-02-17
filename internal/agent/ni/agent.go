@@ -97,6 +97,7 @@ func (a *Agent) Run() {
 	go prom.Run()
 	go common.DBNotificationThread(ctx, a)
 	go proxy.UnixListenersThread(ctx, a.upstream, a.service.Ports)
+	go a.haproxy.Run(ctx)
 
 	// sync immediately
 	if err := a.PendingSyncLoop(context.Background(), true); err != nil {

@@ -88,7 +88,7 @@ type Agent struct {
 	CreateService          bool          `long:"create-service" ini-name:"create_service" description:"Auto-create Service for network injection agent."`
 	ServiceName            string        `long:"service-name" ini-name:"service_name" description:"Service name for auto-created service."`
 	ServicePort            int           `long:"service-port" ini-name:"service_port" description:"Service port for auto-created service."`
-	ServicePorts           []int         `long:"service-ports" ini-name:"service_ports[]" description:"Service ports for auto-created service."`
+	ServicePorts           []string      `long:"service-ports" ini-name:"service_ports[]" description:"Service ports for auto-created service."`
 	ServiceRequireApproval bool          `long:"service-require-approval" ini-name:"service_require_approval" description:"Service requires approval."`
 	ServiceUpstreamHost    string        `long:"service-upstream-host" ini-name:"service_upstream_host" description:"Service upstream host."`
 	ServiceProtocol        string        `long:"service-protocol" ini-name:"service_protocol" description:"Service protocol."`
