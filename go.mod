@@ -4,7 +4,7 @@
 
 module github.com/sapcc/archer
 
-go 1.25
+go 1.26
 
 require (
 	github.com/IBM/pgxpoolprometheus v1.1.2
@@ -42,7 +42,7 @@ require (
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rs/cors v1.11.1
 	github.com/sapcc/go-api-declarations v1.19.0
-	github.com/sapcc/go-bits v0.0.0-20260219121224-1c2b75dbf776
+	github.com/sapcc/go-bits v0.0.0-20260226170120-c20f89b66c3c
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/sirupsen/logrus v1.9.4
 	github.com/stretchr/testify v1.11.1
