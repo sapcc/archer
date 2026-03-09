@@ -191,37 +191,40 @@ func (b *BigIP) DeleteSelfIP(name string) error {
 	return (*bigip.BigIP)(b).DeleteSelfIP(name)
 }
 
-func (b *BigIP) EnsureRouteDomain(segmentId int, parent *int) error {
+func (b *BigIP) EnsureRouteDomain(segmentId int, _ *int) error {
 	routeDomains, err := b.RouteDomains()
 	if err != nil {
 		return err
-	}
-
-	var found bool
-	for _, rd := range routeDomains.RouteDomains {
-		if rd.ID == segmentId {
-			if parent != nil && rd.Parent != fmt.Sprintf("/Common/vlan-%d", *parent) {
-				continue
-			}
-			found = true
-			break
-		}
-	}
-
-	if found {
-		return nil
 	}
 
 	c := &routeDomain{
 		RouteDomain: bigip.RouteDomain{
 			Name:   fmt.Sprintf("vlan-%d", segmentId),
 			ID:     segmentId,
-			Strict: "enabled",
+			Strict: "disabled",
 			Vlans:  []string{fmt.Sprintf("/Common/vlan-%d", segmentId)},
 		},
+		Parent: "",
 	}
-	if parent != nil {
-		c.Parent = fmt.Sprintf("vlan-%d", *parent)
+
+	for _, rd := range routeDomains.RouteDomains {
+		if rd.ID != segmentId {
+			continue
+		}
+
+		if rd.Parent == "" && rd.Strict == "disabled" {
+			// already exists, nothing to do
+			return nil
+		}
+
+		// Special case where strict isolation and parenting is still on
+		if rd.Parent != "" && rd.Strict == "enabled" {
+			c.Parent = rd.Parent
+			log.WithField("route domain", rd.Name).Warning("Found route domain with strict enabled, updating to disabled, retrying")
+			if err = c.Update(b); err != nil {
+				return fmt.Errorf("failed to disable strict on route domain: %w", err)
+			}
+		}
 	}
 
 	return c.Update(b)
