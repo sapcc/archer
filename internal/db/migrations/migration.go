@@ -290,4 +290,12 @@ var Migrations = mgx.Migrations(
 		`)
 		return err
 	}),
+	mgx.NewMigration("set_to_pending_update", func(ctx context.Context, commands mgx.Commands) error {
+		_, err := commands.Exec(ctx, `
+			-- set all services and endpoints to PENDING_UPDATE to trigger reconciliation
+			UPDATE service SET status = 'PENDING_UPDATE' WHERE status = 'AVAILABLE' AND provider = 'tenant';
+			UPDATE endpoint SET status = 'PENDING_UPDATE' WHERE status = 'AVAILABLE' AND endpoint.id IN (SELECT ep.id FROM endpoint ep JOIN service s ON ep.service_id = s.id WHERE s.provider = 'tenant');
+		`)
+		return err
+	}),
 )

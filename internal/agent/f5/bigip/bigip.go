@@ -207,6 +207,18 @@ func (b *BigIP) EnsureRouteDomain(segmentId int, _ *int) error {
 		Parent: "",
 	}
 
+	// Disable all strict of Children
+	// TODO: remove code after all strict's disabled
+	for _, rd := range routeDomains.RouteDomains {
+		if rd.Strict == "enabled" && rd.Parent != "" {
+			log.WithField("route domain", rd.Name).Warning("Found route domain with strict enabled, updating to disabled")
+			rd.Strict = "disabled"
+			if err = rd.Update(b); err != nil {
+				log.WithField("route domain", rd.Name).Errorf("failed to disable strict on route domain: %v", err)
+			}
+		}
+	}
+
 	for _, rd := range routeDomains.RouteDomains {
 		if rd.ID != segmentId {
 			continue
@@ -215,15 +227,6 @@ func (b *BigIP) EnsureRouteDomain(segmentId int, _ *int) error {
 		if rd.Parent == "" && rd.Strict == "disabled" {
 			// already exists, nothing to do
 			return nil
-		}
-
-		// Special case where strict isolation and parenting is still on
-		if rd.Parent != "" && rd.Strict == "enabled" {
-			c.Parent = rd.Parent
-			log.WithField("route domain", rd.Name).Warning("Found route domain with strict enabled, updating to disabled, retrying")
-			if err = c.Update(b); err != nil {
-				return fmt.Errorf("failed to disable strict on route domain: %w", err)
-			}
 		}
 	}
 
