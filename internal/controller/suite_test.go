@@ -19,6 +19,7 @@ import (
 	"github.com/pashagolub/pgxmock/v5"
 	"github.com/sapcc/go-bits/osext"
 	"github.com/stretchr/testify/suite"
+	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/z0ne-dev/mgx/v2"
 
@@ -146,6 +147,7 @@ func (t *SuiteTest) SetupSuite() {
 		var err error
 		if t.pgContainer, err = postgres.Run(t.ctx,
 			"postgres:16-alpine",
+			testcontainers.WithProvider(testcontainers.ProviderPodman),
 			postgres.WithDatabase("test-db"),
 			postgres.WithUsername("postgres"),
 			postgres.WithPassword("postgres"),
