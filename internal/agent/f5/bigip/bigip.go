@@ -211,7 +211,7 @@ func (b *BigIP) EnsureRouteDomain(segmentId int, _ *int) error {
 	// TODO: remove code after all strict's disabled
 	for _, rd := range routeDomains.RouteDomains {
 		if rd.Strict == "enabled" && rd.Parent != "" {
-			log.WithField("route domain", rd.Name).Warning("Found route domain with strict enabled, updating to disabled")
+			log.WithField("route domain", rd.Name).Warning("Found a child route domain with strict enabled, updating to disabled")
 			rd.Strict = "disabled"
 			if err = rd.Update(b); err != nil {
 				log.WithField("route domain", rd.Name).Errorf("failed to disable strict on route domain: %v", err)
