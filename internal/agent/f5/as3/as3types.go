@@ -56,6 +56,15 @@ type Tenant struct {
 	Applications map[string]Application
 }
 
+// AS3 Info
+
+type AS3Info struct {
+	Version       string `json:"version"`
+	Release       string `json:"release"`
+	SchemaCurrent string `json:"schemaCurrent"`
+	SchemaMinimum string `json:"schemaMinimum"`
+}
+
 func (t Tenant) MarshalJSON() ([]byte, error) {
 	tenant, err := struct2map(t)
 	if err != nil {
