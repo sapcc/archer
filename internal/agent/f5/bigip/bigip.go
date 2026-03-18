@@ -401,6 +401,32 @@ func (b *BigIP) getDevice() (*bigip.Device, error) {
 	return nil, fmt.Errorf("device %s not found", b.GetHostname())
 }
 
+func (b *BigIP) getAS3Info() (*as3.AS3Info, error) {
+	var as3info as3.AS3Info
+
+	req := &bigip.APIRequest{
+		Method:      "get",
+		URL:         "mgmt/shared/appsvcs/info",
+		ContentType: "application/json",
+	}
+	resp, err := (*bigip.BigIP)(b).APICall(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var reqError bigip.RequestError
+	if json.Unmarshal(resp, &reqError) == nil && reqError.Code != 0 {
+		return nil, fmt.Errorf("%s\n%s", reqError.Error(), string(resp[:]))
+	}
+
+	err = json.Unmarshal(resp, &as3info)
+	if err != nil {
+		return nil, err
+	}
+
+	return &as3info, nil
+}
+
 func NewSession(uri *url.URL) (*BigIP, error) {
 	// check for user
 	user := uri.User.Username()
@@ -439,7 +465,13 @@ func NewSession(uri *url.URL) (*BigIP, error) {
 		return nil, fmt.Errorf("failed to get device information: %w", err)
 	}
 
-	log.Infof("Connected to %s, %s (%s %s), %s", device.MarketingName, device.Name, device.Version,
-		device.Edition, device.FailoverState)
+	as3Version := "AS3 unavailable"
+	if as3info, err := b.getAS3Info(); err == nil {
+		as3Version = "AS3 " + as3info.Version
+	}
+
+	log.Infof("Connected to %s, %s (%s %s), %s, %s", device.MarketingName, device.Name, device.Version,
+		device.Edition, as3Version, device.FailoverState)
+
 	return b, nil
 }
