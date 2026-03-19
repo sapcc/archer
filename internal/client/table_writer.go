@@ -7,7 +7,9 @@ package client
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/jedib0t/go-pretty/v6/table"
@@ -28,6 +30,42 @@ func formatValue(v reflect.Value) string {
 	case reflect.Struct:
 		if v.Type().String() == "time.Time" {
 			return v.Interface().(time.Time).In(time.Local).Format(time.RFC850)
+		}
+		fallthrough
+	case reflect.Slice:
+		// check if slice elements are integers, if so, we can group consecutive integers into ranges
+		signedTypes := []reflect.Kind{reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64}
+		unsignedTypes := []reflect.Kind{reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64}
+		elemKind := v.Type().Elem().Kind()
+		if slices.Contains(signedTypes, elemKind) || slices.Contains(unsignedTypes, elemKind) {
+			ints := make([]int, v.Len())
+			for i := 0; i < v.Len(); i++ {
+				if slices.Contains(unsignedTypes, elemKind) {
+					ints[i] = int(v.Index(i).Uint())
+				} else {
+					ints[i] = int(v.Index(i).Int())
+				}
+			}
+			sort.Ints(ints)
+
+			// Group consecutive integers into ranges
+			var parts []string
+			i := 0
+			for i < len(ints) {
+				start := ints[i]
+				end := start
+				for i+1 < len(ints) && ints[i+1] == end+1 {
+					i++
+					end = ints[i]
+				}
+				if start == end {
+					parts = append(parts, fmt.Sprintf("%d", start))
+				} else {
+					parts = append(parts, fmt.Sprintf("%d-%d", start, end))
+				}
+				i++
+			}
+			return fmt.Sprintf("[%s]", strings.Join(parts, ", "))
 		}
 		fallthrough
 	default:
