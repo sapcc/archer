@@ -6,6 +6,7 @@ package agent
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -75,14 +76,27 @@ func DBNotificationThread(ctx context.Context, w Worker) {
 		log.Fatal(err.Error())
 	}
 
-	log.Info("DBNotificationThread: Listening to service and endpoint notifications")
+	const reconnectionDelay = time.Minute / 2
+	log.Infof("DBNotificationThread: Listening to service and endpoint notifications, reconnection delay %v",
+		reconnectionDelay)
 
 	for {
 		var id strfmt.UUID
 		notification, err := conn.Conn().WaitForNotification(ctx)
 		if err != nil {
 			if !pgconn.Timeout(err) {
-				log.Warnf("DBNotificationThread: Wait for Notification timeout: %v", err)
+				if connectionError, ok := errors.AsType[*pgconn.ConnectError](err); ok {
+					log.Errorf("DBNotificationThread: Connection error: %v", connectionError.Error())
+				} else {
+					log.Warnf("DBNotificationThread: Wait for Notification timeout: %v", err)
+				}
+
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(reconnectionDelay):
+					// Wait a while to avoid busy-looping while the database is unreachable.
+				}
 			}
 			continue
 		}
