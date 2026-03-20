@@ -18,7 +18,10 @@ import (
 
 func (a *Agent) createService(tx pgx.Tx) error {
 	log.Infof("Creating service record %s in database", config.Global.Agent.ServiceName)
-	var servicePorts = []int{config.Global.Agent.ServicePort}
+	var servicePorts []int
+	if config.Global.Agent.ServicePort != 0 {
+		servicePorts = append(servicePorts, config.Global.Agent.ServicePort)
+	}
 	for _, port := range config.Global.Agent.ServicePorts {
 		if i, err := strconv.Atoi(port); err == nil {
 			servicePorts = append(servicePorts, i)
