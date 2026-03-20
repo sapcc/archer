@@ -79,7 +79,7 @@ func (ns *LinuxNetworkNamespace) EnsureNetworkNamespace(port *ports.Port, client
 	name := fmt.Sprintf("qinjector-%s", port.NetworkID)
 	// namespace already exists?
 	if existingNS, err := netns.GetFromName(name); err == nil {
-		if ns.Valid() && existingNS != ns.newns {
+		if ns.Valid() && ns.newns != 0 && existingNS != ns.newns {
 			return fmt.Errorf("existing Namespace (%d) associated to other Namespace (%d)", existingNS, ns.newns)
 		}
 		ns.name = name
