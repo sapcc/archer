@@ -204,8 +204,12 @@ err := pgxscan.Get(ctx, tx, &endpoint, sql, args...)
 1. Make code changes
 2. Run `make check` (validates everything)
 3. Review linter output and fix issues
-4. Commit with meaningful message
-5. Run `make check` again before pushing
+4. **If changes affect `cmd/archerctl/`**: Update `CHANGELOG.md` in the `[Unreleased]` section
+   - Follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format
+   - Categorize under: Added, Changed, Deprecated, Removed, Fixed, or Security
+   - Verify format: `release-info CHANGELOG.md <version>`
+5. Commit with meaningful message
+6. Run `make check` again before pushing
 
 When working on netlink code:
 - Test with both real and fake implementations
