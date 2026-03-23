@@ -22,3 +22,6 @@ build/
 # vendor/
 
 *.ini
+
+# Claude Code user-specific settings
+.claude/
