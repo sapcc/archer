@@ -35,6 +35,11 @@ type ServiceList struct {
 }
 
 func (*ServiceList) Execute(_ []string) error {
+	type serviceWithEndpoints struct {
+		*models.Service
+		Endpoints int `json:"in_use"`
+	}
+
 	params := service.NewGetServiceParams().
 		WithTags(ServiceOptions.ServiceList.Tags).
 		WithTagsAny(ServiceOptions.ServiceList.AnyTags).
@@ -45,8 +50,22 @@ func (*ServiceList) Execute(_ []string) error {
 	if err != nil {
 		return err
 	}
-	DefaultColumns = []string{"id", "name", "ports", "enabled", "provider", "status", "visibility", "availability_zone", "project_id"}
-	return WriteTable(resp.GetPayload().Items)
+	DefaultColumns = []string{"id", "name", "ports", "enabled", "provider", "status", "visibility", "availability_zone", "project_id", "in_use"}
+	items := resp.GetPayload().Items
+
+	// Build enriched list with endpoint counts
+	enriched := make([]serviceWithEndpoints, 0, len(items))
+	for _, svc := range items {
+		epParams := service.NewGetServiceServiceIDEndpointsParams().WithServiceID(svc.ID)
+		epResp, epErr := ArcherClient.Service.GetServiceServiceIDEndpoints(epParams, nil)
+		count := 0
+		if epErr == nil {
+			count = len(epResp.GetPayload().Items)
+		}
+		enriched = append(enriched, serviceWithEndpoints{Service: svc, Endpoints: count})
+	}
+
+	return WriteTable(enriched)
 }
 
 type ServiceShow struct {
