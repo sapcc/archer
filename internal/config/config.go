@@ -86,6 +86,7 @@ type Agent struct {
 	PhysicalInterface      string        `long:"physical-interface" ini-name:"physical_interface" description:"Physical Interface" default:"portchannel1"`
 	PendingSyncInterval    time.Duration `long:"pending-sync-interval" ini-name:"sync-interval" default:"120s" description:"Interval for pending sync scans, supports suffix (e.g. 10s)."`
 	CreateService          bool          `long:"create-service" ini-name:"create_service" description:"Auto-create Service for network injection agent."`
+	ServicePublic          bool          `long:"service-public" ini-name:"service_public" description:"Service public to all projects for auto-created service" default:"false"`
 	ServiceName            string        `long:"service-name" ini-name:"service_name" description:"Service name for auto-created service."`
 	ServicePort            int           `long:"service-port" ini-name:"service_port" description:"Service port for auto-created service."`
 	ServicePorts           []string      `long:"service-ports" ini-name:"service_ports[]" description:"Service ports for auto-created service."`
