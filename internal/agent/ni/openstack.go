@@ -5,6 +5,7 @@ package ni
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -54,36 +55,15 @@ func (a *Agent) SetupOpenStack() error {
 func (a *Agent) EnableInjection(si *models.ServiceInjection) error {
 	injectorPort, err := ports.Get(context.Background(), a.neutron, si.PortId.String()).Extract()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get port %s: %w", si.PortId, err)
 	}
-
-	//if injectorPort == nil {
-	//	log.Printf("Creating port for network %s (%s)", network.Name, network.ID)
-	//	port := dns.PortCreateOptsExt{
-	//		CreateOptsBuilder: portsbinding.CreateOptsExt{
-	//			CreateOptsBuilder: ports.CreateOpts{
-	//				/*Name:        config.NetworkTag + " injection port",*/
-	//				DeviceOwner: GetDeviceOwner(),
-	//				DeviceID:    "network-injector",
-	//				NetworkID:   network.ID,
-	//				TenantID:    network.TenantID,
-	//			},
-	//			/*HostID: config.Hostname,*/
-	//		},
-	//		/*DNSName: config.InjectorDNS,*/
-	//	}
-	//
-	//	var err error
-	//	if injectorPort, err = ports.Create(o.neutron, port).Extract(); err != nil {
-	//		return err
-	//	}
-	//	log.Printf("Port '%s' created", injectorPort.ID)
-	//}
 
 	// Create network namespace with ip/mac
 	ns := netlink.NewNetworkNamespace()
+	defer func() { _ = ns.Close() }()
+
 	if err = ns.EnsureNetworkNamespace(injectorPort, a.neutron); err != nil {
-		return err
+		return fmt.Errorf("failed to ensure network namespace: %w", err)
 	}
 
 	if a.haproxy.IsRunning(injectorPort.NetworkID) {
@@ -93,18 +73,21 @@ func (a *Agent) EnableInjection(si *models.ServiceInjection) error {
 
 	// Run haproxy inside network namespace
 	if err = ns.EnableNetworkNamespace(); err != nil {
-		return err
+		return fmt.Errorf("failed to enable network namespace: %w", err)
 	}
-	defer func() { _ = ns.Close() }()
+	defer func() {
+		if disableErr := ns.DisableNetworkNamespace(); disableErr != nil {
+			log.Errorf("failed to disable network namespace: %v", disableErr)
+		}
+	}()
+
 	if err = a.haproxy.AddInstance(si); err != nil {
 		log.Errorf("Error enabling haproxy: %s, dumping conf/log", err)
 		haproxy.Dump(haproxy.GetLogFilePath(si.Network.String()))
 		haproxy.Dump(haproxy.GetConfigFilePath(si.Network.String()))
 		haproxy.TryRemoveFile(haproxy.GetConfigFilePath(si.Network.String()))
 		haproxy.TryRemoveFile(haproxy.GetLogFilePath(si.Network.String()))
-	}
-	if err := ns.DisableNetworkNamespace(); err != nil {
-		return err
+		return fmt.Errorf("failed to add haproxy instance: %w", err)
 	}
 
 	return nil
@@ -114,18 +97,26 @@ func (a *Agent) DisableInjection(si *models.ServiceInjection) error {
 	log.Debugf("DisableInjection(si='%+v')", si)
 	injectorPort, err := ports.Get(context.Background(), a.neutron, si.PortId.String()).Extract()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get port %s: %w", si.PortId, err)
 	}
 
+	// Remove haproxy instance first
 	if a.haproxy.IsRunning(injectorPort.NetworkID) {
 		if err := a.haproxy.RemoveInstance(injectorPort.NetworkID); err != nil {
-			return err
+			return fmt.Errorf("failed to remove haproxy instance: %w", err)
 		}
 	}
 
+	// Delete the network namespace
 	ns := netlink.NewNetworkNamespace()
+	defer func() { _ = ns.Close() }()
+
 	if err = ns.EnsureNetworkNamespace(injectorPort, a.neutron); err != nil {
-		return err
+		// If namespace doesn't exist, that's fine
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to ensure network namespace: %w", err)
 	}
 
 	if err = ns.DeleteNetworkNamespace(); err != nil {
@@ -133,7 +124,7 @@ func (a *Agent) DisableInjection(si *models.ServiceInjection) error {
 		if os.IsNotExist(err) {
 			return nil
 		}
-		return err
+		return fmt.Errorf("failed to delete network namespace: %w", err)
 	}
 	return nil
 }
