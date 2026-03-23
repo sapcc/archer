@@ -27,6 +27,8 @@ func (a *Agent) createService(tx pgx.Tx) error {
 			servicePorts = append(servicePorts, i)
 		}
 	}
+
+	visibility := map[bool]string{true: "public", false: "private"}
 	sql, args, err := db.Insert("service").
 		Columns("description",
 			"network_id",
@@ -45,7 +47,7 @@ func (a *Agent) createService(tx pgx.Tx) error {
 		Values("Created by Network Injection agent",
 			"00000000-0000-0000-0000-000000000000",
 			"AVAILABLE",
-			"public",
+			visibility[config.Global.Agent.ServicePublic],
 			"cp",
 			"false",
 			config.Global.Agent.ServiceName,
