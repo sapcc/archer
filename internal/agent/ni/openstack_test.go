@@ -163,9 +163,10 @@ func TestAgent_EnableInjection_Success(t *testing.T) {
 	assert.NoError(t, a.EnableInjection(si))
 
 	a.haproxy.(*haproxy.FakeHaproxy).AddInstanceReturnError = fmt.Errorf("haproxy error")
-	assert.NoError(t, a.EnableInjection(si))
+	assert.Error(t, a.EnableInjection(si))
 
 	a.haproxy.(*haproxy.FakeHaproxy).Running = true
+	a.haproxy.(*haproxy.FakeHaproxy).AddInstanceReturnError = nil
 	assert.NoError(t, a.EnableInjection(si))
 }
 
