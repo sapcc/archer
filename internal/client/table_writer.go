@@ -13,10 +13,48 @@ import (
 	"time"
 
 	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/jmoiron/sqlx/reflectx"
 )
 
 var DefaultColumns []string
+
+// colorizeValue applies color to specific values when color mode is enabled
+func colorizeValue(value string, columnName string) string {
+	// Only colorize for table format
+	if opts.Formatters.Format != "table" || opts.Formatters.NoColor {
+		return value
+	}
+
+	// Color based on common patterns
+	switch strings.ToLower(value) {
+	case "true", "enabled", "active", "available", "success", "accepted":
+		return text.FgGreen.Sprint(value)
+	case "false", "disabled", "inactive", "error", "failed", "rejected":
+		return text.FgRed.Sprint(value)
+	case "pending", "processing", "waiting":
+		return text.FgYellow.Sprint(value)
+	case "null":
+		return text.FgHiBlack.Sprint(value)
+	}
+
+	// Color based on column name
+	columnLower := strings.ToLower(columnName)
+	switch columnLower {
+	case "status":
+		// Status-specific colors
+		if strings.Contains(strings.ToUpper(value), "DOWN") || strings.Contains(strings.ToUpper(value), "ERROR") {
+			return text.FgRed.Sprint(value)
+		}
+		return text.FgCyan.Sprint(value)
+	case "id", "project_id":
+		return text.FgHiBlack.Sprint(value)
+	case "name":
+		return text.FgCyan.Sprint(value)
+	}
+
+	return value
+}
 
 func formatValue(v reflect.Value) string {
 	switch kind := v.Kind(); kind {
@@ -73,14 +111,19 @@ func formatValue(v reflect.Value) string {
 	}
 }
 
-func getRow(row reflect.Value, iMap [][]int) table.Row {
+func getRow(row reflect.Value, iMap [][]int, header []any) table.Row {
 	if row.Kind() == reflect.Ptr {
 		row = row.Elem()
 	}
 
 	r := make([]any, 0)
 	for i := range iMap {
-		r = append(r, formatValue(reflectx.FieldByIndexes(row, iMap[i])))
+		value := formatValue(reflectx.FieldByIndexes(row, iMap[i]))
+		columnName := ""
+		if i < len(header) {
+			columnName = fmt.Sprintf("%v", header[i])
+		}
+		r = append(r, colorizeValue(value, columnName))
 	}
 	return r
 }
@@ -185,10 +228,19 @@ func WriteTable(data any) error {
 		}
 
 		if opts.Formatters.Format != "value" {
-			Table.AppendHeader(header)
+			if !opts.Formatters.NoColor && opts.Formatters.Format == "table" {
+				// Colorize headers
+				coloredHeader := make(table.Row, len(header))
+				for i, h := range header {
+					coloredHeader[i] = text.FgHiCyan.Sprint(h)
+				}
+				Table.AppendHeader(coloredHeader)
+			} else {
+				Table.AppendHeader(header)
+			}
 		}
 		for i := 0; i < v.Len(); i++ {
-			Table.AppendRow(getRow(v.Index(i), indexMap))
+			Table.AppendRow(getRow(v.Index(i), indexMap, header))
 		}
 	}
 
@@ -200,10 +252,19 @@ func WriteTable(data any) error {
 		}
 
 		for i, index := range indexMap {
+			columnName := fmt.Sprintf("%v", header[i])
+			value := formatValue(reflectx.FieldByIndexes(v, index))
 			if opts.Formatters.Format == "value" {
-				Table.AppendRow(table.Row{formatValue(reflectx.FieldByIndexes(v, index))})
+				Table.AppendRow(table.Row{value})
 			} else {
-				Table.AppendRow(table.Row{header[i], formatValue(reflectx.FieldByIndexes(v, index))})
+				if !opts.Formatters.NoColor && opts.Formatters.Format == "table" {
+					Table.AppendRow(table.Row{
+						text.FgHiCyan.Sprint(columnName),
+						colorizeValue(value, columnName),
+					})
+				} else {
+					Table.AppendRow(table.Row{columnName, value})
+				}
 			}
 		}
 	}

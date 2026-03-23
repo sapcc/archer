@@ -61,6 +61,7 @@ Output formatters:
   -c, --column=                                specify the column(s) to include, can be repeated to show multiple columns
       --sort-column=                           specify the column(s) to sort the data (columns specified first have a priority, non-existing columns are ignored), can be repeated
       --long                                   Show all columns in output
+      --no-color                               Disable colorized output for tables [$NO_COLOR]
 
 Help Options:
   -h, --help                                   Show this help message
@@ -83,6 +84,31 @@ Available commands:
 | 3c8ab870-a409-46f2-b19a-f5672e793705 | test | 80   | true    | tenant   | AVAILABLE |                   |
 +--------------------------------------+------+------+---------+----------+-----------+-------------------+
 ```
+
+#### Colorized Output
+The CLI provides colorized output by default when connected to an interactive terminal. Colors help distinguish between different states and values:
+
+* **Green**: Active states (`true`, `enabled`, `active`, `available`, `success`, `accepted`)
+* **Red**: Inactive or error states (`false`, `disabled`, `inactive`, `error`, `failed`, `rejected`)
+* **Yellow**: Pending states (`pending`, `processing`, `waiting`)
+* **Cyan**: Headers, status values, and names
+* **Gray**: IDs, project IDs, and null values
+
+Colors are automatically disabled when:
+* Output is piped or redirected (e.g., `archerctl service list | less`)
+* `NO_COLOR` environment variable is set
+* `TERM` is set to `dumb`
+* Using non-table output formats (`--format=csv`, `--format=markdown`, etc.)
+
+To explicitly disable colors, use the `--no-color` flag:
+```sh
+# Disable colorized output
+archerctl service list --no-color
+
+# Or via environment variable
+NO_COLOR=1 archerctl service list
+```
+
 
 ## API
 This section describes properties of the Archer API. It uses a ReSTful HTTP API.

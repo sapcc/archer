@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -26,6 +27,7 @@ import (
 	"github.com/jessevdk/go-flags"
 	"github.com/jmoiron/sqlx/reflectx"
 	"github.com/sapcc/go-api-declarations/bininfo"
+	"golang.org/x/term"
 
 	"github.com/sapcc/archer/client"
 )
@@ -43,6 +45,7 @@ type outputFormatters struct {
 	Columns    []string `short:"c" long:"column" description:"specify the column(s) to include, can be repeated to show multiple columns"`
 	SortColumn []string `long:"sort-column" description:"specify the column(s) to sort the data (columns specified first have a priority, non-existing columns are ignored), can be repeated"`
 	Long       bool     `long:"long" description:"Show all columns in output"`
+	NoColor    bool     `long:"no-color" env:"NO_COLOR" description:"Disable colorized output for tables"`
 }
 
 var opts struct {
@@ -63,6 +66,24 @@ var opts struct {
 	OSPwCmd             string `long:"os-pw-cmd" env:"OS_PW_CMD" description:"Derive user's password from command"`
 }
 
+// shouldDisableColor determines if color output should be disabled based on:
+// - TERM=dumb
+// - stdout not being a terminal (e.g., piped output)
+func shouldDisableColor(w io.Writer) bool {
+	// Check if TERM is set to dumb
+	if os.Getenv("TERM") == "dumb" {
+		return true
+	}
+
+	// Check if output is a terminal
+	if f, ok := w.(*os.File); ok {
+		return !term.IsTerminal(int(f.Fd()))
+	}
+
+	// If we can't determine, disable colors to be safe
+	return true
+}
+
 func SetupClient() {
 	Table.SetOutputMirror(os.Stdout)
 
@@ -74,6 +95,12 @@ func SetupClient() {
 	Parser.CommandHandler = func(command flags.Commander, args []string) error {
 		if command == nil {
 			return nil
+		}
+
+		// Initialize NoColor based on terminal detection if not explicitly set
+		// The parser has already populated NoColor from the --no-color flag or NO_COLOR env var
+		if !opts.Formatters.NoColor {
+			opts.Formatters.NoColor = shouldDisableColor(os.Stdout)
 		}
 
 		var token string
