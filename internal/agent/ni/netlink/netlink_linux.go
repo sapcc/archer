@@ -305,7 +305,7 @@ func (ns *LinuxNetworkNamespace) deleteNamespace(name string) error {
 		// Namespace doesn't exist, nothing to do
 		return nil
 	}
-	defer existingNS.Close()
+	defer func() { _ = existingNS.Close() }()
 
 	// Close our handle if it matches
 	if ns.newns == existingNS {
