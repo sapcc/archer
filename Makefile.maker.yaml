@@ -24,7 +24,7 @@ dockerfile:
   enabled: true
   checkEnv: [ CHECK_SKIPS_FUNCTIONAL_TEST=true ]
   entrypoint: [ "/usr/bin/archer-server" ]
-  extraPackages: [ "haproxy" ]
+  extraPackages: [ "haproxy", "iproute2" ]
   extraBuildDirectives:
     - |
       RUN wget https://cacerts.digicert.com/DigiCertGlobalG2TLSRSASHA2562020CA1-1.crt.pem -O /usr/local/share/ca-certificates/zDigiCertGlobalG2TLSRSASHA2562020CA1-1.crt.pem \
