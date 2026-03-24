@@ -38,6 +38,7 @@ func NewGoCronLogger() gocron.Logger {
 type DebugMonitor struct{}
 
 func (d *DebugMonitor) IncrementJob(id uuid.UUID, name string, tags []string, status gocron.JobStatus) {
+	log.Debugf("Job %s status changed: id=%s, tags=%v, status=%s", name, id, tags, status)
 }
 
 func (d *DebugMonitor) RecordJobTiming(startTime, endTime time.Time, id uuid.UUID, name string, tags []string) {

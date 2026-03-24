@@ -13,6 +13,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/go-openapi/strfmt"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
 	log "github.com/sirupsen/logrus"
 
@@ -57,6 +58,19 @@ func NewScheduler() gocron.Scheduler {
 		gocron.WithMonitor(NewPrometheusMonitor()),
 		gocron.WithMonitorStatus(&DebugMonitor{}),
 		gocron.WithStopTimeout(time.Second*30),
+		gocron.WithGlobalJobOptions(
+			gocron.WithEventListeners(
+				gocron.BeforeJobRuns(func(jobID uuid.UUID, jobName string) {
+					log.Debugf("Job STARTING: name=%s, id=%s", jobName, jobID)
+				}),
+				gocron.AfterJobRuns(func(jobID uuid.UUID, jobName string) {
+					log.Debugf("Job FINISHED: name=%s, id=%s", jobName, jobID)
+				}),
+				gocron.AfterJobRunsWithError(func(jobID uuid.UUID, jobName string, err error) {
+					log.Errorf("Job FAILED: name=%s, id=%s, error=%v", jobName, jobID, err)
+				}),
+			),
+		),
 	)
 	if err != nil {
 		log.Fatal(err)
