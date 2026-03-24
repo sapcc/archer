@@ -55,7 +55,7 @@ FROM alpine:3.23
 # upgrade all installed packages to fix potential CVEs in advance
 # also remove apk package manager to hopefully remove dependency on OpenSSL 🤞
 RUN apk upgrade --no-cache --no-progress \
-  && apk add --no-cache --no-progress haproxy \
+  && apk add --no-cache --no-progress haproxy iproute2 \
   && wget -qO /usr/bin/linkerd-await https://github.com/linkerd/linkerd-await/releases/download/release%2Fv0.2.7/linkerd-await-v0.2.7-amd64 \
   && chmod 755 /usr/bin/linkerd-await \
   && apk del --no-cache --no-progress apk-tools alpine-keys musl-utils
