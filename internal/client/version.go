@@ -19,7 +19,12 @@ func (*VersionOptions) Execute(_ []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Server Version: %s (%s) %+v\n", res.Payload.Version, res.Payload.Updated, res.Payload.Capabilities)
+	if len(res.Payload.Versions) == 0 {
+		fmt.Println("Server Version: unknown (no version information returned)")
+		return nil
+	}
+	v := res.Payload.Versions[0]
+	fmt.Printf("Server Version: %s (%s) %+v\n", v.Version, v.Updated, v.Capabilities)
 	return nil
 }
 

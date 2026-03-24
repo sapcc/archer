@@ -36,13 +36,17 @@ func (c *Controller) GetVersionHandler(params version.GetParams) middleware.Resp
 		capabilities = append(capabilities, fmt.Sprintf("pagination_max=%d",
 			config.Global.ApiSettings.PaginationMaxLimit))
 	}
-	return version.NewGetOK().WithPayload(&models.Version{
-		Capabilities: capabilities,
-		Links: []*models.Link{{
-			Href: config.GetApiBaseUrl(params.HTTPRequest),
-			Rel:  "self",
+	return version.NewGetOK().WithPayload(&models.VersionRoot{
+		Versions: []*models.Version{{
+			ID:     "v1",
+			Status: models.VersionStatusCURRENT,
+			Capabilities: capabilities,
+			Links: []*models.Link{{
+				Href: config.GetApiBaseUrl(params.HTTPRequest),
+				Rel:  "self",
+			}},
+			Updated: config.BuildTime,
+			Version: config.Version,
 		}},
-		Updated: config.BuildTime,
-		Version: config.Version,
 	})
 }

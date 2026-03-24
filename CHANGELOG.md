@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `GET /` response now uses OpenStack-standard version discovery format (`versions` array with `id` and `status` fields) for compatibility with `openstack version show` (fixes #711)
+
 ## [1.7.0] - 2026-03-23
 
 ### Changed

@@ -194,7 +194,7 @@ paths:
         200:
           description: Version
           schema:
-            $ref: "#/definitions/Version"
+            $ref: "#/definitions/VersionRoot"
   /service:
     get:
       tags:
@@ -1521,6 +1521,18 @@ definitions:
   Version:
     type: object
     properties:
+      id:
+        type: string
+        description: Version identifier
+        example: "v1"
+      status:
+        type: string
+        description: Version status
+        example: "CURRENT"
+        enum:
+          - CURRENT
+          - SUPPORTED
+          - DEPRECATED
       updated:
         type: string
         description: Last update of the running version
@@ -1538,6 +1550,13 @@ definitions:
         example: ["pagination", "sort"]
         items:
           type: string
+  VersionRoot:
+    type: object
+    properties:
+      versions:
+        type: array
+        items:
+          $ref: "#/definitions/Version"
   Timestamp:
     type: object
     x-go-type:

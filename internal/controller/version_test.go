@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/sapcc/archer/internal/config"
+	"github.com/sapcc/archer/models"
 	"github.com/sapcc/archer/restapi/operations/version"
 )
 
@@ -18,13 +19,19 @@ func (t *SuiteTest) TestVersion() {
 	config.Global.ApiSettings.RateLimit = 100
 	res := t.c.GetVersionHandler(version.GetParams{HTTPRequest: &http.Request{}})
 	assert.IsType(t.T(), &version.GetOK{}, res)
-	payload := res.(*version.GetOK).Payload
-	assert.Equal(t.T(), config.Version, payload.Version)
-	assert.Contains(t.T(), payload.Capabilities, "pagination_max=1000")
-	assert.Contains(t.T(), payload.Capabilities, "pagination")
-	assert.Contains(t.T(), payload.Capabilities, "sorting")
-	assert.Contains(t.T(), payload.Capabilities, "cors")
-	assert.Contains(t.T(), payload.Capabilities, "keystone")
-	assert.Contains(t.T(), payload.Capabilities, "ratelimit=100.00")
+	root := res.(*version.GetOK).Payload
+	assert.Len(t.T(), root.Versions, 1)
+	v := root.Versions[0]
+	assert.Equal(t.T(), "v1", v.ID)
+	assert.Equal(t.T(), models.VersionStatusCURRENT, v.Status)
+	assert.Equal(t.T(), config.Version, v.Version)
+	assert.Contains(t.T(), v.Capabilities, "pagination_max=1000")
+	assert.Contains(t.T(), v.Capabilities, "pagination")
+	assert.Contains(t.T(), v.Capabilities, "sorting")
+	assert.Contains(t.T(), v.Capabilities, "cors")
+	assert.Contains(t.T(), v.Capabilities, "keystone")
+	assert.Contains(t.T(), v.Capabilities, "ratelimit=100.00")
+	assert.Len(t.T(), v.Links, 1)
+	assert.Equal(t.T(), "self", v.Links[0].Rel)
 	config.Global.ApiSettings.AuthStrategy = "none"
 }
