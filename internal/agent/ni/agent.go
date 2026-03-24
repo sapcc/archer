@@ -147,7 +147,10 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 
 func (a *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
 	log.Infof("Processing endpoint: %s", id)
-	return pgx.BeginFunc(context.Background(), a.pool, func(tx pgx.Tx) error {
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
+	return pgx.BeginFunc(ctx, a.pool, func(tx pgx.Tx) error {
 		var si ni.ServiceInjection
 		var err error
 
@@ -187,7 +190,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
 			if err != nil {
 				return err
 			}
-			if _, err = a.pool.Exec(ctx, sql, args...); err != nil {
+			if _, err = tx.Exec(ctx, sql, args...); err != nil {
 				return err
 			}
 		case models.EndpointStatusAVAILABLE:
@@ -214,7 +217,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
 				return err
 			}
 		}
-		log.Debugf("Endpoint processed: %s", id)
+		log.Debugf("ProcessEndpoint: finished processing endpoint %s (status=%s)", id, si.Status)
 		return nil
 	})
 }

@@ -6,7 +6,6 @@ package ni
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/gophercloud/gophercloud/v2"
@@ -94,37 +93,19 @@ func (a *Agent) EnableInjection(si *models.ServiceInjection) error {
 }
 
 func (a *Agent) DisableInjection(si *models.ServiceInjection) error {
-	log.Debugf("DisableInjection(si='%+v')", si)
 	injectorPort, err := ports.Get(context.Background(), a.neutron, si.PortId.String()).Extract()
 	if err != nil {
 		return fmt.Errorf("failed to get port %s: %w", si.PortId, err)
 	}
 
-	// Remove haproxy instance first
+	// Only stop haproxy - don't delete the namespace.
+	// Other endpoints may still be using this network's namespace.
+	// The namespace will be cleaned up when the Neutron port is deleted,
+	// or reused if another endpoint is created for this network.
 	if a.haproxy.IsRunning(injectorPort.NetworkID) {
 		if err := a.haproxy.RemoveInstance(injectorPort.NetworkID); err != nil {
 			return fmt.Errorf("failed to remove haproxy instance: %w", err)
 		}
-	}
-
-	// Delete the network namespace
-	ns := netlink.NewNetworkNamespace()
-	defer func() { _ = ns.Close() }()
-
-	if err = ns.EnsureNetworkNamespace(injectorPort, a.neutron); err != nil {
-		// If namespace doesn't exist, that's fine
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return fmt.Errorf("failed to ensure network namespace: %w", err)
-	}
-
-	if err = ns.DeleteNetworkNamespace(); err != nil {
-		// namespace does not exist
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return fmt.Errorf("failed to delete network namespace: %w", err)
 	}
 	return nil
 }
