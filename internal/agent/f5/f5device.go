@@ -4,6 +4,7 @@
 package f5
 
 import (
+	"errors"
 	"net/url"
 
 	"github.com/sapcc/archer/internal/agent/f5/as3"
@@ -77,11 +78,17 @@ func GetF5DeviceSession(rawURL string) (F5Device, error) {
 	}
 
 	// Try initializing a BigIP session first
-	b, err := bigip.NewSession(parsedURL)
-	if err == nil {
+	b, bigipErr := bigip.NewSession(parsedURL)
+	if bigipErr == nil {
 		return b, nil
 	}
 
 	// If that fails, try initializing an F5OS session
-	return f5os.NewSession(parsedURL)
+	f, f5osErr := f5os.NewSession(parsedURL)
+	if f5osErr == nil {
+		return f, nil
+	}
+
+	// Don't swallow errors, return them both for better debugging
+	return nil, errors.Join(bigipErr, f5osErr)
 }
