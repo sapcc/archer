@@ -357,7 +357,9 @@ func (c *Controller) DeleteServiceServiceIDHandler(params service.DeleteServiceS
 		panic(err)
 	}
 
-	// Update status if no endpoints are attached.
+	// Update status if no active endpoints are attached.
+	// Rejected endpoints are excluded since they are effectively dead
+	// and should not block service deletion.
 	u := db.Update("service").
 		Set("status", models.ServiceStatusPENDINGDELETE).
 		Where(sq.And{
@@ -365,6 +367,7 @@ func (c *Controller) DeleteServiceServiceIDHandler(params service.DeleteServiceS
 			db.Select("1").
 				From("endpoint").
 				Where("service_id = service.id").
+				Where(sq.NotEq{"status": models.EndpointStatusREJECTED}).
 				Prefix("NOT EXISTS(").
 				Suffix(")"), // RBAC subquery
 		})
