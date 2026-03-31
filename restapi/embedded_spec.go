@@ -1854,6 +1854,15 @@ func init() {
             "example": 80
           }
         },
+        "protocol": {
+          "description": "Protocol type of the service.\n\n### protocol can be one of\n| protocol         | Description                            |\n| ---------------- | -------------------------------------- |\n| HTTP             | Service is HTTP based                  |\n| TCP              | Service is TCP based                   |\n",
+          "type": "string",
+          "enum": [
+            "HTTP",
+            "TCP"
+          ],
+          "x-nullable": true
+        },
         "proxy_protocol": {
           "description": "Proxy protocol v2 enabled for this service.",
           "type": "boolean",
@@ -4003,6 +4012,15 @@ func init() {
             "minimum": 1,
             "example": 80
           }
+        },
+        "protocol": {
+          "description": "Protocol type of the service.\n\n### protocol can be one of\n| protocol         | Description                            |\n| ---------------- | -------------------------------------- |\n| HTTP             | Service is HTTP based                  |\n| TCP              | Service is TCP based                   |\n",
+          "type": "string",
+          "enum": [
+            "HTTP",
+            "TCP"
+          ],
+          "x-nullable": true
         },
         "proxy_protocol": {
           "description": "Proxy protocol v2 enabled for this service.",

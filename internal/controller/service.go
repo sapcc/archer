@@ -188,11 +188,12 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 
 		sql, args, err = db.Insert("service").
 			Columns("enabled", "name", "description", "network_id", "ip_addresses", "require_approval",
-				"visibility", "availability_zone", "proxy_protocol", "project_id", "ports", "tags", "provider", "host").
+				"visibility", "availability_zone", "proxy_protocol", "project_id", "ports", "tags", "provider", "host", "protocol").
 			Values(params.Body.Enabled, params.Body.Name, params.Body.Description, params.Body.NetworkID,
 				params.Body.IPAddresses, params.Body.RequireApproval, params.Body.Visibility,
 				params.Body.AvailabilityZone, params.Body.ProxyProtocol, params.Body.ProjectID,
-				params.Body.Ports, internal.Unique(params.Body.Tags), params.Body.Provider, params.Body.Host).
+				params.Body.Ports, internal.Unique(params.Body.Tags), params.Body.Provider, params.Body.Host,
+				params.Body.Protocol).
 			Suffix("RETURNING *").ToSql()
 		if err != nil {
 			return err
@@ -303,6 +304,7 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 			Set("ip_addresses", sq.Expr("COALESCE(?, ip_addresses)", params.Body.IPAddresses)).
 			Set("visibility", sq.Expr("COALESCE(?, visibility)", params.Body.Visibility)).
 			Set("tags", sq.Expr("COALESCE(?, tags)", internal.Unique(params.Body.Tags))).
+			Set("protocol", sq.Expr("COALESCE(?, protocol)", params.Body.Protocol)).
 			Set("status", models.ServiceStatusPENDINGUPDATE).
 			Set("updated_at", sq.Expr("NOW()")).
 			Where("id = ?", params.ServiceID).

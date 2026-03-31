@@ -59,6 +59,17 @@ type ServiceUpdatable struct {
 	// Unique: true
 	Ports []int32 `json:"ports"`
 
+	// Protocol type of the service.
+	//
+	// ### protocol can be one of
+	// | protocol         | Description                            |
+	// | ---------------- | -------------------------------------- |
+	// | HTTP             | Service is HTTP based                  |
+	// | TCP              | Service is TCP based                   |
+	//
+	// Enum: ["HTTP","TCP"]
+	Protocol *string `json:"protocol,omitempty"`
+
 	// Proxy protocol v2 enabled for this service.
 	ProxyProtocol *bool `json:"proxy_protocol,omitempty"`
 
@@ -90,6 +101,10 @@ func (m *ServiceUpdatable) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validatePorts(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateProtocol(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -178,6 +193,48 @@ func (m *ServiceUpdatable) validatePorts(formats strfmt.Registry) error {
 			return err
 		}
 
+	}
+
+	return nil
+}
+
+var serviceUpdatableTypeProtocolPropEnum []any
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["HTTP","TCP"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		serviceUpdatableTypeProtocolPropEnum = append(serviceUpdatableTypeProtocolPropEnum, v)
+	}
+}
+
+const (
+
+	// ServiceUpdatableProtocolHTTP captures enum value "HTTP"
+	ServiceUpdatableProtocolHTTP string = "HTTP"
+
+	// ServiceUpdatableProtocolTCP captures enum value "TCP"
+	ServiceUpdatableProtocolTCP string = "TCP"
+)
+
+// prop value enum
+func (m *ServiceUpdatable) validateProtocolEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, serviceUpdatableTypeProtocolPropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *ServiceUpdatable) validateProtocol(formats strfmt.Registry) error {
+	if swag.IsZero(m.Protocol) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateProtocolEnum("protocol", "body", *m.Protocol); err != nil {
+		return err
 	}
 
 	return nil

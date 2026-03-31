@@ -1303,6 +1303,20 @@ definitions:
         type: boolean
         description: Proxy protocol v2 enabled for this service.
         x-nullable: true
+      protocol:
+        type: string
+        description: |
+          Protocol type of the service.
+
+          ### protocol can be one of
+          | protocol         | Description                            |
+          | ---------------- | -------------------------------------- |
+          | HTTP             | Service is HTTP based                  |
+          | TCP              | Service is TCP based                   |
+        enum:
+          - HTTP
+          - TCP
+        x-nullable: true
       tags:
         type: array
         description: The list of tags on the resource.
