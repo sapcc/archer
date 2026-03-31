@@ -47,6 +47,7 @@ Application Options:
       --debug                                  Show verbose debug information
       --os-endpoint=                           The endpoint that will always be used [$OS_ENDPOINT]
       --os-auth-url=                           Authentication URL [$OS_AUTH_URL]
+      --os-token=                              Authentication token [$OS_TOKEN]
       --os-password=                           User's password to use with [$OS_PASSWORD]
       --os-username=                           User's username to use with [$OS_USERNAME]
       --os-project-domain-name=                Domain name containing project [$OS_PROJECT_DOMAIN_NAME]

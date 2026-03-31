@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Support token-based authentication via `--os-token`/`OS_TOKEN`
+
 ## [1.7.0] - 2026-03-23
 
 ### Changed

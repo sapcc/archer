@@ -53,6 +53,7 @@ var opts struct {
 
 	OSEndpoint          string `long:"os-endpoint" env:"OS_ENDPOINT" description:"The endpoint that will always be used"`
 	OSAuthUrl           string `long:"os-auth-url" env:"OS_AUTH_URL" description:"Authentication URL"`
+	OSToken             string `long:"os-token" env:"OS_TOKEN" description:"Authentication token"`
 	OSPassword          string `long:"os-password" env:"OS_PASSWORD" description:"User's password to use with"`
 	OSUsername          string `long:"os-username" env:"OS_USERNAME" description:"User's username to use with"`
 	OSProjectDomainName string `long:"os-project-domain-name" env:"OS_PROJECT_DOMAIN_NAME" description:"Domain name containing project"`
@@ -75,47 +76,66 @@ func SetupClient() {
 			return nil
 		}
 
-		if opts.OSPwCmd != "" && opts.OSPassword == "" {
-			// run external command to get password
-			cmd := exec.Command("sh", "-c", opts.OSPwCmd)
-			out, err := cmd.Output()
+		var token string
+
+		if opts.OSToken != "" && opts.OSEndpoint != "" {
+			// Token + explicit endpoint: skip Keystone entirely
+			token = opts.OSToken
+		} else {
+			// Full auth flow via Keystone (password or token)
+			if opts.OSPwCmd != "" && opts.OSPassword == "" {
+				// run external command to get password
+				cmd := exec.Command("sh", "-c", opts.OSPwCmd)
+				out, err := cmd.Output()
+				if err != nil {
+					return fmt.Errorf("%s: %s", err.Error(), err.(*exec.ExitError).Stderr)
+				}
+				opts.OSPassword = strings.TrimSuffix(string(out), "\n")
+			}
+
+			var ao *gophercloud.AuthOptions
+			var err error
+			if opts.OSToken != "" {
+				ao = &gophercloud.AuthOptions{
+					IdentityEndpoint: opts.OSAuthUrl,
+					TokenID:          opts.OSToken,
+				}
+			} else {
+				ao, err = clientconfig.AuthOptions(&clientconfig.ClientOpts{
+					RegionName: opts.OSRegionName,
+					AuthInfo: &clientconfig.AuthInfo{
+						AuthURL:           opts.OSAuthUrl,
+						Username:          opts.OSUsername,
+						Password:          opts.OSPassword,
+						ProjectName:       opts.OSProjectName,
+						ProjectDomainName: opts.OSProjectDomainName,
+						UserDomainName:    opts.OSUserDomainName,
+					},
+				})
+				if err != nil {
+					return err
+				}
+			}
+
+			Provider, err = openstack.NewClient(opts.OSAuthUrl)
 			if err != nil {
-				return fmt.Errorf("%s: %s", err.Error(), err.(*exec.ExitError).Stderr)
+				return err
 			}
-			opts.OSPassword = strings.TrimSuffix(string(out), "\n")
-		}
-
-		ao, err := clientconfig.AuthOptions(&clientconfig.ClientOpts{
-			RegionName: opts.OSRegionName,
-			AuthInfo: &clientconfig.AuthInfo{
-				AuthURL:           opts.OSAuthUrl,
-				Username:          opts.OSUsername,
-				Password:          opts.OSPassword,
-				ProjectName:       opts.OSProjectName,
-				ProjectDomainName: opts.OSProjectDomainName,
-				UserDomainName:    opts.OSUserDomainName,
-			},
-		})
-		if err != nil {
-			return err
-		}
-
-		Provider, err = openstack.NewClient(opts.OSAuthUrl)
-		if err != nil {
-			return err
-		}
-		if opts.Debug {
-			Provider.HTTPClient = http.Client{
-				Transport: &osclient.RoundTripper{
-					Rt:     &http.Transport{},
-					Logger: &osclient.DefaultLogger{},
-				},
+			if opts.Debug {
+				Provider.HTTPClient = http.Client{
+					Transport: &osclient.RoundTripper{
+						Rt:     &http.Transport{},
+						Logger: &osclient.DefaultLogger{},
+					},
+				}
 			}
-		}
 
-		err = openstack.Authenticate(context.Background(), Provider, *ao)
-		if err != nil {
-			return err
+			err = openstack.Authenticate(context.Background(), Provider, *ao)
+			if err != nil {
+				return err
+			}
+
+			token = Provider.Token()
 		}
 
 		endpointOpts := gophercloud.EndpointOpts{
@@ -127,6 +147,7 @@ func SetupClient() {
 		if opts.OSEndpoint != "" {
 			endpoint = opts.OSEndpoint
 		} else {
+			var err error
 			if endpoint, err = Provider.EndpointLocator(endpointOpts); err != nil {
 				return err
 			}
@@ -140,7 +161,7 @@ func SetupClient() {
 		rt := runtimeclient.New(uri.Host, uri.Path, []string{uri.Scheme})
 		rt.SetDebug(opts.Debug)
 		rt.DefaultAuthentication = runtime.ClientAuthInfoWriterFunc(func(req runtime.ClientRequest, reg strfmt.Registry) error {
-			if err := req.SetHeaderParam("X-Auth-Token", Provider.Token()); err != nil {
+			if err := req.SetHeaderParam("X-Auth-Token", token); err != nil {
 				return err
 			}
 			return nil
