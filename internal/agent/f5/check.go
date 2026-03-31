@@ -27,7 +27,7 @@ func checkCleanupL2(ctx context.Context, tx pgx.Tx, networkID string,
 		Where("host = ?", config.Global.Default.Host).
 		Where("provider = ?", models.ServiceProviderTenant)
 	if ignorePendingService {
-		q = q.Where("status != 'PENDING_DELETE'")
+		q = q.Where(sq.NotEq{"status": models.ServiceStatusPENDINGDELETE})
 	}
 	sql, args := q.MustSql()
 	ct, err := tx.Exec(ctx, sql, args...)
@@ -107,7 +107,7 @@ func (a *Agent) checkCleanupSelfIPs(ctx context.Context, tx pgx.Tx, networkID st
 			Where("host = ?", config.Global.Default.Host).
 			Where("provider = ?", models.ServiceProviderTenant)
 		if ignorePendingService {
-			q = q.Where("status != 'PENDING_DELETE'")
+			q = q.Where(sq.NotEq{"status": models.ServiceStatusPENDINGDELETE})
 		}
 		sql, args = q.MustSql()
 

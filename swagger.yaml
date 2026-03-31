@@ -1166,27 +1166,7 @@ definitions:
           description: IP Address of the providing service.
           example: 1.2.3.4
       status:
-        type: string
-        description: |
-          Status of the service.
-
-          ### Status can be one of
-          | Status           | Description                            |
-          | ---------------- | -------------------------------------- |
-          | AVAILABLE        | Service is ready for consumption.      |
-          | PENDING_CREATE   | Service is being set up                |
-          | PENDING_UPDATE   | Service is being updated               |
-          | PENDING_DELETE   | Service is being deleted               |
-          | UNAVAILABLE      | Service is unavailable (e.g. disabled) |
-          | ERROR_QUOTA      | Service has not enough port quota      |
-        enum:
-          - AVAILABLE
-          - PENDING_CREATE
-          - PENDING_UPDATE
-          - PENDING_DELETE
-          - UNAVAILABLE
-          - ERROR_QUOTA
-        readOnly: true
+        $ref: "#/definitions/ServiceStatus"
       require_approval:
         type: boolean
         description: Require explicit project approval for the service owner.
@@ -1249,6 +1229,28 @@ definitions:
         $ref: "#/definitions/Timestamp"
       project_id:
         $ref: "#/definitions/Project"
+  ServiceStatus:
+    type: string
+    description: |
+      Status of the service.
+
+      ### Status can be one of
+      | Status           | Description                            |
+      | ---------------- | -------------------------------------- |
+      | AVAILABLE        | Service is ready for consumption.      |
+      | PENDING_CREATE   | Service is being set up                |
+      | PENDING_UPDATE   | Service is being updated               |
+      | PENDING_DELETE   | Service is being deleted               |
+      | UNAVAILABLE      | Service is unavailable (e.g. disabled) |
+      | ERROR_QUOTA      | Service has not enough port quota      |
+    enum:
+      - AVAILABLE
+      - PENDING_CREATE
+      - PENDING_UPDATE
+      - PENDING_DELETE
+      - UNAVAILABLE
+      - ERROR_QUOTA
+    readOnly: true
   ServiceUpdatable:
     type: object
     properties:

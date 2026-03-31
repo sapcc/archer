@@ -14,6 +14,7 @@ import (
 
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
+	"github.com/sapcc/archer/models"
 )
 
 func (a *Agent) createService(tx pgx.Tx) error {
@@ -46,7 +47,7 @@ func (a *Agent) createService(tx pgx.Tx) error {
 			"protocol").
 		Values("Created by Network Injection agent",
 			"00000000-0000-0000-0000-000000000000",
-			"AVAILABLE",
+			string(models.ServiceStatusAVAILABLE),
 			visibility[config.Global.Agent.ServicePublic],
 			"cp",
 			"false",
