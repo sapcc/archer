@@ -49,7 +49,7 @@ func GetServiceTenants(endpointServices []*ExtendedService) Tenant {
 	services := make(map[string]any, len(endpointServices)*2)
 
 	for _, service := range endpointServices {
-		if service.Status == "PENDING_DELETE" {
+		if service.Status == models.ServiceStatusPENDINGDELETE {
 			// Skip services in pending deletion
 			continue
 		}

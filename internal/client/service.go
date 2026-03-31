@@ -349,7 +349,7 @@ func waitForService(id strfmt.UUID, deleted bool) (*models.Service, error) {
 		}
 
 		res = r.GetPayload()
-		if deleted || res.Status != "AVAILABLE" {
+		if deleted || res.Status != models.ServiceStatusAVAILABLE {
 			return retry.RetryableError(errors.New("service not processed"))
 		}
 		return nil

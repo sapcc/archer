@@ -169,7 +169,7 @@ func (a *Agent) PendingSyncLoop() error {
 	sql, args := db.Select("1").
 		From("service").
 		Where("provider = ?", models.ServiceProviderTenant).
-		Where(sq.Eq{"status": []string{
+		Where(sq.Eq{"status": []models.ServiceStatus{
 			models.ServiceStatusPENDINGDELETE,
 			models.ServiceStatusPENDINGCREATE,
 			models.ServiceStatusPENDINGUPDATE}}).

@@ -223,7 +223,7 @@ func waitForEndpoint(id strfmt.UUID, deleted bool) (*models.Endpoint, error) {
 		}
 
 		res = r.GetPayload()
-		if deleted || res.Status != "AVAILABLE" {
+		if deleted || res.Status != models.EndpointStatusAVAILABLE {
 			return retry.RetryableError(errors.New("endpoint not processed"))
 		}
 		return nil

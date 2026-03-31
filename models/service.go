@@ -108,21 +108,8 @@ type Service struct {
 	// Require explicit project approval for the service owner.
 	RequireApproval *bool `json:"require_approval,omitempty"`
 
-	// Status of the service.
-	//
-	// ### Status can be one of
-	// | Status           | Description                            |
-	// | ---------------- | -------------------------------------- |
-	// | AVAILABLE        | Service is ready for consumption.      |
-	// | PENDING_CREATE   | Service is being set up                |
-	// | PENDING_UPDATE   | Service is being updated               |
-	// | PENDING_DELETE   | Service is being deleted               |
-	// | UNAVAILABLE      | Service is unavailable (e.g. disabled) |
-	// | ERROR_QUOTA      | Service has not enough port quota      |
-	//
-	// Read Only: true
-	// Enum: ["AVAILABLE","PENDING_CREATE","PENDING_UPDATE","PENDING_DELETE","UNAVAILABLE","ERROR_QUOTA"]
-	Status string `json:"status,omitempty"`
+	// status
+	Status ServiceStatus `json:"status,omitempty"`
 
 	// The list of tags on the resource.
 	Tags []string `json:"tags"`
@@ -417,54 +404,21 @@ func (m *Service) validateProvider(formats strfmt.Registry) error {
 	return nil
 }
 
-var serviceTypeStatusPropEnum []any
-
-func init() {
-	var res []string
-	if err := json.Unmarshal([]byte(`["AVAILABLE","PENDING_CREATE","PENDING_UPDATE","PENDING_DELETE","UNAVAILABLE","ERROR_QUOTA"]`), &res); err != nil {
-		panic(err)
-	}
-	for _, v := range res {
-		serviceTypeStatusPropEnum = append(serviceTypeStatusPropEnum, v)
-	}
-}
-
-const (
-
-	// ServiceStatusAVAILABLE captures enum value "AVAILABLE"
-	ServiceStatusAVAILABLE string = "AVAILABLE"
-
-	// ServiceStatusPENDINGCREATE captures enum value "PENDING_CREATE"
-	ServiceStatusPENDINGCREATE string = "PENDING_CREATE"
-
-	// ServiceStatusPENDINGUPDATE captures enum value "PENDING_UPDATE"
-	ServiceStatusPENDINGUPDATE string = "PENDING_UPDATE"
-
-	// ServiceStatusPENDINGDELETE captures enum value "PENDING_DELETE"
-	ServiceStatusPENDINGDELETE string = "PENDING_DELETE"
-
-	// ServiceStatusUNAVAILABLE captures enum value "UNAVAILABLE"
-	ServiceStatusUNAVAILABLE string = "UNAVAILABLE"
-
-	// ServiceStatusERRORQUOTA captures enum value "ERROR_QUOTA"
-	ServiceStatusERRORQUOTA string = "ERROR_QUOTA"
-)
-
-// prop value enum
-func (m *Service) validateStatusEnum(path, location string, value string) error {
-	if err := validate.EnumCase(path, location, value, serviceTypeStatusPropEnum, true); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (m *Service) validateStatus(formats strfmt.Registry) error {
 	if swag.IsZero(m.Status) { // not required
 		return nil
 	}
 
-	// value enum
-	if err := m.validateStatusEnum("status", "body", m.Status); err != nil {
+	if err := m.Status.Validate(formats); err != nil {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
+			return ve.ValidateName("status")
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
+			return ce.ValidateName("status")
+		}
+
 		return err
 	}
 
@@ -605,7 +559,20 @@ func (m *Service) contextValidateProjectID(ctx context.Context, formats strfmt.R
 
 func (m *Service) contextValidateStatus(ctx context.Context, formats strfmt.Registry) error {
 
-	if err := validate.ReadOnly(ctx, "status", "body", m.Status); err != nil {
+	if swag.IsZero(m.Status) { // not required
+		return nil
+	}
+
+	if err := m.Status.ContextValidate(ctx, formats); err != nil {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
+			return ve.ValidateName("status")
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
+			return ce.ValidateName("status")
+		}
+
 		return err
 	}
 
