@@ -4,6 +4,13 @@
 
 package internal
 
+func UniqueOrNil(s []string) []string {
+	if s == nil {
+		return nil
+	}
+	return Unique(s)
+}
+
 func Unique(s []string) []string {
 	in := make(map[string]struct{})
 	result := make([]string, 0)

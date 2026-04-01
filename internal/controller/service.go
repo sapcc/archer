@@ -303,7 +303,7 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 			Set("ports", sq.Expr("COALESCE(?, ports)", params.Body.Ports)).
 			Set("ip_addresses", sq.Expr("COALESCE(?, ip_addresses)", params.Body.IPAddresses)).
 			Set("visibility", sq.Expr("COALESCE(?, visibility)", params.Body.Visibility)).
-			Set("tags", sq.Expr("COALESCE(?, tags)", internal.Unique(params.Body.Tags))).
+			Set("tags", sq.Expr("COALESCE(?, tags)", internal.UniqueOrNil(params.Body.Tags))).
 			Set("protocol", sq.Expr("COALESCE(?, protocol)", params.Body.Protocol)).
 			Set("status", models.ServiceStatusPENDINGUPDATE).
 			Set("updated_at", sq.Expr("NOW()")).
