@@ -47,6 +47,12 @@ githubWorkflow:
     enabled: true
   global:
     defaultBranch: main
+  release:
+    enabled: true
+  license:
+    enabled: true
+  securityChecks:
+    enabled: true
 
 renovate:
   enabled: true
@@ -84,8 +90,10 @@ coverageTest:
 
 goReleaser:
   createConfig: true
-  files: [ LICENSES/**, LICENSE, README.md ]
+  files: [ LICENSES/**, LICENSE, README.md, CHANGELOG.md ]
   binaryName: archerctl
+  nameTemplate: 'archerctl-{{ replace .Version "v" "" }}-{{ .Os }}-{{ .Arch }}'
+
 
 typos:
   enabled: true
