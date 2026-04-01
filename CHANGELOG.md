@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-04-01
+
+### Added
+
+- Health status monitoring for services (ONLINE, DEGRADED, OFFLINE, UNCHECKED)
+- Terminal colorization for CLI output
+
 ## [1.8.0] - 2026-03-31
 
 ### Added
@@ -43,7 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-Release with goreleaser
 
-[Unreleased]: https://github.com/sapcc/archer/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/sapcc/archer/compare/v1.9.0...HEAD
+[1.9.0]: https://github.com/sapcc/archer/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/sapcc/archer/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/sapcc/archer/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/sapcc/archer/compare/v1.5.0...v1.6.0
