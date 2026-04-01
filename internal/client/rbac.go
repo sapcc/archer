@@ -31,7 +31,11 @@ func (*RbacList) Execute(_ []string) error {
 
 	Table.AppendHeader(table.Row{"ID", "Target Type", "Target", "Service", "Created", "Updated"})
 	for _, r := range resp.Payload.Items {
-		Table.AppendRow(table.Row{r.ID, r.TargetType, r.Target, r.ServiceID, r.CreatedAt, r.UpdatedAt})
+		targetType := ""
+		if r.TargetType != nil {
+			targetType = *r.TargetType
+		}
+		Table.AppendRow(table.Row{r.ID, targetType, r.Target, r.ServiceID, r.CreatedAt, r.UpdatedAt})
 	}
 	Table.Render()
 	return nil
