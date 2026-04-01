@@ -149,6 +149,16 @@ func (a *Agent) Run() {
 		log.Fatal(err)
 	}
 
+	// health status scraping
+	if _, err := a.scheduler.NewJob(
+		gocron.DurationJob(config.Global.Agent.HealthScrapeInterval),
+		gocron.NewTask(a.HealthScrapeLoop),
+		gocron.WithName("HealthScrapeLoop"),
+		gocron.WithStartAt(gocron.WithStartImmediately()),
+	); err != nil {
+		log.Fatal(err)
+	}
+
 	// start the scheduler
 	a.scheduler.Start()
 

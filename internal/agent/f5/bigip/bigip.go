@@ -135,6 +135,58 @@ type VcmpGuests struct {
 	Guests []bigip.VcmpGuest `json:"items,omitempty"`
 }
 
+// PoolMemberStatsEntry contains health monitor status for a pool member
+type PoolMemberStatsEntry struct {
+	MonitorStatus struct {
+		Description string `json:"description"`
+	} `json:"monitorStatus"`
+	SessionStatus struct {
+		Description string `json:"description"`
+	} `json:"sessionStatus"`
+	AvailabilityState struct {
+		Description string `json:"description"`
+	} `json:"status.availabilityState"`
+}
+
+// PoolMemberStatsResponse is the response from the pool members stats endpoint
+type PoolMemberStatsResponse struct {
+	Entries map[string]struct {
+		NestedStats struct {
+			Entries PoolMemberStatsEntry `json:"entries"`
+		} `json:"nestedStats"`
+	} `json:"entries"`
+}
+
+// GetPoolMemberStats fetches pool member statistics including health monitor status.
+// poolPath should be the full path like "~Common~Shared~pool-{service-id}-{port}"
+func (b *BigIP) GetPoolMemberStats(poolPath string) (*PoolMemberStatsResponse, error) {
+	var stats PoolMemberStatsResponse
+
+	// URL format: /mgmt/tm/ltm/pool/{poolPath}/members/stats
+	// The poolPath uses ~ as separator, e.g., ~Common~Shared~pool-xxx-80
+	req := &bigip.APIRequest{
+		Method:      "get",
+		URL:         fmt.Sprintf("ltm/pool/%s/members/stats", poolPath),
+		ContentType: "application/json",
+	}
+	resp, err := (*bigip.BigIP)(b).APICall(req)
+	if err != nil {
+		return nil, fmt.Errorf("GetPoolMemberStats: %w", err)
+	}
+
+	var reqError bigip.RequestError
+	if json.Unmarshal(resp, &reqError) == nil && reqError.Code != 0 {
+		return nil, fmt.Errorf("GetPoolMemberStats: %s", reqError.Error())
+	}
+
+	err = json.Unmarshal(resp, &stats)
+	if err != nil {
+		return nil, fmt.Errorf("GetPoolMemberStats: %w", err)
+	}
+
+	return &stats, nil
+}
+
 func (b *BigIP) getVCMPGuests() (*VcmpGuests, error) {
 	var guests VcmpGuests
 

@@ -298,4 +298,11 @@ var Migrations = mgx.Migrations(
 		`)
 		return err
 	}),
+	mgx.NewMigration("add_health_status", func(ctx context.Context, commands mgx.Commands) error {
+		_, err := commands.Exec(ctx, `
+			ALTER TABLE service ADD COLUMN health_status VARCHAR(16) DEFAULT 'UNCHECKED'
+				CONSTRAINT health_status CHECK (health_status IN ('ONLINE', 'DEGRADED', 'OFFLINE', 'UNCHECKED'));
+		`)
+		return err
+	}),
 )

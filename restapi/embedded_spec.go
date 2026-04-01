@@ -1691,6 +1691,18 @@ func init() {
           "type": "boolean",
           "default": true
         },
+        "health_status": {
+          "description": "Health monitor status of the service backend.\n\n### Health status can be one of\n| Status      | Description                              |\n| ----------- | ---------------------------------------- |\n| ONLINE      | Service is healthy                       |\n| DEGRADED    | Service is partially healthy             |\n| OFFLINE     | Service is not healthy                   |\n| UNCHECKED   | Status cannot be determined              |\n",
+          "type": "string",
+          "enum": [
+            "ONLINE",
+            "DEGRADED",
+            "OFFLINE",
+            "UNCHECKED"
+          ],
+          "x-nullable": true,
+          "readOnly": true
+        },
         "host": {
           "description": "Device host.",
           "type": "string",
@@ -3851,6 +3863,18 @@ func init() {
           "description": "Enable/disable this service. Existing endpoints are not touched by this.",
           "type": "boolean",
           "default": true
+        },
+        "health_status": {
+          "description": "Health monitor status of the service backend.\n\n### Health status can be one of\n| Status      | Description                              |\n| ----------- | ---------------------------------------- |\n| ONLINE      | Service is healthy                       |\n| DEGRADED    | Service is partially healthy             |\n| OFFLINE     | Service is not healthy                   |\n| UNCHECKED   | Status cannot be determined              |\n",
+          "type": "string",
+          "enum": [
+            "ONLINE",
+            "DEGRADED",
+            "OFFLINE",
+            "UNCHECKED"
+          ],
+          "x-nullable": true,
+          "readOnly": true
         },
         "host": {
           "description": "Device host.",
