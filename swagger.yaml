@@ -1229,6 +1229,25 @@ definitions:
         $ref: "#/definitions/Timestamp"
       project_id:
         $ref: "#/definitions/Project"
+      health_status:
+        type: string
+        description: |
+          Health monitor status of the service backend.
+
+          ### Health status can be one of
+          | Status      | Description                              |
+          | ----------- | ---------------------------------------- |
+          | ONLINE      | Service is healthy                       |
+          | DEGRADED    | Service is partially healthy             |
+          | OFFLINE     | Service is not healthy                   |
+          | UNCHECKED   | Status cannot be determined              |
+        enum:
+          - ONLINE
+          - DEGRADED
+          - OFFLINE
+          - UNCHECKED
+        readOnly: true
+        x-nullable: true
   ServiceStatus:
     type: string
     description: |

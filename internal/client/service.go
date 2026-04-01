@@ -50,7 +50,7 @@ func (*ServiceList) Execute(_ []string) error {
 	if err != nil {
 		return err
 	}
-	DefaultColumns = []string{"id", "name", "ports", "enabled", "provider", "status", "visibility", "availability_zone", "project_id", "in_use"}
+	DefaultColumns = []string{"id", "name", "ports", "enabled", "provider", "status", "health_status", "visibility", "availability_zone", "project_id", "in_use"}
 	items := resp.GetPayload().Items
 
 	// Build enriched list with endpoint counts

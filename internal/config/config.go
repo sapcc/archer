@@ -85,6 +85,8 @@ type Agent struct {
 	PhysicalNetwork        string        `long:"physical-network" ini-name:"physical_network" description:"Physical Network"`
 	PhysicalInterface      string        `long:"physical-interface" ini-name:"physical_interface" description:"Physical Interface" default:"portchannel1"`
 	PendingSyncInterval    time.Duration `long:"pending-sync-interval" ini-name:"sync-interval" default:"120s" description:"Interval for pending sync scans, supports suffix (e.g. 10s)."`
+	HealthScrapeInterval   time.Duration `long:"health-scrape-interval" ini-name:"health_scrape_interval" default:"5m" description:"Interval for health monitor status scraping."`
+	HealthScrapePrometheus string        `long:"health-scrape-prometheus" ini-name:"health_scrape_prometheus" description:"Prometheus API URL for health scraping. If set, uses Prometheus instead of direct F5 API."`
 	CreateService          bool          `long:"create-service" ini-name:"create_service" description:"Auto-create Service for network injection agent."`
 	ServicePublic          bool          `long:"service-public" ini-name:"service_public" description:"Service public to all projects for auto-created service"`
 	ServiceName            string        `long:"service-name" ini-name:"service_name" description:"Service name for auto-created service."`

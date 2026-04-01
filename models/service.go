@@ -54,6 +54,20 @@ type Service struct {
 	// Enable/disable this service. Existing endpoints are not touched by this.
 	Enabled *bool `json:"enabled,omitempty"`
 
+	// Health monitor status of the service backend.
+	//
+	// ### Health status can be one of
+	// | Status      | Description                              |
+	// | ----------- | ---------------------------------------- |
+	// | ONLINE      | Service is healthy                       |
+	// | DEGRADED    | Service is partially healthy             |
+	// | OFFLINE     | Service is not healthy                   |
+	// | UNCHECKED   | Status cannot be determined              |
+	//
+	// Read Only: true
+	// Enum: ["ONLINE","DEGRADED","OFFLINE","UNCHECKED"]
+	HealthStatus *string `json:"health_status,omitempty"`
+
 	// Device host.
 	// Read Only: true
 	Host *string `json:"host,omitempty"`
@@ -134,6 +148,10 @@ func (m *Service) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateHealthStatus(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateID(formats); err != nil {
 		res = append(res, err)
 	}
@@ -202,6 +220,54 @@ func (m *Service) validateDescription(formats strfmt.Registry) error {
 	}
 
 	if err := validate.MaxLength("description", "body", m.Description, 255); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var serviceTypeHealthStatusPropEnum []any
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["ONLINE","DEGRADED","OFFLINE","UNCHECKED"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		serviceTypeHealthStatusPropEnum = append(serviceTypeHealthStatusPropEnum, v)
+	}
+}
+
+const (
+
+	// ServiceHealthStatusONLINE captures enum value "ONLINE"
+	ServiceHealthStatusONLINE string = "ONLINE"
+
+	// ServiceHealthStatusDEGRADED captures enum value "DEGRADED"
+	ServiceHealthStatusDEGRADED string = "DEGRADED"
+
+	// ServiceHealthStatusOFFLINE captures enum value "OFFLINE"
+	ServiceHealthStatusOFFLINE string = "OFFLINE"
+
+	// ServiceHealthStatusUNCHECKED captures enum value "UNCHECKED"
+	ServiceHealthStatusUNCHECKED string = "UNCHECKED"
+)
+
+// prop value enum
+func (m *Service) validateHealthStatusEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, serviceTypeHealthStatusPropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Service) validateHealthStatus(formats strfmt.Registry) error {
+	if swag.IsZero(m.HealthStatus) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateHealthStatusEnum("health_status", "body", *m.HealthStatus); err != nil {
 		return err
 	}
 
@@ -495,6 +561,10 @@ func (m *Service) validateVisibility(formats strfmt.Registry) error {
 func (m *Service) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.contextValidateHealthStatus(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.contextValidateHost(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -514,6 +584,15 @@ func (m *Service) ContextValidate(ctx context.Context, formats strfmt.Registry) 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *Service) contextValidateHealthStatus(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := validate.ReadOnly(ctx, "health_status", "body", m.HealthStatus); err != nil {
+		return err
+	}
+
 	return nil
 }
 
