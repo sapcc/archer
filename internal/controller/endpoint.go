@@ -288,7 +288,7 @@ func (c *Controller) GetEndpointEndpointIDHandler(params endpoint.GetEndpointEnd
 func (c *Controller) PutEndpointEndpointIDHandler(params endpoint.PutEndpointEndpointIDParams, _ any) middleware.Responder {
 	u := db.Update("endpoint").
 		Prefix("WITH endpoint AS (").
-		Set("tags", sq.Expr("COALESCE(?, tags)", internal.Unique(params.Body.Tags))).
+		Set("tags", sq.Expr("COALESCE(?, tags)", internal.UniqueOrNil(params.Body.Tags))).
 		Set("name", sq.Expr("COALESCE(?, name)", params.Body.Name)).
 		Set("description", sq.Expr("COALESCE(?, description)", params.Body.Description)).
 		Set("updated_at", sq.Expr("NOW()")).
