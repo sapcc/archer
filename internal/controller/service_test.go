@@ -393,6 +393,39 @@ func (t *SuiteTest) TestServiceDeleteInUse() {
 	assert.IsType(t.T(), &service.GetServiceServiceIDOK{}, res)
 }
 
+func (t *SuiteTest) TestServiceDeleteWithRejectedEndpoint() {
+	serviceId := t.createService(testService)
+	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
+	ep := t.createEndpoint(serviceId, models.EndpointTarget{Network: &network})
+
+	// delete should fail while endpoint is active
+	res := t.c.DeleteServiceServiceIDHandler(
+		service.DeleteServiceServiceIDParams{HTTPRequest: &http.Request{}, ServiceID: serviceId},
+		nil)
+	assert.IsType(t.T(), &service.DeleteServiceServiceIDConflict{}, res)
+
+	// set endpoint status to REJECTED directly in the DB
+	sql, args := db.Update("endpoint").
+		Set("status", models.EndpointStatusREJECTED).
+		Where("id = ?", ep.ID).
+		MustSql()
+	_, err := t.c.pool.Exec(context.Background(), sql, args...)
+	assert.NoError(t.T(), err)
+
+	// delete should succeed now since only rejected endpoints remain
+	res = t.c.DeleteServiceServiceIDHandler(
+		service.DeleteServiceServiceIDParams{HTTPRequest: &headerProject1, ServiceID: serviceId},
+		nil)
+	assert.IsType(t.T(), &service.DeleteServiceServiceIDAccepted{}, res)
+
+	// verify service is in PENDING_DELETE state
+	res = t.c.GetServiceServiceIDHandler(
+		service.GetServiceServiceIDParams{HTTPRequest: &headerProject1, ServiceID: serviceId},
+		nil)
+	assert.IsType(t.T(), &service.GetServiceServiceIDOK{}, res)
+	assert.Equal(t.T(), models.ServiceStatusPENDINGDELETE, res.(*service.GetServiceServiceIDOK).Payload.Status)
+}
+
 func (t *SuiteTest) TestGetServiceServiceIDEndpointsHandler() {
 	serviceId := t.createService(testService)
 	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
