@@ -177,6 +177,23 @@ err := pgxscan.Get(ctx, tx, &endpoint, sql, args...)
 - Linting: `golangci-lint` with strict rules
 - Avoid over-engineering: simple solutions over abstractions
 
+### Swagger/OpenAPI
+
+**IMPORTANT**: When modifying `swagger.yaml`, always regenerate models, API code, and documentation using:
+```bash
+make swagger
+make markdown
+```
+Do NOT use `go generate ./...` or other methods for swagger regeneration. The `make swagger` target ensures proper go-swagger configuration and consistent code generation. The `make markdown` target regenerates API documentation.
+
+### Interfaces and Mocks
+
+**IMPORTANT**: When modifying any Go interface, regenerate the mock implementations using:
+```bash
+make mockery
+```
+This ensures test mocks stay in sync with interface definitions.
+
 ### OpenStack Integration
 
 - Keystone: Authentication tokens in `X-Auth-Token` header
