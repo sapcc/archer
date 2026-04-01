@@ -5,8 +5,8 @@
 package internal
 
 func Unique(s []string) []string {
-	if len(s) == 0 {
-		return s
+	if s == nil {
+		return nil
 	}
 	in := make(map[string]struct{})
 	result := make([]string, 0)
