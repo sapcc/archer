@@ -36,6 +36,7 @@ import (
 	"github.com/sapcc/archer/internal/middlewares"
 	"github.com/sapcc/archer/internal/neutron"
 	"github.com/sapcc/archer/internal/policy"
+	"github.com/sapcc/archer/internal/scheduler"
 	"github.com/sapcc/archer/restapi/operations"
 	"github.com/sapcc/archer/restapi/operations/endpoint"
 	"github.com/sapcc/archer/restapi/operations/quota"
@@ -148,6 +149,7 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 	api.ServiceGetServiceServiceIDEndpointsHandler = service.GetServiceServiceIDEndpointsHandlerFunc(c.GetServiceServiceIDEndpointsHandler)
 	api.ServicePutServiceServiceIDAcceptEndpointsHandler = service.PutServiceServiceIDAcceptEndpointsHandlerFunc(c.PutServiceServiceIDAcceptEndpointsHandler)
 	api.ServicePutServiceServiceIDRejectEndpointsHandler = service.PutServiceServiceIDRejectEndpointsHandlerFunc(c.PutServiceServiceIDRejectEndpointsHandler)
+	api.ServicePostServiceServiceIDMigrateHandler = service.PostServiceServiceIDMigrateHandlerFunc(c.PostServiceServiceIDMigrateHandler)
 
 	api.EndpointGetEndpointHandler = endpoint.GetEndpointHandlerFunc(c.GetEndpointHandler)
 	api.EndpointPostEndpointHandler = endpoint.PostEndpointHandlerFunc(c.PostEndpointHandler)
@@ -167,9 +169,31 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 	api.RbacPutRbacPoliciesRbacPolicyIDHandler = rbac.PutRbacPoliciesRbacPolicyIDHandlerFunc(c.PutRbacPoliciesRbacPolicyIDHandler)
 	api.RbacDeleteRbacPoliciesRbacPolicyIDHandler = rbac.DeleteRbacPoliciesRbacPolicyIDHandlerFunc(c.DeleteRbacPoliciesRbacPolicyIDHandler)
 
+	// Start background scheduler for agent rescheduling and rebalancing
+	// Uses PostgreSQL advisory locks for distributed leader election across multiple API instances
+	schedulerCfg := scheduler.Config{
+		StaleTimeout:           config.Global.Agent.AgentStaleTimeout,
+		CheckInterval:          config.Global.Agent.RescheduleCheckInterval,
+		RebalanceDelay:         config.Global.Agent.RebalanceDelay,
+		RebalanceThreshold:     config.Global.Agent.RebalanceThreshold,
+		RebalanceMaxMigrations: config.Global.Agent.RebalanceMaxMigrations,
+	}
+	notifyFunc := func(host string) { db.NotifyService(pool, host) }
+	serviceScheduler := scheduler.NewServiceScheduler(pool, schedulerCfg, notifyFunc)
+	bgScheduler, err := scheduler.NewBackgroundScheduler(serviceScheduler, pool, schedulerCfg.CheckInterval, schedulerCfg.RebalanceDelay)
+	if err != nil {
+		log.Fatalf("Failed to create background scheduler: %v", err)
+	}
+	if err := bgScheduler.Start(context.Background()); err != nil {
+		log.Fatalf("Failed to start background scheduler: %v", err)
+	}
+
 	api.PreServerShutdown = func() {}
 
 	api.ServerShutdown = func() {
+		if err := bgScheduler.Stop(); err != nil {
+			log.WithError(err).Error("Failed to stop background scheduler")
+		}
 		pool.Close()
 		sentry.Flush(5 * time.Second)
 	}

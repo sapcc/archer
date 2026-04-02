@@ -189,6 +189,13 @@ func NewArcherAPI(spec *loads.Document) *ArcherAPI {
 			return middleware.NotImplemented("operation service.PostService has not yet been implemented")
 		}),
 
+		ServicePostServiceServiceIDMigrateHandler: service.PostServiceServiceIDMigrateHandlerFunc(func(params service.PostServiceServiceIDMigrateParams, principal any) middleware.Responder {
+			_ = params
+			_ = principal
+
+			return middleware.NotImplemented("operation service.PostServiceServiceIDMigrate has not yet been implemented")
+		}),
+
 		EndpointPutEndpointEndpointIDHandler: endpoint.PutEndpointEndpointIDHandlerFunc(func(params endpoint.PutEndpointEndpointIDParams, principal any) middleware.Responder {
 			_ = params
 			_ = principal
@@ -440,6 +447,8 @@ type ArcherAPI struct {
 	RbacPostRbacPoliciesHandler rbac.PostRbacPoliciesHandler
 	// ServicePostServiceHandler sets the operation handler for the post service operation
 	ServicePostServiceHandler service.PostServiceHandler
+	// ServicePostServiceServiceIDMigrateHandler sets the operation handler for the post service service ID migrate operation
+	ServicePostServiceServiceIDMigrateHandler service.PostServiceServiceIDMigrateHandler
 	// EndpointPutEndpointEndpointIDHandler sets the operation handler for the put endpoint endpoint ID operation
 	EndpointPutEndpointEndpointIDHandler endpoint.PutEndpointEndpointIDHandler
 	// QuotaPutQuotasProjectIDHandler sets the operation handler for the put quotas project ID operation
@@ -586,6 +595,9 @@ func (o *ArcherAPI) Validate() error {
 	}
 	if o.ServicePostServiceHandler == nil {
 		unregistered = append(unregistered, "service.PostServiceHandler")
+	}
+	if o.ServicePostServiceServiceIDMigrateHandler == nil {
+		unregistered = append(unregistered, "service.PostServiceServiceIDMigrateHandler")
 	}
 	if o.EndpointPutEndpointEndpointIDHandler == nil {
 		unregistered = append(unregistered, "endpoint.PutEndpointEndpointIDHandler")
@@ -775,6 +787,10 @@ func (o *ArcherAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/service"] = service.NewPostService(o.context, o.ServicePostServiceHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/service/{service_id}/migrate"] = service.NewPostServiceServiceIDMigrate(o.context, o.ServicePostServiceServiceIDMigrateHandler)
 	if o.handlers["PUT"] == nil {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}

@@ -16,6 +16,7 @@
   "service:create:provider": "rule:cloud_admin",
   "service:update-global": "rule:cloud_admin",
   "service:delete-global": "rule:cloud_admin",
+  "service:migrate": "rule:cloud_admin",
 
   "service-endpoint:read": "rule:context_is_viewer",
   "service-endpoint:accept": "rule:context_is_editor",

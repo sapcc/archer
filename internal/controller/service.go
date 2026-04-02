@@ -26,13 +26,30 @@ import (
 
 	"github.com/sapcc/archer/internal"
 	"github.com/sapcc/archer/internal/auth"
+	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
 	aerr "github.com/sapcc/archer/internal/errors"
 	"github.com/sapcc/archer/models"
 	"github.com/sapcc/archer/restapi/operations/service"
 )
 
-func (c *Controller) GetServiceHandler(params service.GetServiceParams, _ any) middleware.Responder {
+// maskCPServiceIPAddresses clears IP addresses for CP services unless the user has cloud_admin rights.
+// This is a security measure to prevent exposing internal service IP addresses to regular users.
+func maskCPServiceIPAddresses(svc *models.Service, principal any) {
+	if svc == nil {
+		return
+	}
+	if svc.Provider != nil && *svc.Provider == "cp" {
+		if t, ok := principal.(*gopherpolicy.Token); ok {
+			if t.Check("service:read-global") {
+				return // cloud_admin can see IP addresses
+			}
+		}
+		svc.IPAddresses = nil
+	}
+}
+
+func (c *Controller) GetServiceHandler(params service.GetServiceParams, principal any) middleware.Responder {
 	q := db.Select("*").From("service")
 	projectId := auth.GetProjectID(params.HTTPRequest)
 	if projectId != "" {
@@ -68,6 +85,9 @@ func (c *Controller) GetServiceHandler(params service.GetServiceParams, _ any) m
 		panic(err)
 	}
 
+	for _, svc := range servicesResponse {
+		maskCPServiceIPAddresses(svc, principal)
+	}
 	links := pagination.GetLinks(servicesResponse)
 	return service.NewGetServiceOK().WithPayload(&service.GetServiceOKBody{Items: servicesResponse, Links: links})
 }
@@ -149,7 +169,7 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 
 	var host string
 	if err := pgx.BeginFunc(ctx, c.pool, func(tx pgx.Tx) error {
-		// schedule
+		// schedule: find least-loaded healthy agent
 		q := db.Select("agents.host", "COUNT(service.id) AS usage").
 			From("agents").
 			LeftJoin("service ON service.host = agents.host").
@@ -157,8 +177,11 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 				sq.Eq{"agents.enabled": true},
 				sq.Eq{"agents.provider": params.Body.Provider},
 				sq.Eq{"agents.availability_zone": params.Body.AvailabilityZone},
+				// Only consider agents with recent heartbeat (within stale timeout)
+				sq.Expr("agents.heartbeat_at > NOW() - INTERVAL '1 second' * ?",
+					int(config.Global.Agent.AgentStaleTimeout.Seconds())),
 			}).
-			OrderBy("usage ASC", "agents.updated_at DESC").
+			OrderBy("usage ASC", "agents.heartbeat_at DESC").
 			GroupBy("agents.host").
 			Limit(1)
 
@@ -221,11 +244,11 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 		panic(err)
 	}
 
-	c.notifyService(host)
+	db.NotifyService(c.pool, host)
 	return service.NewPostServiceCreated().WithXTargetID(serviceResponse.ID).WithPayload(&serviceResponse)
 }
 
-func (c *Controller) GetServiceServiceIDHandler(params service.GetServiceServiceIDParams, _ any) middleware.Responder {
+func (c *Controller) GetServiceServiceIDHandler(params service.GetServiceServiceIDParams, principal any) middleware.Responder {
 	q := db.Select("*").From("service").Where("id = ?", params.ServiceID)
 
 	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
@@ -251,6 +274,7 @@ func (c *Controller) GetServiceServiceIDHandler(params service.GetServiceService
 		}
 		panic(err)
 	}
+	maskCPServiceIPAddresses(&servicesResponse, principal)
 	return service.NewGetServiceServiceIDOK().WithPayload(&servicesResponse)
 }
 
@@ -327,7 +351,7 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 		panic(err)
 	}
 
-	c.notifyService(*serviceResponse.Host)
+	db.NotifyService(c.pool, *serviceResponse.Host)
 	return service.NewPutServiceServiceIDOK().WithPayload(&serviceResponse)
 }
 
@@ -411,9 +435,9 @@ func (c *Controller) DeleteServiceServiceIDHandler(params service.DeleteServiceS
 
 	// Notify agent to clean up Neutron ports for the transitioned rejected endpoints.
 	for _, id := range rejectedEndpointIDs {
-		c.notifyEndpoint(host, id)
+		db.NotifyEndpoint(c.pool, host, id)
 	}
-	c.notifyService(host)
+	db.NotifyService(c.pool, host)
 	return service.NewDeleteServiceServiceIDAccepted()
 }
 
@@ -601,4 +625,139 @@ func (s *ServiceConflictChecker) checkForServiceConflict(ctx context.Context, tx
 		return &pgconn.PgError{Code: pgerrcode.CheckViolation}
 	}
 	return nil
+}
+
+func (c *Controller) PostServiceServiceIDMigrateHandler(params service.PostServiceServiceIDMigrateParams, _ any) middleware.Responder {
+	ctx := params.HTTPRequest.Context()
+	var serviceResponse models.Service
+
+	var currentHost, targetHost string
+	var provider string
+	var az *string
+
+	if err := pgx.BeginFunc(ctx, c.pool, func(tx pgx.Tx) error {
+		// Get current service details
+		sql, args := db.Select("host", "provider", "availability_zone").
+			From("service").
+			Where("id = ?", params.ServiceID).
+			Suffix("FOR UPDATE").
+			MustSql()
+
+		if err := tx.QueryRow(ctx, sql, args...).Scan(&currentHost, &provider, &az); err != nil {
+			return err
+		}
+
+		// Determine target host
+		if params.Body.TargetHost != "" {
+			targetHost = params.Body.TargetHost
+
+			// Validate target host exists and is healthy
+			sql, args = db.Select("1").
+				From("agents").
+				Where("host = ?", targetHost).
+				Where("enabled = true").
+				Where("provider = ?", provider).
+				Where("availability_zone = ?", az).
+				Where("heartbeat_at > NOW() - INTERVAL '1 second' * ?",
+					int(config.Global.Agent.AgentStaleTimeout.Seconds())).
+				MustSql()
+
+			var exists int
+			if err := tx.QueryRow(ctx, sql, args...).Scan(&exists); err != nil {
+				if errors.Is(err, pgx.ErrNoRows) {
+					return aerr.ErrNotFound
+				}
+				return err
+			}
+		} else {
+			// Find least-loaded agent (exclude current host)
+			q := db.Select("agents.host", "COUNT(service.id) AS usage").
+				From("agents").
+				LeftJoin("service ON service.host = agents.host").
+				Where(sq.And{
+					sq.Eq{"agents.enabled": true},
+					sq.Eq{"agents.provider": provider},
+					sq.Eq{"agents.availability_zone": az},
+					sq.NotEq{"agents.host": currentHost},
+					sq.Expr("agents.heartbeat_at > NOW() - INTERVAL '1 second' * ?",
+						int(config.Global.Agent.AgentStaleTimeout.Seconds())),
+				}).
+				GroupBy("agents.host").
+				OrderBy("usage ASC", "agents.heartbeat_at DESC").
+				Limit(1)
+
+			sql, args, err := q.ToSql()
+			if err != nil {
+				return err
+			}
+
+			var usage int
+			if err = tx.QueryRow(ctx, sql, args...).Scan(&targetHost, &usage); err != nil {
+				return err
+			}
+		}
+
+		if targetHost == currentHost {
+			return aerr.ErrBadRequest
+		}
+
+		log.WithFields(log.Fields{
+			"service": params.ServiceID,
+			"from":    currentHost,
+			"to":      targetHost,
+		}).Info("Migrating service")
+
+		// Update service host
+		sql, args = db.Update("service").
+			Set("host", targetHost).
+			Set("status", models.ServiceStatusPENDINGUPDATE).
+			Set("updated_at", sq.Expr("NOW()")).
+			Where("id = ?", params.ServiceID).
+			Suffix("RETURNING *").
+			MustSql()
+
+		if err := pgxscan.Get(ctx, tx, &serviceResponse, sql, args...); err != nil {
+			return err
+		}
+
+		// Update all AVAILABLE endpoints to PENDING_UPDATE
+		sql, args = db.Update("endpoint").
+			Set("status", models.EndpointStatusPENDINGUPDATE).
+			Set("updated_at", sq.Expr("NOW()")).
+			Where("service_id = ?", params.ServiceID).
+			Where("status = ?", models.EndpointStatusAVAILABLE).
+			MustSql()
+
+		if _, err := tx.Exec(ctx, sql, args...); err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return service.NewPostServiceServiceIDMigrateNotFound().WithPayload(&models.Error{
+				Code:    404,
+				Message: "Service not found or no available agent",
+			})
+		}
+		if errors.Is(err, aerr.ErrNotFound) {
+			return service.NewPostServiceServiceIDMigrateNotFound().WithPayload(&models.Error{
+				Code:    404,
+				Message: "Target agent not found or not healthy",
+			})
+		}
+		if errors.Is(err, aerr.ErrBadRequest) {
+			return service.NewPostServiceServiceIDMigrateBadRequest().WithPayload(&models.Error{
+				Code:    400,
+				Message: "Service is already on the target host",
+			})
+		}
+		panic(err)
+	}
+
+	// Notify both agents
+	db.NotifyService(c.pool, currentHost)
+	db.NotifyService(c.pool, targetHost)
+
+	return service.NewPostServiceServiceIDMigrateOK().WithPayload(&serviceResponse)
 }

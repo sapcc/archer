@@ -374,6 +374,59 @@ paths:
           description: Unprocessable Content
           schema:
             $ref: "#/definitions/Error"
+  /service/{service_id}/migrate:
+    parameters:
+      - in: path
+        name: service_id
+        required: true
+        type: string
+        format: uuid
+        description: The UUID of the service
+    post:
+      tags:
+        - Service
+      summary: Migrate service to a different agent
+      x-policy: service:migrate
+      description: |
+        Migrates a service from its current agent to a different agent.
+        The service will be set to PENDING_UPDATE status and all its endpoints
+        will be re-provisioned on the new agent.
+
+        If target_host is not specified, the least-loaded agent in the same
+        availability zone is automatically selected.
+      parameters:
+        - in: body
+          name: body
+          required: false
+          schema:
+            type: object
+            properties:
+              target_host:
+                type: string
+                description: Target agent hostname. If not specified, least-loaded agent is selected.
+      responses:
+        200:
+          description: Service migration initiated
+          schema:
+            $ref: "#/definitions/Service"
+        400:
+          description: Bad request (e.g., same host, invalid target)
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+        404:
+          description: Service or target agent not found
+          schema:
+            $ref: "#/definitions/Error"
+        409:
+          description: Conflict (e.g., no available agents)
+          schema:
+            $ref: "#/definitions/Error"
   /service/{service_id}/endpoints:
     parameters:
       - in: path

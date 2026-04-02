@@ -122,12 +122,10 @@ func TestAgent_EnableInjection_PortNotFound(t *testing.T) {
 	}
 
 	networkID := strfmt.UUID("660e8400-e29b-41d4-a716-446655440000")
-	ipAddress := strfmt.IPv4("192.168.1.100")
 
 	si := &models.ServiceInjection{
 		PortId:          strfmt.UUID(portID),
 		Network:         networkID,
-		IpAddress:       ipAddress,
 		ServicePorts:    []int{80},
 		ServiceProtocol: "tcp",
 	}
@@ -153,9 +151,8 @@ func TestAgent_EnableInjection_Success(t *testing.T) {
 		haproxy: haproxy.NewFakeHaproxy(),
 	}
 	si := &models.ServiceInjection{
-		PortId:    strfmt.UUID("550e8400-e29b-41d4-a716-446655440000"),
-		Network:   strfmt.UUID("660e8400-e29b-41d4-a716-446655440000"),
-		IpAddress: strfmt.IPv4("1.2.3.4"),
+		PortId:  strfmt.UUID("550e8400-e29b-41d4-a716-446655440000"),
+		Network: strfmt.UUID("660e8400-e29b-41d4-a716-446655440000"),
 	}
 	fixture.SetupHandler(t, fakeServer, "/v2.0/ports/"+si.PortId.String(), "GET",
 		"", portFixture, http.StatusOK)
@@ -191,12 +188,10 @@ func TestAgent_DisableInjection_PortNotFound(t *testing.T) {
 	}
 
 	networkID := strfmt.UUID("660e8400-e29b-41d4-a716-446655440000")
-	ipAddress := strfmt.IPv4("192.168.1.100")
 
 	si := &models.ServiceInjection{
 		PortId:          strfmt.UUID(portID),
 		Network:         networkID,
-		IpAddress:       ipAddress,
 		ServicePorts:    []int{80},
 		ServiceProtocol: "tcp",
 	}
@@ -222,9 +217,8 @@ func TestAgent_DisableInjection(t *testing.T) {
 		haproxy: haproxy.NewFakeHaproxy(),
 	}
 	si := &models.ServiceInjection{
-		PortId:    strfmt.UUID("550e8400-e29b-41d4-a716-446655440000"),
-		Network:   strfmt.UUID("660e8400-e29b-41d4-a716-446655440000"),
-		IpAddress: strfmt.IPv4("1.2.3.4"),
+		PortId:  strfmt.UUID("550e8400-e29b-41d4-a716-446655440000"),
+		Network: strfmt.UUID("660e8400-e29b-41d4-a716-446655440000"),
 	}
 	fixture.SetupHandler(t, fakeServer, "/v2.0/ports/"+si.PortId.String(), "GET",
 		"", portFixture, http.StatusOK)

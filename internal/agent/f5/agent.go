@@ -159,6 +159,15 @@ func (a *Agent) Run() {
 		log.Fatal(err)
 	}
 
+	// heartbeat job
+	if _, err := a.scheduler.NewJob(
+		gocron.DurationJob(config.Global.Agent.HeartbeatInterval),
+		gocron.NewTask(a.UpdateHeartbeat),
+		gocron.WithName("Heartbeat"),
+	); err != nil {
+		log.Fatal(err)
+	}
+
 	// start the scheduler
 	a.scheduler.Start()
 
@@ -244,4 +253,9 @@ func (a *Agent) PrometheusListenerThread() {
 	if err := http.ListenAndServe(config.Global.Default.PrometheusListen, nil); err != nil {
 		log.Fatal(err.Error())
 	}
+}
+
+// UpdateHeartbeat updates the agent's heartbeat in the database.
+func (a *Agent) UpdateHeartbeat() {
+	common.UpdateHeartbeat(a.pool)
 }

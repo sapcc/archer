@@ -157,8 +157,9 @@ func (h *HAProxyController) AddInstance(si *models.ServiceInjection) error {
 	if err != nil {
 		return err
 	}
+
 	data := map[string]any{
-		"UpstreamHost":  config.Global.Agent.ServiceUpstreamHost,
+		"UpstreamHost":  si.ServiceIPAddress.String(),
 		"UpstreamPorts": si.ServicePorts,
 		"Network":       si.Network.String(),
 		"Protocol":      si.ServiceProtocol,

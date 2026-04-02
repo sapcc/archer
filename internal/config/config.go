@@ -87,19 +87,27 @@ type Agent struct {
 	PendingSyncInterval    time.Duration `long:"pending-sync-interval" ini-name:"sync-interval" default:"120s" description:"Interval for pending sync scans, supports suffix (e.g. 10s)."`
 	HealthScrapeInterval   time.Duration `long:"health-scrape-interval" ini-name:"health_scrape_interval" default:"5m" description:"Interval for health monitor status scraping."`
 	HealthScrapePrometheus string        `long:"health-scrape-prometheus" ini-name:"health_scrape_prometheus" description:"Prometheus API URL for health scraping. If set, uses Prometheus instead of direct F5 API."`
-	CreateService          bool          `long:"create-service" ini-name:"create_service" description:"Auto-create Service for network injection agent."`
-	ServicePublic          bool          `long:"service-public" ini-name:"service_public" description:"Service public to all projects for auto-created service"`
-	ServiceName            string        `long:"service-name" ini-name:"service_name" description:"Service name for auto-created service."`
-	ServicePort            int           `long:"service-port" ini-name:"service_port" description:"Service port for auto-created service."`
-	ServicePorts           []string      `long:"service-ports" ini-name:"service_ports[]" description:"Service ports for auto-created service."`
-	ServiceRequireApproval bool          `long:"service-require-approval" ini-name:"service_require_approval" description:"Service requires approval."`
+	CreateService          bool          `long:"create-service" ini-name:"create_service" description:"Auto-create Service for network injection agent. Deprecated: services should be created via API."`
+	ServicePublic          bool          `long:"service-public" ini-name:"service_public" description:"Service public to all projects for auto-created service. Deprecated."`
+	ServiceName            string        `long:"service-name" ini-name:"service_name" description:"Service name for auto-created service. Deprecated."`
+	ServicePort            int           `long:"service-port" ini-name:"service_port" description:"Service port for auto-created service. Deprecated."`
+	ServicePorts           []string      `long:"service-ports" ini-name:"service_ports[]" description:"Service ports for auto-created service. Deprecated."`
+	ServiceRequireApproval bool          `long:"service-require-approval" ini-name:"service_require_approval" description:"Service requires approval. Deprecated."`
 	ServiceUpstreamHost    string        `long:"service-upstream-host" ini-name:"service_upstream_host" description:"Service upstream host."`
-	ServiceProtocol        string        `long:"service-protocol" ini-name:"service_protocol" description:"Service protocol."`
+	ServiceProtocol        string        `long:"service-protocol" ini-name:"service_protocol" description:"Service protocol. Deprecated."`
 	TempDir                string        `long:"temp-dir" ini-name:"temp_dir" description:"Temporary directory used for temporary files" default:"/tmp"`
 	L4Profile              string        `long:"l4-profile" ini-name:"l4_profile" description:"L4 profile to use for F5 endpoint service." default:"/Common/fastL4"`
 	TCPProfile             string        `long:"tcp-profile" ini-name:"tcp_profile" description:"TCP profile to use for F5 endpoint service." default:"/Common/tcp"`
 	MaxRetries             uint64        `long:"max-retries" ini-name:"max_retries" description:"Maximum number of retries for F5 operations." default:"3"`
 	MaxDuration            time.Duration `long:"max-duration" ini-name:"max_duration" description:"Maximum duration for F5 operations, supports suffix (e.g. 10s)." default:"1.5m"`
+
+	// Scheduling configuration
+	HeartbeatInterval       time.Duration `long:"heartbeat-interval" ini-name:"heartbeat_interval" default:"30s" description:"Interval for agent heartbeat updates."`
+	AgentStaleTimeout       time.Duration `long:"agent-stale-timeout" ini-name:"agent_stale_timeout" default:"5m" description:"Timeout after which an agent is considered stale."`
+	RescheduleCheckInterval time.Duration `long:"reschedule-check-interval" ini-name:"reschedule_check_interval" default:"1m" description:"Interval for checking and rescheduling services from stale agents."`
+	RebalanceDelay          time.Duration `long:"rebalance-delay" ini-name:"rebalance_delay" default:"10m" description:"Time to wait after agent recovery before auto-rebalancing."`
+	RebalanceThreshold      float64       `long:"rebalance-threshold" ini-name:"rebalance_threshold" default:"0.5" description:"Imbalance ratio (0.0-1.0) required to trigger rebalancing."`
+	RebalanceMaxMigrations  int           `long:"rebalance-max-migrations" ini-name:"rebalance_max_migrations" default:"5" description:"Maximum services to migrate per rebalance cycle."`
 }
 
 type AuthInfo struct {

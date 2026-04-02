@@ -36,11 +36,26 @@ func RegisterAgent(pool db.PgxIface, provider string) {
 		Suffix("ON CONFLICT (host) DO UPDATE SET").
 		SuffixExpr(sq.Expr("availability_zone = ?,", az)).
 		SuffixExpr(sq.Expr("physnet = ?,", physnet)).
-		Suffix("updated_at = now()").
+		Suffix("updated_at = now(),").
+		Suffix("heartbeat_at = now(),").
+		Suffix("enabled = true").
 		MustSql()
 
 	if _, err := pool.Exec(context.Background(), sql, args...); err != nil {
 		panic(err)
+	}
+}
+
+// UpdateHeartbeat updates the agent's heartbeat timestamp in the database.
+// This should be called periodically to indicate the agent is still alive.
+func UpdateHeartbeat(pool db.PgxIface) {
+	sql, args := db.Update("agents").
+		Set("heartbeat_at", sq.Expr("NOW()")).
+		Where("host = ?", config.Global.Default.Host).
+		MustSql()
+
+	if _, err := pool.Exec(context.Background(), sql, args...); err != nil {
+		log.WithError(err).Error("Failed to update heartbeat")
 	}
 }
 
@@ -134,8 +149,9 @@ func DBNotificationThread(ctx context.Context, w Worker) {
 		case "service":
 			if _, err := scheduler.NewJob(
 				gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
-				gocron.NewTask(w.ProcessServices, ctx),
+				gocron.NewTask(w.ProcessServices),
 				gocron.WithName("ProcessServices"),
+				gocron.WithContext(ctx),
 			); nil != err {
 				log.WithError(err).Error("failed enqueueing ProcessServices job")
 			}
@@ -146,9 +162,10 @@ func DBNotificationThread(ctx context.Context, w Worker) {
 			}
 			if _, err := scheduler.NewJob(
 				gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
-				gocron.NewTask(w.ProcessEndpoint, ctx, id),
+				gocron.NewTask(w.ProcessEndpoint, id),
 				gocron.WithName("ProcessEndpoint"),
 				gocron.WithTags(id.String()),
+				gocron.WithContext(ctx),
 			); nil != err {
 				log.WithError(err).WithField("id", id).Error("failed enqueueing ProcessEndpoint job")
 			}

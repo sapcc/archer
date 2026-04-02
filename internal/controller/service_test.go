@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 
+	sq "github.com/Masterminds/squirrel"
 	policy "github.com/databus23/goslo.policy"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag/conv"
@@ -41,8 +42,8 @@ var (
 
 func (t *SuiteTest) addAgent(az *string) {
 	sql, args := db.Insert("agents").
-		Columns("host", "availability_zone", "physnet").
-		Values("test-host", az, config.Global.Agent.PhysicalNetwork).
+		Columns("host", "availability_zone", "physnet", "heartbeat_at").
+		Values("test-host", az, config.Global.Agent.PhysicalNetwork, sq.Expr("NOW()")).
 		Suffix("ON CONFLICT DO NOTHING").
 		MustSql()
 	if _, err := t.c.pool.Exec(context.Background(), sql, args...); err != nil {

@@ -82,6 +82,8 @@ type ClientService interface {
 
 	PostService(params *PostServiceParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostServiceCreated, error)
 
+	PostServiceServiceIDMigrate(params *PostServiceServiceIDMigrateParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostServiceServiceIDMigrateOK, error)
+
 	PutServiceServiceID(params *PutServiceServiceIDParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PutServiceServiceIDOK, error)
 
 	PutServiceServiceIDAcceptEndpoints(params *PutServiceServiceIDAcceptEndpointsParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PutServiceServiceIDAcceptEndpointsOK, error)
@@ -317,6 +319,58 @@ func (a *Client) PostService(params *PostServiceParams, authInfo runtime.ClientA
 	//
 	// safeguard: normally, in the absence of a default response, unknown success responses return an error above: so this is a codegen issue
 	msg := fmt.Sprintf("unexpected success response for PostService: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
+}
+
+/*
+	PostServiceServiceIDMigrate migrates service to a different agent
+
+	Migrates a service from its current agent to a different agent.
+
+The service will be set to PENDING_UPDATE status and all its endpoints
+will be re-provisioned on the new agent.
+
+If target_host is not specified, the least-loaded agent in the same
+availability zone is automatically selected.
+*/
+func (a *Client) PostServiceServiceIDMigrate(params *PostServiceServiceIDMigrateParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PostServiceServiceIDMigrateOK, error) {
+	// NOTE: parameters are not validated before sending
+	if params == nil {
+		params = NewPostServiceServiceIDMigrateParams()
+	}
+	op := &runtime.ClientOperation{
+		ID:                 "PostServiceServiceIDMigrate",
+		Method:             "POST",
+		PathPattern:        "/service/{service_id}/migrate",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &PostServiceServiceIDMigrateReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+	result, err := a.transport.Submit(op)
+	if err != nil {
+		return nil, err
+	}
+
+	// only one success response has to be checked
+	success, ok := result.(*PostServiceServiceIDMigrateOK)
+	if ok {
+		return success, nil
+	}
+
+	// unexpected success response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown success responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for PostServiceServiceIDMigrate: API contract not enforced by server. Client expected to get an error, but got: %T", result)
 	panic(msg)
 }
 
