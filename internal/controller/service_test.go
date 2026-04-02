@@ -424,6 +424,13 @@ func (t *SuiteTest) TestServiceDeleteWithRejectedEndpoint() {
 		nil)
 	assert.IsType(t.T(), &service.GetServiceServiceIDOK{}, res)
 	assert.Equal(t.T(), models.ServiceStatusPENDINGDELETE, res.(*service.GetServiceServiceIDOK).Payload.Status)
+
+	// verify endpoints were transitioned to PENDING_DELETE (not deleted raw) so the agent can clean up ports
+	var endpointStatus models.EndpointStatus
+	endpointSQL, endpointArgs := db.Select("status").From("endpoint").Where("id = ?", ep.ID).MustSql()
+	err = t.c.pool.QueryRow(context.Background(), endpointSQL, endpointArgs...).Scan(&endpointStatus)
+	assert.NoError(t.T(), err)
+	assert.Equal(t.T(), models.EndpointStatusPENDINGDELETE, endpointStatus)
 }
 
 func (t *SuiteTest) TestGetServiceServiceIDEndpointsHandler() {

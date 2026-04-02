@@ -248,11 +248,6 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 	// Successfully updated the tenant
 	for _, service := range services {
 		if service.Status == models.ServiceStatusPENDINGDELETE {
-			// Delete rejected endpoints first to avoid FK constraint violation
-			if _, err = tx.Exec(ctx, `DELETE FROM endpoint WHERE service_id = $1 AND status = 'REJECTED';`,
-				service.ID); err != nil {
-				return err
-			}
 			if _, err = tx.Exec(ctx, `DELETE FROM service WHERE id = $1 AND status = 'PENDING_DELETE';`,
 				service.ID); err != nil {
 				return err

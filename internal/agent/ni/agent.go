@@ -136,17 +136,8 @@ func (a *Agent) Run() {
 }
 
 func (a *Agent) ProcessServices(ctx context.Context) error {
-	// Delete rejected endpoints so they don't block the FK constraint on service deletion
-	sql, args := db.Delete("endpoint").
-		Where("status = ?", models.EndpointStatusREJECTED).
-		Where(db.Select("1").From("service").Where("id = endpoint.service_id").Where("provider = 'cp'").Prefix("EXISTS(").Suffix(")")).
-		MustSql()
-	if _, err := a.pool.Exec(ctx, sql, args...); err != nil {
-		return err
-	}
-
 	// Cleanup pending delete services
-	sql, args = db.Delete("service").
+	sql, args := db.Delete("service").
 		Where("status = ?", models.ServiceStatusPENDINGDELETE).
 		Where("provider = 'cp'").
 		MustSql()
