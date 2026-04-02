@@ -31,12 +31,11 @@ import (
 )
 
 type Agent struct {
-	scheduler gocron.Scheduler
-	pool      *pgxpool.Pool // thread safe
-	neutron   *gophercloud.ServiceClient
-	haproxy   haproxy.HAProxy
-	service   models.Service // service associated with this agent
-	upstream  string
+	scheduler    gocron.Scheduler
+	pool         *pgxpool.Pool // thread safe
+	neutron      *gophercloud.ServiceClient
+	haproxy      haproxy.HAProxy
+	proxyManager *proxy.Manager // manages Unix proxy threads per service
 }
 
 func (a *Agent) GetScheduler() gocron.Scheduler {
@@ -80,23 +79,28 @@ func NewAgent() *Agent {
 		log.Infof("Availability zone: %s", config.Global.Default.AvailabilityZone)
 	}
 
-	agent.upstream = config.Global.Agent.ServiceUpstreamHost
 	agent.haproxy = haproxy.NewHAProxyController()
-	if err := agent.discoverService(); err != nil {
-		log.Fatal(err.Error())
-	}
 
 	common.RegisterAgent(agent.pool, "cp")
+
+	// Update services without IP addresses using deprecated config (migration path)
+	if err := agent.migrateServiceIPAddresses(context.Background()); err != nil {
+		log.WithError(err).Warn("Failed to migrate service IP addresses")
+	}
+
 	return agent
 }
 
 func (a *Agent) Run() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	// Initialize the proxy manager with the main context
+	a.proxyManager = proxy.NewManager(ctx)
+
 	prom := common.NewPrometheusListener()
 	go prom.Run()
 	go common.DBNotificationThread(ctx, a)
-	go proxy.UnixListenersThread(ctx, a.upstream, a.service.Ports)
 	go a.haproxy.Run(ctx)
 
 	// sync immediately
@@ -122,6 +126,15 @@ func (a *Agent) Run() {
 		log.Fatal(err)
 	}
 
+	// heartbeat job
+	if _, err := a.scheduler.NewJob(
+		gocron.DurationJob(config.Global.Agent.HeartbeatInterval),
+		gocron.NewTask(a.UpdateHeartbeat),
+		gocron.WithName("Heartbeat"),
+	); err != nil {
+		log.Fatal(err)
+	}
+
 	a.scheduler.Start()
 
 	log.Infof("Agent running...")
@@ -135,11 +148,77 @@ func (a *Agent) Run() {
 	time.Sleep(5 * time.Second)
 }
 
-func (a *Agent) ProcessServices(ctx context.Context) error {
-	// Cleanup pending delete services
-	sql, args := db.Delete("service").
-		Where("status = ?", models.ServiceStatusPENDINGDELETE).
+// UpdateHeartbeat updates the agent's heartbeat in the database.
+func (a *Agent) UpdateHeartbeat() {
+	common.UpdateHeartbeat(a.pool)
+}
+
+// migrateServiceIPAddresses updates services assigned to this host that have empty IP addresses
+// using the deprecated ServiceUpstreamHost config. This provides a migration path for existing
+// services that were created before dynamic IP address support.
+func (a *Agent) migrateServiceIPAddresses(ctx context.Context) error {
+	upstreamHost := config.Global.Agent.ServiceUpstreamHost
+	if upstreamHost == "" {
+		return nil
+	}
+
+	sql, args := db.Update("service").
+		Set("ip_addresses", sq.Expr("ARRAY[?::inet]", upstreamHost)).
+		Where("host = ?", config.Global.Default.Host).
 		Where("provider = 'cp'").
+		Where("ip_addresses = '{}'").
+		MustSql()
+
+	result, err := a.pool.Exec(ctx, sql, args...)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() > 0 {
+		log.Infof("Migrated %d services with IP address %s (from deprecated config)",
+			result.RowsAffected(), upstreamHost)
+	}
+
+	return nil
+}
+
+func (a *Agent) ProcessServices(ctx context.Context) error {
+	type serviceInfo struct {
+		ID          strfmt.UUID `db:"id"`
+		IPAddresses []string    `db:"ip_addresses"`
+		Ports       []int32     `db:"ports"`
+		Status      string      `db:"status"`
+	}
+
+	// Query all services assigned to this host
+	sql, args := db.Select("id", "ip_addresses", "ports", "status").
+		From("service").
+		Where("host = ?", config.Global.Default.Host).
+		Where("provider = 'cp'").
+		MustSql()
+
+	var services []serviceInfo
+	if err := pgxscan.Select(ctx, a.pool, &services, sql, args...); err != nil {
+		return err
+	}
+
+	var toDelete []strfmt.UUID
+	for _, svc := range services {
+		if svc.Status == string(models.ServiceStatusPENDINGDELETE) {
+			a.proxyManager.StopProxy(svc.ID)
+			toDelete = append(toDelete, svc.ID)
+		} else if !a.proxyManager.IsRunning(svc.ID) && len(svc.IPAddresses) > 0 && len(svc.Ports) > 0 {
+			a.proxyManager.StartProxy(svc.ID, svc.IPAddresses[0], svc.Ports)
+		}
+	}
+
+	if len(toDelete) == 0 {
+		return nil
+	}
+
+	// Delete services pending deletion
+	sql, args = db.Delete("service").
+		Where(sq.Eq{"id": toDelete}).
 		MustSql()
 	_, err := a.pool.Exec(ctx, sql, args...)
 	return err
@@ -155,7 +234,8 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
 		var err error
 
 		sql, args := db.Select("e.id", "e.status", "ep.port_id", "ep.network", "ep.ip_address",
-			"s.protocol AS service_protocol", "s.ports AS service_ports").
+			"s.id AS service_id", "s.protocol AS service_protocol", "s.ports AS service_ports",
+			"s.ip_addresses[1] AS service_ip_address").
 			From("endpoint e").
 			Join("endpoint_port ep ON ep.endpoint_id = e.id").
 			Join("service s ON s.id = service_id").
@@ -225,17 +305,47 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
 func (a *Agent) PendingSyncLoop(ctx context.Context, syncAll bool) error {
 	log.Debugf("PendingSyncLoop(syncAll=%t)", syncAll)
 
-	q := db.Select("id").
-		From("endpoint").
-		Where("service_id = ?", a.service.ID)
+	// Check for pending services first (similar to F5 agent pattern)
+	sql, args := db.Select("1").
+		From("service").
+		Where("provider = 'cp'").
+		Where(sq.Eq{"status": []models.ServiceStatus{
+			models.ServiceStatusPENDINGDELETE,
+			models.ServiceStatusPENDINGCREATE,
+			models.ServiceStatusPENDINGUPDATE}}).
+		Where("host = ?", config.Global.Default.Host).
+		MustSql()
+
+	ret, err := a.pool.Exec(ctx, sql, args...)
+	if err != nil {
+		return err
+	}
+
+	if ret.RowsAffected() > 0 {
+		if _, err := a.scheduler.NewJob(
+			gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
+			gocron.NewTask(a.ProcessServices),
+			gocron.WithName("ProcessServices"),
+		); err != nil {
+			return err
+		}
+	}
+
+	// Query all endpoints for services assigned to this host
+	q := db.Select("e.id").
+		From("endpoint e").
+		Join("service s ON e.service_id = s.id").
+		Where("s.host = ?", config.Global.Default.Host).
+		Where("s.provider = 'cp'")
 
 	if syncAll {
 		// initial run, sync everything
-		q = q.Where("status != ?", models.EndpointStatusREJECTED)
+		q = q.Where("e.status != ?", models.EndpointStatusREJECTED)
 	} else {
 		// sync only pending
-		q = q.Where(sq.Eq{"status": []models.EndpointStatus{
+		q = q.Where(sq.Eq{"e.status": []models.EndpointStatus{
 			models.EndpointStatusPENDINGCREATE,
+			models.EndpointStatusPENDINGUPDATE,
 			models.EndpointStatusREJECTED,
 			models.EndpointStatusPENDINGREJECTED,
 			models.EndpointStatusPENDINGDELETE,
@@ -243,7 +353,7 @@ func (a *Agent) PendingSyncLoop(ctx context.Context, syncAll bool) error {
 	}
 
 	var id strfmt.UUID
-	sql, args := q.MustSql()
+	sql, args = q.MustSql()
 	rows, err := a.pool.Query(ctx, sql, args...)
 	if err != nil {
 		return err

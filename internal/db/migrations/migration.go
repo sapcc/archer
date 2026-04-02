@@ -305,6 +305,13 @@ var Migrations = mgx.Migrations(
 		`)
 		return err
 	}),
+	mgx.NewMigration("add_agent_heartbeat", func(ctx context.Context, commands mgx.Commands) error {
+		_, err := commands.Exec(ctx, `
+			ALTER TABLE agents ADD COLUMN heartbeat_at TIMESTAMP NOT NULL DEFAULT now();
+			CREATE INDEX idx_agents_heartbeat ON agents (provider, enabled, heartbeat_at);
+		`)
+		return err
+	}),
 	mgx.NewMigration("increase_tag_length", func(ctx context.Context, commands mgx.Commands) error {
 		_, err := commands.Exec(ctx, `
 			ALTER TABLE service ALTER COLUMN tags TYPE VARCHAR(128)[];

@@ -1309,6 +1309,76 @@ func init() {
         }
       ]
     },
+    "/service/{service_id}/migrate": {
+      "post": {
+        "description": "Migrates a service from its current agent to a different agent.\nThe service will be set to PENDING_UPDATE status and all its endpoints\nwill be re-provisioned on the new agent.\n\nIf target_host is not specified, the least-loaded agent in the same\navailability zone is automatically selected.\n",
+        "tags": [
+          "Service"
+        ],
+        "summary": "Migrate service to a different agent",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "target_host": {
+                  "description": "Target agent hostname. If not specified, least-loaded agent is selected.",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Service migration initiated",
+            "schema": {
+              "$ref": "#/definitions/Service"
+            }
+          },
+          "400": {
+            "description": "Bad request (e.g., same host, invalid target)",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Service or target agent not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Conflict (e.g., no available agents)",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        },
+        "x-policy": "service:migrate"
+      },
+      "parameters": [
+        {
+          "type": "string",
+          "format": "uuid",
+          "description": "The UUID of the service",
+          "name": "service_id",
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
     "/service/{service_id}/reject_endpoints": {
       "put": {
         "description": "Specify a list of consumers (` + "`" + `endpoint_ids` + "`" + ` and/or ` + "`" + `project_ids` + "`" + `) whose endpoints should be rejected.\n* Existing active endpoints will be rejected.\n* Rejected endpoints will be untouched.\n* Pending endpoints will be rejected.\n",
@@ -3446,6 +3516,76 @@ func init() {
           }
         },
         "x-policy": "service-endpoint:read"
+      },
+      "parameters": [
+        {
+          "type": "string",
+          "format": "uuid",
+          "description": "The UUID of the service",
+          "name": "service_id",
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/service/{service_id}/migrate": {
+      "post": {
+        "description": "Migrates a service from its current agent to a different agent.\nThe service will be set to PENDING_UPDATE status and all its endpoints\nwill be re-provisioned on the new agent.\n\nIf target_host is not specified, the least-loaded agent in the same\navailability zone is automatically selected.\n",
+        "tags": [
+          "Service"
+        ],
+        "summary": "Migrate service to a different agent",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "target_host": {
+                  "description": "Target agent hostname. If not specified, least-loaded agent is selected.",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Service migration initiated",
+            "schema": {
+              "$ref": "#/definitions/Service"
+            }
+          },
+          "400": {
+            "description": "Bad request (e.g., same host, invalid target)",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Service or target agent not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Conflict (e.g., no available agents)",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        },
+        "x-policy": "service:migrate"
       },
       "parameters": [
         {

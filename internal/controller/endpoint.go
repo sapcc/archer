@@ -255,7 +255,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, tok
 		panic(err)
 	}
 
-	c.notifyEndpoint(host, endpointResponse.ID)
+	db.NotifyEndpoint(c.pool, host, endpointResponse.ID)
 	return endpoint.NewPostEndpointCreated().WithXTargetID(endpointResponse.ID).WithPayload(&endpointResponse)
 }
 
@@ -329,7 +329,7 @@ func (c *Controller) PutEndpointEndpointIDHandler(params endpoint.PutEndpointEnd
 		MustSql()
 	var host string
 	if err := pgxscan.Get(params.HTTPRequest.Context(), c.pool, &host, sql, args...); err == nil {
-		c.notifyEndpoint(host, params.EndpointID)
+		db.NotifyEndpoint(c.pool, host, params.EndpointID)
 	}
 	return endpoint.NewPutEndpointEndpointIDOK().WithPayload(&endpointResponse)
 }
@@ -367,6 +367,6 @@ func (c *Controller) DeleteEndpointEndpointIDHandler(params endpoint.DeleteEndpo
 		panic(err)
 	}
 
-	c.notifyEndpoint(host, params.EndpointID)
+	db.NotifyEndpoint(c.pool, host, params.EndpointID)
 	return endpoint.NewDeleteEndpointEndpointIDAccepted()
 }

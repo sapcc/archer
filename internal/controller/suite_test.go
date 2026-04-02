@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/go-openapi/loads"
 	fake "github.com/gophercloud/gophercloud/v2/openstack/networking/v2/common"
@@ -170,6 +171,7 @@ func (t *SuiteTest) SetupSuite() {
 	config.Global.ApiSettings.PaginationMaxLimit = 1000
 	config.Global.ApiSettings.AuthStrategy = "none"
 	config.Global.Agent.PhysicalNetwork = "physnet1"
+	config.Global.Agent.AgentStaleTimeout = 5 * time.Minute
 	policy.SetPolicyEngine("noop")
 
 	// need to load from file due to cyclic dependency of restapi package

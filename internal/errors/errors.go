@@ -10,6 +10,7 @@ import (
 
 var (
 	ErrBadRequest       = errors.New("bad request")
+	ErrNotFound         = errors.New("not found")
 	ErrProjectMismatch  = errors.New("project mismatch")
 	ErrMissingIPAddress = errors.New("missing ip address")
 	ErrMissingSubnets   = errors.New("network has no subnets")

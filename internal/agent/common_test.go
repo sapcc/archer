@@ -25,7 +25,7 @@ func TestRegisterAgent(t *testing.T) {
 
 	var nilString *string
 	dbMock.
-		ExpectExec("INSERT INTO agents (host,availability_zone,provider,physnet) VALUES ($1,$2,$3,$4) ON CONFLICT (host) DO UPDATE SET availability_zone = $5, physnet = $6, updated_at = now()").
+		ExpectExec("INSERT INTO agents (host,availability_zone,provider,physnet) VALUES ($1,$2,$3,$4) ON CONFLICT (host) DO UPDATE SET availability_zone = $5, physnet = $6, updated_at = now(), heartbeat_at = now(), enabled = true").
 		WithArgs(config.Global.Default.Host, nilString, "test", nilString, nilString, nilString).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 
@@ -45,7 +45,7 @@ func TestRegisterAgentWithAZ(t *testing.T) {
 
 	var nilString *string
 	dbMock.
-		ExpectExec("INSERT INTO agents (host,availability_zone,provider,physnet) VALUES ($1,$2,$3,$4) ON CONFLICT (host) DO UPDATE SET availability_zone = $5, physnet = $6, updated_at = now()").
+		ExpectExec("INSERT INTO agents (host,availability_zone,provider,physnet) VALUES ($1,$2,$3,$4) ON CONFLICT (host) DO UPDATE SET availability_zone = $5, physnet = $6, updated_at = now(), heartbeat_at = now(), enabled = true").
 		WithArgs(config.Global.Default.Host, &config.Global.Default.AvailabilityZone, "test", nilString, &config.Global.Default.AvailabilityZone, nilString).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 
@@ -65,7 +65,7 @@ func TestRegisterAgentWith(t *testing.T) {
 
 	var nilString *string
 	dbMock.
-		ExpectExec("INSERT INTO agents (host,availability_zone,provider,physnet) VALUES ($1,$2,$3,$4) ON CONFLICT (host) DO UPDATE SET availability_zone = $5, physnet = $6, updated_at = now()").
+		ExpectExec("INSERT INTO agents (host,availability_zone,provider,physnet) VALUES ($1,$2,$3,$4) ON CONFLICT (host) DO UPDATE SET availability_zone = $5, physnet = $6, updated_at = now(), heartbeat_at = now(), enabled = true").
 		WithArgs(config.Global.Default.Host, &config.Global.Default.AvailabilityZone, "test", nilString, &config.Global.Default.AvailabilityZone, nilString).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 

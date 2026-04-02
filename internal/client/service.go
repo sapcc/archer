@@ -24,6 +24,7 @@ var ServiceOptions struct {
 	ServiceCreate   `command:"create" description:"Create Service"`
 	ServiceSet      `command:"set" description:"Update Service"`
 	ServiceDelete   `command:"delete" description:"Delete Service"`
+	ServiceMigrate  `command:"migrate" description:"Migrate Service to another agent"`
 }
 
 type ServiceList struct {
@@ -233,6 +234,39 @@ func (*ServiceDelete) Execute(_ []string) error {
 		}
 	}
 	return err
+}
+
+type ServiceMigrate struct {
+	Positional struct {
+		Service strfmt.UUID `description:"Service to migrate (ID)"`
+	} `positional-args:"yes" required:"yes"`
+	TargetHost *string `long:"target-host" description:"Target agent hostname. If not specified, least-loaded agent is selected."`
+	Wait       bool    `long:"wait" description:"Wait for service migration to complete"`
+}
+
+func (*ServiceMigrate) Execute(_ []string) error {
+	body := service.PostServiceServiceIDMigrateBody{}
+	if ServiceOptions.ServiceMigrate.TargetHost != nil {
+		body.TargetHost = *ServiceOptions.ServiceMigrate.TargetHost
+	}
+
+	params := service.
+		NewPostServiceServiceIDMigrateParams().
+		WithServiceID(ServiceOptions.ServiceMigrate.Positional.Service).
+		WithBody(body)
+	resp, err := ArcherClient.Service.PostServiceServiceIDMigrate(params, nil)
+	if err != nil {
+		return err
+	}
+
+	var res *models.Service
+	res = resp.GetPayload()
+	if ServiceOptions.ServiceMigrate.Wait {
+		if res, err = waitForService(res.ID, false); err != nil {
+			return err
+		}
+	}
+	return WriteTable(res)
 }
 
 type ServiceEndpoint struct {
