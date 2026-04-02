@@ -355,9 +355,32 @@ func (c *Controller) DeleteServiceServiceIDHandler(params service.DeleteServiceS
 		panic(err)
 	}
 
-	// Update status if no active endpoints are attached.
-	// Rejected endpoints are excluded since they are effectively dead
-	// and should not block service deletion.
+	// Set rejected endpoints to PENDING_DELETE so the agent cleans up their
+	// associated Neutron ports before removing the endpoint from the database.
+	rejectedEndpointSQL, rejectedEndpointArgs := db.Update("endpoint").
+		Set("status", models.EndpointStatusPENDINGDELETE).
+		Set("updated_at", sq.Expr("NOW()")).
+		Where("service_id = ?", params.ServiceID).
+		Where(sq.Eq{"status": models.EndpointStatusREJECTED}).
+		Suffix("RETURNING id").
+		MustSql()
+	rows, err := tx.Query(params.HTTPRequest.Context(), rejectedEndpointSQL, rejectedEndpointArgs...)
+	if err != nil {
+		panic(err)
+	}
+	var rejectedEndpointIDs []strfmt.UUID
+	var rejectedEndpointID strfmt.UUID
+	_, err = pgx.ForEachRow(rows, []any{&rejectedEndpointID}, func() error {
+		rejectedEndpointIDs = append(rejectedEndpointIDs, rejectedEndpointID)
+		return nil
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	// Update status if no non-terminal endpoints are attached.
+	// PENDING_DELETE endpoints (including the ones we just transitioned above)
+	// are excluded so they do not block service deletion.
 	u := db.Update("service").
 		Set("status", models.ServiceStatusPENDINGDELETE).
 		Where(sq.And{
@@ -365,7 +388,9 @@ func (c *Controller) DeleteServiceServiceIDHandler(params service.DeleteServiceS
 			db.Select("1").
 				From("endpoint").
 				Where("service_id = service.id").
-				Where(sq.NotEq{"status": models.EndpointStatusREJECTED}).
+				Where(sq.NotEq{"status": []models.EndpointStatus{
+					models.EndpointStatusPENDINGDELETE, // All rejected endpoints moved to PENDING_DELETE above.
+				}}).
 				Prefix("NOT EXISTS(").
 				Suffix(")"), // RBAC subquery
 		})
@@ -382,6 +407,10 @@ func (c *Controller) DeleteServiceServiceIDHandler(params service.DeleteServiceS
 		panic(err)
 	}
 
+	// Notify agent to clean up Neutron ports for the transitioned rejected endpoints.
+	for _, id := range rejectedEndpointIDs {
+		c.notifyEndpoint(host, id)
+	}
 	c.notifyService(host)
 	return service.NewDeleteServiceServiceIDAccepted()
 }
