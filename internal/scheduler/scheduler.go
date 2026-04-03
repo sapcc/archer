@@ -103,6 +103,7 @@ func (s *ServiceScheduler) GetStaleAgents(ctx context.Context, provider string) 
 }
 
 // RescheduleStaleAgentServices migrates services from stale agents to healthy ones.
+// Only disables agents after all their services have been successfully migrated.
 func (s *ServiceScheduler) RescheduleStaleAgentServices(ctx context.Context, provider string) error {
 	staleAgents, err := s.GetStaleAgents(ctx, provider)
 	if err != nil {
@@ -112,8 +113,15 @@ func (s *ServiceScheduler) RescheduleStaleAgentServices(ctx context.Context, pro
 	for _, agent := range staleAgents {
 		log.WithField("host", agent.Host).Warning("Agent is stale, rescheduling services")
 
-		if err := s.rescheduleAgentServices(ctx, provider, agent); err != nil {
+		allMigrated, err := s.rescheduleAgentServices(ctx, provider, agent)
+		if err != nil {
 			log.WithError(err).WithField("host", agent.Host).Error("Failed to reschedule services from stale agent")
+			continue
+		}
+
+		// Only disable the agent if all services were successfully migrated
+		if !allMigrated {
+			log.WithField("host", agent.Host).Warning("Not all services migrated, keeping agent enabled for retry")
 			continue
 		}
 
@@ -131,7 +139,9 @@ func (s *ServiceScheduler) RescheduleStaleAgentServices(ctx context.Context, pro
 	return nil
 }
 
-func (s *ServiceScheduler) rescheduleAgentServices(ctx context.Context, provider string, agent AgentInfo) error {
+// rescheduleAgentServices migrates all services from a stale agent to healthy ones.
+// Returns true if all services were successfully migrated, false otherwise.
+func (s *ServiceScheduler) rescheduleAgentServices(ctx context.Context, provider string, agent AgentInfo) (bool, error) {
 	// Find services on this agent
 	sql, args := db.Select("id").
 		From("service").
@@ -141,17 +151,23 @@ func (s *ServiceScheduler) rescheduleAgentServices(ctx context.Context, provider
 
 	var serviceIDs []strfmt.UUID
 	if err := pgxscan.Select(ctx, s.pool, &serviceIDs, sql, args...); err != nil {
-		return err
+		return false, err
 	}
 
+	if len(serviceIDs) == 0 {
+		return true, nil // No services to migrate
+	}
+
+	failedCount := 0
 	for _, serviceID := range serviceIDs {
 		if err := s.MigrateService(ctx, serviceID, agent.Host, ""); err != nil {
 			log.WithError(err).WithField("service", serviceID).Warning("Failed to reschedule service")
+			failedCount++
 			continue
 		}
 	}
 
-	return nil
+	return failedCount == 0, nil
 }
 
 // MigrateService moves a service from one agent to another.
