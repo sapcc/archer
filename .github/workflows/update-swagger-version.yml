@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: Copyright 2025 SAP SE or an SAP affiliate company
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: update-swagger-version
+
+on:
+  push:
+    tags:
+      - v*
+
+permissions:
+  contents: write
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Update swagger.yaml version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          sed -i "s/^  version: \".*\"/  version: \"${VERSION}\"/" swagger.yaml
+          echo "Updated swagger.yaml to version ${VERSION}"
+
+      - name: Commit and push
+        run: |
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
+          git add swagger.yaml
+          git diff --cached --quiet || git commit -m "Update swagger.yaml version to ${GITHUB_REF_NAME#v}"
+          git push
