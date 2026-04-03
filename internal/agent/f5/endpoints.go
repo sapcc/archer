@@ -315,6 +315,21 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 				Delete("endpoint").
 				Where("id = ?", endpoint.ID).
 				MustSql()
+		case models.EndpointStatusPENDINGUPDATE:
+			// Update port binding to this host (needed after service migration)
+			if endpoint.Target.Port != nil {
+				log.Infof("ProcessEndpoint: Updating port binding for endpoint %s to host %s",
+					endpoint.ID, config.Global.Default.Host)
+				if err = a.neutron.UpdatePortBinding(ctx, endpoint.Target.Port.String(), config.Global.Default.Host); err != nil {
+					return err
+				}
+			}
+			sql, args = db.
+				Update("endpoint").
+				Set("status", models.EndpointStatusAVAILABLE).
+				Set("updated_at", sq.Expr("NOW()")).
+				Where("id = ?", endpoint.ID).
+				MustSql()
 		default:
 			sql, args = db.
 				Update("endpoint").
