@@ -370,3 +370,20 @@ func (n *NeutronClient) GetMask(subnetID string) (int, error) {
 	mask, _ := ipNet.Mask.Size()
 	return mask, nil
 }
+
+// UpdatePortBinding updates the binding:host_id of a Neutron port.
+// This is needed when a service is migrated to a different host.
+func (n *NeutronClient) UpdatePortBinding(ctx context.Context, portID, hostID string) error {
+	return UpdatePortBinding(ctx, n.ServiceClient, portID, hostID)
+}
+
+// UpdatePortBinding updates the binding:host_id of a Neutron port using a raw ServiceClient.
+// This is a standalone function that can be used without NeutronClient wrapper.
+func UpdatePortBinding(ctx context.Context, client *gophercloud.ServiceClient, portID, hostID string) error {
+	updateOpts := portsbinding.UpdateOptsExt{
+		UpdateOptsBuilder: ports.UpdateOpts{},
+		HostID:            &hostID,
+	}
+	_, err := ports.Update(ctx, client, portID, updateOpts).Extract()
+	return err
+}

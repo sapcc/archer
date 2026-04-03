@@ -29,6 +29,7 @@ import (
 	"github.com/sapcc/archer/internal/agent/ni/proxy"
 	"github.com/sapcc/archer/internal/config"
 	"github.com/sapcc/archer/internal/db"
+	"github.com/sapcc/archer/internal/neutron"
 	"github.com/sapcc/archer/models"
 )
 
@@ -307,6 +308,12 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
 				return err
 			}
 		case models.EndpointStatusPENDINGUPDATE:
+			// Update port binding to this host (needed after service migration)
+			log.Infof("ProcessEndpoint: Updating port binding for endpoint %s to host %s",
+				si.ID, config.Global.Default.Host)
+			if err = neutron.UpdatePortBinding(ctx, a.neutron, si.PortId.String(), config.Global.Default.Host); err != nil {
+				return err
+			}
 			fallthrough
 		case models.EndpointStatusFAILED:
 			fallthrough

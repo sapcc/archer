@@ -629,3 +629,136 @@ func (t *SuiteTest) TestServicePutConflictPorts() {
 	assert.Equal(t.T(), "Entry for network_id, ip_address and port(s) already exists.",
 		res.(*service.PutServiceServiceIDConflict).Payload.Message)
 }
+
+func (t *SuiteTest) addAgentWithHost(host string, az *string) {
+	sql, args := db.Insert("agents").
+		Columns("host", "availability_zone", "physnet", "heartbeat_at").
+		Values(host, az, config.Global.Agent.PhysicalNetwork, sq.Expr("NOW()")).
+		Suffix("ON CONFLICT DO NOTHING").
+		MustSql()
+	if _, err := t.c.pool.Exec(context.Background(), sql, args...); err != nil {
+		t.FailNow("Failed inserting agent host", err)
+	}
+}
+
+// TestServiceMigrateWithNullAZ tests that migrating a service with null availability_zone
+// to a specific target host works correctly. This is a regression test for the issue where
+// the query used "availability_zone = ?" instead of sq.Eq{"availability_zone": az} which
+// doesn't properly handle NULL comparisons in SQL.
+func (t *SuiteTest) TestServiceMigrateWithNullAZ() {
+	// Create a service (which will have null AZ by default)
+	serviceId := t.createService(testService)
+
+	// Add a second agent with null AZ
+	targetHost := "target-host-null-az"
+	t.addAgentWithHost(targetHost, nil)
+
+	// Try to migrate to the specific target host
+	res := t.c.PostServiceServiceIDMigrateHandler(
+		service.PostServiceServiceIDMigrateParams{
+			HTTPRequest: &headerProject1,
+			ServiceID:   serviceId,
+			Body:        service.PostServiceServiceIDMigrateBody{TargetHost: targetHost},
+		},
+		nil)
+
+	// Should succeed (not return 404)
+	assert.IsType(t.T(), &service.PostServiceServiceIDMigrateOK{}, res)
+	payload := res.(*service.PostServiceServiceIDMigrateOK).Payload
+	assert.Equal(t.T(), targetHost, *payload.Host)
+	assert.Equal(t.T(), models.ServiceStatusPENDINGUPDATE, payload.Status)
+}
+
+// TestServiceMigrateWithAZ tests that migrating a service with a specific availability_zone
+// to a target host in the same AZ works correctly.
+func (t *SuiteTest) TestServiceMigrateWithAZ() {
+	// Create agents with AZ - we need at least 2 to migrate between them
+	az := "test-az-migrate"
+	t.addAgentWithHost("source-host-az", &az)
+	t.addAgentWithHost("target-host-az", &az)
+
+	// Create a service in that AZ
+	testServiceWithAZ := testService
+	testServiceWithAZ.AvailabilityZone = &az
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
+		"", GetNetworkResponseFixture, http.StatusOK)
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
+		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
+
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &testServiceWithAZ},
+		nil)
+	assert.IsType(t.T(), &service.PostServiceCreated{}, res)
+	serviceId := res.(*service.PostServiceCreated).Payload.ID
+	currentHost := *res.(*service.PostServiceCreated).Payload.Host
+
+	// Determine which host to migrate to (the other one)
+	var targetHost string
+	if currentHost == "source-host-az" {
+		targetHost = "target-host-az"
+	} else {
+		targetHost = "source-host-az"
+	}
+
+	// Try to migrate to the target host in the same AZ
+	res = t.c.PostServiceServiceIDMigrateHandler(
+		service.PostServiceServiceIDMigrateParams{
+			HTTPRequest: &headerProject1,
+			ServiceID:   serviceId,
+			Body:        service.PostServiceServiceIDMigrateBody{TargetHost: targetHost},
+		},
+		nil)
+
+	assert.IsType(t.T(), &service.PostServiceServiceIDMigrateOK{}, res)
+	payload := res.(*service.PostServiceServiceIDMigrateOK).Payload
+	assert.Equal(t.T(), targetHost, *payload.Host)
+}
+
+// TestServiceMigrateToWrongAZFails tests that migrating a service to an agent
+// in a different availability zone fails.
+func (t *SuiteTest) TestServiceMigrateToWrongAZFails() {
+	// Create a service with null AZ
+	serviceId := t.createService(testService)
+
+	// Add an agent with a specific AZ (different from null)
+	differentAZ := "different-az"
+	t.addAgentWithHost("target-host-different-az", &differentAZ)
+
+	// Try to migrate to the agent with different AZ - should fail
+	res := t.c.PostServiceServiceIDMigrateHandler(
+		service.PostServiceServiceIDMigrateParams{
+			HTTPRequest: &headerProject1,
+			ServiceID:   serviceId,
+			Body:        service.PostServiceServiceIDMigrateBody{TargetHost: "target-host-different-az"},
+		},
+		nil)
+
+	// Should return 404 because target agent is in different AZ
+	assert.IsType(t.T(), &service.PostServiceServiceIDMigrateNotFound{}, res)
+	assert.Equal(t.T(), "Target agent not found or not healthy",
+		res.(*service.PostServiceServiceIDMigrateNotFound).Payload.Message)
+}
+
+// TestServiceMigrateAutoSelectsHost tests that migrating without a target host
+// automatically selects an available agent.
+func (t *SuiteTest) TestServiceMigrateAutoSelectsHost() {
+	// Create a service
+	serviceId := t.createService(testService)
+
+	// Add additional agents with null AZ
+	t.addAgentWithHost("auto-target-host-1", nil)
+	t.addAgentWithHost("auto-target-host-2", nil)
+
+	// Migrate without specifying target host
+	res := t.c.PostServiceServiceIDMigrateHandler(
+		service.PostServiceServiceIDMigrateParams{
+			HTTPRequest: &headerProject1,
+			ServiceID:   serviceId,
+			Body:        service.PostServiceServiceIDMigrateBody{},
+		},
+		nil)
+
+	assert.IsType(t.T(), &service.PostServiceServiceIDMigrateOK{}, res)
+	payload := res.(*service.PostServiceServiceIDMigrateOK).Payload
+	// Should have migrated to a different host than the original
+	assert.NotEqual(t.T(), "test-host", *payload.Host)
+}

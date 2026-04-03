@@ -681,7 +681,7 @@ func (c *Controller) PostServiceServiceIDMigrateHandler(params service.PostServi
 				Where("host = ?", targetHost).
 				Where("enabled = true").
 				Where("provider = ?", provider).
-				Where("availability_zone = ?", az).
+				Where(sq.Eq{"availability_zone": az}).
 				Where("heartbeat_at > NOW() - INTERVAL '1 second' * ?",
 					int(config.Global.Agent.AgentStaleTimeout.Seconds())).
 				MustSql()
