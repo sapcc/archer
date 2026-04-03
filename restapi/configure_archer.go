@@ -38,6 +38,7 @@ import (
 	"github.com/sapcc/archer/internal/policy"
 	"github.com/sapcc/archer/internal/scheduler"
 	"github.com/sapcc/archer/restapi/operations"
+	"github.com/sapcc/archer/restapi/operations/agent"
 	"github.com/sapcc/archer/restapi/operations/endpoint"
 	"github.com/sapcc/archer/restapi/operations/quota"
 	"github.com/sapcc/archer/restapi/operations/rbac"
@@ -135,6 +136,8 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 			}
 			return errors.New(401, "Unauthorized")
 		})
+	} else {
+		api.XAuthTokenAuth = func(token string) (interface{}, error) { return nil, nil }
 	}
 
 	c := controller.NewController(pool, SwaggerSpec, neutronClient)
@@ -168,6 +171,9 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 	api.RbacGetRbacPoliciesRbacPolicyIDHandler = rbac.GetRbacPoliciesRbacPolicyIDHandlerFunc(c.GetRbacPoliciesRbacPolicyIDHandler)
 	api.RbacPutRbacPoliciesRbacPolicyIDHandler = rbac.PutRbacPoliciesRbacPolicyIDHandlerFunc(c.PutRbacPoliciesRbacPolicyIDHandler)
 	api.RbacDeleteRbacPoliciesRbacPolicyIDHandler = rbac.DeleteRbacPoliciesRbacPolicyIDHandlerFunc(c.DeleteRbacPoliciesRbacPolicyIDHandler)
+
+	api.AgentGetAgentsHandler = agent.GetAgentsHandlerFunc(c.GetAgentsHandler)
+	api.AgentGetAgentsAgentHostHandler = agent.GetAgentsAgentHostHandlerFunc(c.GetAgentsAgentHostHandler)
 
 	// Start background scheduler for agent rescheduling and rebalancing
 	// Uses PostgreSQL advisory locks for distributed leader election across multiple API instances

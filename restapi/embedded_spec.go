@@ -81,6 +81,108 @@ func init() {
         }
       }
     },
+    "/agents": {
+      "get": {
+        "description": "Lists all registered Archer agents. This is an administrative endpoint.\n",
+        "tags": [
+          "Agent"
+        ],
+        "summary": "List Agents",
+        "responses": {
+          "200": {
+            "description": "An array of agents.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Agent"
+                  }
+                },
+                "links": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Link"
+                  },
+                  "x-omitempty": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        },
+        "x-policy": "agent:read"
+      }
+    },
+    "/agents/{agent_host}": {
+      "get": {
+        "description": "Shows details for a specific agent.\n",
+        "tags": [
+          "Agent"
+        ],
+        "summary": "Show Agent details",
+        "responses": {
+          "200": {
+            "description": "Agent details.",
+            "schema": {
+              "$ref": "#/definitions/Agent"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        },
+        "x-policy": "agent:read"
+      },
+      "parameters": [
+        {
+          "type": "string",
+          "description": "The hostname of the agent",
+          "name": "agent_host",
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
     "/endpoint": {
       "get": {
         "tags": [
@@ -1450,6 +1552,60 @@ func init() {
     }
   },
   "definitions": {
+    "Agent": {
+      "type": "object",
+      "properties": {
+        "availability_zone": {
+          "description": "Availability zone of this agent.",
+          "type": "string",
+          "x-nullable": true,
+          "x-omitempty": false,
+          "example": "AZ-A"
+        },
+        "created_at": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "enabled": {
+          "description": "Whether the agent is enabled.",
+          "type": "boolean",
+          "default": true
+        },
+        "heartbeat_at": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "host": {
+          "description": "The hostname of the agent.",
+          "type": "string",
+          "readOnly": true,
+          "example": "agent-host-01"
+        },
+        "physnet": {
+          "description": "Physical network the agent is connected to.",
+          "type": "string",
+          "x-nullable": true,
+          "x-omitempty": false
+        },
+        "provider": {
+          "description": "Provider type of the agent.",
+          "type": "string",
+          "enum": [
+            "tenant",
+            "cp"
+          ],
+          "example": "tenant"
+        },
+        "services": {
+          "description": "Number of services hosted by this agent.",
+          "type": "integer",
+          "format": "int64",
+          "x-omitempty": false,
+          "readOnly": true
+        },
+        "updated_at": {
+          "$ref": "#/definitions/Timestamp"
+        }
+      }
+    },
     "Endpoint": {
       "type": "object",
       "properties": {
@@ -1736,7 +1892,6 @@ func init() {
       "type": "object",
       "required": [
         "ports",
-        "network_id",
         "ip_addresses"
       ],
       "properties": {
@@ -1807,9 +1962,10 @@ func init() {
           "example": "ExampleService"
         },
         "network_id": {
-          "description": "Network ID of the network that provides this service.",
+          "description": "Network ID of the network that provides this service. Required for tenant provider, optional for cp provider.",
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "x-nullable": true
         },
         "ports": {
           "description": "Ports exposed by the service.",
@@ -2136,6 +2292,10 @@ func init() {
     {
       "description": "### Quota Operations\nAdministrative API for listing and setting quotas for services and endpoints.\n",
       "name": "Quota"
+    },
+    {
+      "description": "### Agent Operations\nAdministrative API for viewing registered Archer agents.\n",
+      "name": "Agent"
     }
   ],
   "externalDocs": {
@@ -2190,6 +2350,108 @@ func init() {
           }
         }
       }
+    },
+    "/agents": {
+      "get": {
+        "description": "Lists all registered Archer agents. This is an administrative endpoint.\n",
+        "tags": [
+          "Agent"
+        ],
+        "summary": "List Agents",
+        "responses": {
+          "200": {
+            "description": "An array of agents.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Agent"
+                  }
+                },
+                "links": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Link"
+                  },
+                  "x-omitempty": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        },
+        "x-policy": "agent:read"
+      }
+    },
+    "/agents/{agent_host}": {
+      "get": {
+        "description": "Shows details for a specific agent.\n",
+        "tags": [
+          "Agent"
+        ],
+        "summary": "Show Agent details",
+        "responses": {
+          "200": {
+            "description": "Agent details.",
+            "schema": {
+              "$ref": "#/definitions/Agent"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        },
+        "x-policy": "agent:read"
+      },
+      "parameters": [
+        {
+          "type": "string",
+          "description": "The hostname of the agent",
+          "name": "agent_host",
+          "in": "path",
+          "required": true
+        }
+      ]
     },
     "/endpoint": {
       "get": {
@@ -3669,6 +3931,60 @@ func init() {
     }
   },
   "definitions": {
+    "Agent": {
+      "type": "object",
+      "properties": {
+        "availability_zone": {
+          "description": "Availability zone of this agent.",
+          "type": "string",
+          "x-nullable": true,
+          "x-omitempty": false,
+          "example": "AZ-A"
+        },
+        "created_at": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "enabled": {
+          "description": "Whether the agent is enabled.",
+          "type": "boolean",
+          "default": true
+        },
+        "heartbeat_at": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "host": {
+          "description": "The hostname of the agent.",
+          "type": "string",
+          "readOnly": true,
+          "example": "agent-host-01"
+        },
+        "physnet": {
+          "description": "Physical network the agent is connected to.",
+          "type": "string",
+          "x-nullable": true,
+          "x-omitempty": false
+        },
+        "provider": {
+          "description": "Provider type of the agent.",
+          "type": "string",
+          "enum": [
+            "tenant",
+            "cp"
+          ],
+          "example": "tenant"
+        },
+        "services": {
+          "description": "Number of services hosted by this agent.",
+          "type": "integer",
+          "format": "int64",
+          "x-omitempty": false,
+          "readOnly": true
+        },
+        "updated_at": {
+          "$ref": "#/definitions/Timestamp"
+        }
+      }
+    },
     "Endpoint": {
       "type": "object",
       "properties": {
@@ -4001,7 +4317,6 @@ func init() {
       "type": "object",
       "required": [
         "ports",
-        "network_id",
         "ip_addresses"
       ],
       "properties": {
@@ -4072,9 +4387,10 @@ func init() {
           "example": "ExampleService"
         },
         "network_id": {
-          "description": "Network ID of the network that provides this service.",
+          "description": "Network ID of the network that provides this service. Required for tenant provider, optional for cp provider.",
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "x-nullable": true
         },
         "ports": {
           "description": "Ports exposed by the service.",
@@ -4402,6 +4718,10 @@ func init() {
     {
       "description": "### Quota Operations\nAdministrative API for listing and setting quotas for services and endpoints.\n",
       "name": "Quota"
+    },
+    {
+      "description": "### Agent Operations\nAdministrative API for viewing registered Archer agents.\n",
+      "name": "Agent"
     }
   ],
   "externalDocs": {

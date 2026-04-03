@@ -169,6 +169,10 @@ tags:
     description: |
       ### Quota Operations
       Administrative API for listing and setting quotas for services and endpoints.
+  - name: Agent
+    description: |
+      ### Agent Operations
+      Administrative API for viewing registered Archer agents.
 schemes:
   - "https"
   - "http"
@@ -1097,6 +1101,77 @@ paths:
           schema:
             $ref: "#/definitions/Error"
 
+  /agents:
+    get:
+      tags:
+        - Agent
+      summary: List Agents
+      x-policy: agent:read
+      description: |
+        Lists all registered Archer agents. This is an administrative endpoint.
+      responses:
+        200:
+          description: An array of agents.
+          schema:
+            type: object
+            properties:
+              links:
+                x-omitempty: true
+                type: array
+                items:
+                  $ref: '#/definitions/Link'
+              items:
+                type: array
+                items:
+                  $ref: "#/definitions/Agent"
+        400:
+          description: Bad request
+          schema:
+            $ref: "#/definitions/Error"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+  /agents/{agent_host}:
+    parameters:
+      - in: path
+        name: agent_host
+        required: true
+        type: string
+        description: The hostname of the agent
+    get:
+      tags:
+        - Agent
+      summary: Show Agent details
+      x-policy: agent:read
+      description: |
+        Shows details for a specific agent.
+      responses:
+        200:
+          description: Agent details.
+          schema:
+            $ref: "#/definitions/Agent"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/Error"
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+          schema:
+            $ref: "#/definitions/Error"
+        422:
+          description: Unprocessable Content
+          schema:
+            $ref: "#/definitions/Error"
+
 parameters:
   marker:
     name: marker
@@ -1173,7 +1248,6 @@ definitions:
   Service:
     required:
       - ports
-      - network_id
       - ip_addresses
     type: object
     properties:
@@ -1213,7 +1287,8 @@ definitions:
       network_id:
         type: string
         format: uuid
-        description: Network ID of the network that provides this service.
+        description: Network ID of the network that provides this service. Required for tenant provider, optional for cp provider.
+        x-nullable: true
       ip_addresses:
         type: array
         description: IP Addresses of the providing service, multiple addresses will be round robin load balanced.
@@ -1669,3 +1744,45 @@ definitions:
       rel:
         type: string
         example: self
+  Agent:
+    type: object
+    properties:
+      host:
+        type: string
+        description: The hostname of the agent.
+        example: agent-host-01
+        readOnly: true
+      availability_zone:
+        type: string
+        description: Availability zone of this agent.
+        example: AZ-A
+        x-nullable: true
+        x-omitempty: false
+      provider:
+        type: string
+        description: Provider type of the agent.
+        example: tenant
+        enum:
+          - tenant
+          - cp
+      enabled:
+        type: boolean
+        description: Whether the agent is enabled.
+        default: true
+      physnet:
+        type: string
+        description: Physical network the agent is connected to.
+        x-nullable: true
+        x-omitempty: false
+      created_at:
+        $ref: "#/definitions/Timestamp"
+      updated_at:
+        $ref: "#/definitions/Timestamp"
+      heartbeat_at:
+        $ref: "#/definitions/Timestamp"
+      services:
+        type: integer
+        format: int64
+        description: Number of services hosted by this agent.
+        readOnly: true
+        x-omitempty: false

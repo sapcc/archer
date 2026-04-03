@@ -35,6 +35,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 
+	"github.com/sapcc/archer/restapi/operations/agent"
 	"github.com/sapcc/archer/restapi/operations/endpoint"
 	"github.com/sapcc/archer/restapi/operations/quota"
 	"github.com/sapcc/archer/restapi/operations/rbac"
@@ -96,6 +97,20 @@ func NewArcherAPI(spec *loads.Document) *ArcherAPI {
 			_ = params
 
 			return middleware.NotImplemented("operation version.Get has not yet been implemented")
+		}),
+
+		AgentGetAgentsHandler: agent.GetAgentsHandlerFunc(func(params agent.GetAgentsParams, principal any) middleware.Responder {
+			_ = params
+			_ = principal
+
+			return middleware.NotImplemented("operation agent.GetAgents has not yet been implemented")
+		}),
+
+		AgentGetAgentsAgentHostHandler: agent.GetAgentsAgentHostHandlerFunc(func(params agent.GetAgentsAgentHostParams, principal any) middleware.Responder {
+			_ = params
+			_ = principal
+
+			return middleware.NotImplemented("operation agent.GetAgentsAgentHost has not yet been implemented")
 		}),
 
 		EndpointGetEndpointHandler: endpoint.GetEndpointHandlerFunc(func(params endpoint.GetEndpointParams, principal any) middleware.Responder {
@@ -421,6 +436,10 @@ type ArcherAPI struct {
 	ServiceDeleteServiceServiceIDHandler service.DeleteServiceServiceIDHandler
 	// VersionGetHandler sets the operation handler for the get operation
 	VersionGetHandler version.GetHandler
+	// AgentGetAgentsHandler sets the operation handler for the get agents operation
+	AgentGetAgentsHandler agent.GetAgentsHandler
+	// AgentGetAgentsAgentHostHandler sets the operation handler for the get agents agent host operation
+	AgentGetAgentsAgentHostHandler agent.GetAgentsAgentHostHandler
 	// EndpointGetEndpointHandler sets the operation handler for the get endpoint operation
 	EndpointGetEndpointHandler endpoint.GetEndpointHandler
 	// EndpointGetEndpointEndpointIDHandler sets the operation handler for the get endpoint endpoint ID operation
@@ -556,6 +575,12 @@ func (o *ArcherAPI) Validate() error {
 	}
 	if o.VersionGetHandler == nil {
 		unregistered = append(unregistered, "version.GetHandler")
+	}
+	if o.AgentGetAgentsHandler == nil {
+		unregistered = append(unregistered, "agent.GetAgentsHandler")
+	}
+	if o.AgentGetAgentsAgentHostHandler == nil {
+		unregistered = append(unregistered, "agent.GetAgentsAgentHostHandler")
 	}
 	if o.EndpointGetEndpointHandler == nil {
 		unregistered = append(unregistered, "endpoint.GetEndpointHandler")
@@ -735,6 +760,14 @@ func (o *ArcherAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"][""] = version.NewGet(o.context, o.VersionGetHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/agents"] = agent.NewGetAgents(o.context, o.AgentGetAgentsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/agents/{agent_host}"] = agent.NewGetAgentsAgentHost(o.context, o.AgentGetAgentsAgentHostHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

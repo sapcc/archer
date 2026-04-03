@@ -26,6 +26,7 @@ import (
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 
+	"github.com/sapcc/archer/client/agent"
 	"github.com/sapcc/archer/client/endpoint"
 	"github.com/sapcc/archer/client/quota"
 	"github.com/sapcc/archer/client/rbac"
@@ -75,6 +76,7 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *Archer {
 
 	cli := new(Archer)
 	cli.Transport = transport
+	cli.Agent = agent.New(transport, formats)
 	cli.Endpoint = endpoint.New(transport, formats)
 	cli.Quota = quota.New(transport, formats)
 	cli.Rbac = rbac.New(transport, formats)
@@ -124,6 +126,8 @@ func (cfg *TransportConfig) WithSchemes(schemes []string) *TransportConfig {
 
 // Archer is a client for archer
 type Archer struct {
+	Agent agent.ClientService
+
 	Endpoint endpoint.ClientService
 
 	Quota quota.ClientService
@@ -140,6 +144,7 @@ type Archer struct {
 // SetTransport changes the transport on the client and all its subresources
 func (c *Archer) SetTransport(transport runtime.ClientTransport) {
 	c.Transport = transport
+	c.Agent.SetTransport(transport)
 	c.Endpoint.SetTransport(transport)
 	c.Quota.SetTransport(transport)
 	c.Rbac.SetTransport(transport)

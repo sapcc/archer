@@ -82,7 +82,7 @@ type Agent struct {
 	Devices                []string      `long:"device" ini-name:"device[]" description:"F5 Hostnames"`
 	VCMPs                  []string      `long:"vcmp" ini-name:"vcmp[]" description:"F5 Platform Hostnames"`
 	ValidateCert           bool          `long:"validate-certificates" ini-name:"validate_certificates" description:"Validate HTTPS Certificate."`
-	PhysicalNetwork        string        `long:"physical-network" ini-name:"physical_network" description:"Physical Network"`
+	PhysicalNetwork        string        `long:"physical-network" ini-name:"physical_network" env:"PHYSICAL_NETWORK" description:"Physical Network"`
 	PhysicalInterface      string        `long:"physical-interface" ini-name:"physical_interface" description:"Physical Interface" default:"portchannel1"`
 	PendingSyncInterval    time.Duration `long:"pending-sync-interval" ini-name:"sync-interval" default:"120s" description:"Interval for pending sync scans, supports suffix (e.g. 10s)."`
 	HealthScrapeInterval   time.Duration `long:"health-scrape-interval" ini-name:"health_scrape_interval" default:"5m" description:"Interval for health monitor status scraping."`
