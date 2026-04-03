@@ -44,6 +44,8 @@ func TestPostgresElector_Integration(t *testing.T) {
 		defer pool.Close()
 
 		elector := NewPostgresElector(pool)
+		require.NoError(t, elector.Start(ctx))
+		defer elector.Close()
 
 		err = elector.IsLeader(ctx)
 		assert.NoError(t, err, "Single elector should become leader")
@@ -59,26 +61,25 @@ func TestPostgresElector_Integration(t *testing.T) {
 		require.NoError(t, err)
 		defer pool2.Close()
 
-		// Acquire a dedicated connection from pool1 to hold the lock
-		conn1, err := pool1.Acquire(ctx)
-		require.NoError(t, err)
-		defer conn1.Release()
+		// First elector acquires leadership
+		elector1 := NewPostgresElector(pool1)
+		require.NoError(t, elector1.Start(ctx))
+		defer elector1.Close()
 
-		// Acquire advisory lock on conn1 (simulating first API instance)
-		var acquired bool
-		err = conn1.QueryRow(ctx, "SELECT pg_try_advisory_lock($1)", advisoryLockID).Scan(&acquired)
-		require.NoError(t, err)
-		require.True(t, acquired, "First connection should acquire lock")
+		err = elector1.IsLeader(ctx)
+		require.NoError(t, err, "First elector should become leader")
 
-		// Create elector using pool2 (simulating second API instance)
+		// Second elector cannot become leader
 		elector2 := NewPostgresElector(pool2)
-		err = elector2.IsLeader(ctx)
+		require.NoError(t, elector2.Start(ctx))
+		defer elector2.Close()
 
+		err = elector2.IsLeader(ctx)
 		assert.ErrorIs(t, err, ErrNotLeader, "Second elector should not become leader")
 		assert.False(t, elector2.isLeader)
 	})
 
-	t.Run("second elector becomes leader after first releases lock", func(t *testing.T) {
+	t.Run("second elector becomes leader after first closes", func(t *testing.T) {
 		pool1, err := pgxpool.New(ctx, connStr)
 		require.NoError(t, err)
 		defer pool1.Close()
@@ -87,38 +88,38 @@ func TestPostgresElector_Integration(t *testing.T) {
 		require.NoError(t, err)
 		defer pool2.Close()
 
-		// Acquire a dedicated connection from pool1 to hold the lock
-		conn1, err := pool1.Acquire(ctx)
-		require.NoError(t, err)
+		// First elector acquires leadership
+		elector1 := NewPostgresElector(pool1)
+		require.NoError(t, elector1.Start(ctx))
 
-		// Acquire advisory lock on conn1
-		var acquired bool
-		err = conn1.QueryRow(ctx, "SELECT pg_try_advisory_lock($1)", advisoryLockID).Scan(&acquired)
-		require.NoError(t, err)
-		require.True(t, acquired, "First connection should acquire lock")
+		err = elector1.IsLeader(ctx)
+		require.NoError(t, err, "First elector should become leader")
 
-		// Verify elector2 cannot become leader
+		// Second elector cannot become leader yet
 		elector2 := NewPostgresElector(pool2)
+		require.NoError(t, elector2.Start(ctx))
+		defer elector2.Close()
+
 		err = elector2.IsLeader(ctx)
 		assert.ErrorIs(t, err, ErrNotLeader)
 
-		// Explicitly release the lock
-		_, err = conn1.Exec(ctx, "SELECT pg_advisory_unlock($1)", advisoryLockID)
-		require.NoError(t, err)
-		conn1.Release()
+		// Close first elector - releases the lock
+		elector1.Close()
 
-		// Now elector2 should be able to become leader
+		// Now second elector should be able to become leader
 		err = elector2.IsLeader(ctx)
-		assert.NoError(t, err, "Second elector should become leader after first releases")
+		assert.NoError(t, err, "Second elector should become leader after first closes")
 		assert.True(t, elector2.isLeader)
 	})
 
-	t.Run("same pool can reacquire lock", func(t *testing.T) {
+	t.Run("same elector can reacquire lock", func(t *testing.T) {
 		pool, err := pgxpool.New(ctx, connStr)
 		require.NoError(t, err)
 		defer pool.Close()
 
 		elector := NewPostgresElector(pool)
+		require.NoError(t, elector.Start(ctx))
+		defer elector.Close()
 
 		// First acquisition
 		err = elector.IsLeader(ctx)
@@ -140,9 +141,14 @@ func TestPostgresElector_Integration(t *testing.T) {
 		require.NoError(t, err)
 		defer pool2.Close()
 
-		// Create multiple electors using different pools
+		// Create and start both electors
 		elector1 := NewPostgresElector(pool1)
+		require.NoError(t, elector1.Start(ctx))
+		defer elector1.Close()
+
 		elector2 := NewPostgresElector(pool2)
+		require.NoError(t, elector2.Start(ctx))
+		defer elector2.Close()
 
 		// Check both electors
 		err1 := elector1.IsLeader(ctx)
@@ -156,30 +162,23 @@ func TestPostgresElector_Integration(t *testing.T) {
 		assert.True(t, isLeader1 != isLeader2, "Exactly one elector should be leader, got elector1=%v, elector2=%v", isLeader1, isLeader2)
 	})
 
-	t.Run("leadership transfers when connection closes", func(t *testing.T) {
-		// Create pool1, acquire lock, then close pool1 entirely
-		pool1, err := pgxpool.New(ctx, connStr)
+	t.Run("leadership stable across multiple checks", func(t *testing.T) {
+		pool, err := pgxpool.New(ctx, connStr)
 		require.NoError(t, err)
+		defer pool.Close()
 
-		elector1 := NewPostgresElector(pool1)
-		err = elector1.IsLeader(ctx)
-		require.NoError(t, err, "Elector1 should become leader")
+		elector := NewPostgresElector(pool)
+		require.NoError(t, elector.Start(ctx))
+		defer elector.Close()
 
-		// Create pool2, verify it cannot become leader
-		pool2, err := pgxpool.New(ctx, connStr)
-		require.NoError(t, err)
-		defer pool2.Close()
+		// Acquire leadership
+		err = elector.IsLeader(ctx)
+		require.NoError(t, err, "Should become leader")
 
-		elector2 := NewPostgresElector(pool2)
-		err = elector2.IsLeader(ctx)
-		assert.ErrorIs(t, err, ErrNotLeader, "Elector2 should not be leader while pool1 holds lock")
-
-		// Close pool1 entirely - this should release all its advisory locks
-		pool1.Close()
-
-		// Now elector2 should be able to become leader
-		err = elector2.IsLeader(ctx)
-		assert.NoError(t, err, "Elector2 should become leader after pool1 closes")
-		assert.True(t, elector2.isLeader)
+		// Verify leadership is stable across multiple checks
+		for i := 0; i < 10; i++ {
+			err = elector.IsLeader(ctx)
+			assert.NoError(t, err, "Leadership should be stable on check %d", i)
+		}
 	})
 }
