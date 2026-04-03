@@ -91,9 +91,10 @@ type ServiceCreate struct {
 	Provider         *string       `long:"provider" description:"Provider type" choice:"tenant" choice:"cp"`
 	Enable           bool          `long:"enable" description:"Enable service"`
 	Disable          bool          `long:"disable" description:"Disable service"`
-	Network          strfmt.UUID   `long:"network" description:"Network id" required:"true"`
+	Network          *strfmt.UUID  `long:"network" description:"Network id (required for tenant provider)"`
 	IPAddresses      []strfmt.IPv4 `long:"ip-address" description:"IP Addresses of the providing service, multiple addresses will be round robin load balanced." required:"true"`
 	Port             []int32       `long:"port" description:"Port exposed by the service (repeat option to set multiple ports)" required:"true"`
+	Protocol         *string       `long:"protocol" description:"Protocol type of the service" choice:"TCP" choice:"HTTP"`
 	ProxyProtocol    bool          `long:"proxy-protocol" description:"Enable proxy protocol v2."`
 	RequireApproval  bool          `long:"require-approval" description:"Require explicit project approval for the service owner."`
 	Tags             []string      `long:"tag" description:"Tag to be added to the service (repeat option to set multiple tags)"`
@@ -103,6 +104,13 @@ type ServiceCreate struct {
 }
 
 func (*ServiceCreate) Execute(_ []string) error {
+	// Validate: network is required for tenant provider
+	if ServiceOptions.ServiceCreate.Network == nil {
+		if ServiceOptions.ServiceCreate.Provider == nil || *ServiceOptions.ServiceCreate.Provider != "cp" {
+			return errors.New("--network is required for tenant provider")
+		}
+	}
+
 	enabled := ServiceOptions.ServiceCreate.Enable || !ServiceOptions.ServiceCreate.Disable
 
 	sv := models.Service{
@@ -110,9 +118,10 @@ func (*ServiceCreate) Execute(_ []string) error {
 		Description:      ServiceOptions.ServiceCreate.Description,
 		Provider:         ServiceOptions.ServiceCreate.Provider,
 		Enabled:          &enabled,
-		NetworkID:        &ServiceOptions.ServiceCreate.Network,
+		NetworkID:        ServiceOptions.ServiceCreate.Network,
 		IPAddresses:      ServiceOptions.ServiceCreate.IPAddresses,
 		Ports:            ServiceOptions.ServiceCreate.Port,
+		Protocol:         ServiceOptions.ServiceCreate.Protocol,
 		ProxyProtocol:    &ServiceOptions.ServiceCreate.ProxyProtocol,
 		RequireApproval:  &ServiceOptions.ServiceCreate.RequireApproval,
 		Tags:             ServiceOptions.ServiceCreate.Tags,
@@ -146,6 +155,7 @@ type ServiceSet struct {
 	IPAddresses     []strfmt.IPv4 `long:"ip-address" description:"IP Addresses of the providing service, multiple addresses will be round robin load balanced."`
 	Name            *string       `long:"name" description:"Service name"`
 	Port            []int32       `long:"port" description:"Port exposed by the service (repeat option to set multiple ports)"`
+	Protocol        *string       `long:"protocol" description:"Protocol type of the service" choice:"TCP" choice:"HTTP"`
 	ProxyProtocol   *bool         `long:"proxy-protocol" description:"Enable proxy protocol v2."`
 	RequireApproval *bool         `long:"require-approval" description:"Require explicit project approval for the service owner."`
 	Visibility      *string       `long:"visibility" description:"Set global visibility of the service. For private visibility, RBAC policies can extend the visibility to specific projects" choice:"private" choice:"public"`
@@ -187,6 +197,7 @@ func (*ServiceSet) Execute(_ []string) error {
 		IPAddresses:     ServiceOptions.ServiceSet.IPAddresses,
 		Name:            ServiceOptions.ServiceSet.Name,
 		Ports:           ServiceOptions.ServiceSet.Port,
+		Protocol:        ServiceOptions.ServiceSet.Protocol,
 		ProxyProtocol:   ServiceOptions.ServiceSet.ProxyProtocol,
 		RequireApproval: ServiceOptions.ServiceSet.RequireApproval,
 		Tags:            tags,

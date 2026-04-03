@@ -33,6 +33,9 @@ import (
 	"github.com/sapcc/archer/restapi/operations/service"
 )
 
+// CPNetworkID is the placeholder network ID used for cp provider services that don't have a real network.
+const CPNetworkID = strfmt.UUID("00000000-0000-0000-0000-000000000000")
+
 // maskCPServiceIPAddresses clears IP addresses for CP services unless the user has cloud_admin rights.
 // This is a security measure to prevent exposing internal service IP addresses to regular users.
 func maskCPServiceIPAddresses(svc *models.Service, principal any) {
@@ -111,7 +114,20 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 		params.Body.ProjectID = models.Project(projectId)
 	}
 
-	if params.Body.NetworkID != nil {
+	// Validate: network_id is required for tenant provider, optional for cp provider
+	if params.Body.NetworkID == nil {
+		if params.Body.Provider == nil || *params.Body.Provider != "cp" {
+			return service.NewPostServiceUnprocessableEntity().WithPayload(&models.Error{
+				Code:    http.StatusUnprocessableEntity,
+				Message: "network_id is required for tenant provider",
+			})
+		}
+		// Set placeholder network ID for cp provider when network_id is not provided
+		params.Body.NetworkID = new(CPNetworkID)
+	}
+
+	// Skip network validation for cp provider placeholder network ID
+	if *params.Body.NetworkID != CPNetworkID {
 		if network, err := networks.Get(params.HTTPRequest.Context(), c.neutron.ServiceClient, string(*params.Body.NetworkID)).Extract(); err != nil {
 			if gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
 				return service.NewPostServiceConflict().WithPayload(&models.Error{

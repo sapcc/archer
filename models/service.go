@@ -89,10 +89,9 @@ type Service struct {
 	// Max Length: 64
 	Name string `json:"name"`
 
-	// Network ID of the network that provides this service.
-	// Required: true
+	// Network ID of the network that provides this service. Required for tenant provider, optional for cp provider.
 	// Format: uuid
-	NetworkID *strfmt.UUID `json:"network_id"`
+	NetworkID *strfmt.UUID `json:"network_id,omitempty"`
 
 	// Ports exposed by the service.
 	// Required: true
@@ -356,9 +355,8 @@ func (m *Service) validateName(formats strfmt.Registry) error {
 }
 
 func (m *Service) validateNetworkID(formats strfmt.Registry) error {
-
-	if err := validate.Required("network_id", "body", m.NetworkID); err != nil {
-		return err
+	if swag.IsZero(m.NetworkID) { // not required
+		return nil
 	}
 
 	if err := validate.FormatOf("network_id", "body", "uuid", m.NetworkID.String(), formats); err != nil {
