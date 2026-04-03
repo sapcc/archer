@@ -6,6 +6,7 @@ package ni
 
 import (
 	"context"
+	"errors"
 	"os/signal"
 	"strings"
 	"syscall"
@@ -267,6 +268,10 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
 			Suffix("FOR UPDATE OF e").
 			MustSql()
 		if err = pgxscan.Get(ctx, tx, &si, sql, args...); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				log.WithField("id", id).Warning("Endpoint not found or missing endpoint_port")
+				return nil
+			}
 			return err
 		}
 
