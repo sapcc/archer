@@ -22,6 +22,7 @@ import (
 type BackgroundScheduler struct {
 	scheduler       *ServiceScheduler
 	gocronScheduler gocron.Scheduler
+	elector         *PostgresElector
 	checkInterval   time.Duration
 	rebalanceDelay  time.Duration
 	recoveredAgents map[string]time.Time // host -> recoveredAt
@@ -44,6 +45,7 @@ func NewBackgroundScheduler(serviceScheduler *ServiceScheduler, pool db.PgxIface
 	return &BackgroundScheduler{
 		scheduler:       serviceScheduler,
 		gocronScheduler: gocronSched,
+		elector:         elector,
 		checkInterval:   checkInterval,
 		rebalanceDelay:  rebalanceDelay,
 		recoveredAgents: make(map[string]time.Time),
@@ -52,6 +54,11 @@ func NewBackgroundScheduler(serviceScheduler *ServiceScheduler, pool db.PgxIface
 
 // Start starts the background scheduler and registers all periodic jobs.
 func (b *BackgroundScheduler) Start(ctx context.Context) error {
+	// Start the elector to acquire dedicated connection
+	if err := b.elector.Start(ctx); err != nil {
+		return err
+	}
+
 	// Register the main scheduling cycle job
 	_, err := b.gocronScheduler.NewJob(
 		gocron.DurationJob(b.checkInterval),
@@ -72,6 +79,7 @@ func (b *BackgroundScheduler) Start(ctx context.Context) error {
 
 // Stop stops the background scheduler gracefully.
 func (b *BackgroundScheduler) Stop() error {
+	b.elector.Close()
 	return b.gocronScheduler.Shutdown()
 }
 

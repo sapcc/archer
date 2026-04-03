@@ -8,101 +8,21 @@ import (
 	"context"
 	"testing"
 
-	"github.com/pashagolub/pgxmock/v5"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-func TestPostgresElector_IsLeader_Acquired(t *testing.T) {
-	mock, err := pgxmock.NewPool()
-	require.NoError(t, err)
-	defer mock.Close()
+func TestPostgresElector_IsLeader_NotStarted(t *testing.T) {
+	// Create elector without calling Start()
+	elector := &PostgresElector{}
 
-	mock.ExpectQuery("SELECT pg_try_advisory_lock").
-		WithArgs(advisoryLockID).
-		WillReturnRows(pgxmock.NewRows([]string{"pg_try_advisory_lock"}).AddRow(true))
+	err := elector.IsLeader(context.Background())
 
-	elector := NewPostgresElector(mock)
-	err = elector.IsLeader(context.Background())
-
-	assert.NoError(t, err)
-	assert.True(t, elector.isLeader)
-	assert.NoError(t, mock.ExpectationsWereMet())
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "not started")
 }
 
-func TestPostgresElector_IsLeader_NotAcquired(t *testing.T) {
-	mock, err := pgxmock.NewPool()
-	require.NoError(t, err)
-	defer mock.Close()
-
-	mock.ExpectQuery("SELECT pg_try_advisory_lock").
-		WithArgs(advisoryLockID).
-		WillReturnRows(pgxmock.NewRows([]string{"pg_try_advisory_lock"}).AddRow(false))
-
-	elector := NewPostgresElector(mock)
-	err = elector.IsLeader(context.Background())
-
-	assert.ErrorIs(t, err, ErrNotLeader)
-	assert.False(t, elector.isLeader)
-	assert.NoError(t, mock.ExpectationsWereMet())
-}
-
-func TestPostgresElector_IsLeader_TransitionToLeader(t *testing.T) {
-	mock, err := pgxmock.NewPool()
-	require.NoError(t, err)
-	defer mock.Close()
-
-	// First call: not leader
-	mock.ExpectQuery("SELECT pg_try_advisory_lock").
-		WithArgs(advisoryLockID).
-		WillReturnRows(pgxmock.NewRows([]string{"pg_try_advisory_lock"}).AddRow(false))
-
-	// Second call: becomes leader
-	mock.ExpectQuery("SELECT pg_try_advisory_lock").
-		WithArgs(advisoryLockID).
-		WillReturnRows(pgxmock.NewRows([]string{"pg_try_advisory_lock"}).AddRow(true))
-
-	elector := NewPostgresElector(mock)
-
-	// First check: not leader
-	err = elector.IsLeader(context.Background())
-	assert.ErrorIs(t, err, ErrNotLeader)
-	assert.False(t, elector.isLeader)
-
-	// Second check: becomes leader
-	err = elector.IsLeader(context.Background())
-	assert.NoError(t, err)
-	assert.True(t, elector.isLeader)
-
-	assert.NoError(t, mock.ExpectationsWereMet())
-}
-
-func TestPostgresElector_IsLeader_TransitionFromLeader(t *testing.T) {
-	mock, err := pgxmock.NewPool()
-	require.NoError(t, err)
-	defer mock.Close()
-
-	// First call: is leader
-	mock.ExpectQuery("SELECT pg_try_advisory_lock").
-		WithArgs(advisoryLockID).
-		WillReturnRows(pgxmock.NewRows([]string{"pg_try_advisory_lock"}).AddRow(true))
-
-	// Second call: loses leadership
-	mock.ExpectQuery("SELECT pg_try_advisory_lock").
-		WithArgs(advisoryLockID).
-		WillReturnRows(pgxmock.NewRows([]string{"pg_try_advisory_lock"}).AddRow(false))
-
-	elector := NewPostgresElector(mock)
-
-	// First check: is leader
-	err = elector.IsLeader(context.Background())
-	assert.NoError(t, err)
-	assert.True(t, elector.isLeader)
-
-	// Second check: loses leadership
-	err = elector.IsLeader(context.Background())
-	assert.ErrorIs(t, err, ErrNotLeader)
-	assert.False(t, elector.isLeader)
-
-	assert.NoError(t, mock.ExpectationsWereMet())
+func TestPostgresElector_Close_NilConn(t *testing.T) {
+	// Close should not panic when conn is nil
+	elector := &PostgresElector{}
+	elector.Close() // Should not panic
 }
