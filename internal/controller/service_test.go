@@ -762,3 +762,141 @@ func (t *SuiteTest) TestServiceMigrateAutoSelectsHost() {
 	// Should have migrated to a different host than the original
 	assert.NotEqual(t.T(), "test-host", *payload.Host)
 }
+
+func (t *SuiteTest) TestServiceMigrateServiceNotFound() {
+	unknown := strfmt.UUID("00000000-1111-2222-3333-444444444444")
+	res := t.c.PostServiceServiceIDMigrateHandler(
+		service.PostServiceServiceIDMigrateParams{
+			HTTPRequest: &headerProject1,
+			ServiceID:   unknown,
+			Body:        service.PostServiceServiceIDMigrateBody{},
+		},
+		nil)
+
+	assert.IsType(t.T(), &service.PostServiceServiceIDMigrateNotFound{}, res)
+}
+
+func (t *SuiteTest) TestServiceMigrateSameHostFails() {
+	// Create a service
+	serviceId := t.createService(testService)
+
+	// Try to migrate to the same host (test-host is the default)
+	res := t.c.PostServiceServiceIDMigrateHandler(
+		service.PostServiceServiceIDMigrateParams{
+			HTTPRequest: &headerProject1,
+			ServiceID:   serviceId,
+			Body:        service.PostServiceServiceIDMigrateBody{TargetHost: "test-host"},
+		},
+		nil)
+
+	assert.IsType(t.T(), &service.PostServiceServiceIDMigrateBadRequest{}, res)
+	assert.Equal(t.T(), "Service is already on the target host",
+		res.(*service.PostServiceServiceIDMigrateBadRequest).Payload.Message)
+}
+
+// TestMaskCPServiceIPAddresses tests the IP address masking for CP services
+func (t *SuiteTest) TestMaskCPServiceIPAddresses() {
+	cpProvider := "cp"
+
+	// Test with nil service - should not panic
+	maskCPServiceIPAddresses(nil, nil)
+
+	// Test with CP service and regular user (no principal) - IPs should be masked
+	svc := &models.Service{
+		Provider:    &cpProvider,
+		IPAddresses: []strfmt.IPv4{"1.2.3.4"},
+	}
+	maskCPServiceIPAddresses(svc, nil)
+	assert.Nil(t.T(), svc.IPAddresses)
+
+	// Test with non-CP service - IPs should not be masked
+	tenantProvider := "tenant"
+	svc2 := &models.Service{
+		Provider:    &tenantProvider,
+		IPAddresses: []strfmt.IPv4{"1.2.3.4"},
+	}
+	maskCPServiceIPAddresses(svc2, nil)
+	assert.NotNil(t.T(), svc2.IPAddresses)
+	assert.Len(t.T(), svc2.IPAddresses, 1)
+
+	// Test with CP service and cloud_admin (service:read-global) - IPs should NOT be masked
+	svc3 := &models.Service{
+		Provider:    &cpProvider,
+		IPAddresses: []strfmt.IPv4{"5.6.7.8"},
+	}
+	maskCPServiceIPAddresses(svc3, &gopherpolicy.Token{Enforcer: &TestEnforcerAllowReadGlobal{}})
+	assert.NotNil(t.T(), svc3.IPAddresses)
+	assert.Len(t.T(), svc3.IPAddresses, 1)
+
+	// Test with CP service and non-admin user - IPs should be masked
+	svc4 := &models.Service{
+		Provider:    &cpProvider,
+		IPAddresses: []strfmt.IPv4{"9.10.11.12"},
+	}
+	maskCPServiceIPAddresses(svc4, &gopherpolicy.Token{Enforcer: &TestEnforcerDenyAll{}})
+	assert.Nil(t.T(), svc4.IPAddresses)
+}
+
+type TestEnforcerAllowReadGlobal struct{}
+
+func (t *TestEnforcerAllowReadGlobal) Enforce(rule string, _ policy.Context) bool {
+	return rule == "service:read-global"
+}
+
+func (t *SuiteTest) TestServicePostCPProviderWithoutNetworkID() {
+	// Add an agent for CP provider
+	t.addCPAgent("cp-test-host", nil)
+
+	cpProvider := "cp"
+	cpService := models.Service{
+		Name:        "cp-service-test",
+		Provider:    &cpProvider,
+		IPAddresses: []strfmt.IPv4{"192.168.1.100"},
+		Ports:       []int32{8080},
+		ProjectID:   testProject1,
+	}
+
+	// Create CP service without network_id - should succeed with placeholder
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &cpService},
+		&gopherpolicy.Token{Enforcer: &TestEnforcerAllowProvider{}})
+
+	assert.IsType(t.T(), &service.PostServiceCreated{}, res)
+	payload := res.(*service.PostServiceCreated).Payload
+	assert.NotNil(t.T(), payload.NetworkID)
+	assert.Equal(t.T(), CPNetworkID, *payload.NetworkID)
+	assert.Equal(t.T(), "cp", *payload.Provider)
+}
+
+func (t *SuiteTest) TestServicePostTenantProviderWithoutNetworkIDFails() {
+	// Try to create a tenant service without network_id - should fail
+	svc := models.Service{
+		Name:        "tenant-no-network",
+		IPAddresses: []strfmt.IPv4{"1.2.3.4"},
+		Ports:       []int32{0},
+		ProjectID:   testProject1,
+	}
+
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &svc},
+		nil)
+
+	assert.IsType(t.T(), &service.PostServiceUnprocessableEntity{}, res)
+	assert.Equal(t.T(), "network_id is required for tenant provider",
+		res.(*service.PostServiceUnprocessableEntity).Payload.Message)
+}
+
+type TestEnforcerAllowProvider struct{}
+
+func (t *TestEnforcerAllowProvider) Enforce(_ string, _ policy.Context) bool {
+	return true
+}
+
+func (t *SuiteTest) addCPAgent(host string, az *string) {
+	sql, args := db.Insert("agents").
+		Columns("host", "availability_zone", "provider", "heartbeat_at").
+		Values(host, az, "cp", sq.Expr("NOW()")).
+		Suffix("ON CONFLICT DO NOTHING").
+		MustSql()
+	if _, err := t.c.pool.Exec(context.Background(), sql, args...); err != nil {
+		t.FailNow("Failed inserting cp agent host", err)
+	}
+}
