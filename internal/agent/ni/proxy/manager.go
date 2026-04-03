@@ -55,7 +55,7 @@ func (m *Manager) StartProxy(serviceID strfmt.UUID, upstream string, ports []int
 	}
 
 	log.Infof("proxymanager: starting proxy for service %s, upstream=%s, ports=%v", serviceID, upstream, ports)
-	go UnixListenersThread(ctx, upstream, ports)
+	go UnixListenersThread(ctx, serviceID, upstream, ports)
 }
 
 // StopProxy stops the Unix proxy thread for a service.

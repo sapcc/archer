@@ -53,6 +53,7 @@ defaults
 
 {{- $protocol := .Protocol }}
 {{- $upstream := .UpstreamHost }}
+{{- $serviceID := .ServiceID }}
 
 {{ range .UpstreamPorts }}
 frontend fronted_{{ . }}
@@ -65,7 +66,7 @@ backend backend_{{ . }}
 	{{- if eq $protocol "HTTP" }}
     http-request replace-header Host .* {{ $upstream }}
 	{{- end }}
-    server upstream {{ . | getSocketPath }}
+    server upstream {{ getSocketPath $serviceID . }}
 
 {{ end }}
 `
@@ -163,6 +164,7 @@ func (h *HAProxyController) AddInstance(si *models.ServiceInjection) error {
 		"UpstreamPorts": si.ServicePorts,
 		"Network":       si.Network.String(),
 		"Protocol":      si.ServiceProtocol,
+		"ServiceID":     si.ServiceID.String(),
 	}
 	if err = t.Execute(configFile, data); err != nil {
 		return err
