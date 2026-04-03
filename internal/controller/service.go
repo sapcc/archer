@@ -215,14 +215,16 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 			params.Body.Provider)
 		params.Body.Host = &host
 
-		// check for conflicts
-		check := &ServiceConflictChecker{
-			networkID:   *params.Body.NetworkID,
-			ipAddresses: params.Body.IPAddresses,
-			ports:       params.Body.Ports,
-		}
-		if err = check.checkForServiceConflict(ctx, tx); err != nil {
-			return err
+		// check for conflicts (only for tenant/F5 provider, not for cp/NI)
+		if *params.Body.Provider == "tenant" {
+			check := &ServiceConflictChecker{
+				networkID:   *params.Body.NetworkID,
+				ipAddresses: params.Body.IPAddresses,
+				ports:       params.Body.Ports,
+			}
+			if err = check.checkForServiceConflict(ctx, tx); err != nil {
+				return err
+			}
 		}
 
 		sql, args, err = db.Insert("service").
@@ -304,34 +306,38 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 
 	var serviceResponse models.Service
 	if err := pgx.BeginFunc(ctx, c.pool, func(tx pgx.Tx) error {
+		// Check for conflicts only for tenant/F5 provider when IP or ports change
 		if params.Body.IPAddresses != nil || params.Body.Ports != nil {
-			// Fetch ipaddress and ports for conflict check
+			var provider string
 			var networkID *strfmt.UUID
 			var ipAddresses []strfmt.IPv4
 			var ports []int32
-			q := db.Select("network_id", "ip_addresses", "ports").
+			q := db.Select("provider", "network_id", "ip_addresses", "ports").
 				From("service").
 				Where("id = ?", params.ServiceID)
 			sql, args := q.MustSql()
-			if err := tx.QueryRow(ctx, sql, args...).Scan(&networkID, &ipAddresses, &ports); err != nil {
+			if err := tx.QueryRow(ctx, sql, args...).Scan(&provider, &networkID, &ipAddresses, &ports); err != nil {
 				return err
-			}
-			if params.Body.IPAddresses != nil {
-				ipAddresses = params.Body.IPAddresses
-			}
-			if params.Body.Ports != nil {
-				ports = params.Body.Ports
 			}
 
-			// check for conflicts
-			check := &ServiceConflictChecker{
-				networkID:   *networkID,
-				ipAddresses: ipAddresses,
-				ports:       ports,
-				serviceID:   &params.ServiceID,
-			}
-			if err := check.checkForServiceConflict(ctx, tx); err != nil {
-				return err
+			// Only check conflicts for tenant/F5 provider
+			if provider == "tenant" {
+				if params.Body.IPAddresses != nil {
+					ipAddresses = params.Body.IPAddresses
+				}
+				if params.Body.Ports != nil {
+					ports = params.Body.Ports
+				}
+
+				check := &ServiceConflictChecker{
+					networkID:   *networkID,
+					ipAddresses: ipAddresses,
+					ports:       ports,
+					serviceID:   &params.ServiceID,
+				}
+				if err := check.checkForServiceConflict(ctx, tx); err != nil {
+					return err
+				}
 			}
 		}
 
@@ -604,6 +610,8 @@ func commonEndpointsActionHandler(pool db.PgxIface, body any, _ any) ([]*models.
 	return endpointConsumers, nil
 }
 
+// ServiceConflictChecker checks for service conflicts based on network, IP, and port overlap.
+// Only used for tenant/F5 provider services.
 type ServiceConflictChecker struct {
 	networkID   strfmt.UUID
 	ipAddresses []strfmt.IPv4
@@ -612,7 +620,7 @@ type ServiceConflictChecker struct {
 }
 
 func (s *ServiceConflictChecker) checkForServiceConflict(ctx context.Context, tx pgx.Tx) error {
-	// Extra check if port/ip/network combination already exists
+	// Check if port/ip/network combination already exists
 	q := db.Select("1").
 		From("service").
 		Where(sq.And{
