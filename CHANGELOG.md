@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Add `service migrate` command to migrate a service to another agent
+- Add `agent list` and `agent show` commands for viewing registered agents
 
 ## [1.9.0] - 2026-04-01
 
