@@ -64,8 +64,8 @@ func TestManager_StartProxy(t *testing.T) {
 	assert.True(t, m.IsRunning(serviceID))
 
 	// Verify socket files were created
-	assert.FileExists(t, GetSocketPath(18080))
-	assert.FileExists(t, GetSocketPath(18443))
+	assert.FileExists(t, GetSocketPath(serviceID.String(), 18080))
+	assert.FileExists(t, GetSocketPath(serviceID.String(), 18443))
 }
 
 func TestManager_StartProxy_ReplacesExisting(t *testing.T) {
@@ -240,7 +240,7 @@ func TestManager_UnixProxyConnection(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	// Connect to the Unix socket
-	socketPath := GetSocketPath(tcpPort)
+	socketPath := GetSocketPath(serviceID.String(), tcpPort)
 	unixConn, err := net.Dial("unix", socketPath)
 	require.NoError(t, err)
 	defer func() { _ = unixConn.Close() }()

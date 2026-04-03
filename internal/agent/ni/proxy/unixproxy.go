@@ -13,9 +13,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sapcc/archer/internal/config"
+	"github.com/go-openapi/strfmt"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
+
+	"github.com/sapcc/archer/internal/config"
 )
 
 type unixProxy struct {
@@ -86,17 +88,17 @@ func (l *unixProxy) run(listener *net.UnixListener) error {
 	return nil
 }
 
-func UnixListenersThread(ctx context.Context, upstream string, Ports []int32) {
+func UnixListenersThread(ctx context.Context, serviceID strfmt.UUID, upstream string, Ports []int32) {
 	var wg sync.WaitGroup
 	var listeners []*net.UnixListener
 
-	log.Debugf("unixproxy: listening on ports: %v, forwarding to upstream: %s", Ports, upstream)
+	log.Debugf("unixproxy: service %s listening on ports: %v, forwarding to upstream: %s", serviceID, Ports, upstream)
 	ips, err := net.LookupIP(upstream) // Resolves IPv4 and IPv6 addresses
 	if err != nil {
 		log.Fatalf("unixproxy: LookupIP error: %v\n", err)
 	}
 	for _, port := range Ports {
-		socketPath := GetSocketPath(int(port))
+		socketPath := GetSocketPath(serviceID.String(), int(port))
 
 		// Ensure the socket file is removed when the program exits
 		// or if it already exists from a previous run.
@@ -148,6 +150,11 @@ func UnixListenersThread(ctx context.Context, upstream string, Ports []int32) {
 	}
 }
 
-func GetSocketPath(port int) string {
-	return fmt.Sprintf("%s/proxy-%d.sock", config.Global.Agent.TempDir, port)
+func GetSocketPath(serviceID string, port int) string {
+	// Use first 8 chars of service ID to keep socket path short (Unix limit ~108 chars)
+	shortID := serviceID
+	if len(shortID) > 8 {
+		shortID = shortID[:8]
+	}
+	return fmt.Sprintf("%s/proxy-%s-%d.sock", config.Global.Agent.TempDir, shortID, port)
 }

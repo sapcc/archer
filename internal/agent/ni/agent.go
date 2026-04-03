@@ -7,6 +7,7 @@ package ni
 import (
 	"context"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -184,10 +185,10 @@ func (a *Agent) migrateServiceIPAddresses(ctx context.Context) error {
 
 func (a *Agent) ProcessServices(ctx context.Context) error {
 	type serviceInfo struct {
-		ID          strfmt.UUID `db:"id"`
-		IPAddresses []string    `db:"ip_addresses"`
-		Ports       []int32     `db:"ports"`
-		Status      string      `db:"status"`
+		ID          strfmt.UUID   `db:"id"`
+		IPAddresses []strfmt.IPv4 `db:"ip_addresses"`
+		Ports       []int32       `db:"ports"`
+		Status      string        `db:"status"`
 	}
 
 	// Query all services assigned to this host
@@ -203,25 +204,48 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 	}
 
 	var toDelete []strfmt.UUID
+	var toUpdate []strfmt.UUID
 	for _, svc := range services {
 		if svc.Status == string(models.ServiceStatusPENDINGDELETE) {
 			a.proxyManager.StopProxy(svc.ID)
 			toDelete = append(toDelete, svc.ID)
-		} else if !a.proxyManager.IsRunning(svc.ID) && len(svc.IPAddresses) > 0 && len(svc.Ports) > 0 {
-			a.proxyManager.StartProxy(svc.ID, svc.IPAddresses[0], svc.Ports)
+		} else {
+			if !a.proxyManager.IsRunning(svc.ID) && len(svc.IPAddresses) > 0 && len(svc.Ports) > 0 {
+				// strfmt.IPv4.String() returns CIDR notation (e.g., "1.1.1.1/32"), strip the suffix
+				ip := strings.TrimSuffix(svc.IPAddresses[0].String(), "/32")
+				a.proxyManager.StartProxy(svc.ID, ip, svc.Ports)
+			}
+			// Mark for status update to AVAILABLE
+			if svc.Status != string(models.ServiceStatusAVAILABLE) {
+				toUpdate = append(toUpdate, svc.ID)
+			}
 		}
 	}
 
-	if len(toDelete) == 0 {
-		return nil
+	// Update services to AVAILABLE status
+	if len(toUpdate) > 0 {
+		sql, args = db.Update("service").
+			Set("status", models.ServiceStatusAVAILABLE).
+			Set("updated_at", sq.Expr("NOW()")).
+			Set("health_status", models.ServiceHealthStatusONLINE).
+			Where(sq.Eq{"id": toUpdate}).
+			MustSql()
+		if _, err := a.pool.Exec(ctx, sql, args...); err != nil {
+			return err
+		}
 	}
 
 	// Delete services pending deletion
-	sql, args = db.Delete("service").
-		Where(sq.Eq{"id": toDelete}).
-		MustSql()
-	_, err := a.pool.Exec(ctx, sql, args...)
-	return err
+	if len(toDelete) > 0 {
+		sql, args = db.Delete("service").
+			Where(sq.Eq{"id": toDelete}).
+			MustSql()
+		if _, err := a.pool.Exec(ctx, sql, args...); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (a *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
