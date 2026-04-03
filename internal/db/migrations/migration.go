@@ -312,6 +312,14 @@ var Migrations = mgx.Migrations(
 		`)
 		return err
 	}),
+	// Relax service constraint: remove host and ports from uniqueness check
+	// Host changes during migration, ports array doesn't work well with UNIQUE
+	mgx.NewMigration("relax_service_constraint", func(ctx context.Context, commands mgx.Commands) error {
+		_, err := commands.Exec(ctx, `
+			ALTER TABLE service DROP CONSTRAINT service_const;
+		`)
+		return err
+	}),
 	mgx.NewMigration("increase_tag_length", func(ctx context.Context, commands mgx.Commands) error {
 		_, err := commands.Exec(ctx, `
 			ALTER TABLE service ALTER COLUMN tags TYPE VARCHAR(128)[];
