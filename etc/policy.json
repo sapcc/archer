@@ -47,5 +47,7 @@
   "quota:read-global": "rule:cloud_admin",
   "quota:read-defaults": "rule:context_is_viewer",
   "quota:update": "rule:context_is_admin",
-  "quota:delete": "rule:context_is_admin"
+  "quota:delete": "rule:context_is_admin",
+
+  "agent:read": "rule:cloud_admin"
 }
