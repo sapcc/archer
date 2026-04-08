@@ -84,8 +84,8 @@ func (b *BackgroundScheduler) Stop() error {
 }
 
 func (b *BackgroundScheduler) runCycle(ctx context.Context) {
-	// Process both providers
-	for _, provider := range []string{"tenant", "cp"} {
+	// Process only cp providers for now
+	for _, provider := range []string{"cp"} {
 		// 1. Check for and handle stale agents
 		if err := b.scheduler.RescheduleStaleAgentServices(ctx, provider); err != nil {
 			log.WithError(err).WithField("provider", provider).Error("Failed to reschedule stale agent services")
