@@ -341,17 +341,21 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
 func (a *Agent) PendingSyncLoop(ctx context.Context, syncAll bool) error {
 	log.Debugf("PendingSyncLoop(syncAll=%t)", syncAll)
 
-	// Check for pending services first (similar to F5 agent pattern)
-	sql, args := db.Select("1").
+	// Check for services to process
+	q := db.Select("1").
 		From("service").
 		Where("provider = 'cp'").
-		Where(sq.Eq{"status": []models.ServiceStatus{
+		Where("host = ?", config.Global.Default.Host)
+
+	if !syncAll {
+		// process only pending services
+		q = q.Where(sq.Eq{"status": []models.ServiceStatus{
 			models.ServiceStatusPENDINGDELETE,
 			models.ServiceStatusPENDINGCREATE,
-			models.ServiceStatusPENDINGUPDATE}}).
-		Where("host = ?", config.Global.Default.Host).
-		MustSql()
+			models.ServiceStatusPENDINGUPDATE}})
+	}
 
+	sql, args := q.MustSql()
 	ret, err := a.pool.Exec(ctx, sql, args...)
 	if err != nil {
 		return err
@@ -368,7 +372,7 @@ func (a *Agent) PendingSyncLoop(ctx context.Context, syncAll bool) error {
 	}
 
 	// Query all endpoints for services assigned to this host
-	q := db.Select("e.id").
+	q = db.Select("e.id").
 		From("endpoint e").
 		Join("service s ON e.service_id = s.id").
 		Where("s.host = ?", config.Global.Default.Host).
