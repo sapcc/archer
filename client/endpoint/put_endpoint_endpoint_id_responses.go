@@ -504,7 +504,7 @@ func (o *PutEndpointEndpointIDBody) validateTags(formats strfmt.Registry) error 
 
 	for i := 0; i < len(o.Tags); i++ {
 
-		if err := validate.MaxLength("body"+"."+"tags"+"."+strconv.Itoa(i), "body", o.Tags[i], 64); err != nil {
+		if err := validate.MaxLength("body"+"."+"tags"+"."+strconv.Itoa(i), "body", o.Tags[i], 128); err != nil {
 			return err
 		}
 

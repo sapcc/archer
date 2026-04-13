@@ -253,7 +253,7 @@ func (m *Endpoint) validateTags(formats strfmt.Registry) error {
 
 	for i := 0; i < len(m.Tags); i++ {
 
-		if err := validate.MaxLength("tags"+"."+strconv.Itoa(i), "body", m.Tags[i], 64); err != nil {
+		if err := validate.MaxLength("tags"+"."+strconv.Itoa(i), "body", m.Tags[i], 128); err != nil {
 			return err
 		}
 

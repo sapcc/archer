@@ -665,7 +665,7 @@ paths:
                 x-nullable: true
                 items:
                   type: string
-                  maxLength: 64
+                  maxLength: 128
               name:
                 type: string
                 description: Name of the endpoint.
@@ -1079,7 +1079,7 @@ parameters:
       Should be provided in a comma separated list.
     items:
       type: string
-      maxLength: 64
+      maxLength: 128
   tags-any:
     name: tags-any
     in: query
@@ -1089,7 +1089,7 @@ parameters:
       Should be provided in a comma separated list.
     items:
       type: string
-      maxLength: 64
+      maxLength: 128
   not-tags:
     name: not-tags
     in: query
@@ -1099,7 +1099,7 @@ parameters:
       Should be provided in a comma separated list.
     items:
       type: string
-      maxLength: 64
+      maxLength: 128
   not-tags-any:
     name: not-tags-any
     in: query
@@ -1109,7 +1109,7 @@ parameters:
       Should be provided in a comma separated list.
     items:
       type: string
-      maxLength: 64
+      maxLength: 128
   project_id:
     name: project_id
     in: query
@@ -1209,7 +1209,7 @@ definitions:
         x-nullable: true
         items:
           type: string
-          maxLength: 64
+          maxLength: 128
       provider:
         type: string
         description: Provider type, defaults to tenant type.
@@ -1353,7 +1353,7 @@ definitions:
         description: The list of tags on the resource.
         items:
           type: string
-          maxLength: 64
+          maxLength: 128
   EndpointConsumer:
     type: object
     properties:
@@ -1439,7 +1439,7 @@ definitions:
         x-nullable: true
         items:
           type: string
-          maxLength: 64
+          maxLength: 128
       status:
         $ref: "#/definitions/EndpointStatus"
       created_at:
