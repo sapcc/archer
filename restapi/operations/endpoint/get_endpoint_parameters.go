@@ -261,7 +261,7 @@ func (o *GetEndpointParams) bindNotTags(rawData []string, hasKey bool, formats s
 	for i, notTagsIV := range notTagsIC {
 		notTagsI := notTagsIV
 
-		if err := validate.MaxLength(fmt.Sprintf("%s.%v", "not-tags", i), "query", notTagsI, 64); err != nil {
+		if err := validate.MaxLength(fmt.Sprintf("%s.%v", "not-tags", i), "query", notTagsI, 128); err != nil {
 			return err
 		}
 
@@ -292,7 +292,7 @@ func (o *GetEndpointParams) bindNotTagsAny(rawData []string, hasKey bool, format
 	for i, notTagsAnyIV := range notTagsAnyIC {
 		notTagsAnyI := notTagsAnyIV
 
-		if err := validate.MaxLength(fmt.Sprintf("%s.%v", "not-tags-any", i), "query", notTagsAnyI, 64); err != nil {
+		if err := validate.MaxLength(fmt.Sprintf("%s.%v", "not-tags-any", i), "query", notTagsAnyI, 128); err != nil {
 			return err
 		}
 
@@ -414,7 +414,7 @@ func (o *GetEndpointParams) bindTags(rawData []string, hasKey bool, formats strf
 	for i, tagsIV := range tagsIC {
 		tagsI := tagsIV
 
-		if err := validate.MaxLength(fmt.Sprintf("%s.%v", "tags", i), "query", tagsI, 64); err != nil {
+		if err := validate.MaxLength(fmt.Sprintf("%s.%v", "tags", i), "query", tagsI, 128); err != nil {
 			return err
 		}
 
@@ -445,7 +445,7 @@ func (o *GetEndpointParams) bindTagsAny(rawData []string, hasKey bool, formats s
 	for i, tagsAnyIV := range tagsAnyIC {
 		tagsAnyI := tagsAnyIV
 
-		if err := validate.MaxLength(fmt.Sprintf("%s.%v", "tags-any", i), "query", tagsAnyI, 64); err != nil {
+		if err := validate.MaxLength(fmt.Sprintf("%s.%v", "tags-any", i), "query", tagsAnyI, 128); err != nil {
 			return err
 		}
 

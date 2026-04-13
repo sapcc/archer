@@ -290,7 +290,7 @@ func init() {
                   "type": "array",
                   "items": {
                     "type": "string",
-                    "maxLength": 64
+                    "maxLength": 128
                   },
                   "x-nullable": true
                 }
@@ -1431,7 +1431,7 @@ func init() {
           "type": "array",
           "items": {
             "type": "string",
-            "maxLength": 64
+            "maxLength": 128
           },
           "x-nullable": true
         },
@@ -1801,7 +1801,7 @@ func init() {
           "type": "array",
           "items": {
             "type": "string",
-            "maxLength": 64
+            "maxLength": 128
           },
           "x-nullable": true
         },
@@ -1901,7 +1901,7 @@ func init() {
           "type": "array",
           "items": {
             "type": "string",
-            "maxLength": 64
+            "maxLength": 128
           }
         },
         "visibility": {
@@ -1978,7 +1978,7 @@ func init() {
     "not-tags": {
       "type": "array",
       "items": {
-        "maxLength": 64,
+        "maxLength": 128,
         "type": "string"
       },
       "description": "Filter for resources not having tags, multiple not-tags are considered as logical AND.\nShould be provided in a comma separated list.\n",
@@ -1988,7 +1988,7 @@ func init() {
     "not-tags-any": {
       "type": "array",
       "items": {
-        "maxLength": 64,
+        "maxLength": 128,
         "type": "string"
       },
       "description": "Filter for resources not having tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
@@ -2019,7 +2019,7 @@ func init() {
     "tags": {
       "type": "array",
       "items": {
-        "maxLength": 64,
+        "maxLength": 128,
         "type": "string"
       },
       "description": "Filter for tags, multiple tags are considered as logical AND.\nShould be provided in a comma separated list.\n",
@@ -2029,7 +2029,7 @@ func init() {
     "tags-any": {
       "type": "array",
       "items": {
-        "maxLength": 64,
+        "maxLength": 128,
         "type": "string"
       },
       "description": "Filter for tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
@@ -2164,7 +2164,7 @@ func init() {
           {
             "type": "array",
             "items": {
-              "maxLength": 64,
+              "maxLength": 128,
               "type": "string"
             },
             "description": "Filter for tags, multiple tags are considered as logical AND.\nShould be provided in a comma separated list.\n",
@@ -2174,7 +2174,7 @@ func init() {
           {
             "type": "array",
             "items": {
-              "maxLength": 64,
+              "maxLength": 128,
               "type": "string"
             },
             "description": "Filter for tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
@@ -2184,7 +2184,7 @@ func init() {
           {
             "type": "array",
             "items": {
-              "maxLength": 64,
+              "maxLength": 128,
               "type": "string"
             },
             "description": "Filter for resources not having tags, multiple not-tags are considered as logical AND.\nShould be provided in a comma separated list.\n",
@@ -2194,7 +2194,7 @@ func init() {
           {
             "type": "array",
             "items": {
-              "maxLength": 64,
+              "maxLength": 128,
               "type": "string"
             },
             "description": "Filter for resources not having tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
@@ -2384,7 +2384,7 @@ func init() {
                   "type": "array",
                   "items": {
                     "type": "string",
-                    "maxLength": 64
+                    "maxLength": 128
                   },
                   "x-nullable": true
                 }
@@ -3009,7 +3009,7 @@ func init() {
           {
             "type": "array",
             "items": {
-              "maxLength": 64,
+              "maxLength": 128,
               "type": "string"
             },
             "description": "Filter for tags, multiple tags are considered as logical AND.\nShould be provided in a comma separated list.\n",
@@ -3019,7 +3019,7 @@ func init() {
           {
             "type": "array",
             "items": {
-              "maxLength": 64,
+              "maxLength": 128,
               "type": "string"
             },
             "description": "Filter for tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
@@ -3029,7 +3029,7 @@ func init() {
           {
             "type": "array",
             "items": {
-              "maxLength": 64,
+              "maxLength": 128,
               "type": "string"
             },
             "description": "Filter for resources not having tags, multiple not-tags are considered as logical AND.\nShould be provided in a comma separated list.\n",
@@ -3039,7 +3039,7 @@ func init() {
           {
             "type": "array",
             "items": {
-              "maxLength": 64,
+              "maxLength": 128,
               "type": "string"
             },
             "description": "Filter for resources not having tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
@@ -3588,7 +3588,7 @@ func init() {
           "type": "array",
           "items": {
             "type": "string",
-            "maxLength": 64
+            "maxLength": 128
           },
           "x-nullable": true
         },
@@ -4004,7 +4004,7 @@ func init() {
           "type": "array",
           "items": {
             "type": "string",
-            "maxLength": 64
+            "maxLength": 128
           },
           "x-nullable": true
         },
@@ -4105,7 +4105,7 @@ func init() {
           "type": "array",
           "items": {
             "type": "string",
-            "maxLength": 64
+            "maxLength": 128
           }
         },
         "visibility": {
@@ -4182,7 +4182,7 @@ func init() {
     "not-tags": {
       "type": "array",
       "items": {
-        "maxLength": 64,
+        "maxLength": 128,
         "type": "string"
       },
       "description": "Filter for resources not having tags, multiple not-tags are considered as logical AND.\nShould be provided in a comma separated list.\n",
@@ -4192,7 +4192,7 @@ func init() {
     "not-tags-any": {
       "type": "array",
       "items": {
-        "maxLength": 64,
+        "maxLength": 128,
         "type": "string"
       },
       "description": "Filter for resources not having tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
@@ -4223,7 +4223,7 @@ func init() {
     "tags": {
       "type": "array",
       "items": {
-        "maxLength": 64,
+        "maxLength": 128,
         "type": "string"
       },
       "description": "Filter for tags, multiple tags are considered as logical AND.\nShould be provided in a comma separated list.\n",
@@ -4233,7 +4233,7 @@ func init() {
     "tags-any": {
       "type": "array",
       "items": {
-        "maxLength": 64,
+        "maxLength": 128,
         "type": "string"
       },
       "description": "Filter for tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",

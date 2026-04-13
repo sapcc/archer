@@ -305,4 +305,11 @@ var Migrations = mgx.Migrations(
 		`)
 		return err
 	}),
+	mgx.NewMigration("increase_tag_length", func(ctx context.Context, commands mgx.Commands) error {
+		_, err := commands.Exec(ctx, `
+			ALTER TABLE service ALTER COLUMN tags TYPE VARCHAR(128)[];
+			ALTER TABLE endpoint ALTER COLUMN tags TYPE VARCHAR(128)[];
+		`)
+		return err
+	}),
 )
