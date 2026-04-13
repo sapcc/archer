@@ -41,6 +41,7 @@ type Service struct {
 
 	// Availability zone of this service.
 	// Example: AZ-A
+	// Max Length: 64
 	AvailabilityZone *string `json:"availability_zone"`
 
 	// created at
@@ -70,6 +71,7 @@ type Service struct {
 
 	// Device host.
 	// Read Only: true
+	// Max Length: 64
 	Host *string `json:"host,omitempty"`
 
 	// The ID of the resource.
@@ -140,6 +142,10 @@ type Service struct {
 func (m *Service) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateAvailabilityZone(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateCreatedAt(formats); err != nil {
 		res = append(res, err)
 	}
@@ -149,6 +155,10 @@ func (m *Service) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateHealthStatus(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateHost(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -203,6 +213,18 @@ func (m *Service) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *Service) validateAvailabilityZone(formats strfmt.Registry) error {
+	if swag.IsZero(m.AvailabilityZone) { // not required
+		return nil
+	}
+
+	if err := validate.MaxLength("availability_zone", "body", *m.AvailabilityZone, 64); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -268,6 +290,18 @@ func (m *Service) validateHealthStatus(formats strfmt.Registry) error {
 
 	// value enum
 	if err := m.validateHealthStatusEnum("health_status", "body", *m.HealthStatus); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Service) validateHost(formats strfmt.Registry) error {
+	if swag.IsZero(m.Host) { // not required
+		return nil
+	}
+
+	if err := validate.MaxLength("host", "body", *m.Host, 64); err != nil {
 		return err
 	}
 

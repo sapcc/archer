@@ -49,6 +49,7 @@ type GetRbacPoliciesParams struct {
 	HTTPRequest *http.Request `json:"-"`
 
 	/*Sets the page size.
+	  Minimum: 1
 	  In: query
 	*/
 	Limit *int64
@@ -64,6 +65,7 @@ type GetRbacPoliciesParams struct {
 	PageReverse *bool
 
 	/*Comma-separated list of sort keys, optionally prefix with - to reverse sort order.
+	  Max Length: 256
 	  In: query
 	*/
 	Sort *string
@@ -123,6 +125,20 @@ func (o *GetRbacPoliciesParams) bindLimit(rawData []string, hasKey bool, formats
 		return errors.InvalidType("limit", "query", "int64", raw)
 	}
 	o.Limit = &value
+
+	if err := o.validateLimit(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateLimit carries out validations for parameter Limit
+func (o *GetRbacPoliciesParams) validateLimit(formats strfmt.Registry) error {
+
+	if err := validate.MinimumInt("limit", "query", *o.Limit, 1, false); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -201,6 +217,20 @@ func (o *GetRbacPoliciesParams) bindSort(rawData []string, hasKey bool, formats 
 		return nil
 	}
 	o.Sort = &raw
+
+	if err := o.validateSort(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateSort carries out validations for parameter Sort
+func (o *GetRbacPoliciesParams) validateSort(formats strfmt.Registry) error {
+
+	if err := validate.MaxLength("sort", "query", *o.Sort, 256); err != nil {
+		return err
+	}
 
 	return nil
 }

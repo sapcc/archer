@@ -969,6 +969,8 @@ paths:
         required: true
         type: string
         description: The ID of the project to query.
+        minLength: 32
+        maxLength: 32
     get:
       tags:
         - Quota
@@ -1056,11 +1058,13 @@ parameters:
     in: query
     type: integer
     description: Sets the page size.
+    minimum: 1
   sort:
     name: sort
     in: query
     type: string
     description: Comma-separated list of sort keys, optionally prefix with - to reverse sort order.
+    maxLength: 256
   page_reverse:
     name: page_reverse
     in: query
@@ -1075,6 +1079,7 @@ parameters:
       Should be provided in a comma separated list.
     items:
       type: string
+      maxLength: 64
   tags-any:
     name: tags-any
     in: query
@@ -1084,6 +1089,7 @@ parameters:
       Should be provided in a comma separated list.
     items:
       type: string
+      maxLength: 64
   not-tags:
     name: not-tags
     in: query
@@ -1093,6 +1099,7 @@ parameters:
       Should be provided in a comma separated list.
     items:
       type: string
+      maxLength: 64
   not-tags-any:
     name: not-tags-any
     in: query
@@ -1102,6 +1109,7 @@ parameters:
       Should be provided in a comma separated list.
     items:
       type: string
+      maxLength: 64
   project_id:
     name: project_id
     in: query
@@ -1189,11 +1197,13 @@ definitions:
           for the requested region/provider, service creation will fail with
           a "No available host agent found" error.
         example: AZ-A
+        maxLength: 64
         x-nullable: true
         x-omitempty: false
       host:
         type: string
         description: Device host.
+        maxLength: 64
         readOnly: true
         x-nullable: true
       proxy_protocol:
@@ -1491,6 +1501,8 @@ definitions:
         description: The ID of the project to which the RBAC policy will be enforced.
         type: string
         example: 666da95112694b37b3efb0913de3f499
+        minLength: 32
+        maxLength: 32
       project_id:
         $ref: "#/definitions/Project"
   RBACPolicy:
@@ -1513,6 +1525,8 @@ definitions:
         description: The ID of the project to which the RBAC policy will be enforced.
         type: string
         example: 666da95112694b37b3efb0913de3f499
+        minLength: 32
+        maxLength: 32
       service_id:
         type: string
         format: uuid

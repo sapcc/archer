@@ -59,6 +59,8 @@ type PutQuotasProjectIDParams struct {
 
 	/*The ID of the project to query.
 	  Required: true
+	  Max Length: 32
+	  Min Length: 32
 	  In: path
 	*/
 	ProjectID string
@@ -123,6 +125,24 @@ func (o *PutQuotasProjectIDParams) bindProjectID(rawData []string, hasKey bool, 
 	// Required: true
 	// Parameter is provided by construction from the route
 	o.ProjectID = raw
+
+	if err := o.validateProjectID(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateProjectID carries out validations for parameter ProjectID
+func (o *PutQuotasProjectIDParams) validateProjectID(formats strfmt.Registry) error {
+
+	if err := validate.MinLength("project_id", "path", o.ProjectID, 32); err != nil {
+		return err
+	}
+
+	if err := validate.MaxLength("project_id", "path", o.ProjectID, 32); err != nil {
+		return err
+	}
 
 	return nil
 }
