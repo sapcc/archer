@@ -1896,7 +1896,7 @@ func init() {
       ],
       "properties": {
         "availability_zone": {
-          "description": "Availability zone of this service.",
+          "description": "Availability zone of this service. If set to null, the service will be configured as a cross-AZ (cross-availability-zone) service, providing redundancy across all availability zones. Cross-AZ services are only supported in specific regions and providers that have cross-AZ agents deployed. If no cross-AZ agent is available for the requested region/provider, service creation will fail with a \"No available host agent found\" error.",
           "type": "string",
           "maxLength": 64,
           "x-nullable": true,
@@ -4321,7 +4321,7 @@ func init() {
       ],
       "properties": {
         "availability_zone": {
-          "description": "Availability zone of this service.",
+          "description": "Availability zone of this service. If set to null, the service will be configured as a cross-AZ (cross-availability-zone) service, providing redundancy across all availability zones. Cross-AZ services are only supported in specific regions and providers that have cross-AZ agents deployed. If no cross-AZ agent is available for the requested region/provider, service creation will fail with a \"No available host agent found\" error.",
           "type": "string",
           "maxLength": 64,
           "x-nullable": true,
