@@ -22,6 +22,7 @@ package service
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/go-openapi/errors"
@@ -49,6 +50,7 @@ type GetServiceParams struct {
 	HTTPRequest *http.Request `json:"-"`
 
 	/*Sets the page size.
+	  Minimum: 1
 	  In: query
 	*/
 	Limit *int64
@@ -86,6 +88,7 @@ type GetServiceParams struct {
 	ProjectID *string
 
 	/*Comma-separated list of sort keys, optionally prefix with - to reverse sort order.
+	  Max Length: 256
 	  In: query
 	*/
 	Sort *string
@@ -185,6 +188,20 @@ func (o *GetServiceParams) bindLimit(rawData []string, hasKey bool, formats strf
 	}
 	o.Limit = &value
 
+	if err := o.validateLimit(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateLimit carries out validations for parameter Limit
+func (o *GetServiceParams) validateLimit(formats strfmt.Registry) error {
+
+	if err := validate.MinimumInt("limit", "query", *o.Limit, 1, false); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -241,8 +258,12 @@ func (o *GetServiceParams) bindNotTags(rawData []string, hasKey bool, formats st
 	}
 
 	var notTagsIR []string
-	for _, notTagsIV := range notTagsIC {
+	for i, notTagsIV := range notTagsIC {
 		notTagsI := notTagsIV
+
+		if err := validate.MaxLength(fmt.Sprintf("%s.%v", "not-tags", i), "query", notTagsI, 64); err != nil {
+			return err
+		}
 
 		notTagsIR = append(notTagsIR, notTagsI)
 	}
@@ -268,8 +289,12 @@ func (o *GetServiceParams) bindNotTagsAny(rawData []string, hasKey bool, formats
 	}
 
 	var notTagsAnyIR []string
-	for _, notTagsAnyIV := range notTagsAnyIC {
+	for i, notTagsAnyIV := range notTagsAnyIC {
 		notTagsAnyI := notTagsAnyIV
+
+		if err := validate.MaxLength(fmt.Sprintf("%s.%v", "not-tags-any", i), "query", notTagsAnyI, 64); err != nil {
+			return err
+		}
 
 		notTagsAnyIR = append(notTagsAnyIR, notTagsAnyI)
 	}
@@ -353,6 +378,20 @@ func (o *GetServiceParams) bindSort(rawData []string, hasKey bool, formats strfm
 	}
 	o.Sort = &raw
 
+	if err := o.validateSort(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateSort carries out validations for parameter Sort
+func (o *GetServiceParams) validateSort(formats strfmt.Registry) error {
+
+	if err := validate.MaxLength("sort", "query", *o.Sort, 256); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -372,8 +411,12 @@ func (o *GetServiceParams) bindTags(rawData []string, hasKey bool, formats strfm
 	}
 
 	var tagsIR []string
-	for _, tagsIV := range tagsIC {
+	for i, tagsIV := range tagsIC {
 		tagsI := tagsIV
+
+		if err := validate.MaxLength(fmt.Sprintf("%s.%v", "tags", i), "query", tagsI, 64); err != nil {
+			return err
+		}
 
 		tagsIR = append(tagsIR, tagsI)
 	}
@@ -399,8 +442,12 @@ func (o *GetServiceParams) bindTagsAny(rawData []string, hasKey bool, formats st
 	}
 
 	var tagsAnyIR []string
-	for _, tagsAnyIV := range tagsAnyIC {
+	for i, tagsAnyIV := range tagsAnyIC {
 		tagsAnyI := tagsAnyIV
+
+		if err := validate.MaxLength(fmt.Sprintf("%s.%v", "tags-any", i), "query", tagsAnyI, 64); err != nil {
+			return err
+		}
 
 		tagsAnyIR = append(tagsAnyIR, tagsAnyI)
 	}

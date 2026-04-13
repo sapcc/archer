@@ -610,6 +610,8 @@ func init() {
       },
       "parameters": [
         {
+          "maxLength": 32,
+          "minLength": 32,
           "type": "string",
           "description": "The ID of the project to query.",
           "name": "project_id",
@@ -1616,6 +1618,8 @@ func init() {
         "target": {
           "description": "The ID of the project to which the RBAC policy will be enforced.",
           "type": "string",
+          "maxLength": 32,
+          "minLength": 32,
           "example": "666da95112694b37b3efb0913de3f499"
         },
         "target_type": {
@@ -1649,6 +1653,8 @@ func init() {
         "target": {
           "description": "The ID of the project to which the RBAC policy will be enforced.",
           "type": "string",
+          "maxLength": 32,
+          "minLength": 32,
           "example": "666da95112694b37b3efb0913de3f499"
         },
         "target_type": {
@@ -1672,6 +1678,7 @@ func init() {
         "availability_zone": {
           "description": "Availability zone of this service.",
           "type": "string",
+          "maxLength": 64,
           "x-nullable": true,
           "x-omitempty": false,
           "example": "AZ-A"
@@ -1706,6 +1713,7 @@ func init() {
         "host": {
           "description": "Device host.",
           "type": "string",
+          "maxLength": 64,
           "x-nullable": true,
           "readOnly": true
         },
@@ -1954,6 +1962,7 @@ func init() {
   },
   "parameters": {
     "limit": {
+      "minimum": 1,
       "type": "integer",
       "description": "Sets the page size.",
       "name": "limit",
@@ -1969,6 +1978,7 @@ func init() {
     "not-tags": {
       "type": "array",
       "items": {
+        "maxLength": 64,
         "type": "string"
       },
       "description": "Filter for resources not having tags, multiple not-tags are considered as logical AND.\nShould be provided in a comma separated list.\n",
@@ -1978,6 +1988,7 @@ func init() {
     "not-tags-any": {
       "type": "array",
       "items": {
+        "maxLength": 64,
         "type": "string"
       },
       "description": "Filter for resources not having tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
@@ -1999,6 +2010,7 @@ func init() {
       "in": "query"
     },
     "sort": {
+      "maxLength": 256,
       "type": "string",
       "description": "Comma-separated list of sort keys, optionally prefix with - to reverse sort order.",
       "name": "sort",
@@ -2007,6 +2019,7 @@ func init() {
     "tags": {
       "type": "array",
       "items": {
+        "maxLength": 64,
         "type": "string"
       },
       "description": "Filter for tags, multiple tags are considered as logical AND.\nShould be provided in a comma separated list.\n",
@@ -2016,6 +2029,7 @@ func init() {
     "tags-any": {
       "type": "array",
       "items": {
+        "maxLength": 64,
         "type": "string"
       },
       "description": "Filter for tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
@@ -2128,12 +2142,14 @@ func init() {
             "in": "query"
           },
           {
+            "minimum": 1,
             "type": "integer",
             "description": "Sets the page size.",
             "name": "limit",
             "in": "query"
           },
           {
+            "maxLength": 256,
             "type": "string",
             "description": "Comma-separated list of sort keys, optionally prefix with - to reverse sort order.",
             "name": "sort",
@@ -2148,6 +2164,7 @@ func init() {
           {
             "type": "array",
             "items": {
+              "maxLength": 64,
               "type": "string"
             },
             "description": "Filter for tags, multiple tags are considered as logical AND.\nShould be provided in a comma separated list.\n",
@@ -2157,6 +2174,7 @@ func init() {
           {
             "type": "array",
             "items": {
+              "maxLength": 64,
               "type": "string"
             },
             "description": "Filter for tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
@@ -2166,6 +2184,7 @@ func init() {
           {
             "type": "array",
             "items": {
+              "maxLength": 64,
               "type": "string"
             },
             "description": "Filter for resources not having tags, multiple not-tags are considered as logical AND.\nShould be provided in a comma separated list.\n",
@@ -2175,6 +2194,7 @@ func init() {
           {
             "type": "array",
             "items": {
+              "maxLength": 64,
               "type": "string"
             },
             "description": "Filter for resources not having tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
@@ -2669,6 +2689,8 @@ func init() {
       },
       "parameters": [
         {
+          "maxLength": 32,
+          "minLength": 32,
           "type": "string",
           "description": "The ID of the project to query.",
           "name": "project_id",
@@ -2692,12 +2714,14 @@ func init() {
             "in": "query"
           },
           {
+            "minimum": 1,
             "type": "integer",
             "description": "Sets the page size.",
             "name": "limit",
             "in": "query"
           },
           {
+            "maxLength": 256,
             "type": "string",
             "description": "Comma-separated list of sort keys, optionally prefix with - to reverse sort order.",
             "name": "sort",
@@ -2963,12 +2987,14 @@ func init() {
             "in": "query"
           },
           {
+            "minimum": 1,
             "type": "integer",
             "description": "Sets the page size.",
             "name": "limit",
             "in": "query"
           },
           {
+            "maxLength": 256,
             "type": "string",
             "description": "Comma-separated list of sort keys, optionally prefix with - to reverse sort order.",
             "name": "sort",
@@ -2983,6 +3009,7 @@ func init() {
           {
             "type": "array",
             "items": {
+              "maxLength": 64,
               "type": "string"
             },
             "description": "Filter for tags, multiple tags are considered as logical AND.\nShould be provided in a comma separated list.\n",
@@ -2992,6 +3019,7 @@ func init() {
           {
             "type": "array",
             "items": {
+              "maxLength": 64,
               "type": "string"
             },
             "description": "Filter for tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
@@ -3001,6 +3029,7 @@ func init() {
           {
             "type": "array",
             "items": {
+              "maxLength": 64,
               "type": "string"
             },
             "description": "Filter for resources not having tags, multiple not-tags are considered as logical AND.\nShould be provided in a comma separated list.\n",
@@ -3010,6 +3039,7 @@ func init() {
           {
             "type": "array",
             "items": {
+              "maxLength": 64,
               "type": "string"
             },
             "description": "Filter for resources not having tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
@@ -3355,12 +3385,14 @@ func init() {
             "in": "query"
           },
           {
+            "minimum": 1,
             "type": "integer",
             "description": "Sets the page size.",
             "name": "limit",
             "in": "query"
           },
           {
+            "maxLength": 256,
             "type": "string",
             "description": "Comma-separated list of sort keys, optionally prefix with - to reverse sort order.",
             "name": "sort",
@@ -3789,6 +3821,8 @@ func init() {
         "target": {
           "description": "The ID of the project to which the RBAC policy will be enforced.",
           "type": "string",
+          "maxLength": 32,
+          "minLength": 32,
           "example": "666da95112694b37b3efb0913de3f499"
         },
         "target_type": {
@@ -3822,6 +3856,8 @@ func init() {
         "target": {
           "description": "The ID of the project to which the RBAC policy will be enforced.",
           "type": "string",
+          "maxLength": 32,
+          "minLength": 32,
           "example": "666da95112694b37b3efb0913de3f499"
         },
         "target_type": {
@@ -3845,6 +3881,7 @@ func init() {
         "availability_zone": {
           "description": "Availability zone of this service.",
           "type": "string",
+          "maxLength": 64,
           "x-nullable": true,
           "x-omitempty": false,
           "example": "AZ-A"
@@ -3879,6 +3916,7 @@ func init() {
         "host": {
           "description": "Device host.",
           "type": "string",
+          "maxLength": 64,
           "x-nullable": true,
           "readOnly": true
         },
@@ -4128,6 +4166,7 @@ func init() {
   },
   "parameters": {
     "limit": {
+      "minimum": 1,
       "type": "integer",
       "description": "Sets the page size.",
       "name": "limit",
@@ -4143,6 +4182,7 @@ func init() {
     "not-tags": {
       "type": "array",
       "items": {
+        "maxLength": 64,
         "type": "string"
       },
       "description": "Filter for resources not having tags, multiple not-tags are considered as logical AND.\nShould be provided in a comma separated list.\n",
@@ -4152,6 +4192,7 @@ func init() {
     "not-tags-any": {
       "type": "array",
       "items": {
+        "maxLength": 64,
         "type": "string"
       },
       "description": "Filter for resources not having tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
@@ -4173,6 +4214,7 @@ func init() {
       "in": "query"
     },
     "sort": {
+      "maxLength": 256,
       "type": "string",
       "description": "Comma-separated list of sort keys, optionally prefix with - to reverse sort order.",
       "name": "sort",
@@ -4181,6 +4223,7 @@ func init() {
     "tags": {
       "type": "array",
       "items": {
+        "maxLength": 64,
         "type": "string"
       },
       "description": "Filter for tags, multiple tags are considered as logical AND.\nShould be provided in a comma separated list.\n",
@@ -4190,6 +4233,7 @@ func init() {
     "tags-any": {
       "type": "array",
       "items": {
+        "maxLength": 64,
         "type": "string"
       },
       "description": "Filter for tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
