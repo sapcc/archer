@@ -14,123 +14,152 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 
 	"github.com/sapcc/archer/internal/config"
 )
 
+var (
+	activeConnections = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "archer_proxy_active_connections",
+			Help: "Number of active connections per Unix socket proxy",
+		},
+		[]string{"service_id", "port"},
+	)
+	totalConnections = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "archer_proxy_connections_total",
+			Help: "Total number of connections handled per Unix socket proxy",
+		},
+		[]string{"service_id", "port"},
+	)
+)
+
+func init() {
+	prometheus.MustRegister(activeConnections, totalConnections)
+}
+
 type unixProxy struct {
-	ip   net.IP
-	port int
+	ip        net.IP
+	port      int
+	serviceID string
+	log       *log.Entry
 }
 
 func (up *unixProxy) proxy(unixConn *net.UnixConn, tcpConn *net.TCPConn) {
+	portStr := fmt.Sprintf("%d", up.port)
+	activeConnections.WithLabelValues(up.serviceID, portStr).Inc()
+	totalConnections.WithLabelValues(up.serviceID, portStr).Inc()
+	defer activeConnections.WithLabelValues(up.serviceID, portStr).Dec()
+
 	defer func() { _ = unixConn.Close() }()
 	defer func() { _ = tcpConn.Close() }()
 
 	var wg sync.WaitGroup
 
-	// Goroutine to copy data from conn2 to conn1
 	wg.Go(func() {
 		if _, err := io.Copy(unixConn, tcpConn); err != nil && err != io.EOF && !errors.Is(err, unix.EPIPE) {
-			log.Errorf("unixproxy: io.Copy(unixConn, tcpConn): %v\n", err)
+			up.log.WithError(err).Error("copy backend->frontend failed")
 		}
-		// Signal to the other side that no more data is coming from this direction.
 		_ = unixConn.CloseWrite()
 	})
 
-	// Goroutine to copy data from conn1 to conn2
 	wg.Go(func() {
 		if _, err := io.Copy(tcpConn, unixConn); err != nil && err != io.EOF {
-			log.Errorf("unixproxy: io.Copy(tcpConn, unixConn): %v\n", err)
+			up.log.WithError(err).Error("copy frontend->backend failed")
 		}
-		// Signal to the other side that no more data is coming from this direction.
 		_ = tcpConn.CloseWrite()
 	})
 
-	// Wait for both copy operations to complete
 	wg.Wait()
 }
 
-func (l *unixProxy) run(listener *net.UnixListener) error {
+func (up *unixProxy) run(listener *net.UnixListener) error {
 	if listener == nil {
 		return errors.New("nil listener")
 	}
 
-	var err error
 	for {
-		var frontend *net.UnixConn
-		var backend *net.TCPConn
-
-		frontend, err = listener.AcceptUnix()
+		frontend, err := listener.AcceptUnix()
 		if err != nil {
 			if opErr, ok := err.(*net.OpError); ok && opErr.Op == "accept" {
-				log.Debugf("unixproxy: Listener closed, exiting accept loop.")
+				up.log.Debug("listener closed")
 				break
 			}
-			log.Warnf("unixproxy: accept error for %s: %v\n", listener.Addr(), err)
+			up.log.WithError(err).Warn("accept failed")
 			continue
 		}
-		defer func() { _ = frontend.Close() }()
 
-		// Dial
-		backend, err = net.DialTCP("tcp", nil, &net.TCPAddr{IP: l.ip, Port: l.port})
+		backend, err := net.DialTCP("tcp", nil, &net.TCPAddr{IP: up.ip, Port: up.port})
 		if err != nil {
-			log.Warnf("unixproxy: Dial error for %s:%d: %v\n", l.ip, l.port, err)
+			up.log.WithError(err).Warn("dial backend failed")
+			_ = frontend.Close()
 			continue
 		}
-		defer func() { _ = backend.Close() }()
 
-		// blocks until connection terminated
-		l.proxy(frontend, backend)
+		go up.proxy(frontend, backend)
 	}
 	return nil
 }
 
-func UnixListenersThread(ctx context.Context, serviceID strfmt.UUID, upstream string, Ports []int32) {
+func UnixListenersThread(ctx context.Context, serviceID strfmt.UUID, upstream string, ports []int32) {
+	logger := log.WithFields(log.Fields{
+		"component": "unixproxy",
+		"service":   serviceID.String(),
+		"upstream":  upstream,
+	})
+
+	ips, err := net.LookupIP(upstream)
+	if err != nil {
+		logger.WithError(err).Fatal("DNS lookup failed")
+	}
+
+	logger.WithField("ports", ports).Info("starting listeners")
+
 	var wg sync.WaitGroup
 	var listeners []*net.UnixListener
 
-	log.Debugf("unixproxy: service %s listening on ports: %v, forwarding to upstream: %s", serviceID, Ports, upstream)
-	ips, err := net.LookupIP(upstream) // Resolves IPv4 and IPv6 addresses
-	if err != nil {
-		log.Fatalf("unixproxy: LookupIP error: %v\n", err)
-	}
-	for _, port := range Ports {
+	for _, port := range ports {
 		socketPath := GetSocketPath(serviceID.String(), int(port))
 
-		// Ensure the socket file is removed when the program exits
-		// or if it already exists from a previous run.
 		if err := os.RemoveAll(socketPath); err != nil {
-			log.Fatalf("unixproxy: removing existing socket: %v", err)
+			logger.WithError(err).WithField("socket", socketPath).Fatal("failed to remove existing socket")
 		}
 
-		// Listen on the Unix socket
 		listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: socketPath, Net: "unix"})
 		if err != nil {
-			log.Fatalf("unixproxy: listening on unix socket: %v", err)
+			logger.WithError(err).WithField("socket", socketPath).Fatal("failed to create listener")
 		}
 
-		log.Debugf("unixproxy: listening on unix socket: %s", listener.Addr())
-
 		listeners = append(listeners, listener)
+
+		proxyLogger := logger.WithFields(log.Fields{
+			"port":   port,
+			"socket": socketPath,
+		})
+
 		wg.Go(func() {
-			p := unixProxy{ips[0], int(port)}
-			log.Debugf("unixproxy: forwarding to: %s:%d", p.ip, p.port)
+			p := unixProxy{
+				ip:        ips[0],
+				port:      int(port),
+				serviceID: serviceID.String(),
+				log:       proxyLogger,
+			}
 			if err := p.run(listener); err != nil {
-				log.Errorf("unixproxy: error running proxy on %s: %v\n", listener.Addr(), err)
+				proxyLogger.WithError(err).Error("proxy stopped with error")
 			}
 		})
 	}
 
-	// Wait for shutdown signal
 	<-ctx.Done()
-	log.Info("unixproxy: Shutting down all Unix listeners")
+	logger.Info("shutting down")
 
 	for _, listener := range listeners {
 		if err := listener.Close(); err != nil {
-			log.Errorf("error closing unix socket listener: %v\n", err)
+			logger.WithError(err).Error("failed to close listener")
 		}
 	}
 
@@ -144,9 +173,9 @@ func UnixListenersThread(ctx context.Context, serviceID strfmt.UUID, upstream st
 
 	<-timeoutCtx.Done()
 	if errors.Is(timeoutCtx.Err(), context.DeadlineExceeded) {
-		log.Errorf("unixproxy: timed out waiting for all unix sockets to close")
+		logger.Error("shutdown timed out")
 	} else {
-		log.Infof("unixproxy: all unix sockets closed")
+		logger.Info("shutdown complete")
 	}
 }
 

@@ -5,6 +5,7 @@ package proxy
 
 import (
 	"context"
+	"errors"
 	"net"
 	"os"
 	"sync"
@@ -258,6 +259,166 @@ func TestManager_UnixProxyConnection(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, testData, buf[:n])
+
+	// Cleanup
+	m.StopProxy(serviceID)
+	assert.False(t, m.IsRunning(serviceID))
+}
+
+func TestManager_ParallelConnections(t *testing.T) {
+	cleanup := setupTempDir(t)
+	defer cleanup()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Start a TCP echo server that tracks concurrent connections
+	tcpListener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer func() { _ = tcpListener.Close() }()
+
+	tcpPort := tcpListener.Addr().(*net.TCPAddr).Port
+
+	var (
+		activeConns    int32
+		maxActiveConns int32
+		connMu         sync.Mutex
+	)
+
+	// Echo server that tracks concurrent connections
+	go func() {
+		for {
+			conn, err := tcpListener.Accept()
+			if err != nil {
+				return
+			}
+			go func(c net.Conn) {
+				defer func() { _ = c.Close() }()
+
+				// Track connection count
+				connMu.Lock()
+				activeConns++
+				if activeConns > maxActiveConns {
+					maxActiveConns = activeConns
+				}
+				connMu.Unlock()
+
+				defer func() {
+					connMu.Lock()
+					activeConns--
+					connMu.Unlock()
+				}()
+
+				buf := make([]byte, 1024)
+				for {
+					n, err := c.Read(buf)
+					if err != nil {
+						return
+					}
+					_, _ = c.Write(buf[:n])
+				}
+			}(conn)
+		}
+	}()
+
+	// Start the proxy manager
+	m := NewManager(ctx)
+	serviceID := strfmt.UUID("550e8400-e29b-41d4-a716-446655440000")
+	m.StartProxy(serviceID, "127.0.0.1", []int32{int32(tcpPort)})
+
+	// Give the proxy time to start listening
+	time.Sleep(50 * time.Millisecond)
+
+	socketPath := GetSocketPath(serviceID.String(), tcpPort)
+	numConnections := 10
+
+	// Create multiple connections in parallel
+	var wg sync.WaitGroup
+	connectedCh := make(chan struct{})
+	startCh := make(chan struct{})
+	connections := make([]net.Conn, numConnections)
+	connErrors := make([]error, numConnections)
+
+	// Launch goroutines to establish connections
+	for i := 0; i < numConnections; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+
+			conn, err := net.Dial("unix", socketPath)
+			if err != nil {
+				connErrors[idx] = err
+				return
+			}
+			connections[idx] = conn
+
+			// Signal that we're connected
+			connectedCh <- struct{}{}
+
+			// Wait for start signal to send data
+			<-startCh
+
+			// Send and receive data
+			testData := []byte("hello from connection " + string(rune('0'+idx)))
+			_, err = conn.Write(testData)
+			if err != nil {
+				connErrors[idx] = err
+				return
+			}
+
+			buf := make([]byte, 1024)
+			_ = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+			n, err := conn.Read(buf)
+			if err != nil {
+				connErrors[idx] = err
+				return
+			}
+
+			if string(buf[:n]) != string(testData) {
+				connErrors[idx] = errors.New("data mismatch")
+			}
+		}(i)
+	}
+
+	// Wait for all connections to be established
+	for i := 0; i < numConnections; i++ {
+		select {
+		case <-connectedCh:
+		case <-time.After(2 * time.Second):
+			t.Fatal("timeout waiting for connections to be established")
+		}
+	}
+
+	// Give a moment for all connections to be fully established
+	time.Sleep(50 * time.Millisecond)
+
+	// Record the max concurrent connections at this point
+	connMu.Lock()
+	currentMax := maxActiveConns
+	connMu.Unlock()
+
+	// Signal all goroutines to start sending data
+	close(startCh)
+
+	// Wait for all operations to complete
+	wg.Wait()
+
+	// Close all connections
+	for _, conn := range connections {
+		if conn != nil {
+			_ = conn.Close()
+		}
+	}
+
+	// Check for connection errors
+	for i, err := range connErrors {
+		assert.NoError(t, err, "connection %d should not have error", i)
+	}
+
+	// Verify that multiple connections were active simultaneously
+	// This proves the fix works - before the fix, maxActiveConns would be 1
+	assert.GreaterOrEqual(t, currentMax, int32(numConnections),
+		"should have had %d concurrent connections, but max was %d", numConnections, currentMax)
 
 	// Cleanup
 	m.StopProxy(serviceID)
