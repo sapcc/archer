@@ -42,15 +42,20 @@ func (*RbacList) Execute(_ []string) error {
 }
 
 type RbacCreate struct {
-	Service    strfmt.UUID `long:"service" description:"The ID of the service resource." required:"true"`
-	Target     string      `long:"target" description:"The ID of the project to which the RBAC policy will be enforced."`
-	TargetType string      `long:"target-type" description:"RBAC Policy Target Type." choice:"project"`
+	Service    string `long:"service" description:"The service resource (name or ID)." required:"true"`
+	Target     string `long:"target" description:"The ID of the project to which the RBAC policy will be enforced."`
+	TargetType string `long:"target-type" description:"RBAC Policy Target Type." choice:"project"`
 }
 
 func (*RbacCreate) Execute(_ []string) error {
+	serviceID, err := ResolveServiceID(RbacOptions.RbacCreate.Service)
+	if err != nil {
+		return err
+	}
+
 	params := rbac.NewPostRbacPoliciesParams().
 		WithBody(&models.Rbacpolicy{
-			ServiceID:  &RbacOptions.RbacCreate.Service,
+			ServiceID:  &serviceID,
 			Target:     RbacOptions.RbacCreate.Target,
 			TargetType: &RbacOptions.RbacCreate.TargetType,
 		})
