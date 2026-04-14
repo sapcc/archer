@@ -95,7 +95,7 @@ type ServiceCreate struct {
 	Provider          *string       `long:"provider" description:"Provider type" choice:"tenant" choice:"cp"`
 	Enable            bool          `long:"enable" description:"Enable service"`
 	Disable           bool          `long:"disable" description:"Disable service"`
-	Network           *strfmt.UUID  `long:"network" description:"Network id (required for tenant provider)"`
+	Network           *string       `long:"network" description:"Network (name or ID, required for tenant provider)"`
 	IPAddresses       []strfmt.IPv4 `long:"ip-address" description:"IP Addresses of the providing service, multiple addresses will be round robin load balanced." required:"true"`
 	Port              []int32       `long:"port" description:"Port exposed by the service (repeat option to set multiple ports)" required:"true"`
 	Protocol          *string       `long:"protocol" description:"Protocol type of the service" choice:"TCP" choice:"HTTP"`
@@ -116,6 +116,15 @@ func (*ServiceCreate) Execute(_ []string) error {
 		}
 	}
 
+	var networkID *strfmt.UUID
+	if ServiceOptions.ServiceCreate.Network != nil {
+		id, err := ResolveNetworkID(*ServiceOptions.ServiceCreate.Network)
+		if err != nil {
+			return err
+		}
+		networkID = &id
+	}
+
 	enabled := ServiceOptions.ServiceCreate.Enable || !ServiceOptions.ServiceCreate.Disable
 	requireApproval := ServiceOptions.ServiceCreate.RequireApproval || !ServiceOptions.ServiceCreate.NoRequireApproval
 
@@ -124,7 +133,7 @@ func (*ServiceCreate) Execute(_ []string) error {
 		Description:      ServiceOptions.ServiceCreate.Description,
 		Provider:         ServiceOptions.ServiceCreate.Provider,
 		Enabled:          &enabled,
-		NetworkID:        ServiceOptions.ServiceCreate.Network,
+		NetworkID:        networkID,
 		IPAddresses:      ServiceOptions.ServiceCreate.IPAddresses,
 		Ports:            ServiceOptions.ServiceCreate.Port,
 		Protocol:         ServiceOptions.ServiceCreate.Protocol,

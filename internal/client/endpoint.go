@@ -102,13 +102,13 @@ func (*EndpointShow) Execute(_ []string) error {
 }
 
 type EndpointCreate struct {
-	Name        string       `short:"n" long:"name" description:"New endpoint name"`
-	Description string       `long:"description" description:"Set endpoint description"`
-	Tags        []string     `long:"tag" description:"Tag to be added to the endpoint (repeat option to set multiple tags)"`
-	Network     *strfmt.UUID `long:"network" description:"Endpoint network (ID)"`
-	Port        *strfmt.UUID `long:"port" description:"Endpoint port (ID)"`
-	Subnet      *strfmt.UUID `long:"subnet" description:"Endpoint subnet (ID)"`
-	Wait        bool         `long:"wait" description:"Wait for endpoint to be ready"`
+	Name        string   `short:"n" long:"name" description:"New endpoint name"`
+	Description string   `long:"description" description:"Set endpoint description"`
+	Tags        []string `long:"tag" description:"Tag to be added to the endpoint (repeat option to set multiple tags)"`
+	Network     *string  `long:"network" description:"Endpoint network (name or ID)"`
+	Port        *string  `long:"port" description:"Endpoint port (ID)"`
+	Subnet      *string  `long:"subnet" description:"Endpoint subnet (ID)"`
+	Wait        bool     `long:"wait" description:"Wait for endpoint to be ready"`
 	Positional  struct {
 		Service string `positional-arg-name:"service" description:"Service to reference (name or ID)"`
 	} `positional-args:"yes" required:"yes"`
@@ -120,15 +120,32 @@ func (*EndpointCreate) Execute(_ []string) error {
 		return err
 	}
 
+	var networkID, portID, subnetID *strfmt.UUID
+	if EndpointOptions.EndpointCreate.Network != nil {
+		id, err := ResolveNetworkID(*EndpointOptions.EndpointCreate.Network)
+		if err != nil {
+			return err
+		}
+		networkID = &id
+	}
+	if EndpointOptions.EndpointCreate.Port != nil {
+		id := strfmt.UUID(*EndpointOptions.EndpointCreate.Port)
+		portID = &id
+	}
+	if EndpointOptions.EndpointCreate.Subnet != nil {
+		id := strfmt.UUID(*EndpointOptions.EndpointCreate.Subnet)
+		subnetID = &id
+	}
+
 	sv := models.Endpoint{
 		Name:        EndpointOptions.EndpointCreate.Name,
 		Description: EndpointOptions.EndpointCreate.Description,
 		ServiceID:   serviceID,
 		Tags:        EndpointOptions.EndpointCreate.Tags,
 		Target: models.EndpointTarget{
-			Network: EndpointOptions.Network,
-			Port:    EndpointOptions.Port,
-			Subnet:  EndpointOptions.Subnet,
+			Network: networkID,
+			Port:    portID,
+			Subnet:  subnetID,
 		},
 	}
 	resp, err := ArcherClient.Endpoint.PostEndpoint(endpoint.NewPostEndpointParams().WithBody(&sv), nil)
