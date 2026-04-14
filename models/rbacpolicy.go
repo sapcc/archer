@@ -56,8 +56,7 @@ type Rbacpolicy struct {
 
 	// The ID of the project to which the RBAC policy will be enforced.
 	// Example: 666da95112694b37b3efb0913de3f499
-	// Max Length: 32
-	// Min Length: 32
+	// Max Length: 36
 	Target string `json:"target,omitempty"`
 
 	// target type
@@ -165,11 +164,7 @@ func (m *Rbacpolicy) validateTarget(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if err := validate.MinLength("target", "body", m.Target, 32); err != nil {
-		return err
-	}
-
-	if err := validate.MaxLength("target", "body", m.Target, 32); err != nil {
+	if err := validate.MaxLength("target", "body", m.Target, 36); err != nil {
 		return err
 	}
 

@@ -48,8 +48,7 @@ type GetQuotasParams struct {
 	HTTPRequest *http.Request `json:"-"`
 
 	/*The ID of the project to query.
-	  Max Length: 32
-	  Min Length: 32
+	  Max Length: 36
 	  In: query
 	*/
 	ProjectID *string
@@ -100,11 +99,7 @@ func (o *GetQuotasParams) bindProjectID(rawData []string, hasKey bool, formats s
 // validateProjectID carries out validations for parameter ProjectID
 func (o *GetQuotasParams) validateProjectID(formats strfmt.Registry) error {
 
-	if err := validate.MinLength("project_id", "query", *o.ProjectID, 32); err != nil {
-		return err
-	}
-
-	if err := validate.MaxLength("project_id", "query", *o.ProjectID, 32); err != nil {
+	if err := validate.MaxLength("project_id", "query", *o.ProjectID, 36); err != nil {
 		return err
 	}
 

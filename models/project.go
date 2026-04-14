@@ -39,11 +39,7 @@ type Project string
 func (m Project) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := validate.MinLength("", "body", string(m), 32); err != nil {
-		return err
-	}
-
-	if err := validate.MaxLength("", "body", string(m), 32); err != nil {
+	if err := validate.MaxLength("", "body", string(m), 36); err != nil {
 		return err
 	}
 
