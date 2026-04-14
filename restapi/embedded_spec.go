@@ -445,8 +445,7 @@ func init() {
       },
       "parameters": [
         {
-          "maxLength": 32,
-          "minLength": 32,
+          "maxLength": 36,
           "type": "string",
           "description": "The ID of the project to query.",
           "name": "project_id",
@@ -610,8 +609,7 @@ func init() {
       },
       "parameters": [
         {
-          "maxLength": 32,
-          "minLength": 32,
+          "maxLength": 36,
           "type": "string",
           "description": "The ID of the project to query.",
           "name": "project_id",
@@ -1549,8 +1547,7 @@ func init() {
     "Project": {
       "description": "The ID of the project owning this resource.",
       "type": "string",
-      "maxLength": 32,
-      "minLength": 32,
+      "maxLength": 36,
       "x-omitempty": false,
       "example": "fa84c217f361441986a220edf9b1e337"
     },
@@ -1618,8 +1615,7 @@ func init() {
         "target": {
           "description": "The ID of the project to which the RBAC policy will be enforced.",
           "type": "string",
-          "maxLength": 32,
-          "minLength": 32,
+          "maxLength": 36,
           "example": "666da95112694b37b3efb0913de3f499"
         },
         "target_type": {
@@ -1653,8 +1649,7 @@ func init() {
         "target": {
           "description": "The ID of the project to which the RBAC policy will be enforced.",
           "type": "string",
-          "maxLength": 32,
-          "minLength": 32,
+          "maxLength": 36,
           "example": "666da95112694b37b3efb0913de3f499"
         },
         "target_type": {
@@ -2002,8 +1997,7 @@ func init() {
       "in": "query"
     },
     "project_id": {
-      "maxLength": 32,
-      "minLength": 32,
+      "maxLength": 36,
       "type": "string",
       "description": "Filter for resources belonging or accessible by a specific project.\n",
       "name": "project_id",
@@ -2202,8 +2196,7 @@ func init() {
             "in": "query"
           },
           {
-            "maxLength": 32,
-            "minLength": 32,
+            "maxLength": 36,
             "type": "string",
             "description": "Filter for resources belonging or accessible by a specific project.\n",
             "name": "project_id",
@@ -2524,8 +2517,7 @@ func init() {
       },
       "parameters": [
         {
-          "maxLength": 32,
-          "minLength": 32,
+          "maxLength": 36,
           "type": "string",
           "description": "The ID of the project to query.",
           "name": "project_id",
@@ -2689,8 +2681,7 @@ func init() {
       },
       "parameters": [
         {
-          "maxLength": 32,
-          "minLength": 32,
+          "maxLength": 36,
           "type": "string",
           "description": "The ID of the project to query.",
           "name": "project_id",
@@ -3047,8 +3038,7 @@ func init() {
             "in": "query"
           },
           {
-            "maxLength": 32,
-            "minLength": 32,
+            "maxLength": 36,
             "type": "string",
             "description": "Filter for resources belonging or accessible by a specific project.\n",
             "name": "project_id",
@@ -3734,8 +3724,7 @@ func init() {
     "Project": {
       "description": "The ID of the project owning this resource.",
       "type": "string",
-      "maxLength": 32,
-      "minLength": 32,
+      "maxLength": 36,
       "x-omitempty": false,
       "example": "fa84c217f361441986a220edf9b1e337"
     },
@@ -3821,8 +3810,7 @@ func init() {
         "target": {
           "description": "The ID of the project to which the RBAC policy will be enforced.",
           "type": "string",
-          "maxLength": 32,
-          "minLength": 32,
+          "maxLength": 36,
           "example": "666da95112694b37b3efb0913de3f499"
         },
         "target_type": {
@@ -3856,8 +3844,7 @@ func init() {
         "target": {
           "description": "The ID of the project to which the RBAC policy will be enforced.",
           "type": "string",
-          "maxLength": 32,
-          "minLength": 32,
+          "maxLength": 36,
           "example": "666da95112694b37b3efb0913de3f499"
         },
         "target_type": {
@@ -4206,8 +4193,7 @@ func init() {
       "in": "query"
     },
     "project_id": {
-      "maxLength": 32,
-      "minLength": 32,
+      "maxLength": 36,
       "type": "string",
       "description": "Filter for resources belonging or accessible by a specific project.\n",
       "name": "project_id",

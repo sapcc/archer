@@ -48,8 +48,7 @@ type DeleteQuotasProjectIDParams struct {
 
 	/*The ID of the project to query.
 	  Required: true
-	  Max Length: 32
-	  Min Length: 32
+	  Max Length: 36
 	  In: path
 	*/
 	ProjectID string
@@ -95,11 +94,7 @@ func (o *DeleteQuotasProjectIDParams) bindProjectID(rawData []string, hasKey boo
 // validateProjectID carries out validations for parameter ProjectID
 func (o *DeleteQuotasProjectIDParams) validateProjectID(formats strfmt.Registry) error {
 
-	if err := validate.MinLength("project_id", "path", o.ProjectID, 32); err != nil {
-		return err
-	}
-
-	if err := validate.MaxLength("project_id", "path", o.ProjectID, 32); err != nil {
+	if err := validate.MaxLength("project_id", "path", o.ProjectID, 36); err != nil {
 		return err
 	}
 

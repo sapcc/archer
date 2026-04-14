@@ -896,8 +896,7 @@ paths:
         name: project_id
         type: string
         description: The ID of the project to query.
-        minLength: 32
-        maxLength: 32
+        maxLength: 36
     get:
       tags:
         - Quota
@@ -969,8 +968,7 @@ paths:
         required: true
         type: string
         description: The ID of the project to query.
-        minLength: 32
-        maxLength: 32
+        maxLength: 36
     get:
       tags:
         - Quota
@@ -1116,8 +1114,7 @@ parameters:
     type: string
     description: |
       Filter for resources belonging or accessible by a specific project.
-    minLength: 32
-    maxLength: 32
+    maxLength: 36
 
 definitions:
   Service:
@@ -1494,8 +1491,7 @@ definitions:
         description: The ID of the project to which the RBAC policy will be enforced.
         type: string
         example: 666da95112694b37b3efb0913de3f499
-        minLength: 32
-        maxLength: 32
+        maxLength: 36
       project_id:
         $ref: "#/definitions/Project"
   RBACPolicy:
@@ -1518,8 +1514,7 @@ definitions:
         description: The ID of the project to which the RBAC policy will be enforced.
         type: string
         example: 666da95112694b37b3efb0913de3f499
-        minLength: 32
-        maxLength: 32
+        maxLength: 36
       service_id:
         type: string
         format: uuid
@@ -1551,8 +1546,7 @@ definitions:
     type: string
     description: The ID of the project owning this resource.
     example: fa84c217f361441986a220edf9b1e337
-    minLength: 32
-    maxLength: 32
+    maxLength: 36
     x-omitempty: false
   QuotaUsage:
     type: object

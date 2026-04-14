@@ -81,8 +81,7 @@ type GetEndpointParams struct {
 
 	/*Filter for resources belonging or accessible by a specific project.
 
-	  Max Length: 32
-	  Min Length: 32
+	  Max Length: 36
 	  In: query
 	*/
 	ProjectID *string
@@ -352,11 +351,7 @@ func (o *GetEndpointParams) bindProjectID(rawData []string, hasKey bool, formats
 // validateProjectID carries out validations for parameter ProjectID
 func (o *GetEndpointParams) validateProjectID(formats strfmt.Registry) error {
 
-	if err := validate.MinLength("project_id", "query", *o.ProjectID, 32); err != nil {
-		return err
-	}
-
-	if err := validate.MaxLength("project_id", "query", *o.ProjectID, 32); err != nil {
+	if err := validate.MaxLength("project_id", "query", *o.ProjectID, 36); err != nil {
 		return err
 	}
 
