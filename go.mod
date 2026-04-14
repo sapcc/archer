@@ -12,7 +12,6 @@ require (
 	github.com/bcicen/go-haproxy v0.0.0-20210728173702-412d077dabc1
 	github.com/databus23/goslo.policy v0.0.0-20250326134918-4afc2c56a903
 	github.com/didip/tollbooth/v8 v8.0.1
-	github.com/docker/docker v28.5.2+incompatible
 	github.com/dre1080/recovr v1.0.3
 	github.com/f5devcentral/go-bigip v0.0.0-20260303071915-79fc4d8a2250
 	github.com/georgysavva/scany/v2 v2.1.4
@@ -39,6 +38,7 @@ require (
 	github.com/jedib0t/go-pretty/v6 v6.7.9
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/jmoiron/sqlx v1.4.0
+	github.com/moby/moby/api v1.54.1
 	github.com/pashagolub/pgxmock/v5 v5.0.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rs/cors v1.11.1
@@ -116,7 +116,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/go-archive v0.2.0 // indirect
-	github.com/moby/moby/api v1.54.1 // indirect
 	github.com/moby/moby/client v0.4.0 // indirect
 	github.com/moby/patternmatcher v0.6.1 // indirect
 	github.com/moby/sys/sequential v0.6.0 // indirect
