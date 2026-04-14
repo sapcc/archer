@@ -86,21 +86,22 @@ func (*ServiceShow) Execute(_ []string) error {
 }
 
 type ServiceCreate struct {
-	Name             string        `short:"n" long:"name" description:"New service name"`
-	Description      string        `long:"description" description:"Set service description"`
-	Provider         *string       `long:"provider" description:"Provider type" choice:"tenant" choice:"cp"`
-	Enable           bool          `long:"enable" description:"Enable service"`
-	Disable          bool          `long:"disable" description:"Disable service"`
-	Network          *strfmt.UUID  `long:"network" description:"Network id (required for tenant provider)"`
-	IPAddresses      []strfmt.IPv4 `long:"ip-address" description:"IP Addresses of the providing service, multiple addresses will be round robin load balanced." required:"true"`
-	Port             []int32       `long:"port" description:"Port exposed by the service (repeat option to set multiple ports)" required:"true"`
-	Protocol         *string       `long:"protocol" description:"Protocol type of the service" choice:"TCP" choice:"HTTP"`
-	ProxyProtocol    bool          `long:"proxy-protocol" description:"Enable proxy protocol v2."`
-	RequireApproval  bool          `long:"require-approval" description:"Require explicit project approval for the service owner."`
-	Tags             []string      `long:"tag" description:"Tag to be added to the service (repeat option to set multiple tags)"`
-	Visibility       *string       `long:"visibility" description:"Set global visibility of the service. For private visibility, RBAC policies can extend the visibility to specific projects" choice:"private" choice:"public"`
-	Wait             bool          `long:"wait" description:"Wait for service to be ready"`
-	AvailabilityZone *string       `long:"availability-zone" description:"Availability zone for the service"`
+	Name              string        `short:"n" long:"name" description:"New service name"`
+	Description       string        `long:"description" description:"Set service description"`
+	Provider          *string       `long:"provider" description:"Provider type" choice:"tenant" choice:"cp"`
+	Enable            bool          `long:"enable" description:"Enable service"`
+	Disable           bool          `long:"disable" description:"Disable service"`
+	Network           *strfmt.UUID  `long:"network" description:"Network id (required for tenant provider)"`
+	IPAddresses       []strfmt.IPv4 `long:"ip-address" description:"IP Addresses of the providing service, multiple addresses will be round robin load balanced." required:"true"`
+	Port              []int32       `long:"port" description:"Port exposed by the service (repeat option to set multiple ports)" required:"true"`
+	Protocol          *string       `long:"protocol" description:"Protocol type of the service" choice:"TCP" choice:"HTTP"`
+	ProxyProtocol     bool          `long:"proxy-protocol" description:"Enable proxy protocol v2."`
+	RequireApproval   bool          `long:"require-approval" description:"Require explicit project approval for the service owner."`
+	NoRequireApproval bool          `long:"no-require-approval" description:"Disable require approval for the service owner."`
+	Tags              []string      `long:"tag" description:"Tag to be added to the service (repeat option to set multiple tags)"`
+	Visibility        *string       `long:"visibility" description:"Set global visibility of the service. For private visibility, RBAC policies can extend the visibility to specific projects" choice:"private" choice:"public"`
+	Wait              bool          `long:"wait" description:"Wait for service to be ready"`
+	AvailabilityZone  *string       `long:"availability-zone" description:"Availability zone for the service"`
 }
 
 func (*ServiceCreate) Execute(_ []string) error {
@@ -112,6 +113,7 @@ func (*ServiceCreate) Execute(_ []string) error {
 	}
 
 	enabled := ServiceOptions.ServiceCreate.Enable || !ServiceOptions.ServiceCreate.Disable
+	requireApproval := ServiceOptions.ServiceCreate.RequireApproval || !ServiceOptions.ServiceCreate.NoRequireApproval
 
 	sv := models.Service{
 		Name:             ServiceOptions.ServiceCreate.Name,
@@ -123,7 +125,7 @@ func (*ServiceCreate) Execute(_ []string) error {
 		Ports:            ServiceOptions.ServiceCreate.Port,
 		Protocol:         ServiceOptions.ServiceCreate.Protocol,
 		ProxyProtocol:    &ServiceOptions.ServiceCreate.ProxyProtocol,
-		RequireApproval:  &ServiceOptions.ServiceCreate.RequireApproval,
+		RequireApproval:  &requireApproval,
 		Tags:             ServiceOptions.ServiceCreate.Tags,
 		Visibility:       ServiceOptions.ServiceCreate.Visibility,
 		AvailabilityZone: ServiceOptions.ServiceCreate.AvailabilityZone,
@@ -147,19 +149,20 @@ type ServiceSet struct {
 	Positional struct {
 		Service strfmt.UUID `positional-arg-name:"endpoint" description:"Service to set (ID)"`
 	} `positional-args:"yes" required:"yes"`
-	NoTags          bool          `long:"no-tag" description:"Clear tags associated with the service. Specify both --tag and --no-tag to overwrite current tags"`
-	Tags            []string      `long:"tag" description:"Tag to be added to the service (repeat option to set multiple tags)"`
-	Description     *string       `long:"description" description:"Set service description"`
-	Enable          bool          `long:"enable" description:"Enable service"`
-	Disable         bool          `long:"disable" description:"Disable service" optional-value:"false"`
-	IPAddresses     []strfmt.IPv4 `long:"ip-address" description:"IP Addresses of the providing service, multiple addresses will be round robin load balanced."`
-	Name            *string       `long:"name" description:"Service name"`
-	Port            []int32       `long:"port" description:"Port exposed by the service (repeat option to set multiple ports)"`
-	Protocol        *string       `long:"protocol" description:"Protocol type of the service" choice:"TCP" choice:"HTTP"`
-	ProxyProtocol   *bool         `long:"proxy-protocol" description:"Enable proxy protocol v2."`
-	RequireApproval *bool         `long:"require-approval" description:"Require explicit project approval for the service owner."`
-	Visibility      *string       `long:"visibility" description:"Set global visibility of the service. For private visibility, RBAC policies can extend the visibility to specific projects" choice:"private" choice:"public"`
-	Wait            bool          `long:"wait" description:"Wait for service to be ready"`
+	NoTags            bool          `long:"no-tag" description:"Clear tags associated with the service. Specify both --tag and --no-tag to overwrite current tags"`
+	Tags              []string      `long:"tag" description:"Tag to be added to the service (repeat option to set multiple tags)"`
+	Description       *string       `long:"description" description:"Set service description"`
+	Enable            bool          `long:"enable" description:"Enable service"`
+	Disable           bool          `long:"disable" description:"Disable service"`
+	IPAddresses       []strfmt.IPv4 `long:"ip-address" description:"IP Addresses of the providing service, multiple addresses will be round robin load balanced."`
+	Name              *string       `long:"name" description:"Service name"`
+	Port              []int32       `long:"port" description:"Port exposed by the service (repeat option to set multiple ports)"`
+	Protocol          *string       `long:"protocol" description:"Protocol type of the service" choice:"TCP" choice:"HTTP"`
+	ProxyProtocol     *bool         `long:"proxy-protocol" description:"Enable proxy protocol v2."`
+	RequireApproval   bool          `long:"require-approval" description:"Require explicit project approval for the service owner."`
+	NoRequireApproval bool          `long:"no-require-approval" description:"Disable require approval for the service owner."`
+	Visibility        *string       `long:"visibility" description:"Set global visibility of the service. For private visibility, RBAC policies can extend the visibility to specific projects" choice:"private" choice:"public"`
+	Wait              bool          `long:"wait" description:"Wait for service to be ready"`
 }
 
 func (*ServiceSet) Execute(_ []string) error {
@@ -191,6 +194,14 @@ func (*ServiceSet) Execute(_ []string) error {
 		t := false
 		enabled = &t
 	}
+	var requireApproval *bool
+	if ServiceOptions.ServiceSet.RequireApproval {
+		t := true
+		requireApproval = &t
+	} else if ServiceOptions.ServiceSet.NoRequireApproval {
+		t := false
+		requireApproval = &t
+	}
 	sv := models.ServiceUpdatable{
 		Description:     ServiceOptions.ServiceSet.Description,
 		Enabled:         enabled,
@@ -199,7 +210,7 @@ func (*ServiceSet) Execute(_ []string) error {
 		Ports:           ServiceOptions.ServiceSet.Port,
 		Protocol:        ServiceOptions.ServiceSet.Protocol,
 		ProxyProtocol:   ServiceOptions.ServiceSet.ProxyProtocol,
-		RequireApproval: ServiceOptions.ServiceSet.RequireApproval,
+		RequireApproval: requireApproval,
 		Tags:            tags,
 		Visibility:      ServiceOptions.ServiceSet.Visibility,
 	}
