@@ -71,12 +71,16 @@ func (*ServiceList) Execute(_ []string) error {
 
 type ServiceShow struct {
 	Positional struct {
-		Service strfmt.UUID `description:"Service to display (ID)"`
+		Service string `description:"Service to display (name or ID)"`
 	} `positional-args:"yes" required:"yes"`
 }
 
 func (*ServiceShow) Execute(_ []string) error {
-	params := service.NewGetServiceServiceIDParams().WithServiceID(ServiceOptions.ServiceShow.Positional.Service)
+	serviceID, err := ResolveServiceID(ServiceOptions.ServiceShow.Positional.Service)
+	if err != nil {
+		return err
+	}
+	params := service.NewGetServiceServiceIDParams().WithServiceID(serviceID)
 	resp, err := ArcherClient.Service.GetServiceServiceID(params, nil)
 	if err != nil {
 		return err
@@ -147,7 +151,7 @@ func (*ServiceCreate) Execute(_ []string) error {
 
 type ServiceSet struct {
 	Positional struct {
-		Service strfmt.UUID `positional-arg-name:"endpoint" description:"Service to set (ID)"`
+		Service string `positional-arg-name:"service" description:"Service to set (name or ID)"`
 	} `positional-args:"yes" required:"yes"`
 	NoTags            bool          `long:"no-tag" description:"Clear tags associated with the service. Specify both --tag and --no-tag to overwrite current tags"`
 	Tags              []string      `long:"tag" description:"Tag to be added to the service (repeat option to set multiple tags)"`
@@ -166,13 +170,18 @@ type ServiceSet struct {
 }
 
 func (*ServiceSet) Execute(_ []string) error {
+	serviceID, err := ResolveServiceID(ServiceOptions.ServiceSet.Positional.Service)
+	if err != nil {
+		return err
+	}
+
 	tags := make([]string, 0)
 	if ServiceOptions.ServiceSet.NoTags {
 		tags = append(tags, ServiceOptions.ServiceSet.Tags...)
 	} else {
 		params := service.
 			NewGetServiceServiceIDParams().
-			WithServiceID(ServiceOptions.ServiceSet.Positional.Service)
+			WithServiceID(serviceID)
 		resp, err := ArcherClient.Service.GetServiceServiceID(params, nil)
 		if err != nil {
 			var getServiceServiceIDNotFound *service.GetServiceServiceIDNotFound
@@ -217,7 +226,7 @@ func (*ServiceSet) Execute(_ []string) error {
 
 	params := service.
 		NewPutServiceServiceIDParams().
-		WithServiceID(ServiceOptions.ServiceSet.Positional.Service).
+		WithServiceID(serviceID).
 		WithBody(&sv)
 	resp, err := ArcherClient.Service.PutServiceServiceID(params, nil)
 	if err != nil {
@@ -236,16 +245,21 @@ func (*ServiceSet) Execute(_ []string) error {
 
 type ServiceDelete struct {
 	Positional struct {
-		Service strfmt.UUID `description:"Service to delete (ID)"`
+		Service string `description:"Service to delete (name or ID)"`
 	} `positional-args:"yes" required:"yes"`
 	Wait bool `long:"wait" description:"Wait for endpoint to be deleted"`
 }
 
 func (*ServiceDelete) Execute(_ []string) error {
+	serviceID, err := ResolveServiceID(ServiceOptions.ServiceDelete.Positional.Service)
+	if err != nil {
+		return err
+	}
+
 	params := service.
 		NewDeleteServiceServiceIDParams().
-		WithServiceID(ServiceOptions.ServiceDelete.Positional.Service)
-	_, err := ArcherClient.Service.DeleteServiceServiceID(params, nil)
+		WithServiceID(serviceID)
+	_, err = ArcherClient.Service.DeleteServiceServiceID(params, nil)
 	if err != nil {
 		return err
 	}
@@ -260,13 +274,18 @@ func (*ServiceDelete) Execute(_ []string) error {
 
 type ServiceMigrate struct {
 	Positional struct {
-		Service strfmt.UUID `description:"Service to migrate (ID)"`
+		Service string `description:"Service to migrate (name or ID)"`
 	} `positional-args:"yes" required:"yes"`
 	TargetHost *string `long:"target-host" description:"Target agent hostname. If not specified, least-loaded agent is selected."`
 	Wait       bool    `long:"wait" description:"Wait for service migration to complete"`
 }
 
 func (*ServiceMigrate) Execute(_ []string) error {
+	serviceID, err := ResolveServiceID(ServiceOptions.ServiceMigrate.Positional.Service)
+	if err != nil {
+		return err
+	}
+
 	body := service.PostServiceServiceIDMigrateBody{}
 	if ServiceOptions.ServiceMigrate.TargetHost != nil {
 		body.TargetHost = *ServiceOptions.ServiceMigrate.TargetHost
@@ -274,7 +293,7 @@ func (*ServiceMigrate) Execute(_ []string) error {
 
 	params := service.
 		NewPostServiceServiceIDMigrateParams().
-		WithServiceID(ServiceOptions.ServiceMigrate.Positional.Service).
+		WithServiceID(serviceID).
 		WithBody(body)
 	resp, err := ArcherClient.Service.PostServiceServiceIDMigrate(params, nil)
 	if err != nil {
@@ -292,7 +311,7 @@ func (*ServiceMigrate) Execute(_ []string) error {
 }
 
 type ServiceEndpoint struct {
-	Service               strfmt.UUID `long:"service" description:"Service" required:"true"`
+	Service               string `long:"service" description:"Service (name or ID)" required:"true"`
 	ServiceEndpointList   `command:"list" description:"List Service Endpoints"`
 	ServiceEndpointAccept `command:"accept" description:"Accept Service Endpoint"`
 	ServiceEndpointReject `command:"reject" description:"Reject Service Endpoint"`
@@ -302,8 +321,13 @@ type ServiceEndpointList struct {
 }
 
 func (*ServiceEndpointList) Execute(_ []string) error {
+	serviceID, err := ResolveServiceID(ServiceOptions.Service)
+	if err != nil {
+		return err
+	}
+
 	params := service.NewGetServiceServiceIDEndpointsParams().
-		WithServiceID(ServiceOptions.Service)
+		WithServiceID(serviceID)
 	resp, err := ArcherClient.Service.GetServiceServiceIDEndpoints(params, nil)
 	if err != nil {
 		return err
@@ -311,7 +335,7 @@ func (*ServiceEndpointList) Execute(_ []string) error {
 
 	Table.AppendHeader(table.Row{"ID", "Project", "Status", "Service"})
 	for _, ep := range resp.Payload.Items {
-		Table.AppendRow(table.Row{ep.ID, ep.ProjectID, ep.Status, ServiceOptions.Service})
+		Table.AppendRow(table.Row{ep.ID, ep.ProjectID, ep.Status, serviceID})
 	}
 	Table.Render()
 	return nil
@@ -323,6 +347,11 @@ type ServiceEndpointAccept struct {
 }
 
 func (*ServiceEndpointAccept) Execute(_ []string) error {
+	serviceID, err := ResolveServiceID(ServiceOptions.Service)
+	if err != nil {
+		return err
+	}
+
 	var projects []models.Project
 	for _, project := range ServiceOptions.ServiceEndpointAccept.Projects {
 		projects = append(projects, models.Project(project.String()))
@@ -334,7 +363,7 @@ func (*ServiceEndpointAccept) Execute(_ []string) error {
 
 	params := service.
 		NewPutServiceServiceIDAcceptEndpointsParams().
-		WithServiceID(ServiceOptions.Service).
+		WithServiceID(serviceID).
 		WithBody(&consumerList)
 	resp, err := ArcherClient.Service.PutServiceServiceIDAcceptEndpoints(params, nil)
 	if err != nil {
@@ -343,7 +372,7 @@ func (*ServiceEndpointAccept) Execute(_ []string) error {
 
 	Table.AppendHeader(table.Row{"ID", "Project", "Status", "Service"})
 	for _, ep := range resp.Payload {
-		Table.AppendRow(table.Row{ep.ID, ep.ProjectID, ep.Status, ServiceOptions.Service})
+		Table.AppendRow(table.Row{ep.ID, ep.ProjectID, ep.Status, serviceID})
 	}
 	Table.Render()
 	return nil
@@ -355,6 +384,11 @@ type ServiceEndpointReject struct {
 }
 
 func (*ServiceEndpointReject) Execute(_ []string) error {
+	serviceID, err := ResolveServiceID(ServiceOptions.Service)
+	if err != nil {
+		return err
+	}
+
 	var projects []models.Project
 	for _, project := range ServiceOptions.ServiceEndpointReject.Projects {
 		projects = append(projects, models.Project(project.String()))
@@ -366,7 +400,7 @@ func (*ServiceEndpointReject) Execute(_ []string) error {
 
 	params := service.
 		NewPutServiceServiceIDRejectEndpointsParams().
-		WithServiceID(ServiceOptions.Service).
+		WithServiceID(serviceID).
 		WithBody(&consumerList)
 	resp, err := ArcherClient.Service.PutServiceServiceIDRejectEndpoints(params, nil)
 	if err != nil {
@@ -375,7 +409,7 @@ func (*ServiceEndpointReject) Execute(_ []string) error {
 
 	Table.AppendHeader(table.Row{"ID", "Project", "Status", "Service"})
 	for _, ep := range resp.Payload {
-		Table.AppendRow(table.Row{ep.ID, ep.ProjectID, ep.Status, ServiceOptions.Service})
+		Table.AppendRow(table.Row{ep.ID, ep.ProjectID, ep.Status, serviceID})
 	}
 	Table.Render()
 	return nil

@@ -26,12 +26,12 @@ var EndpointOptions struct {
 }
 
 type EndpointList struct {
-	Tags       []string     `long:"tags" description:"List endpoints which have all given tag(s) (repeat option for multiple tags)"`
-	AnyTags    []string     `long:"any-tags" description:"List endpoints which have any given tag(s) (repeat option for multiple tags)"`
-	NotTags    []string     `long:"not-tags" description:"Exclude endpoints which have all given tag(s) (repeat option for multiple tags)"`
-	NotAnyTags []string     `long:"not-any-tags" description:"Exclude endpoints which have any given tag(s) (repeat option for multiple tags)"`
-	Project    *string      `short:"p" long:"project" description:"List endpoints in the given project (ID)"`
-	Service    *strfmt.UUID `short:"s" long:"service" description:"List endpoints for the given service (ID)"`
+	Tags       []string `long:"tags" description:"List endpoints which have all given tag(s) (repeat option for multiple tags)"`
+	AnyTags    []string `long:"any-tags" description:"List endpoints which have any given tag(s) (repeat option for multiple tags)"`
+	NotTags    []string `long:"not-tags" description:"Exclude endpoints which have all given tag(s) (repeat option for multiple tags)"`
+	NotAnyTags []string `long:"not-any-tags" description:"Exclude endpoints which have any given tag(s) (repeat option for multiple tags)"`
+	Project    *string  `short:"p" long:"project" description:"List endpoints in the given project (ID)"`
+	Service    *string  `short:"s" long:"service" description:"List endpoints for the given service (name or ID)"`
 }
 
 type cliEndpoint struct {
@@ -41,6 +41,15 @@ type cliEndpoint struct {
 }
 
 func (*EndpointList) Execute(_ []string) error {
+	var serviceID *strfmt.UUID
+	if EndpointOptions.EndpointList.Service != nil {
+		id, err := ResolveServiceID(*EndpointOptions.EndpointList.Service)
+		if err != nil {
+			return err
+		}
+		serviceID = &id
+	}
+
 	params := endpoint.NewGetEndpointParams().
 		WithTags(EndpointOptions.EndpointList.Tags).
 		WithTagsAny(EndpointOptions.EndpointList.AnyTags).
@@ -55,7 +64,7 @@ func (*EndpointList) Execute(_ []string) error {
 	DefaultColumns = []string{"id", "name", "service_id", "target.port", "status", "ip_address"}
 	var items []*models.Endpoint
 	for _, item := range resp.GetPayload().Items {
-		if EndpointOptions.EndpointList.Service == nil || item.ServiceID == *EndpointOptions.EndpointList.Service {
+		if serviceID == nil || item.ServiceID == *serviceID {
 			items = append(items, item)
 		}
 	}
@@ -64,13 +73,18 @@ func (*EndpointList) Execute(_ []string) error {
 
 type EndpointShow struct {
 	Positional struct {
-		Endpoint strfmt.UUID `positional-arg-name:"endpoint" description:"Endpoint to display (ID)"`
+		Endpoint string `positional-arg-name:"endpoint" description:"Endpoint to display (name or ID)"`
 	} `positional-args:"yes" required:"yes"`
 }
 
 func (*EndpointShow) Execute(_ []string) error {
+	endpointID, err := ResolveEndpointID(EndpointOptions.EndpointShow.Positional.Endpoint)
+	if err != nil {
+		return err
+	}
+
 	var e cliEndpoint
-	params := endpoint.NewGetEndpointEndpointIDParams().WithEndpointID(EndpointOptions.EndpointShow.Positional.Endpoint)
+	params := endpoint.NewGetEndpointEndpointIDParams().WithEndpointID(endpointID)
 	resp, err := ArcherClient.Endpoint.GetEndpointEndpointID(params, nil)
 	if err != nil {
 		return err
@@ -96,15 +110,20 @@ type EndpointCreate struct {
 	Subnet      *strfmt.UUID `long:"subnet" description:"Endpoint subnet (ID)"`
 	Wait        bool         `long:"wait" description:"Wait for endpoint to be ready"`
 	Positional  struct {
-		Service strfmt.UUID `positional-arg-name:"service" description:"Service to reference (ID)"`
+		Service string `positional-arg-name:"service" description:"Service to reference (name or ID)"`
 	} `positional-args:"yes" required:"yes"`
 }
 
 func (*EndpointCreate) Execute(_ []string) error {
+	serviceID, err := ResolveServiceID(EndpointOptions.EndpointCreate.Positional.Service)
+	if err != nil {
+		return err
+	}
+
 	sv := models.Endpoint{
 		Name:        EndpointOptions.EndpointCreate.Name,
 		Description: EndpointOptions.EndpointCreate.Description,
-		ServiceID:   EndpointOptions.EndpointCreate.Positional.Service,
+		ServiceID:   serviceID,
 		Tags:        EndpointOptions.EndpointCreate.Tags,
 		Target: models.EndpointTarget{
 			Network: EndpointOptions.Network,
@@ -128,16 +147,21 @@ func (*EndpointCreate) Execute(_ []string) error {
 
 type EndpointDelete struct {
 	Positional struct {
-		Endpoint strfmt.UUID `description:"Endpoint to set (ID)"`
+		Endpoint string `description:"Endpoint to delete (name or ID)"`
 	} `positional-args:"yes" required:"yes"`
 	Wait bool `long:"wait" description:"Wait for endpoint to be deleted"`
 }
 
 func (*EndpointDelete) Execute(_ []string) error {
+	endpointID, err := ResolveEndpointID(EndpointOptions.EndpointDelete.Positional.Endpoint)
+	if err != nil {
+		return err
+	}
+
 	params := endpoint.
 		NewDeleteEndpointEndpointIDParams().
-		WithEndpointID(EndpointOptions.EndpointDelete.Positional.Endpoint)
-	_, err := ArcherClient.Endpoint.DeleteEndpointEndpointID(params, nil)
+		WithEndpointID(endpointID)
+	_, err = ArcherClient.Endpoint.DeleteEndpointEndpointID(params, nil)
 	if err != nil {
 		return err
 	}
@@ -152,7 +176,7 @@ func (*EndpointDelete) Execute(_ []string) error {
 
 type EndpointSet struct {
 	Positional struct {
-		Endpoint strfmt.UUID `positional-arg-name:"endpoint" description:"Endpoint to set (ID)"`
+		Endpoint string `positional-arg-name:"endpoint" description:"Endpoint to set (name or ID)"`
 	} `positional-args:"yes" required:"yes"`
 	Name        *string  `short:"n" long:"name" description:"New endpoint name"`
 	Description *string  `long:"description" description:"Set endpoint description"`
@@ -162,13 +186,18 @@ type EndpointSet struct {
 }
 
 func (*EndpointSet) Execute(_ []string) error {
+	endpointID, err := ResolveEndpointID(EndpointOptions.EndpointSet.Positional.Endpoint)
+	if err != nil {
+		return err
+	}
+
 	tags := make([]string, 0)
 	if EndpointOptions.EndpointSet.NoTags {
 		tags = append(tags, EndpointOptions.EndpointSet.Tags...)
 	} else {
 		params := endpoint.
 			NewGetEndpointEndpointIDParams().
-			WithEndpointID(EndpointOptions.EndpointSet.Positional.Endpoint)
+			WithEndpointID(endpointID)
 		resp, err := ArcherClient.Endpoint.GetEndpointEndpointID(params, nil)
 		if err != nil {
 			return err
@@ -179,7 +208,7 @@ func (*EndpointSet) Execute(_ []string) error {
 
 	params := endpoint.
 		NewPutEndpointEndpointIDParams().
-		WithEndpointID(EndpointOptions.EndpointSet.Positional.Endpoint).
+		WithEndpointID(endpointID).
 		WithBody(endpoint.PutEndpointEndpointIDBody{
 			Name:        EndpointOptions.EndpointSet.Name,
 			Description: EndpointOptions.EndpointSet.Description,
