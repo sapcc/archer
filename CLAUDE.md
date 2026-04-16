@@ -186,6 +186,8 @@ make markdown
 ```
 Do NOT use `go generate ./...` or other methods for swagger regeneration. The `make swagger` target ensures proper go-swagger configuration and consistent code generation. The `make markdown` target regenerates API documentation.
 
+**Version Bumping**: When releasing a new version, update the `version` field in `swagger.yaml` to match the release version (without the `v` prefix). For example, for release v2.2.0, set `version: "2.2.0"`.
+
 ### Interfaces and Mocks
 
 **IMPORTANT**: When modifying any Go interface, regenerate the mock implementations using:
