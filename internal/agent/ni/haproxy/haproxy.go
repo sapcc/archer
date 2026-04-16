@@ -19,9 +19,10 @@ import (
 	"github.com/bcicen/go-haproxy"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/sapcc/archer/internal/agent/ni/models"
 	"github.com/sapcc/archer/internal/agent/ni/proxy"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal/config"
 )

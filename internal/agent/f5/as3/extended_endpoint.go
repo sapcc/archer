@@ -14,10 +14,11 @@ import (
 // ExtendedEndpoint is an endpoint with additional fields...
 type ExtendedEndpoint struct {
 	models.Endpoint
-	Port             *ports.Port
-	ServicePorts     []int32
-	ServiceNetworkId strfmt.UUID
-	SegmentId        *int
-	ProxyProtocol    bool
-	Owned            bool
+	Port                *ports.Port
+	ServicePorts        []int32
+	ServiceNetworkId    strfmt.UUID
+	SegmentId           *int
+	ProxyProtocol       bool
+	Owned               bool
+	ConnectionMirroring bool
 }

@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `connection_mirroring` field to endpoint resources for BIG-IP HA failover support
+
 ## [2.1.0] - 2026-04-14
 
 ### Added

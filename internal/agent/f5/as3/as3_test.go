@@ -33,7 +33,8 @@ func TestGetEndpointTenants(t *testing.T) {
 				Target:      models.EndpointTarget{},
 				UpdatedAt:   time.Time{},
 			},
-			ProxyProtocol: true,
+			ProxyProtocol:       true,
+			ConnectionMirroring: true,
 			Port: &ports.Port{
 				FixedIPs: []ports.IP{{IPAddress: "1.2.3.4"}},
 			},
@@ -58,6 +59,54 @@ func TestGetEndpointWithoutTenants(t *testing.T) {
 		Applications: nil,
 	}
 	assert.Equal(t, expected, GetEndpointTenants([]*ExtendedEndpoint{}))
+}
+
+func TestGetEndpointTenantsMirroringDisabled(t *testing.T) {
+	config.Global.Agent.L4Profile = "test-l4-profile"
+	config.Global.Agent.TCPProfile = "test-tcp-profile"
+	endpoints := []*ExtendedEndpoint{
+		{
+			Endpoint: models.Endpoint{
+				ID:        "3ad9b1f0-4e5a-44c3-ada6-71696925ae64",
+				ServiceID: strfmt.UUID("4e50bf87-e597-41f2-9ce0-83d3e24dedf3"),
+			},
+			ProxyProtocol:       false,
+			ConnectionMirroring: false,
+			Port: &ports.Port{
+				FixedIPs: []ports.IP{{IPAddress: "1.2.3.4"}},
+			},
+			SegmentId:    conv.Pointer(1),
+			ServicePorts: []int32{80},
+		},
+	}
+	tenant := GetEndpointTenants(endpoints)
+	json, err := tenant.MarshalJSON()
+	assert.Nil(t, err)
+	assert.Contains(t, string(json), `"mirroring":"none"`)
+}
+
+func TestGetEndpointTenantsMirroringEnabled(t *testing.T) {
+	config.Global.Agent.L4Profile = "test-l4-profile"
+	config.Global.Agent.TCPProfile = "test-tcp-profile"
+	endpoints := []*ExtendedEndpoint{
+		{
+			Endpoint: models.Endpoint{
+				ID:        "3ad9b1f0-4e5a-44c3-ada6-71696925ae64",
+				ServiceID: strfmt.UUID("4e50bf87-e597-41f2-9ce0-83d3e24dedf3"),
+			},
+			ProxyProtocol:       false,
+			ConnectionMirroring: true,
+			Port: &ports.Port{
+				FixedIPs: []ports.IP{{IPAddress: "1.2.3.4"}},
+			},
+			SegmentId:    conv.Pointer(1),
+			ServicePorts: []int32{80},
+		},
+	}
+	tenant := GetEndpointTenants(endpoints)
+	json, err := tenant.MarshalJSON()
+	assert.Nil(t, err)
+	assert.Contains(t, string(json), `"mirroring":"L4"`)
 }
 
 func TestGetServiceName(t *testing.T) {

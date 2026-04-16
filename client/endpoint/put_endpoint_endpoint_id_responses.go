@@ -437,6 +437,11 @@ swagger:model PutEndpointEndpointIDBody
 */
 type PutEndpointEndpointIDBody struct {
 
+	// Enable BIG-IP connection mirroring for high availability failover.
+	// **Note: This option currently only affects endpoints for services with provider type `tenant`.**
+	//
+	ConnectionMirroring *bool `json:"connection_mirroring,omitempty"`
+
 	// Description of the endpoint.
 	// Example: An example of an endpoint.
 	// Max Length: 255

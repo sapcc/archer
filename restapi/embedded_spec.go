@@ -373,6 +373,11 @@ func init() {
             "schema": {
               "type": "object",
               "properties": {
+                "connection_mirroring": {
+                  "description": "Enable BIG-IP connection mirroring for high availability failover.\n**Note: This option currently only affects endpoints for services with provider type ` + "`" + `tenant` + "`" + `.**\n",
+                  "type": "boolean",
+                  "x-nullable": true
+                },
                 "description": {
                   "description": "Description of the endpoint.",
                   "type": "string",
@@ -1609,6 +1614,11 @@ func init() {
     "Endpoint": {
       "type": "object",
       "properties": {
+        "connection_mirroring": {
+          "description": "**Note: This option currently only affects endpoints for services with provider type ` + "`" + `tenant` + "`" + `.**\n\nEnable BIG-IP connection mirroring for high availability failover.\nWhen enabled, connection and persistence information is mirrored to\nthe standby device in a DSC configuration.\nEnabling mirroring can increase latency of the endpoint.\n",
+          "type": "boolean",
+          "default": false
+        },
         "created_at": {
           "$ref": "#/definitions/Timestamp"
         },
@@ -2690,6 +2700,11 @@ func init() {
             "schema": {
               "type": "object",
               "properties": {
+                "connection_mirroring": {
+                  "description": "Enable BIG-IP connection mirroring for high availability failover.\n**Note: This option currently only affects endpoints for services with provider type ` + "`" + `tenant` + "`" + `.**\n",
+                  "type": "boolean",
+                  "x-nullable": true
+                },
                 "description": {
                   "description": "Description of the endpoint.",
                   "type": "string",
@@ -3988,6 +4003,11 @@ func init() {
     "Endpoint": {
       "type": "object",
       "properties": {
+        "connection_mirroring": {
+          "description": "**Note: This option currently only affects endpoints for services with provider type ` + "`" + `tenant` + "`" + `.**\n\nEnable BIG-IP connection mirroring for high availability failover.\nWhen enabled, connection and persistence information is mirrored to\nthe standby device in a DSC configuration.\nEnabling mirroring can increase latency of the endpoint.\n",
+          "type": "boolean",
+          "default": false
+        },
         "created_at": {
           "$ref": "#/definitions/Timestamp"
         },

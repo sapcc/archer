@@ -17,10 +17,11 @@ import (
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
 	th "github.com/gophercloud/gophercloud/v2/testhelper"
 	"github.com/gophercloud/gophercloud/v2/testhelper/fixture"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/sapcc/archer/internal/agent/ni/haproxy"
 	"github.com/sapcc/archer/internal/agent/ni/models"
 	"github.com/sapcc/archer/internal/config"
-	"github.com/stretchr/testify/assert"
 )
 
 // setupTestServer creates a test HTTP server for mocking OpenStack API

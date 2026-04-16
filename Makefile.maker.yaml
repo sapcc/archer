@@ -83,7 +83,7 @@ verbatim: |
       swagger generate model --copyright-file COPYRIGHT.txt
       swagger generate client --copyright-file COPYRIGHT.txt
   markdown:
-      swagger generate markdown --copyright-file COPYRIGHT.txt --output= docs/api.md
+      swagger generate markdown --copyright-file COPYRIGHT.txt --output=docs/api.md
 
 coverageTest:
   only: '/internal'

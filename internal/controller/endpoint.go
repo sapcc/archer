@@ -139,10 +139,10 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, tok
 
 	// Insert endpoint
 	sql, args = db.Insert("endpoint").
-		Columns("service_id", "project_id", "tags", "name", "description", "status").
+		Columns("service_id", "project_id", "tags", "name", "description", "status", "connection_mirroring").
 		Values(params.Body.ServiceID, params.Body.ProjectID, internal.Unique(params.Body.Tags),
-			params.Body.Name, params.Body.Description, status).
-		Suffix("RETURNING id, name, description, service_id, project_id, tags, created_at, updated_at, status").
+			params.Body.Name, params.Body.Description, status, params.Body.ConnectionMirroring).
+		Suffix("RETURNING id, name, description, service_id, project_id, tags, created_at, updated_at, status, connection_mirroring").
 		MustSql()
 	if err = pgxscan.Get(ctx, tx, &endpointResponse, sql, args...); err != nil {
 		panic(err)
@@ -291,6 +291,7 @@ func (c *Controller) PutEndpointEndpointIDHandler(params endpoint.PutEndpointEnd
 		Set("tags", sq.Expr("COALESCE(?, tags)", internal.UniqueOrNil(params.Body.Tags))).
 		Set("name", sq.Expr("COALESCE(?, name)", params.Body.Name)).
 		Set("description", sq.Expr("COALESCE(?, description)", params.Body.Description)).
+		Set("connection_mirroring", sq.Expr("COALESCE(?, connection_mirroring)", params.Body.ConnectionMirroring)).
 		Set("updated_at", sq.Expr("NOW()")).
 		Set("status", sq.Expr("CASE WHEN status = ? THEN ? ELSE status END",
 			models.EndpointStatusAVAILABLE, models.EndpointStatusPENDINGUPDATE)).
