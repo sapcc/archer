@@ -327,4 +327,15 @@ var Migrations = mgx.Migrations(
 		`)
 		return err
 	}),
+	mgx.NewMigration("add_connection_mirroring", func(ctx context.Context, commands mgx.Commands) error {
+		_, err := commands.Exec(ctx, `
+			ALTER TABLE endpoint ADD COLUMN connection_mirroring BOOLEAN NOT NULL DEFAULT false;
+
+			-- Enable mirroring for all existing F5 (tenant provider) endpoints
+			-- to preserve current behavior where Mirroring was hardcoded to "L4"
+			UPDATE endpoint SET connection_mirroring = true
+			WHERE service_id IN (SELECT id FROM service WHERE provider = 'tenant');
+		`)
+		return err
+	}),
 )

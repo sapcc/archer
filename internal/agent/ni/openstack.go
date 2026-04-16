@@ -12,10 +12,11 @@ import (
 	"github.com/gophercloud/gophercloud/v2/openstack"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
 	"github.com/gophercloud/utils/v2/openstack/clientconfig"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/sapcc/archer/internal/agent/ni/haproxy"
 	"github.com/sapcc/archer/internal/agent/ni/models"
 	"github.com/sapcc/archer/internal/agent/ni/netlink"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal/config"
 )

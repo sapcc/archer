@@ -735,6 +735,12 @@ paths:
                 example: An example of an endpoint.
                 maxLength: 255
                 x-nullable: true
+              connection_mirroring:
+                type: boolean
+                description: |
+                  Enable BIG-IP connection mirroring for high availability failover.
+                  **Note: This option currently only affects endpoints for services with provider type `tenant`.**
+                x-nullable: true
       responses:
         200:
           description: Endpoint
@@ -1574,6 +1580,16 @@ definitions:
           maxLength: 128
       status:
         $ref: "#/definitions/EndpointStatus"
+      connection_mirroring:
+        type: boolean
+        default: false
+        description: |
+          **Note: This option currently only affects endpoints for services with provider type `tenant`.**
+
+          Enable BIG-IP connection mirroring for high availability failover.
+          When enabled, connection and persistence information is mirrored to
+          the standby device in a DSC configuration.
+          Enabling mirroring can increase latency of the endpoint.
       created_at:
         $ref: "#/definitions/Timestamp"
       updated_at:

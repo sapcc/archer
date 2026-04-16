@@ -526,3 +526,34 @@ func (t *SuiteTest) TestEndpointDelete() {
 	assert.NotNil(t.T(), p2)
 	assert.Equal(t.T(), models.EndpointStatusPENDINGDELETE, p2.Status)
 }
+
+func (t *SuiteTest) TestEndpointPutConnectionMirroring() {
+	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
+
+	// create endpoint (default connection_mirroring is false)
+	payload := t.createEndpoint(t.createService(testService), models.EndpointTarget{
+		Network: &network,
+	})
+	assert.Equal(t.T(), false, *payload.ConnectionMirroring)
+
+	// set endpoint to AVAILABLE status to test the PENDING_UPDATE transition
+	_, err := t.c.pool.Exec(context.Background(),
+		"UPDATE endpoint SET status = $1 WHERE id = $2",
+		models.EndpointStatusAVAILABLE, payload.ID)
+	assert.NoError(t.T(), err)
+
+	// update connection_mirroring to true
+	res := t.c.PutEndpointEndpointIDHandler(
+		endpoint.PutEndpointEndpointIDParams{HTTPRequest: &http.Request{}, EndpointID: payload.ID,
+			Body: endpoint.PutEndpointEndpointIDBody{ConnectionMirroring: conv.Pointer(true)}},
+		nil)
+	assert.IsType(t.T(), &endpoint.PutEndpointEndpointIDOK{}, res)
+	assert.Equal(t.T(), true, *res.(*endpoint.PutEndpointEndpointIDOK).Payload.ConnectionMirroring)
+
+	// verify status changed to PENDING_UPDATE
+	res = t.c.GetEndpointEndpointIDHandler(
+		endpoint.GetEndpointEndpointIDParams{HTTPRequest: &http.Request{}, EndpointID: payload.ID},
+		nil)
+	assert.IsType(t.T(), &endpoint.GetEndpointEndpointIDOK{}, res)
+	assert.Equal(t.T(), models.EndpointStatusPENDINGUPDATE, res.(*endpoint.GetEndpointEndpointIDOK).Payload.Status)
+}

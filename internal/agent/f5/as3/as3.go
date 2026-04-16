@@ -30,6 +30,13 @@ func GetEndpointTenantName(networkId strfmt.UUID) string {
 	return fmt.Sprintf("net-%s", networkId)
 }
 
+func getMirroringValue(enabled bool) string {
+	if enabled {
+		return "L4"
+	}
+	return "none"
+}
+
 func GetAS3Declaration(tenants map[string]Tenant) AS3 {
 	return AS3{
 		Class:   "AS3",
@@ -157,7 +164,7 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 				Label:               endpointName,
 				Class:               class,
 				IRules:              iRules,
-				Mirroring:           "L4",
+				Mirroring:           getMirroringValue(endpoint.ConnectionMirroring),
 				PersistenceMethods:  []string{},
 				Pool:                Pointer{BigIP: pool},
 				ProfileL4:           l4profile,

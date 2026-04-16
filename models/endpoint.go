@@ -38,6 +38,15 @@ import (
 // swagger:model Endpoint
 type Endpoint struct {
 
+	// **Note: This option currently only affects endpoints for services with provider type `tenant`.**
+	//
+	// Enable BIG-IP connection mirroring for high availability failover.
+	// When enabled, connection and persistence information is mirrored to
+	// the standby device in a DSC configuration.
+	// Enabling mirroring can increase latency of the endpoint.
+	//
+	ConnectionMirroring *bool `json:"connection_mirroring,omitempty"`
+
 	// created at
 	CreatedAt time.Time `json:"created_at,omitempty"`
 

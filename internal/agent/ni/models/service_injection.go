@@ -5,6 +5,7 @@ package models
 
 import (
 	"github.com/go-openapi/strfmt"
+
 	"github.com/sapcc/archer/models"
 )
 
