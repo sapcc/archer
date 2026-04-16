@@ -102,14 +102,15 @@ func (*EndpointShow) Execute(_ []string) error {
 }
 
 type EndpointCreate struct {
-	Name        string   `short:"n" long:"name" description:"New endpoint name"`
-	Description string   `long:"description" description:"Set endpoint description"`
-	Tags        []string `long:"tag" description:"Tag to be added to the endpoint (repeat option to set multiple tags)"`
-	Network     *string  `long:"network" description:"Endpoint network (name or ID)"`
-	Port        *string  `long:"port" description:"Endpoint port (ID)"`
-	Subnet      *string  `long:"subnet" description:"Endpoint subnet (ID)"`
-	Wait        bool     `long:"wait" description:"Wait for endpoint to be ready"`
-	Positional  struct {
+	Name                string   `short:"n" long:"name" description:"New endpoint name"`
+	Description         string   `long:"description" description:"Set endpoint description"`
+	Tags                []string `long:"tag" description:"Tag to be added to the endpoint (repeat option to set multiple tags)"`
+	Network             *string  `long:"network" description:"Endpoint network (name or ID)"`
+	Port                *string  `long:"port" description:"Endpoint port (ID)"`
+	Subnet              *string  `long:"subnet" description:"Endpoint subnet (ID)"`
+	ConnectionMirroring bool     `long:"connection-mirroring" description:"Enable BIG-IP connection mirroring for HA failover (only affects provider type 'tenant')"`
+	Wait                bool     `long:"wait" description:"Wait for endpoint to be ready"`
+	Positional          struct {
 		Service string `positional-arg-name:"service" description:"Service to reference (name or ID)"`
 	} `positional-args:"yes" required:"yes"`
 }
@@ -137,11 +138,18 @@ func (*EndpointCreate) Execute(_ []string) error {
 		subnetID = &id
 	}
 
+	var connectionMirroring *bool
+	if EndpointOptions.EndpointCreate.ConnectionMirroring {
+		t := true
+		connectionMirroring = &t
+	}
+
 	sv := models.Endpoint{
-		Name:        EndpointOptions.EndpointCreate.Name,
-		Description: EndpointOptions.EndpointCreate.Description,
-		ServiceID:   serviceID,
-		Tags:        EndpointOptions.EndpointCreate.Tags,
+		Name:                EndpointOptions.EndpointCreate.Name,
+		Description:         EndpointOptions.EndpointCreate.Description,
+		ServiceID:           serviceID,
+		Tags:                EndpointOptions.EndpointCreate.Tags,
+		ConnectionMirroring: connectionMirroring,
 		Target: models.EndpointTarget{
 			Network: networkID,
 			Port:    portID,
@@ -195,11 +203,13 @@ type EndpointSet struct {
 	Positional struct {
 		Endpoint string `positional-arg-name:"endpoint" description:"Endpoint to set (name or ID)"`
 	} `positional-args:"yes" required:"yes"`
-	Name        *string  `short:"n" long:"name" description:"New endpoint name"`
-	Description *string  `long:"description" description:"Set endpoint description"`
-	NoTags      bool     `long:"no-tag" description:"Clear tags associated with the endpoint. Specify both --tag and --no-tag to overwrite current tags"`
-	Tags        []string `long:"tag" description:"Tag to be added to the endpoint (repeat option to set multiple tags)"`
-	Wait        bool     `long:"wait" description:"Wait for endpoint to be ready"`
+	Name                  *string  `short:"n" long:"name" description:"New endpoint name"`
+	Description           *string  `long:"description" description:"Set endpoint description"`
+	ConnectionMirroring   bool     `long:"connection-mirroring" description:"Enable BIG-IP connection mirroring for HA failover (only affects provider type 'tenant')"`
+	NoConnectionMirroring bool     `long:"no-connection-mirroring" description:"Disable BIG-IP connection mirroring"`
+	NoTags                bool     `long:"no-tag" description:"Clear tags associated with the endpoint. Specify both --tag and --no-tag to overwrite current tags"`
+	Tags                  []string `long:"tag" description:"Tag to be added to the endpoint (repeat option to set multiple tags)"`
+	Wait                  bool     `long:"wait" description:"Wait for endpoint to be ready"`
 }
 
 func (*EndpointSet) Execute(_ []string) error {
@@ -223,13 +233,23 @@ func (*EndpointSet) Execute(_ []string) error {
 		tags = append(EndpointOptions.EndpointSet.Tags, resp.Payload.Tags...)
 	}
 
+	var connectionMirroring *bool
+	if EndpointOptions.EndpointSet.ConnectionMirroring {
+		t := true
+		connectionMirroring = &t
+	} else if EndpointOptions.EndpointSet.NoConnectionMirroring {
+		t := false
+		connectionMirroring = &t
+	}
+
 	params := endpoint.
 		NewPutEndpointEndpointIDParams().
 		WithEndpointID(endpointID).
 		WithBody(endpoint.PutEndpointEndpointIDBody{
-			Name:        EndpointOptions.EndpointSet.Name,
-			Description: EndpointOptions.EndpointSet.Description,
-			Tags:        tags,
+			Name:                EndpointOptions.EndpointSet.Name,
+			Description:         EndpointOptions.EndpointSet.Description,
+			ConnectionMirroring: connectionMirroring,
+			Tags:                tags,
 		})
 	resp, err := ArcherClient.Endpoint.PutEndpointEndpointID(params, nil)
 	if err != nil {
