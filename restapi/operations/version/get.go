@@ -48,7 +48,11 @@ func NewGet(ctx *middleware.Context, handler GetHandler) *Get {
 /*
 	Get swagger:route GET / Version get
 
-Shows details for Archer API
+# Shows Keystone-compatible version information for Archer API
+
+Returns version information in a Keystone-compatible format.
+The response follows the OpenStack version discovery format with
+versions array containing version objects with id, status, and links.
 */
 type Get struct {
 	Context *middleware.Context

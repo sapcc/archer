@@ -31,40 +31,39 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// Version Keystone-compatible version information
+// Versions Keystone-compatible versions response wrapper with backward-compatible root fields
 //
-// swagger:model Version
-type Version struct {
+// swagger:model Versions
+type Versions struct {
 
-	// capabilities
+	// Supported capabilities (deprecated, use versions[].capabilities)
 	// Example: ["pagination","sort"]
 	Capabilities []string `json:"capabilities"`
 
-	// Version identifier
-	// Example: v1
-	ID string `json:"id,omitempty"`
-
-	// links
+	// API links (deprecated, use versions[].links)
 	Links []*Link `json:"links"`
 
-	// Version status (CURRENT, SUPPORTED, DEPRECATED, EXPERIMENTAL)
-	// Example: CURRENT
-	Status string `json:"status,omitempty"`
-
-	// Last update of the running version
+	// Last update of the running version (deprecated, use versions[].updated)
 	// Example: 2018-09-30T00:00:00Z
 	Updated string `json:"updated,omitempty"`
 
-	// Version of Archer (max microversion)
+	// Version of Archer (deprecated, use versions[].version)
 	// Example: 1.3.0
 	Version string `json:"version,omitempty"`
+
+	// Keystone-compatible versions array
+	Versions []*Version `json:"versions"`
 }
 
-// Validate validates this version
-func (m *Version) Validate(formats strfmt.Registry) error {
+// Validate validates this versions
+func (m *Versions) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateLinks(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateVersions(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -74,7 +73,7 @@ func (m *Version) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Version) validateLinks(formats strfmt.Registry) error {
+func (m *Versions) validateLinks(formats strfmt.Registry) error {
 	if swag.IsZero(m.Links) { // not required
 		return nil
 	}
@@ -104,11 +103,45 @@ func (m *Version) validateLinks(formats strfmt.Registry) error {
 	return nil
 }
 
-// ContextValidate validate this version based on the context it is used
-func (m *Version) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+func (m *Versions) validateVersions(formats strfmt.Registry) error {
+	if swag.IsZero(m.Versions) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.Versions); i++ {
+		if swag.IsZero(m.Versions[i]) { // not required
+			continue
+		}
+
+		if m.Versions[i] != nil {
+			if err := m.Versions[i].Validate(formats); err != nil {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
+					return ve.ValidateName("versions" + "." + strconv.Itoa(i))
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
+					return ce.ValidateName("versions" + "." + strconv.Itoa(i))
+				}
+
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// ContextValidate validate this versions based on the context it is used
+func (m *Versions) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.contextValidateLinks(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateVersions(ctx, formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -118,7 +151,7 @@ func (m *Version) ContextValidate(ctx context.Context, formats strfmt.Registry) 
 	return nil
 }
 
-func (m *Version) contextValidateLinks(ctx context.Context, formats strfmt.Registry) error {
+func (m *Versions) contextValidateLinks(ctx context.Context, formats strfmt.Registry) error {
 
 	for i := 0; i < len(m.Links); i++ {
 
@@ -147,8 +180,37 @@ func (m *Version) contextValidateLinks(ctx context.Context, formats strfmt.Regis
 	return nil
 }
 
+func (m *Versions) contextValidateVersions(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.Versions); i++ {
+
+		if m.Versions[i] != nil {
+
+			if swag.IsZero(m.Versions[i]) { // not required
+				return nil
+			}
+
+			if err := m.Versions[i].ContextValidate(ctx, formats); err != nil {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
+					return ve.ValidateName("versions" + "." + strconv.Itoa(i))
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
+					return ce.ValidateName("versions" + "." + strconv.Itoa(i))
+				}
+
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
 // MarshalBinary interface implementation
-func (m *Version) MarshalBinary() ([]byte, error) {
+func (m *Versions) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -156,8 +218,8 @@ func (m *Version) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *Version) UnmarshalBinary(b []byte) error {
-	var res Version
+func (m *Versions) UnmarshalBinary(b []byte) error {
+	var res Versions
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

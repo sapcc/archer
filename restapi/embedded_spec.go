@@ -67,15 +67,16 @@ func init() {
     "/": {
       "get": {
         "security": [],
+        "description": "Returns version information in a Keystone-compatible format.\nThe response follows the OpenStack version discovery format with\nversions array containing version objects with id, status, and links.\n",
         "tags": [
           "Version"
         ],
-        "summary": "Shows details for Archer API",
+        "summary": "Shows Keystone-compatible version information for Archer API",
         "responses": {
           "200": {
-            "description": "Version",
+            "description": "Versions",
             "schema": {
-              "$ref": "#/definitions/Version"
+              "$ref": "#/definitions/Versions"
             }
           }
         }
@@ -2160,6 +2161,7 @@ func init() {
       "example": "2023-03-31T18:37:54.581099Z"
     },
     "Version": {
+      "description": "Keystone-compatible version information",
       "type": "object",
       "properties": {
         "capabilities": {
@@ -2172,11 +2174,21 @@ func init() {
             "sort"
           ]
         },
+        "id": {
+          "description": "Version identifier",
+          "type": "string",
+          "example": "v1"
+        },
         "links": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/Link"
           }
+        },
+        "status": {
+          "description": "Version status (CURRENT, SUPPORTED, DEPRECATED, EXPERIMENTAL)",
+          "type": "string",
+          "example": "CURRENT"
         },
         "updated": {
           "description": "Last update of the running version",
@@ -2184,9 +2196,50 @@ func init() {
           "example": "2018-09-30T00:00:00Z"
         },
         "version": {
-          "description": "Version of Archer",
+          "description": "Version of Archer (max microversion)",
           "type": "string",
           "example": "1.3.0"
+        }
+      }
+    },
+    "Versions": {
+      "description": "Keystone-compatible versions response wrapper with backward-compatible root fields",
+      "type": "object",
+      "properties": {
+        "capabilities": {
+          "description": "Supported capabilities (deprecated, use versions[].capabilities)",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "pagination",
+            "sort"
+          ]
+        },
+        "links": {
+          "description": "API links (deprecated, use versions[].links)",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Link"
+          }
+        },
+        "updated": {
+          "description": "Last update of the running version (deprecated, use versions[].updated)",
+          "type": "string",
+          "example": "2018-09-30T00:00:00Z"
+        },
+        "version": {
+          "description": "Version of Archer (deprecated, use versions[].version)",
+          "type": "string",
+          "example": "1.3.0"
+        },
+        "versions": {
+          "description": "Keystone-compatible versions array",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Version"
+          }
         }
       }
     }
@@ -2347,15 +2400,16 @@ func init() {
     "/": {
       "get": {
         "security": [],
+        "description": "Returns version information in a Keystone-compatible format.\nThe response follows the OpenStack version discovery format with\nversions array containing version objects with id, status, and links.\n",
         "tags": [
           "Version"
         ],
-        "summary": "Shows details for Archer API",
+        "summary": "Shows Keystone-compatible version information for Archer API",
         "responses": {
           "200": {
-            "description": "Version",
+            "description": "Versions",
             "schema": {
-              "$ref": "#/definitions/Version"
+              "$ref": "#/definitions/Versions"
             }
           }
         }
@@ -4596,6 +4650,7 @@ func init() {
       "example": "2023-03-31T18:37:54.581099Z"
     },
     "Version": {
+      "description": "Keystone-compatible version information",
       "type": "object",
       "properties": {
         "capabilities": {
@@ -4608,11 +4663,21 @@ func init() {
             "sort"
           ]
         },
+        "id": {
+          "description": "Version identifier",
+          "type": "string",
+          "example": "v1"
+        },
         "links": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/Link"
           }
+        },
+        "status": {
+          "description": "Version status (CURRENT, SUPPORTED, DEPRECATED, EXPERIMENTAL)",
+          "type": "string",
+          "example": "CURRENT"
         },
         "updated": {
           "description": "Last update of the running version",
@@ -4620,9 +4685,50 @@ func init() {
           "example": "2018-09-30T00:00:00Z"
         },
         "version": {
-          "description": "Version of Archer",
+          "description": "Version of Archer (max microversion)",
           "type": "string",
           "example": "1.3.0"
+        }
+      }
+    },
+    "Versions": {
+      "description": "Keystone-compatible versions response wrapper with backward-compatible root fields",
+      "type": "object",
+      "properties": {
+        "capabilities": {
+          "description": "Supported capabilities (deprecated, use versions[].capabilities)",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "pagination",
+            "sort"
+          ]
+        },
+        "links": {
+          "description": "API links (deprecated, use versions[].links)",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Link"
+          }
+        },
+        "updated": {
+          "description": "Last update of the running version (deprecated, use versions[].updated)",
+          "type": "string",
+          "example": "2018-09-30T00:00:00Z"
+        },
+        "version": {
+          "description": "Version of Archer (deprecated, use versions[].version)",
+          "type": "string",
+          "example": "1.3.0"
+        },
+        "versions": {
+          "description": "Keystone-compatible versions array",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Version"
+          }
         }
       }
     }
