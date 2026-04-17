@@ -56,7 +56,7 @@ func init() {
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "version": "2.0.0",
+    "version": "2.2.1",
     "x-logo": {
       "altText": "Archer logo",
       "backgroundColor": "#FFFFFF",
@@ -2023,7 +2023,7 @@ func init() {
         "require_approval": {
           "description": "Require explicit project approval for the service owner.",
           "type": "boolean",
-          "default": true
+          "default": false
         },
         "status": {
           "$ref": "#/definitions/ServiceStatus"
@@ -2389,7 +2389,7 @@ func init() {
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "version": "2.0.0",
+    "version": "2.2.1",
     "x-logo": {
       "altText": "Archer logo",
       "backgroundColor": "#FFFFFF",
@@ -4511,7 +4511,7 @@ func init() {
         "require_approval": {
           "description": "Require explicit project approval for the service owner.",
           "type": "boolean",
-          "default": true
+          "default": false
         },
         "status": {
           "$ref": "#/definitions/ServiceStatus"

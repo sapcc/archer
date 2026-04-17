@@ -138,18 +138,12 @@ func (*EndpointCreate) Execute(_ []string) error {
 		subnetID = &id
 	}
 
-	var connectionMirroring *bool
-	if EndpointOptions.EndpointCreate.ConnectionMirroring {
-		t := true
-		connectionMirroring = &t
-	}
-
 	sv := models.Endpoint{
 		Name:                EndpointOptions.EndpointCreate.Name,
 		Description:         EndpointOptions.EndpointCreate.Description,
 		ServiceID:           serviceID,
 		Tags:                EndpointOptions.EndpointCreate.Tags,
-		ConnectionMirroring: connectionMirroring,
+		ConnectionMirroring: boolFlag(EndpointOptions.EndpointCreate.ConnectionMirroring, false),
 		Target: models.EndpointTarget{
 			Network: networkID,
 			Port:    portID,
@@ -233,22 +227,13 @@ func (*EndpointSet) Execute(_ []string) error {
 		tags = append(EndpointOptions.EndpointSet.Tags, resp.Payload.Tags...)
 	}
 
-	var connectionMirroring *bool
-	if EndpointOptions.EndpointSet.ConnectionMirroring {
-		t := true
-		connectionMirroring = &t
-	} else if EndpointOptions.EndpointSet.NoConnectionMirroring {
-		t := false
-		connectionMirroring = &t
-	}
-
 	params := endpoint.
 		NewPutEndpointEndpointIDParams().
 		WithEndpointID(endpointID).
 		WithBody(endpoint.PutEndpointEndpointIDBody{
 			Name:                EndpointOptions.EndpointSet.Name,
 			Description:         EndpointOptions.EndpointSet.Description,
-			ConnectionMirroring: connectionMirroring,
+			ConnectionMirroring: boolFlag(EndpointOptions.EndpointSet.ConnectionMirroring, EndpointOptions.EndpointSet.NoConnectionMirroring),
 			Tags:                tags,
 		})
 	resp, err := ArcherClient.Endpoint.PutEndpointEndpointID(params, nil)

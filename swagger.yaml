@@ -4,7 +4,7 @@
 
 swagger: "2.0"
 info:
-  version: "2.0.0"
+  version: "2.2.1"
   title: "🏹 Archer"
   contact:
     name: SAP SE / Converged Cloud
@@ -1313,7 +1313,7 @@ definitions:
       require_approval:
         type: boolean
         description: Require explicit project approval for the service owner.
-        default: true
+        default: false
       visibility:
         type: string
         description: Set global visibility of the service. For `private` visibility, RBAC policies can extend the visibility to specific projects.
