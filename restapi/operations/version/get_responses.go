@@ -33,7 +33,7 @@ import (
 const GetOKCode int = 200
 
 /*
-GetOK Version
+GetOK Versions
 
 swagger:response getOK
 */
@@ -42,7 +42,7 @@ type GetOK struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Version `json:"body,omitempty"`
+	Payload *models.Versions `json:"body,omitempty"`
 }
 
 // NewGetOK creates GetOK with default headers values
@@ -52,13 +52,13 @@ func NewGetOK() *GetOK {
 }
 
 // WithPayload adds the payload to the get o k response
-func (o *GetOK) WithPayload(payload *models.Version) *GetOK {
+func (o *GetOK) WithPayload(payload *models.Versions) *GetOK {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the get o k response
-func (o *GetOK) SetPayload(payload *models.Version) {
+func (o *GetOK) SetPayload(payload *models.Versions) {
 	o.Payload = payload
 }
 

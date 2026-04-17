@@ -60,10 +60,10 @@ func NewGetOK() *GetOK {
 /*
 GetOK describes a response with status code 200, with default header values.
 
-Version
+Versions
 */
 type GetOK struct {
-	Payload *models.Version
+	Payload *models.Versions
 }
 
 // IsSuccess returns true when this get o k response has a 2xx status code
@@ -106,13 +106,13 @@ func (o *GetOK) String() string {
 	return fmt.Sprintf("[GET /][%d] getOK %s", 200, payload)
 }
 
-func (o *GetOK) GetPayload() *models.Version {
+func (o *GetOK) GetPayload() *models.Versions {
 	return o.Payload
 }
 
 func (o *GetOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models.Version)
+	o.Payload = new(models.Versions)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {

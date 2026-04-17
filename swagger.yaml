@@ -193,12 +193,16 @@ paths:
       security: []
       tags:
         - Version
-      summary: Shows details for Archer API
+      summary: Shows Keystone-compatible version information for Archer API
+      description: |
+        Returns version information in a Keystone-compatible format.
+        The response follows the OpenStack version discovery format with
+        versions array containing version objects with id, status, and links.
       responses:
         200:
-          description: Version
+          description: Versions
           schema:
-            $ref: "#/definitions/Version"
+            $ref: "#/definitions/Versions"
   /service:
     get:
       tags:
@@ -1714,14 +1718,23 @@ definitions:
         x-omitempty: false
   Version:
     type: object
+    description: Keystone-compatible version information
     properties:
+      id:
+        type: string
+        description: Version identifier
+        example: v1
+      status:
+        type: string
+        description: Version status (CURRENT, SUPPORTED, DEPRECATED, EXPERIMENTAL)
+        example: CURRENT
       updated:
         type: string
         description: Last update of the running version
         example: "2018-09-30T00:00:00Z"
       version:
         type: string
-        description: Version of Archer
+        description: Version of Archer (max microversion)
         example: 1.3.0
       links:
         type: array
@@ -1729,6 +1742,35 @@ definitions:
           $ref: "#/definitions/Link"
       capabilities:
         type: array
+        example: ["pagination", "sort"]
+        items:
+          type: string
+  Versions:
+    type: object
+    description: Keystone-compatible versions response wrapper with backward-compatible root fields
+    properties:
+      versions:
+        type: array
+        description: Keystone-compatible versions array
+        items:
+          $ref: "#/definitions/Version"
+      # Backward-compatible root-level fields (deprecated, use versions array instead)
+      updated:
+        type: string
+        description: Last update of the running version (deprecated, use versions[].updated)
+        example: "2018-09-30T00:00:00Z"
+      version:
+        type: string
+        description: Version of Archer (deprecated, use versions[].version)
+        example: 1.3.0
+      links:
+        type: array
+        description: API links (deprecated, use versions[].links)
+        items:
+          $ref: "#/definitions/Link"
+      capabilities:
+        type: array
+        description: Supported capabilities (deprecated, use versions[].capabilities)
         example: ["pagination", "sort"]
         items:
           type: string

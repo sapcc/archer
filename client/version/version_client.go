@@ -78,7 +78,12 @@ type ClientService interface {
 }
 
 /*
-Get shows details for archer API
+	Get shows keystone compatible version information for archer API
+
+	Returns version information in a Keystone-compatible format.
+
+The response follows the OpenStack version discovery format with
+versions array containing version objects with id, status, and links.
 */
 func (a *Client) Get(params *GetParams, opts ...ClientOption) (*GetOK, error) {
 	// NOTE: parameters are not validated before sending
