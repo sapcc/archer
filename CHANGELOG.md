@@ -13,11 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `--no-proxy-protocol` flag to `service create` and `service set` commands
+
 ### Fixed
 
 - F5 agent: tolerate missing Neutron ports when endpoints are pending deletion/rejection
 - Agent: fix DB notification thread reconnection - properly re-acquire connection when lost
 - Agent: clarify log field names (`job_id`, `endpoint_ids`) for better debugging
+- `service create` no longer defaults `require_approval`, `enabled`, and `proxy_protocol` when flags are not specified; the server defaults now apply
 
 ## [2.2.0] - 2026-04-16
 

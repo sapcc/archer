@@ -84,6 +84,18 @@ func shouldDisableColor(w io.Writer) bool {
 	return true
 }
 
+// boolFlag returns a *bool based on a pair of boolean flags (e.g., --enable/--disable).
+// Returns nil if neither flag is set, allowing the server default to apply.
+func boolFlag(enable, disable bool) *bool {
+	if enable {
+		return new(true)
+	}
+	if disable {
+		return new(false)
+	}
+	return nil
+}
+
 func SetupClient() {
 	Table.SetOutputMirror(os.Stdout)
 

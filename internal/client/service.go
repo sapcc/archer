@@ -100,6 +100,7 @@ type ServiceCreate struct {
 	Port              []int32       `long:"port" description:"Port exposed by the service (repeat option to set multiple ports)" required:"true"`
 	Protocol          *string       `long:"protocol" description:"Protocol type of the service" choice:"TCP" choice:"HTTP"`
 	ProxyProtocol     bool          `long:"proxy-protocol" description:"Enable proxy protocol v2."`
+	NoProxyProtocol   bool          `long:"no-proxy-protocol" description:"Disable proxy protocol v2."`
 	RequireApproval   bool          `long:"require-approval" description:"Require explicit project approval for the service owner."`
 	NoRequireApproval bool          `long:"no-require-approval" description:"Disable require approval for the service owner."`
 	Tags              []string      `long:"tag" description:"Tag to be added to the service (repeat option to set multiple tags)"`
@@ -125,20 +126,17 @@ func (*ServiceCreate) Execute(_ []string) error {
 		networkID = &id
 	}
 
-	enabled := ServiceOptions.ServiceCreate.Enable || !ServiceOptions.ServiceCreate.Disable
-	requireApproval := ServiceOptions.ServiceCreate.RequireApproval || !ServiceOptions.ServiceCreate.NoRequireApproval
-
 	sv := models.Service{
 		Name:             ServiceOptions.ServiceCreate.Name,
 		Description:      ServiceOptions.ServiceCreate.Description,
 		Provider:         ServiceOptions.ServiceCreate.Provider,
-		Enabled:          &enabled,
+		Enabled:          boolFlag(ServiceOptions.ServiceCreate.Enable, ServiceOptions.ServiceCreate.Disable),
 		NetworkID:        networkID,
 		IPAddresses:      ServiceOptions.ServiceCreate.IPAddresses,
 		Ports:            ServiceOptions.ServiceCreate.Port,
 		Protocol:         ServiceOptions.ServiceCreate.Protocol,
-		ProxyProtocol:    &ServiceOptions.ServiceCreate.ProxyProtocol,
-		RequireApproval:  &requireApproval,
+		ProxyProtocol:    boolFlag(ServiceOptions.ServiceCreate.ProxyProtocol, ServiceOptions.ServiceCreate.NoProxyProtocol),
+		RequireApproval:  boolFlag(ServiceOptions.ServiceCreate.RequireApproval, ServiceOptions.ServiceCreate.NoRequireApproval),
 		Tags:             ServiceOptions.ServiceCreate.Tags,
 		Visibility:       ServiceOptions.ServiceCreate.Visibility,
 		AvailabilityZone: ServiceOptions.ServiceCreate.AvailabilityZone,
@@ -171,7 +169,8 @@ type ServiceSet struct {
 	Name              *string       `long:"name" description:"Service name"`
 	Port              []int32       `long:"port" description:"Port exposed by the service (repeat option to set multiple ports)"`
 	Protocol          *string       `long:"protocol" description:"Protocol type of the service" choice:"TCP" choice:"HTTP"`
-	ProxyProtocol     *bool         `long:"proxy-protocol" description:"Enable proxy protocol v2."`
+	ProxyProtocol     bool          `long:"proxy-protocol" description:"Enable proxy protocol v2."`
+	NoProxyProtocol   bool          `long:"no-proxy-protocol" description:"Disable proxy protocol v2."`
 	RequireApproval   bool          `long:"require-approval" description:"Require explicit project approval for the service owner."`
 	NoRequireApproval bool          `long:"no-require-approval" description:"Disable require approval for the service owner."`
 	Visibility        *string       `long:"visibility" description:"Set global visibility of the service. For private visibility, RBAC policies can extend the visibility to specific projects" choice:"private" choice:"public"`
@@ -204,31 +203,15 @@ func (*ServiceSet) Execute(_ []string) error {
 		tags = append(ServiceOptions.ServiceSet.Tags, resp.Payload.Tags...)
 	}
 
-	var enabled *bool
-	if ServiceOptions.ServiceSet.Enable {
-		t := true
-		enabled = &t
-	} else if ServiceOptions.ServiceSet.Disable {
-		t := false
-		enabled = &t
-	}
-	var requireApproval *bool
-	if ServiceOptions.ServiceSet.RequireApproval {
-		t := true
-		requireApproval = &t
-	} else if ServiceOptions.ServiceSet.NoRequireApproval {
-		t := false
-		requireApproval = &t
-	}
 	sv := models.ServiceUpdatable{
 		Description:     ServiceOptions.ServiceSet.Description,
-		Enabled:         enabled,
+		Enabled:         boolFlag(ServiceOptions.ServiceSet.Enable, ServiceOptions.ServiceSet.Disable),
 		IPAddresses:     ServiceOptions.ServiceSet.IPAddresses,
 		Name:            ServiceOptions.ServiceSet.Name,
 		Ports:           ServiceOptions.ServiceSet.Port,
 		Protocol:        ServiceOptions.ServiceSet.Protocol,
-		ProxyProtocol:   ServiceOptions.ServiceSet.ProxyProtocol,
-		RequireApproval: requireApproval,
+		ProxyProtocol:   boolFlag(ServiceOptions.ServiceSet.ProxyProtocol, ServiceOptions.ServiceSet.NoProxyProtocol),
+		RequireApproval: boolFlag(ServiceOptions.ServiceSet.RequireApproval, ServiceOptions.ServiceSet.NoRequireApproval),
 		Tags:            tags,
 		Visibility:      ServiceOptions.ServiceSet.Visibility,
 	}

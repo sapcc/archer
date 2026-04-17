@@ -525,7 +525,7 @@ func (t *SuiteTest) TestPutServiceServiceIDRejectEndpointsHandler() {
 	// create service with require approval
 	svcReqApproval := testService
 	svcReqApproval.RequireApproval = conv.Pointer(true)
-	serviceId := t.createService(testService)
+	serviceId := t.createService(svcReqApproval)
 
 	// create endpoint
 	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
