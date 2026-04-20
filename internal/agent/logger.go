@@ -46,10 +46,10 @@ func (d *DebugMonitor) RecordJobTiming(startTime, endTime time.Time, id uuid.UUI
 
 func (d *DebugMonitor) RecordJobTimingWithStatus(startTime, endTime time.Time, id uuid.UUID, name string, tags []string, status gocron.JobStatus, err error) {
 	logWithFields := log.WithFields(log.Fields{
-		"id":       id,
-		"tags":     tags,
-		"status":   status,
-		"duration": endTime.Sub(startTime),
+		"job_id":       id,
+		"endpoint_ids": tags,
+		"status":       status,
+		"duration":     endTime.Sub(startTime),
 	})
 
 	if err != nil {
