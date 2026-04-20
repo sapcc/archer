@@ -112,6 +112,12 @@ const GetPortListResponseFixture = `
 }
 `
 
+const EmptyPortListResponseFixture = `
+{
+	"ports": []
+}
+`
+
 var PostBigIPFixture = &as3.AS3{
 	Persist: false,
 	Class:   "AS3",
@@ -266,6 +272,9 @@ func TestAgent_DeleteEndpointWithDeletedNetwork(t *testing.T) {
 	config.Global.Agent.PhysicalNetwork = "physnet1"
 	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/"+network.String(), "GET",
 		"", GetNetworkResponseFixture, http.StatusNotFound)
+	// Ports are deleted along with network - return empty list
+	fixture.SetupHandler(t, fakeServer, "/v2.0/ports", "GET",
+		"", EmptyPortListResponseFixture, http.StatusOK)
 
 	ctx := context.Background()
 	dbMock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
