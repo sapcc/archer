@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- F5 agent: tolerate missing Neutron ports when endpoints are pending deletion/rejection
+- Agent: fix DB notification thread reconnection - properly re-acquire connection when lost
+- Agent: clarify log field names (`job_id`, `endpoint_ids`) for better debugging
+
 ## [2.2.0] - 2026-04-16
 
 ### Added
