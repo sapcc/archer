@@ -186,8 +186,6 @@ make markdown
 ```
 Do NOT use `go generate ./...` or other methods for swagger regeneration. The `make swagger` target ensures proper go-swagger configuration and consistent code generation. The `make markdown` target regenerates API documentation.
 
-**Version Bumping**: When releasing a new version, update the `version` field in `swagger.yaml` to match the release version (without the `v` prefix). For example, for release v2.2.0, set `version: "2.2.0"`.
-
 ### Interfaces and Mocks
 
 **IMPORTANT**: When modifying any Go interface, regenerate the mock implementations using:
@@ -223,10 +221,10 @@ This ensures test mocks stay in sync with interface definitions.
 1. Make code changes
 2. Run `make check` (validates everything)
 3. Review linter output and fix issues
-4. **If changes affect `cmd/archerctl/`**: Update `CHANGELOG.md` in the `[Unreleased]` section
+4. **Update `CHANGELOG.md`** in the `[Unreleased]` section for user-facing changes:
    - Follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format
    - Categorize under: Added, Changed, Deprecated, Removed, Fixed, or Security
-   - Verify format: `release-info CHANGELOG.md <version>`
+   - **Do NOT** manually bump version numbers or update `swagger.yaml` version - this is handled automatically by the release workflow
 5. Commit with meaningful message
 6. Run `make check` again before pushing
 
