@@ -7,51 +7,21 @@ name: Draft Release
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 jobs:
-  check-unreleased:
-    name: Check for unreleased changes
-    runs-on: ubuntu-latest
-    outputs:
-      has_unreleased: ${{ steps.check.outputs.has_unreleased }}
-      next_version: ${{ steps.version.outputs.next_version }}
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Read unreleased changelog
-        id: changelog
-        uses: mindsers/changelog-reader-action@v2
-        with:
-          version: Unreleased
-          path: ./CHANGELOG.md
-
-      - name: Check if unreleased section has content
-        id: check
-        run: |
-          if [ -n "${{ steps.changelog.outputs.changes }}" ]; then
-            echo "has_unreleased=true" >> $GITHUB_OUTPUT
-          else
-            echo "has_unreleased=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Get latest version and calculate next
-        id: version
-        if: steps.check.outputs.has_unreleased == 'true'
-        run: |
-          # Get latest version from changelog
-          LATEST=$(grep -m1 '## \[[0-9]' CHANGELOG.md | sed 's/.*\[\([0-9.]*\)\].*/\1/')
-          echo "Latest version: $LATEST"
-
-          # Calculate next patch version
-          IFS='.' read -r major minor patch <<< "$LATEST"
-          NEXT="${major}.${minor}.$((patch + 1))"
-          echo "Next version: $NEXT"
-          echo "next_version=$NEXT" >> $GITHUB_OUTPUT
-
   draft-release:
     name: Draft release PR
-    needs: check-unreleased
-    if: needs.check-unreleased.outputs.has_unreleased == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -59,76 +29,59 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Initialize git config
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
+      - name: Check for unreleased changes
+        id: unreleased
+        uses: release-flow/keep-a-changelog-action@main
+        with:
+          command: query
+          version: unreleased
 
-      - name: Check for existing release branch
-        id: check_branch
+      - name: Check if unreleased section has content
+        id: check
         run: |
-          if git ls-remote --exit-code --heads origin release/v${{ needs.check-unreleased.outputs.next_version }}; then
-            echo "exists=true" >> $GITHUB_OUTPUT
+          if [ -n "${{ steps.unreleased.outputs.release-notes }}" ]; then
+            echo "has_unreleased=true" >> $GITHUB_OUTPUT
           else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Create or update release branch
-        run: |
-          VERSION="${{ needs.check-unreleased.outputs.next_version }}"
-          BRANCH="release/v${VERSION}"
-
-          if [ "${{ steps.check_branch.outputs.exists }}" == "true" ]; then
-            # Update existing branch by rebasing on main
-            git fetch origin ${BRANCH}
-            git checkout ${BRANCH}
-            git reset --hard origin/main
-          else
-            # Create new branch
-            git checkout -b ${BRANCH}
+            echo "has_unreleased=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Update changelog
-        uses: thomaseizinger/keep-a-changelog-new-release@v3
+        id: bump
+        if: steps.check.outputs.has_unreleased == 'true'
+        uses: release-flow/keep-a-changelog-action@main
         with:
-          tag: v${{ needs.check-unreleased.outputs.next_version }}
+          command: bump
+          version: ${{ inputs.version || 'patch' }}
+          keep-unreleased-section: true
 
       - name: Update swagger.yaml version
+        if: steps.check.outputs.has_unreleased == 'true'
         run: |
-          VERSION="${{ needs.check-unreleased.outputs.next_version }}"
+          VERSION="${{ steps.bump.outputs.version }}"
           sed -i "s/^  version: .*/  version: \"${VERSION}\"/" swagger.yaml
 
-      - name: Commit changes
-        id: commit
-        run: |
-          VERSION="${{ needs.check-unreleased.outputs.next_version }}"
-          git add CHANGELOG.md swagger.yaml
-          git commit --message "chore: release v${VERSION}"
-          echo "commit=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
-
-      - name: Push branch
-        run: |
-          VERSION="${{ needs.check-unreleased.outputs.next_version }}"
-          git push --force origin release/v${VERSION}
-
       - name: Create or update pull request
+        if: steps.check.outputs.has_unreleased == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
-          branch: release/v${{ needs.check-unreleased.outputs.next_version }}
+          branch: release/next
           base: main
-          title: "chore: release v${{ needs.check-unreleased.outputs.next_version }}"
+          commit-message: "chore: release v${{ steps.bump.outputs.version }}"
+          title: "chore: release v${{ steps.bump.outputs.version }}"
           body: |
-            ## Release v${{ needs.check-unreleased.outputs.next_version }}
+            ## Release v${{ steps.bump.outputs.version }}
 
             This PR was automatically created/updated because unreleased changes were detected in the changelog.
 
             **Changes in this release:**
             - Updated CHANGELOG.md with release date
-            - Updated swagger.yaml version to ${{ needs.check-unreleased.outputs.next_version }}
+            - Updated swagger.yaml version to ${{ steps.bump.outputs.version }}
 
-            **Commit:** ${{ steps.commit.outputs.commit }}
+            ### Release Notes
+
+            ${{ steps.bump.outputs.release-notes }}
 
             ---
 
-            Merging this PR will automatically create an annotated tag `v${{ needs.check-unreleased.outputs.next_version }}` on main.
+            Merging this PR will automatically create an annotated tag `v${{ steps.bump.outputs.version }}` on main.
           labels: release
