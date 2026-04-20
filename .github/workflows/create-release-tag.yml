@@ -13,7 +13,7 @@ jobs:
   create-tag:
     name: Create release tag
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/v')
+    if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'release/next'
     permissions:
       contents: write
     steps:
@@ -21,17 +21,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Extract version from branch name
+      - name: Get latest version from changelog
         id: version
-        run: |
-          BRANCH="${{ github.event.pull_request.head.ref }}"
-          VERSION="${BRANCH#release/}"
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+        uses: release-flow/keep-a-changelog-action@main
+        with:
+          command: query
+          version: latest
 
       - name: Create annotated tag
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
+          VERSION="v${{ steps.version.outputs.version }}"
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
+
+          # Check if tag already exists
+          if git rev-parse "${VERSION}" >/dev/null 2>&1; then
+            echo "Tag ${VERSION} already exists, skipping"
+            exit 0
+          fi
+
           git tag -a "${VERSION}" -m "Release ${VERSION}"
           git push origin "${VERSION}"

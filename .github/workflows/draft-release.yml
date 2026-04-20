@@ -30,24 +30,15 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Check for unreleased changes
-        id: unreleased
+        id: changelog
         uses: release-flow/keep-a-changelog-action@main
         with:
           command: query
-          version: unreleased
-
-      - name: Check if unreleased section has content
-        id: check
-        run: |
-          if [ -n "${{ steps.unreleased.outputs.release-notes }}" ]; then
-            echo "has_unreleased=true" >> $GITHUB_OUTPUT
-          else
-            echo "has_unreleased=false" >> $GITHUB_OUTPUT
-          fi
+          version: latest-or-unreleased
 
       - name: Update changelog
         id: bump
-        if: steps.check.outputs.has_unreleased == 'true'
+        if: steps.changelog.outputs.version == '[unreleased]'
         uses: release-flow/keep-a-changelog-action@main
         with:
           command: bump
@@ -55,13 +46,13 @@ jobs:
           keep-unreleased-section: true
 
       - name: Update swagger.yaml version
-        if: steps.check.outputs.has_unreleased == 'true'
+        if: steps.changelog.outputs.version == '[unreleased]'
         run: |
           VERSION="${{ steps.bump.outputs.version }}"
           sed -i "s/^  version: .*/  version: \"${VERSION}\"/" swagger.yaml
 
       - name: Create or update pull request
-        if: steps.check.outputs.has_unreleased == 'true'
+        if: steps.changelog.outputs.version == '[unreleased]'
         uses: peter-evans/create-pull-request@v8
         with:
           branch: release/next
