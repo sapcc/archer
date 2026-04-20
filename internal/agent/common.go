@@ -6,7 +6,6 @@ package agent
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"time"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/internal/config"
@@ -82,7 +82,7 @@ func NewScheduler() gocron.Scheduler {
 					log.Debugf("Job FINISHED: name=%s, id=%s", jobName, jobID)
 				}),
 				gocron.AfterJobRunsWithError(func(jobID uuid.UUID, jobName string, err error) {
-					log.Errorf("Job FAILED: name=%s, id=%s, error=%v", jobName, jobID, err)
+					log.Errorf("Job FAILED: name=%s, job_id=%s, error=%v", jobName, jobID, err)
 				}),
 			),
 		),
@@ -94,40 +94,68 @@ func NewScheduler() gocron.Scheduler {
 }
 
 func DBNotificationThread(ctx context.Context, w Worker) {
-	// Acquire one Connection for listen events
-	conn, err := w.GetPool().Acquire(ctx)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-
-	sql := "LISTEN service; LISTEN endpoint;"
-	if _, err := conn.Exec(ctx, sql); err != nil {
-		log.Fatal(err.Error())
-	}
-
 	const reconnectionDelay = time.Minute / 2
-	log.Infof("DBNotificationThread: Listening to service and endpoint notifications, reconnection delay %v",
-		reconnectionDelay)
 
 	for {
-		var id strfmt.UUID
+		// Check if context is canceled before acquiring connection
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		// Acquire a connection for listen events
+		conn, err := w.GetPool().Acquire(ctx)
+		if err != nil {
+			if ctx.Err() != nil {
+				return // Context cancelled, graceful shutdown
+			}
+			log.WithError(err).Error("DBNotificationThread: Failed to acquire connection")
+			time.Sleep(reconnectionDelay)
+			continue
+		}
+
+		sql := "LISTEN service; LISTEN endpoint;"
+		if _, err = conn.Exec(ctx, sql); err != nil {
+			conn.Release()
+			if ctx.Err() != nil {
+				return // Context cancelled, graceful shutdown
+			}
+			log.WithError(err).Error("DBNotificationThread: Failed to setup LISTEN")
+			time.Sleep(reconnectionDelay)
+			continue
+		}
+
+		log.Infof("DBNotificationThread: Listening to service and endpoint notifications, reconnection delay %v",
+			reconnectionDelay)
+
+		// Process notifications until connection error
+		if err = processNotifications(ctx, conn, w); err != nil {
+			conn.Release()
+			if ctx.Err() != nil {
+				return // Context cancelled, graceful shutdown
+			}
+			log.WithError(err).Warn("DBNotificationThread: Connection lost, reconnecting...")
+			time.Sleep(reconnectionDelay)
+			continue
+		}
+
+		conn.Release()
+		return // Context canceled
+	}
+}
+
+func processNotifications(ctx context.Context, conn *pgxpool.Conn, w Worker) error {
+	for {
 		notification, err := conn.Conn().WaitForNotification(ctx)
 		if err != nil {
-			if !pgconn.Timeout(err) {
-				if connectionError, ok := errors.AsType[*pgconn.ConnectError](err); ok {
-					log.Errorf("DBNotificationThread: Connection error: %v", connectionError.Error())
-				} else {
-					log.Warnf("DBNotificationThread: Wait for Notification timeout: %v", err)
-				}
-
-				select {
-				case <-ctx.Done():
-					return
-				case <-time.After(reconnectionDelay):
-					// Wait a while to avoid busy-looping while the database is unreachable.
-				}
+			if ctx.Err() != nil {
+				return nil // Context cancelled, graceful shutdown
 			}
-			continue
+			if pgconn.Timeout(err) {
+				continue // Timeout is normal, just retry
+			}
+			return err // Connection error, need to reconnect
 		}
 
 		log.Debugf("Received notification, channel=%s, payload=%s", notification.Channel, notification.Payload)
@@ -140,6 +168,8 @@ func DBNotificationThread(ctx context.Context, w Worker) {
 		if s[0] != config.Global.Default.Host {
 			continue
 		}
+
+		var id strfmt.UUID
 		if len(s) > 1 {
 			id = strfmt.UUID(s[1])
 		}
@@ -167,7 +197,7 @@ func DBNotificationThread(ctx context.Context, w Worker) {
 				gocron.WithTags(id.String()),
 				gocron.WithContext(ctx),
 			); nil != err {
-				log.WithError(err).WithField("id", id).Error("failed enqueueing ProcessEndpoint job")
+				log.WithError(err).WithField("endpoint_id", id).Error("failed enqueueing ProcessEndpoint job")
 			}
 		}
 	}
