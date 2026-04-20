@@ -12,7 +12,7 @@ mkShell {
     go_1_26
     goreleaser
     gotools # goimports
-    postgresql_17
+    postgresql_18
     renovate
     reuse
     syft
