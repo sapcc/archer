@@ -20,4 +20,5 @@ var (
 	ErrNoPhysNetFound   = errors.New("no physical network found")
 	ErrNoSubnetFound    = errors.New("no subnet(s) found")
 	ErrNoIPsAvailable   = errors.New("no IPs left")
+	ErrNoPortsFound     = errors.New("no neutron ports found")
 )

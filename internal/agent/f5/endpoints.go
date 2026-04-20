@@ -46,7 +46,7 @@ func (a *Agent) populateEndpointPorts(endpoints []*as3.ExtendedEndpoint) error {
 	}
 
 	if len(endpointPorts) == 0 {
-		return fmt.Errorf("no neutron ports found for endpoint(s) %s", opts.IDs)
+		return fmt.Errorf("%w for port_ids=%s", aErrors.ErrNoPortsFound, opts.IDs)
 	}
 	for _, port := range endpointPorts {
 		for _, endpoint := range endpoints {
@@ -97,6 +97,16 @@ func checkAllPendingDelete(endpoints []*as3.ExtendedEndpoint, subnetID string) b
 		}
 	}
 
+	return true
+}
+
+// allEndpointsPendingDeletion returns true if all endpoints are in PENDING_DELETE or PENDING_REJECTED status
+func allEndpointsPendingDeletion(endpoints []*as3.ExtendedEndpoint) bool {
+	for _, endpoint := range endpoints {
+		if endpoint.Status != models.EndpointStatusPENDINGDELETE && endpoint.Status != models.EndpointStatusPENDINGREJECTED {
+			return false
+		}
+	}
 	return true
 }
 
@@ -199,10 +209,10 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	}
 	g.Go(func() error {
 		err = a.populateEndpointPorts(endpoints)
-		if err != nil && cleanupL2 {
+		if errors.Is(err, aErrors.ErrNoPortsFound) && allEndpointsPendingDeletion(endpoints) {
 			// ignore missing ports if all endpoints are about to be deleted, print warning instead
 			log.WithError(err).
-				Warning("Ignoring missing ports for endpoint(s) since endpoints are about to be deleted.")
+				Warning("Ignoring missing ports since all endpoints are pending deletion/rejection")
 			return nil
 		}
 		return err
