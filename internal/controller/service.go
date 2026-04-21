@@ -568,12 +568,28 @@ func commonEndpointsActionHandler(pool db.PgxIface, body any, _ any) ([]*models.
 
 	switch params := body.(type) {
 	case service.PutServiceServiceIDAcceptEndpointsParams:
-		q = q.Set("status", models.EndpointStatusPENDINGCREATE)
+		// Use CASE to set correct status based on current state:
+		// - REJECTED endpoints already have Neutron ports, so use PENDING_UPDATE
+		// - PENDING_APPROVAL endpoints need to be created, so use PENDING_CREATE
+		q = q.Set("status", sq.Expr("CASE WHEN endpoint.status = ? THEN ? ELSE ? END",
+			models.EndpointStatusREJECTED,
+			models.EndpointStatusPENDINGUPDATE,
+			models.EndpointStatusPENDINGCREATE)).
+			// Only allow accepting endpoints that are waiting for approval or already rejected
+			Where(sq.Eq{"endpoint.status": []models.EndpointStatus{
+				models.EndpointStatusPENDINGAPPROVAL,
+				models.EndpointStatusREJECTED,
+			}})
 		serviceId = params.ServiceID
 		httpRequest = params.HTTPRequest
 		consumerList = params.Body
 	case service.PutServiceServiceIDRejectEndpointsParams:
-		q = q.Set("status", models.EndpointStatusPENDINGREJECTED)
+		q = q.Set("status", models.EndpointStatusPENDINGREJECTED).
+			// Only allow rejecting endpoints that are waiting for approval or already available
+			Where(sq.Eq{"endpoint.status": []models.EndpointStatus{
+				models.EndpointStatusPENDINGAPPROVAL,
+				models.EndpointStatusAVAILABLE,
+			}})
 		serviceId = params.ServiceID
 		httpRequest = params.HTTPRequest
 		consumerList = params.Body

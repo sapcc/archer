@@ -555,6 +555,73 @@ func (t *SuiteTest) TestPutServiceServiceIDAcceptEndpointsHandler() {
 		res.(*service.PutServiceServiceIDAcceptEndpointsOK).Payload[0].Status)
 }
 
+func (t *SuiteTest) TestPutServiceServiceIDAcceptRejectedEndpointHandler() {
+	// Test that accepting a REJECTED endpoint transitions to PENDING_UPDATE (not PENDING_CREATE)
+	// because REJECTED endpoints already have Neutron ports allocated
+
+	// create service and set require approval
+	serviceId := t.createService(testService)
+	params := service.PutServiceServiceIDParams{
+		HTTPRequest: &headerProject1,
+		Body:        &models.ServiceUpdatable{RequireApproval: conv.Pointer(true)},
+		ServiceID:   serviceId,
+	}
+	assert.IsType(t.T(), &service.PutServiceServiceIDOK{}, t.c.PutServiceServiceIDHandler(params, nil))
+
+	// create endpoint
+	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
+	ep := t.createEndpoint(serviceId, models.EndpointTarget{Network: &network})
+
+	// set endpoint status to REJECTED directly in the DB (simulates agent processed a rejection)
+	sql, args := db.Update("endpoint").
+		Set("status", models.EndpointStatusREJECTED).
+		Where("id = ?", ep.ID).
+		MustSql()
+	_, err := t.c.pool.Exec(context.Background(), sql, args...)
+	assert.NoError(t.T(), err)
+
+	// accept the rejected endpoint
+	putParams := service.PutServiceServiceIDAcceptEndpointsParams{
+		HTTPRequest: &headerProject1,
+		ServiceID:   serviceId,
+		Body:        &models.EndpointConsumerList{EndpointIds: []strfmt.UUID{ep.ID}},
+	}
+	res := t.c.PutServiceServiceIDAcceptEndpointsHandler(putParams, nil)
+
+	// should succeed and transition to PENDING_UPDATE (not PENDING_CREATE)
+	assert.IsType(t.T(), &service.PutServiceServiceIDAcceptEndpointsOK{}, res)
+	assert.Len(t.T(), res.(*service.PutServiceServiceIDAcceptEndpointsOK).Payload, 1)
+	assert.Equal(t.T(), models.EndpointStatusPENDINGUPDATE,
+		res.(*service.PutServiceServiceIDAcceptEndpointsOK).Payload[0].Status)
+}
+
+func (t *SuiteTest) TestPutServiceServiceIDAcceptEndpointInTransitionalStateFails() {
+	// Test that accepting an endpoint in a transitional state (e.g., PENDING_CREATE) returns not found.
+	// This prevents lock contention with the agent that may be processing the endpoint.
+
+	// create service without require approval (endpoint goes straight to PENDING_CREATE)
+	serviceId := t.createService(testService)
+
+	// create endpoint - it will be in PENDING_CREATE status
+	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
+	ep := t.createEndpoint(serviceId, models.EndpointTarget{Network: &network})
+
+	// verify endpoint is in PENDING_CREATE
+	epRes := t.c.GetEndpointEndpointIDHandler(
+		endpoint.GetEndpointEndpointIDParams{HTTPRequest: &headerProject1, EndpointID: ep.ID}, nil)
+	assert.IsType(t.T(), &endpoint.GetEndpointEndpointIDOK{}, epRes)
+	assert.Equal(t.T(), models.EndpointStatusPENDINGCREATE, epRes.(*endpoint.GetEndpointEndpointIDOK).Payload.Status)
+
+	// try to accept - should return not found because endpoint is not in an acceptable state
+	putParams := service.PutServiceServiceIDAcceptEndpointsParams{
+		HTTPRequest: &headerProject1,
+		ServiceID:   serviceId,
+		Body:        &models.EndpointConsumerList{EndpointIds: []strfmt.UUID{ep.ID}},
+	}
+	res := t.c.PutServiceServiceIDAcceptEndpointsHandler(putParams, nil)
+	assert.IsType(t.T(), &service.PutServiceServiceIDAcceptEndpointsNotFound{}, res)
+}
+
 func (t *SuiteTest) TestPutServiceServiceIDRejectEndpointsHandler() {
 	// create service with require approval
 	svcReqApproval := testService
@@ -610,7 +677,7 @@ func (t *SuiteTest) TestPutServiceServiceIDAcceptEndpointHandlerMultipleServices
 	// create two services with require approval
 	svcReqApproval := testService
 	svcReqApproval.RequireApproval = conv.Pointer(true)
-	serviceID1 := t.createService(testService)
+	serviceID1 := t.createService(svcReqApproval)
 
 	svcReqApproval.Name = "test2"
 	svcReqApproval.IPAddresses = []strfmt.IPv4{"2.3.4.5"}
@@ -627,13 +694,13 @@ func (t *SuiteTest) TestPutServiceServiceIDAcceptEndpointHandlerMultipleServices
 	network = "a97c6721-32d9-436d-9cd1-5327d65de67b"
 	t.createEndpoint(serviceID2, models.EndpointTarget{Network: &network})
 
-	// try accepting endpoint with from unauthorized project
+	// accept endpoints for service1 by project ID
 	putParams := service.PutServiceServiceIDAcceptEndpointsParams{
 		HTTPRequest: &headerProject1,
 		ServiceID:   serviceID1,
 		Body:        &models.EndpointConsumerList{ProjectIds: []models.Project{testProject1}},
 	}
-	// we expect only one endpoint to be returned
+	// we expect only one endpoint to be returned (only service1's endpoint, not service2's)
 	res = t.c.PutServiceServiceIDAcceptEndpointsHandler(putParams, nil)
 	assert.IsType(t.T(), &service.PutServiceServiceIDAcceptEndpointsOK{}, res)
 	assert.Len(t.T(), res.(*service.PutServiceServiceIDAcceptEndpointsOK).Payload, 1)
