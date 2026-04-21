@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Server: accept rejected endpoints as PENDING_UPDATE (not PENDING_CREATE) since the Neutron port already exists
+- Server: restrict accept/reject to only valid endpoint statuses to prevent agent lock contention
+
 ## [2.3.0] - 2026-04-20
 
 ### Added
