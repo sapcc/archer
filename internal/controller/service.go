@@ -403,13 +403,19 @@ func (c *Controller) DeleteServiceServiceIDHandler(params service.DeleteServiceS
 		panic(err)
 	}
 
-	// Set rejected endpoints to PENDING_DELETE so the agent cleans up their
-	// associated Neutron ports before removing the endpoint from the database.
+	// Set rejected/pending-rejected endpoints to PENDING_DELETE so the agent
+	// cleans up their associated Neutron ports before removing the endpoint
+	// from the database. Including PENDING_REJECTED avoids a 409 race when the
+	// operator rejects endpoints and immediately issues DELETE before the agent
+	// has transitioned them from PENDING_REJECTED to REJECTED.
 	rejectedEndpointSQL, rejectedEndpointArgs := db.Update("endpoint").
 		Set("status", models.EndpointStatusPENDINGDELETE).
 		Set("updated_at", sq.Expr("NOW()")).
 		Where("service_id = ?", params.ServiceID).
-		Where(sq.Eq{"status": models.EndpointStatusREJECTED}).
+		Where(sq.Eq{"status": []models.EndpointStatus{
+			models.EndpointStatusREJECTED,
+			models.EndpointStatusPENDINGREJECTED,
+		}}).
 		Suffix("RETURNING id").
 		MustSql()
 	rows, err := tx.Query(params.HTTPRequest.Context(), rejectedEndpointSQL, rejectedEndpointArgs...)
