@@ -51,6 +51,18 @@ jobs:
           VERSION="${{ steps.bump.outputs.version }}"
           sed -i "s/^  version: .*/  version: \"${VERSION}\"/" swagger.yaml
 
+      - name: Set up Go
+        if: steps.changelog.outputs.version == '[unreleased]'
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Regenerate swagger definitions
+        if: steps.changelog.outputs.version == '[unreleased]'
+        run: |
+          go install github.com/go-swagger/go-swagger/cmd/swagger@latest
+          make swagger
+
       - name: Create or update pull request
         if: steps.changelog.outputs.version == '[unreleased]'
         uses: peter-evans/create-pull-request@v8
