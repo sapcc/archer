@@ -635,7 +635,10 @@ func commonEndpointsActionHandler(pool db.PgxIface, body any, _ any) ([]*models.
 		Where("id = ?", serviceId).
 		MustSql()
 	var host string
-	if err = pgxscan.Get(httpRequest.Context(), pool, &host, sql, args...); err == nil {
+	if err = pgxscan.Get(httpRequest.Context(), pool, &host, sql, args...); err != nil {
+		log.WithError(err).WithField("service_id", serviceId).
+			Error("Failed to get host for notification, endpoints may not be processed")
+	} else {
 		// Notify agent for each updated endpoint
 		for _, ec := range endpointConsumers {
 			db.NotifyEndpoint(pool, host, ec.ID)
