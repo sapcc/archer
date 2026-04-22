@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- F5 agent: optimize `populateEndpointPorts` with O(n+m) map-based lookups and handle missing ports gracefully
+- F5 agent: retain Neutron ports on rejection to enable re-acceptance without port recreation
+- NI agent: `DisableInjection` no longer fetches port from Neutron, allowing cleanup even if port was manually deleted
+- Server: log error when notification host lookup fails in accept/reject handler
+
 ## [2.3.1] - 2026-04-22
 
 ### Fixed
