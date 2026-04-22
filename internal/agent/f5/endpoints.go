@@ -15,7 +15,6 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
-	"github.com/gophercloud/gophercloud/v2/pagination"
 	"github.com/jackc/pgx/v5"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -29,13 +28,18 @@ import (
 )
 
 func (a *Agent) populateEndpointPorts(endpoints []*as3.ExtendedEndpoint) error {
-	// Fetch ports from neutron
-	var opts neutron.PortListOpts
+	// Build map of port ID -> endpoints for O(1) lookup
+	endpointsByPort := make(map[string][]*as3.ExtendedEndpoint, len(endpoints))
+	opts := neutron.PortListOpts{
+		IDs: make([]string, 0, len(endpoints)),
+	}
 	for _, endpoint := range endpoints {
-		opts.IDs = append(opts.IDs, endpoint.Target.Port.String())
+		portID := endpoint.Target.Port.String()
+		opts.IDs = append(opts.IDs, portID)
+		endpointsByPort[portID] = append(endpointsByPort[portID], endpoint)
 	}
 
-	var pages pagination.Page
+	// Fetch ports from neutron
 	pages, err := ports.List(a.neutron.ServiceClient, opts).AllPages(context.Background())
 	if err != nil {
 		return err
@@ -45,16 +49,27 @@ func (a *Agent) populateEndpointPorts(endpoints []*as3.ExtendedEndpoint) error {
 		return err
 	}
 
-	if len(endpointPorts) == 0 {
-		return fmt.Errorf("%w for port_ids=%s", aErrors.ErrNoPortsFound, opts.IDs)
-	}
+	// Populate endpoints using map lookup
 	for _, port := range endpointPorts {
-		for _, endpoint := range endpoints {
-			if endpoint.Target.Port.String() == port.ID {
-				n := port
-				endpoint.Port = &n
+		p := port
+		for _, endpoint := range endpointsByPort[port.ID] {
+			endpoint.Port = &p
+		}
+		delete(endpointsByPort, port.ID)
+	}
+
+	// Check remaining entries - only fail if missing ports belong to non-deleting endpoints
+	var missingPorts []string
+	for portID, eps := range endpointsByPort {
+		for _, ep := range eps {
+			if ep.Status != models.EndpointStatusPENDINGDELETE && ep.Status != models.EndpointStatusPENDINGREJECTED {
+				missingPorts = append(missingPorts, portID)
+				break
 			}
 		}
+	}
+	if len(missingPorts) > 0 {
+		return fmt.Errorf("%w for port_ids=%s", aErrors.ErrNoPortsFound, missingPorts)
 	}
 
 	return nil
@@ -97,16 +112,6 @@ func checkAllPendingDelete(endpoints []*as3.ExtendedEndpoint, subnetID string) b
 		}
 	}
 
-	return true
-}
-
-// allEndpointsPendingDeletion returns true if all endpoints are in PENDING_DELETE or PENDING_REJECTED status
-func allEndpointsPendingDeletion(endpoints []*as3.ExtendedEndpoint) bool {
-	for _, endpoint := range endpoints {
-		if endpoint.Status != models.EndpointStatusPENDINGDELETE && endpoint.Status != models.EndpointStatusPENDINGREJECTED {
-			return false
-		}
-	}
 	return true
 }
 
@@ -208,14 +213,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		})
 	}
 	g.Go(func() error {
-		err = a.populateEndpointPorts(endpoints)
-		if errors.Is(err, aErrors.ErrNoPortsFound) && allEndpointsPendingDeletion(endpoints) {
-			// ignore missing ports if all endpoints are about to be deleted, print warning instead
-			log.WithError(err).
-				Warning("Ignoring missing ports since all endpoints are pending deletion/rejection")
-			return nil
-		}
-		return err
+		return a.populateEndpointPorts(endpoints)
 	})
 
 	// Wait for populating endpoints struct
