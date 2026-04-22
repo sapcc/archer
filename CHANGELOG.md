@@ -13,9 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-04-22
+
 ### Fixed
 
-- Server: accept rejected endpoints as PENDING_UPDATE (not PENDING_CREATE) since the Neutron port already exists
+- Server: accept rejected endpoints as PENDING\_UPDATE (not PENDING\_CREATE) since the Neutron port already exists
 - Server: restrict accept/reject to only valid endpoint statuses to prevent agent lock contention
 
 ## [2.3.0] - 2026-04-20
@@ -90,7 +92,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-Release with goreleaser
 
-[Unreleased]: https://github.com/sapcc/archer/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/sapcc/archer/compare/v2.3.1...HEAD
+
+[2.3.1]: https://github.com/sapcc/archer/compare/v2.3.0...v2.3.1
 
 [2.3.0]: https://github.com/sapcc/archer/compare/v2.2.0...v2.3.0
 

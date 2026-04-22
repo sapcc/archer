@@ -4,7 +4,7 @@
 
 swagger: "2.0"
 info:
-  version: "2.3.0"
+  version: "2.3.1"
   title: "🏹 Archer"
   contact:
     name: SAP SE / Converged Cloud
