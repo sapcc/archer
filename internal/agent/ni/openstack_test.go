@@ -169,60 +169,35 @@ func TestAgent_EnableInjection_Success(t *testing.T) {
 }
 
 func TestAgent_DisableInjection_PortNotFound(t *testing.T) {
-	portID := "550e8400-e29b-41d4-a716-446655440000"
-
-	// Setup mock HTTP handler to return 404 for port get
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" && (r.URL.Path == "/ports/"+portID || r.URL.Path == "/v2.0/ports/"+portID) {
-			w.WriteHeader(http.StatusNotFound)
-			_, _ = fmt.Fprintf(w, `{"NeutronError": {"type": "PortNotFound", "message": "Port not found", "detail": ""}}`)
-			return
-		}
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-
-	server, client := setupTestServer(http.HandlerFunc(handler))
-	defer server.Close()
-
-	agent := &Agent{
-		neutron: client,
-	}
-
+	// DisableInjection no longer fetches the port from Neutron,
+	// so it should succeed even if the port was deleted.
+	// This allows rejected/deleted endpoints to be processed even
+	// when the underlying Neutron port was manually removed.
 	networkID := strfmt.UUID("660e8400-e29b-41d4-a716-446655440000")
 
+	agent := &Agent{
+		haproxy: haproxy.NewFakeHaproxy(),
+	}
+
 	si := &models.ServiceInjection{
-		PortId:          strfmt.UUID(portID),
+		PortId:          strfmt.UUID("550e8400-e29b-41d4-a716-446655440000"),
 		Network:         networkID,
 		ServicePorts:    []int{80},
 		ServiceProtocol: "tcp",
 	}
 
 	err := agent.DisableInjection(si)
-	assert.Error(t, err)
+	assert.NoError(t, err)
 }
 
 func TestAgent_DisableInjection(t *testing.T) {
-	fakeServer := th.SetupHTTP()
-	defer fakeServer.Teardown()
-
-	portFixture := `{
-		"port": {
-			"id": "550e8400-e29b-41d4-a716-446655440000",
-			"network_id": "660e8400-e29b-41d4-a716-446655440000",
-			"tenant_id": "26a7980765d0414dbc1fc1f88cdb7e6e"
-        }
-}`
-
 	a := &Agent{
-		neutron: fake.ServiceClient(fakeServer),
 		haproxy: haproxy.NewFakeHaproxy(),
 	}
 	si := &models.ServiceInjection{
 		PortId:  strfmt.UUID("550e8400-e29b-41d4-a716-446655440000"),
 		Network: strfmt.UUID("660e8400-e29b-41d4-a716-446655440000"),
 	}
-	fixture.SetupHandler(t, fakeServer, "/v2.0/ports/"+si.PortId.String(), "GET",
-		"", portFixture, http.StatusOK)
 
 	assert.NoError(t, a.DisableInjection(si))
 

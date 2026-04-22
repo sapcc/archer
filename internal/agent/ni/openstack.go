@@ -94,17 +94,16 @@ func (a *Agent) EnableInjection(si *models.ServiceInjection) error {
 }
 
 func (a *Agent) DisableInjection(si *models.ServiceInjection) error {
-	injectorPort, err := ports.Get(context.Background(), a.neutron, si.PortId.String()).Extract()
-	if err != nil {
-		return fmt.Errorf("failed to get port %s: %w", si.PortId, err)
-	}
+	// Use the Network field directly instead of fetching from Neutron.
+	// This allows cleanup to proceed even if the port was manually deleted.
+	networkID := si.Network.String()
 
 	// Only stop haproxy - don't delete the namespace.
 	// Other endpoints may still be using this network's namespace.
 	// The namespace will be cleaned up when the Neutron port is deleted,
 	// or reused if another endpoint is created for this network.
-	if a.haproxy.IsRunning(injectorPort.NetworkID) {
-		if err := a.haproxy.RemoveInstance(injectorPort.NetworkID); err != nil {
+	if a.haproxy.IsRunning(networkID) {
+		if err := a.haproxy.RemoveInstance(networkID); err != nil {
 			return fmt.Errorf("failed to remove haproxy instance: %w", err)
 		}
 	}

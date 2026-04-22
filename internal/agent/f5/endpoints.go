@@ -217,7 +217,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	})
 
 	// Wait for populating endpoints struct
-	if err := g.Wait(); err != nil {
+	if err = g.Wait(); err != nil {
 		return err
 	}
 
@@ -292,15 +292,8 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	for _, endpoint := range endpoints {
 		switch endpoint.Status {
 		case models.EndpointStatusPENDINGREJECTED:
-			// Delete endpoint neutron port, if it exists and is owned by the agent
-			if endpoint.Target.Port != nil && endpoint.Owned {
-				if err = a.neutron.DeletePort(endpoint.Target.Port.String()); err != nil {
-					if !gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
-						return err
-					}
-				}
-			}
-
+			// Don't delete the port here - keep it so the endpoint can be re-accepted later.
+			// The port will be deleted when the endpoint is actually deleted.
 			log.Infof("ProcessEndpoint: Rejecting endpoint %s", endpoint.ID)
 			sql, args = db.
 				Update("endpoint").
@@ -310,8 +303,8 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 				MustSql()
 		case models.EndpointStatusPENDINGDELETE:
 			// Delete endpoint neutron port, if it exists and is owned by the agent
-			if endpoint.Target.Port != nil && endpoint.Owned {
-				if err = a.neutron.DeletePort(endpoint.Target.Port.String()); err != nil {
+			if endpoint.Port != nil && endpoint.Owned {
+				if err = a.neutron.DeletePort(endpoint.Port.ID); err != nil {
 					if !gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
 						return err
 					}
@@ -325,10 +318,10 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 				MustSql()
 		case models.EndpointStatusPENDINGUPDATE:
 			// Update port binding to this host (needed after service migration)
-			if endpoint.Target.Port != nil {
+			if endpoint.Port != nil {
 				log.Infof("ProcessEndpoint: Updating port binding for endpoint %s to host %s",
 					endpoint.ID, config.Global.Default.Host)
-				if err = a.neutron.UpdatePortBinding(ctx, endpoint.Target.Port.String(), config.Global.Default.Host); err != nil {
+				if err = a.neutron.UpdatePortBinding(ctx, endpoint.Port.ID, config.Global.Default.Host); err != nil {
 					return err
 				}
 			}
