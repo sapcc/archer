@@ -1214,11 +1214,20 @@ func init() {
         "x-policy": "service:update"
       },
       "delete": {
-        "description": "Deletes this service. There **must** be no active associated endpoint for successfully deleting the service.\nActive endpoints can be rejected by the service owner via the ` + "`" + `/service/{service_id}/reject_endpoints` + "`" + ` API.\n",
+        "description": "Deletes this service. There **must** be no active associated endpoint for successfully deleting the service,\nunless the ` + "`" + `cascade` + "`" + ` query parameter is set to ` + "`" + `true` + "`" + `.\n\nWith ` + "`" + `cascade=true` + "`" + `, all associated endpoints will be automatically set to PENDING_DELETE status\nalong with the service, allowing for complete cleanup without manually rejecting endpoints first.\n\nWithout cascade, active endpoints can be rejected by the service owner via the ` + "`" + `/service/{service_id}/reject_endpoints` + "`" + ` API.\n",
         "tags": [
           "Service"
         ],
         "summary": "Remove service from catalog",
+        "parameters": [
+          {
+            "type": "boolean",
+            "default": false,
+            "description": "If true, automatically delete all associated endpoints along with the service.",
+            "name": "cascade",
+            "in": "query"
+          }
+        ],
         "responses": {
           "202": {
             "description": "Delete request successfully accepted."
@@ -3641,11 +3650,20 @@ func init() {
         "x-policy": "service:update"
       },
       "delete": {
-        "description": "Deletes this service. There **must** be no active associated endpoint for successfully deleting the service.\nActive endpoints can be rejected by the service owner via the ` + "`" + `/service/{service_id}/reject_endpoints` + "`" + ` API.\n",
+        "description": "Deletes this service. There **must** be no active associated endpoint for successfully deleting the service,\nunless the ` + "`" + `cascade` + "`" + ` query parameter is set to ` + "`" + `true` + "`" + `.\n\nWith ` + "`" + `cascade=true` + "`" + `, all associated endpoints will be automatically set to PENDING_DELETE status\nalong with the service, allowing for complete cleanup without manually rejecting endpoints first.\n\nWithout cascade, active endpoints can be rejected by the service owner via the ` + "`" + `/service/{service_id}/reject_endpoints` + "`" + ` API.\n",
         "tags": [
           "Service"
         ],
         "summary": "Remove service from catalog",
+        "parameters": [
+          {
+            "type": "boolean",
+            "default": false,
+            "description": "If true, automatically delete all associated endpoints along with the service.",
+            "name": "cascade",
+            "in": "query"
+          }
+        ],
         "responses": {
           "202": {
             "description": "Delete request successfully accepted."

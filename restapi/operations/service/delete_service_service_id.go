@@ -50,8 +50,13 @@ func NewDeleteServiceServiceID(ctx *middleware.Context, handler DeleteServiceSer
 
 # Remove service from catalog
 
-Deletes this service. There **must** be no active associated endpoint for successfully deleting the service.
-Active endpoints can be rejected by the service owner via the `/service/{service_id}/reject_endpoints` API.
+Deletes this service. There **must** be no active associated endpoint for successfully deleting the service,
+unless the `cascade` query parameter is set to `true`.
+
+With `cascade=true`, all associated endpoints will be automatically set to PENDING_DELETE status
+along with the service, allowing for complete cleanup without manually rejecting endpoints first.
+
+Without cascade, active endpoints can be rejected by the service owner via the `/service/{service_id}/reject_endpoints` API.
 */
 type DeleteServiceServiceID struct {
 	Context *middleware.Context

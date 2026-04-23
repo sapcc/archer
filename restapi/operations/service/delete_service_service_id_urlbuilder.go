@@ -28,11 +28,14 @@ import (
 	"strings"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
 // DeleteServiceServiceIDURL generates an URL for the delete service service ID operation
 type DeleteServiceServiceIDURL struct {
 	ServiceID strfmt.UUID
+
+	Cascade *bool
 
 	_basePath string
 	// avoid unkeyed usage
@@ -69,6 +72,18 @@ func (o *DeleteServiceServiceIDURL) Build() (*url.URL, error) {
 
 	_basePath := o._basePath
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
+
+	qs := make(url.Values)
+
+	var cascadeQ string
+	if o.Cascade != nil {
+		cascadeQ = swag.FormatBool(*o.Cascade)
+	}
+	if cascadeQ != "" {
+		qs.Set("cascade", cascadeQ)
+	}
+
+	_result.RawQuery = qs.Encode()
 
 	return &_result, nil
 }

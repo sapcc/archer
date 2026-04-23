@@ -25,17 +25,26 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
 // NewDeleteServiceServiceIDParams creates a new DeleteServiceServiceIDParams object
-//
-// There are no default values defined in the spec.
+// with the default values initialized.
 func NewDeleteServiceServiceIDParams() DeleteServiceServiceIDParams {
 
-	return DeleteServiceServiceIDParams{}
+	var (
+		// initialize parameters with default values
+
+		cascadeDefault = bool(false)
+	)
+
+	return DeleteServiceServiceIDParams{
+		Cascade: &cascadeDefault,
+	}
 }
 
 // DeleteServiceServiceIDParams contains all the bound params for the delete service service ID operation
@@ -45,6 +54,12 @@ func NewDeleteServiceServiceIDParams() DeleteServiceServiceIDParams {
 type DeleteServiceServiceIDParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
+
+	/*If true, automatically delete all associated endpoints along with the service.
+	  In: query
+	  Default: false
+	*/
+	Cascade *bool
 
 	/*The UUID of the service
 	  Required: true
@@ -61,6 +76,12 @@ func (o *DeleteServiceServiceIDParams) BindRequest(r *http.Request, route *middl
 	var res []error
 
 	o.HTTPRequest = r
+	qs := runtime.Values(r.URL.Query())
+
+	qCascade, qhkCascade, _ := qs.GetOK("cascade")
+	if err := o.bindCascade(qCascade, qhkCascade, route.Formats); err != nil {
+		res = append(res, err)
+	}
 
 	rServiceID, rhkServiceID, _ := route.Params.GetOK("service_id")
 	if err := o.bindServiceID(rServiceID, rhkServiceID, route.Formats); err != nil {
@@ -69,6 +90,30 @@ func (o *DeleteServiceServiceIDParams) BindRequest(r *http.Request, route *middl
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// bindCascade binds and validates parameter Cascade from query.
+func (o *DeleteServiceServiceIDParams) bindCascade(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		// Default values have been previously initialized by NewDeleteServiceServiceIDParams()
+		return nil
+	}
+
+	value, err := swag.ConvertBool(raw)
+	if err != nil {
+		return errors.InvalidType("cascade", "query", "bool", raw)
+	}
+	o.Cascade = &value
+
 	return nil
 }
 

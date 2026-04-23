@@ -30,6 +30,7 @@ import (
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
 // NewDeleteServiceServiceIDParams creates a new DeleteServiceServiceIDParams object,
@@ -77,6 +78,12 @@ DeleteServiceServiceIDParams contains all the parameters to send to the API endp
 */
 type DeleteServiceServiceIDParams struct {
 
+	/* Cascade.
+
+	   If true, automatically delete all associated endpoints along with the service.
+	*/
+	Cascade *bool
+
 	/* ServiceID.
 
 	   The UUID of the service
@@ -102,7 +109,18 @@ func (o *DeleteServiceServiceIDParams) WithDefaults() *DeleteServiceServiceIDPar
 //
 // All values with no default are reset to their zero value.
 func (o *DeleteServiceServiceIDParams) SetDefaults() {
-	// no default values defined for this parameter
+	var (
+		cascadeDefault = bool(false)
+	)
+
+	val := DeleteServiceServiceIDParams{
+		Cascade: &cascadeDefault,
+	}
+
+	val.timeout = o.timeout
+	val.Context = o.Context
+	val.HTTPClient = o.HTTPClient
+	*o = val
 }
 
 // WithTimeout adds the timeout to the delete service service ID params
@@ -138,6 +156,17 @@ func (o *DeleteServiceServiceIDParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithCascade adds the cascade to the delete service service ID params
+func (o *DeleteServiceServiceIDParams) WithCascade(cascade *bool) *DeleteServiceServiceIDParams {
+	o.SetCascade(cascade)
+	return o
+}
+
+// SetCascade adds the cascade to the delete service service ID params
+func (o *DeleteServiceServiceIDParams) SetCascade(cascade *bool) {
+	o.Cascade = cascade
+}
+
 // WithServiceID adds the serviceID to the delete service service ID params
 func (o *DeleteServiceServiceIDParams) WithServiceID(serviceID strfmt.UUID) *DeleteServiceServiceIDParams {
 	o.SetServiceID(serviceID)
@@ -156,6 +185,23 @@ func (o *DeleteServiceServiceIDParams) WriteToRequest(r runtime.ClientRequest, r
 		return err
 	}
 	var res []error
+
+	if o.Cascade != nil {
+
+		// query param cascade
+		var qrCascade bool
+
+		if o.Cascade != nil {
+			qrCascade = *o.Cascade
+		}
+		qCascade := swag.FormatBool(qrCascade)
+		if qCascade != "" {
+
+			if err := r.SetQueryParam("cascade", qCascade); err != nil {
+				return err
+			}
+		}
+	}
 
 	// path param service_id
 	if err := r.SetPathParam("service_id", o.ServiceID.String()); err != nil {
