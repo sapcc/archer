@@ -90,18 +90,19 @@ func (c *Controller) GetQuotasProjectIDHandler(params quota.GetQuotasProjectIDPa
 		QuotaUsage: models.QuotaUsage{},
 	}
 
-	if err := pgx.BeginFunc(context.Background(), c.pool, func(tx pgx.Tx) error {
-		err := getQuotaDetails(params.HTTPRequest.Context(), tx, params.ProjectID, &q)
+	ctx := params.HTTPRequest.Context()
+	if err := pgx.BeginFunc(ctx, c.pool, func(tx pgx.Tx) error {
+		err := getQuotaDetails(ctx, tx, params.ProjectID, &q)
 		if err == nil {
 			return nil
 		}
 
 		if errors.Is(err, pgx.ErrNoRows) {
 			// insert default quotas
-			if err := insertDefaultQuota(params.HTTPRequest.Context(), tx, params.ProjectID); err != nil {
+			if err := insertDefaultQuota(ctx, tx, params.ProjectID); err != nil {
 				return err
 			}
-			return getQuotaDetails(params.HTTPRequest.Context(), tx, params.ProjectID, &q)
+			return getQuotaDetails(ctx, tx, params.ProjectID, &q)
 		}
 		return err
 	}); err != nil {
