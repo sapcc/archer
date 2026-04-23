@@ -361,3 +361,92 @@ func TestAgent_TestEndpointRequiringApproval(t *testing.T) {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 }
+
+// TestAgent_DeleteEndpointWithMissingNeutronPort verifies that ProcessEndpoint can delete
+// an endpoint when the Neutron port has already been deleted. We use 2 endpoints in the same
+// network: one PENDING_DELETE (with missing port) and one AVAILABLE (so L2 cleanup is skipped).
+func TestAgent_DeleteEndpointWithMissingNeutronPort(t *testing.T) {
+	endpoint1 := strfmt.UUID("11111111-1111-4111-8111-111111111111") // PENDING_DELETE, port missing
+	endpoint2 := strfmt.UUID("95dbe813-62f9-47f1-90ba-09f2dadcaefa") // AVAILABLE, port exists
+	port1 := strfmt.UUID("d0d0d0d0-d0d0-4d0d-8d0d-0d0d0d0d0d0d")     // missing from Neutron
+	port2 := strfmt.UUID("c0c0c0c0-c0c0-4c0c-8c0c-0c0c0c0c0c0c")     // exists in Neutron
+	network := strfmt.UUID("35a3ca82-62af-4e0a-9472-92331500fb3a")
+	subnet := strfmt.UUID("e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e")
+	service := strfmt.UUID("a0a0a0a0-a0a0-4a0a-8a0a-0a0a0a0a0a0a")
+	serviceNetwork := strfmt.UUID("b0b0b0b0-b0b0-4b0b-8b0b-0b0b0b0b0b0b")
+
+	fakeServer := th.SetupPersistentPortHTTP(t, 8935)
+	defer fakeServer.Teardown()
+	config.Global.Agent.PhysicalNetwork = "physnet1"
+	config.Global.Agent.L4Profile = "/Common/cc_fastL4_noaging_profile"
+	config.Global.Agent.TCPProfile = "/Common/cc_tcp_archer_profile"
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/"+network.String(), "GET",
+		"", GetNetworkResponseFixture, http.StatusOK)
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/"+serviceNetwork.String(), "GET",
+		"", GetServiceNetworkResponseFixture, http.StatusOK)
+	// Only port2 (c0c0c0c0...) exists - port1 (d0d0d0d0...) is missing from Neutron
+	fixture.SetupHandler(t, fakeServer, "/v2.0/ports", "GET", "", GetPortListResponseFixture, http.StatusOK)
+	fixture.SetupHandler(t, fakeServer, "/v2.0/subnets/"+subnet.String(), "GET", "",
+		GetSubnetResponseFixture, http.StatusOK)
+
+	ctx := context.Background()
+	dbMock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dbMock.Close()
+
+	f5DeviceHost := NewMockF5Device(t)
+	f5DeviceHost.On("GetHostname").Return("dummybigiphost")
+	f5DeviceHost.EXPECT().EnsureVLAN(123, 0).Return(nil)
+	f5DeviceHost.EXPECT().EnsureRouteDomain(123, conv.Pointer(666)).Return(nil)
+	f5DeviceHost.EXPECT().EnsureBigIPSelfIP(
+		"selfip-5a8ad669-4ffe-4133-b9f9-6de62cd654a4",
+		"42.42.42.42%123/8",
+		123,
+	).Return(nil)
+	// AS3 declaration will only include endpoint2 (endpoint1 is being deleted)
+	f5DeviceHost.EXPECT().PostAS3(PostBigIPFixture, "net-35a3ca82-62af-4e0a-9472-92331500fb3a").Return(nil)
+
+	config.Global.Default.Host = "host-123"
+	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)}
+	neutronClient.InitCache()
+	a := &Agent{
+		pool:    dbMock,
+		neutron: &neutronClient,
+		devices: []F5Device{f5DeviceHost},
+		hosts:   []F5Device{},
+		active:  f5DeviceHost,
+	}
+
+	dbMock.ExpectBegin()
+	dbMock.ExpectQuery("SELECT network, subnet FROM endpoint_port WHERE endpoint_id = $1").
+		WithArgs(endpoint1).
+		WillReturnRows(pgxmock.NewRows([]string{"network", "subnet"}).AddRow(network, subnet.String()))
+	// Return both endpoints: endpoint1 (PENDING_DELETE) and endpoint2 (AVAILABLE)
+	dbMock.ExpectQuery("SELECT endpoint.*, service.ports AS service_ports, service.proxy_protocol, service.network_id AS service_network_id, endpoint_port.segment_id, endpoint_port.port_id AS \"target.port\", endpoint_port.network AS \"target.network\", endpoint_port.subnet AS \"target.subnet\", endpoint_port.owned FROM endpoint INNER JOIN service ON endpoint.service_id = service.id JOIN endpoint_port ON endpoint_id = endpoint.id WHERE endpoint.status NOT IN ($1,$2) AND network = $3 AND service.host = $4 AND service.provider = $5 FOR UPDATE OF endpoint").
+		WithArgs(models.EndpointStatusPENDINGAPPROVAL, models.EndpointStatusREJECTED, network, config.Global.Default.Host, models.ServiceProviderTenant).
+		WillReturnRows(pgxmock.
+			NewRows([]string{"id", "service_id", "status", "name", "service_ports", "proxy_protocol", "service_network_id", "segment_id", "target.port", "target.network", "target.subnet"}).
+			AddRow(endpoint1, service, models.EndpointStatusPENDINGDELETE, "test-service-1", []int32{80}, false, serviceNetwork, conv.Pointer(123), &port1, &network, &subnet).
+			AddRow(endpoint2, service, models.EndpointStatusAVAILABLE, "test-service-2", []int32{80}, false, serviceNetwork, conv.Pointer(123), &port2, &network, &subnet))
+	// endpoint2 is not PENDING_DELETE, so no L2/SelfIP cleanup checks needed
+	dbMock.ExpectExec("SELECT 1 FROM endpoint INNER JOIN service ON endpoint.service_id = service.id JOIN endpoint_port ON endpoint_id = endpoint.id WHERE endpoint_port.subnet = $1 AND service.host = $2 AND service.provider = $3 AND endpoint.status NOT IN ($4,$5)").
+		WithArgs(subnet.String(), config.Global.Default.Host, models.ServiceProviderTenant, models.EndpointStatusPENDINGDELETE, models.EndpointStatusPENDINGREJECTED).
+		WillReturnResult(pgxmock.NewResult("SELECT", 1))
+	// Delete endpoint1, update endpoint2 status
+	dbMock.ExpectExec("DELETE FROM endpoint WHERE id = $1").
+		WithArgs(endpoint1).
+		WillReturnResult(pgxmock.NewResult("DELETE", 1))
+	dbMock.ExpectExec("UPDATE endpoint SET status = $1, updated_at = NOW() WHERE id = $2").
+		WithArgs(models.EndpointStatusAVAILABLE, endpoint2).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+	dbMock.ExpectCommit()
+
+	if err = a.ProcessEndpoint(ctx, endpoint1); err != nil {
+		t.Errorf("Agent.ProcessEndpoint() error = %v", err)
+	}
+	if err = dbMock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
