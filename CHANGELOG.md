@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Server: use request context for database queries to prevent connection pool exhaustion when requests time out
 - F5 agent: optimize `populateEndpointPorts` with O(n+m) map-based lookups and handle missing ports gracefully
 - F5 agent: retain Neutron ports on rejection to enable re-acceptance without port recreation
 - NI agent: `DisableInjection` no longer fetches port from Neutron, allowing cleanup even if port was manually deleted

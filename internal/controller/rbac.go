@@ -5,7 +5,6 @@
 package controller
 
 import (
-	"context"
 	"errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -43,7 +42,7 @@ func (c *Controller) GetRbacPoliciesHandler(params rbac.GetRbacPoliciesParams, _
 	}
 
 	var items = make([]*models.Rbacpolicy, 0)
-	if err := pgxscan.Select(context.Background(), c.pool, &items, sql, args...); err != nil {
+	if err := pgxscan.Select(params.HTTPRequest.Context(), c.pool, &items, sql, args...); err != nil {
 		var pe *pgconn.PgError
 		if errors.As(err, &pe) && pe.Code == pgerrcode.UndefinedColumn {
 			return rbac.NewGetRbacPoliciesBadRequest().WithPayload(&models.Error{

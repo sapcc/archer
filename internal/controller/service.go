@@ -77,7 +77,7 @@ func (c *Controller) GetServiceHandler(params service.GetServiceParams, principa
 	}
 
 	var servicesResponse = make([]*models.Service, 0)
-	if err := pgxscan.Select(context.Background(), c.pool, &servicesResponse, sql, args...); err != nil {
+	if err := pgxscan.Select(params.HTTPRequest.Context(), c.pool, &servicesResponse, sql, args...); err != nil {
 		var pe *pgconn.PgError
 		if errors.As(err, &pe) && pe.Code == pgerrcode.UndefinedColumn {
 			return service.NewGetServiceBadRequest().WithPayload(&models.Error{
@@ -477,12 +477,13 @@ func (c *Controller) GetServiceServiceIDEndpointsHandler(params service.GetServi
 		q = q.Where("project_id = ?", projectId)
 	}
 
+	ctx := params.HTTPRequest.Context()
 	sql, args := q.MustSql()
-	tx, err := c.pool.Begin(context.Background())
+	tx, err := c.pool.Begin(ctx)
 	if err != nil {
 		panic(err)
 	}
-	defer func() { _ = tx.Rollback(context.Background()) }()
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	ct, err := tx.Exec(params.HTTPRequest.Context(), sql, args...)
 	if err != nil {
@@ -508,7 +509,7 @@ func (c *Controller) GetServiceServiceIDEndpointsHandler(params service.GetServi
 	}
 
 	var endpointsResponse = make([]*models.EndpointConsumer, 0)
-	if err = pgxscan.Select(context.Background(), c.pool, &endpointsResponse, sql, args...); err != nil {
+	if err = pgxscan.Select(ctx, c.pool, &endpointsResponse, sql, args...); err != nil {
 		var pe *pgconn.PgError
 		if errors.As(err, &pe) && pe.Code == pgerrcode.UndefinedColumn {
 			return service.NewGetServiceServiceIDEndpointsBadRequest().WithPayload(&models.Error{
