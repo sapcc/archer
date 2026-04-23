@@ -239,7 +239,8 @@ type ServiceDelete struct {
 	Positional struct {
 		Service string `description:"Service to delete (name or ID)"`
 	} `positional-args:"yes" required:"yes"`
-	Wait bool `long:"wait" description:"Wait for endpoint to be deleted"`
+	Cascade bool `long:"cascade" description:"Delete all associated endpoints along with the service"`
+	Wait    bool `long:"wait" description:"Wait for endpoint to be deleted"`
 }
 
 func (*ServiceDelete) Execute(_ []string) error {
@@ -250,7 +251,8 @@ func (*ServiceDelete) Execute(_ []string) error {
 
 	params := service.
 		NewDeleteServiceServiceIDParams().
-		WithServiceID(serviceID)
+		WithServiceID(serviceID).
+		WithCascade(&ServiceOptions.ServiceDelete.Cascade)
 	_, err = ArcherClient.Service.DeleteServiceServiceID(params, nil)
 	if err != nil {
 		return err

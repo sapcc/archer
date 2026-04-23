@@ -394,6 +394,103 @@ func (t *SuiteTest) TestServiceDeleteInUse() {
 	assert.IsType(t.T(), &service.GetServiceServiceIDOK{}, res)
 }
 
+func (t *SuiteTest) TestServiceDeleteCascade() {
+	// Create service with multiple endpoints in different states
+	serviceId := t.createService(testService)
+
+	// Create endpoints
+	network1 := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
+	network2 := strfmt.UUID("a97c6721-32d9-436d-9cd1-5327d65de67b")
+	ep1 := t.createEndpoint(serviceId, models.EndpointTarget{Network: &network1})
+	ep2 := t.createEndpoint(serviceId, models.EndpointTarget{Network: &network2})
+
+	// Set ep2 to AVAILABLE (simulate agent processed it)
+	sql, args := db.Update("endpoint").
+		Set("status", models.EndpointStatusAVAILABLE).
+		Where("id = ?", ep2.ID).
+		MustSql()
+	_, err := t.c.pool.Exec(context.Background(), sql, args...)
+	assert.NoError(t.T(), err)
+
+	// Without cascade: delete should fail (endpoints in use)
+	cascade := false
+	res := t.c.DeleteServiceServiceIDHandler(
+		service.DeleteServiceServiceIDParams{HTTPRequest: &headerProject1, ServiceID: serviceId, Cascade: &cascade},
+		nil)
+	assert.IsType(t.T(), &service.DeleteServiceServiceIDConflict{}, res)
+
+	// With cascade: delete should succeed
+	cascade = true
+	res = t.c.DeleteServiceServiceIDHandler(
+		service.DeleteServiceServiceIDParams{HTTPRequest: &headerProject1, ServiceID: serviceId, Cascade: &cascade},
+		nil)
+	assert.IsType(t.T(), &service.DeleteServiceServiceIDAccepted{}, res)
+
+	// Verify service is in PENDING_DELETE state
+	res = t.c.GetServiceServiceIDHandler(
+		service.GetServiceServiceIDParams{HTTPRequest: &headerProject1, ServiceID: serviceId},
+		nil)
+	assert.IsType(t.T(), &service.GetServiceServiceIDOK{}, res)
+	assert.Equal(t.T(), models.ServiceStatusPENDINGDELETE, res.(*service.GetServiceServiceIDOK).Payload.Status)
+
+	// Verify both endpoints were transitioned to PENDING_DELETE
+	var ep1Status, ep2Status models.EndpointStatus
+	epSQL, epArgs := db.Select("status").From("endpoint").Where("id = ?", ep1.ID).MustSql()
+	err = t.c.pool.QueryRow(context.Background(), epSQL, epArgs...).Scan(&ep1Status)
+	assert.NoError(t.T(), err)
+	assert.Equal(t.T(), models.EndpointStatusPENDINGDELETE, ep1Status)
+
+	epSQL, epArgs = db.Select("status").From("endpoint").Where("id = ?", ep2.ID).MustSql()
+	err = t.c.pool.QueryRow(context.Background(), epSQL, epArgs...).Scan(&ep2Status)
+	assert.NoError(t.T(), err)
+	assert.Equal(t.T(), models.EndpointStatusPENDINGDELETE, ep2Status)
+}
+
+func (t *SuiteTest) TestServiceDeleteCascadeWithMixedEndpointStates() {
+	// Test cascade deletion with endpoints in various states
+	serviceId := t.createService(testService)
+
+	// Create endpoints
+	network1 := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
+	network2 := strfmt.UUID("a97c6721-32d9-436d-9cd1-5327d65de67b")
+	network3 := strfmt.UUID("b88c7832-43ea-547e-0ce1-6499623ff59c")
+	ep1 := t.createEndpoint(serviceId, models.EndpointTarget{Network: &network1}) // PENDING_CREATE
+	ep2 := t.createEndpoint(serviceId, models.EndpointTarget{Network: &network2})
+	ep3 := t.createEndpoint(serviceId, models.EndpointTarget{Network: &network3})
+
+	// Set ep2 to AVAILABLE
+	sql, args := db.Update("endpoint").
+		Set("status", models.EndpointStatusAVAILABLE).
+		Where("id = ?", ep2.ID).
+		MustSql()
+	_, err := t.c.pool.Exec(context.Background(), sql, args...)
+	assert.NoError(t.T(), err)
+
+	// Set ep3 to REJECTED
+	sql, args = db.Update("endpoint").
+		Set("status", models.EndpointStatusREJECTED).
+		Where("id = ?", ep3.ID).
+		MustSql()
+	_, err = t.c.pool.Exec(context.Background(), sql, args...)
+	assert.NoError(t.T(), err)
+
+	// Cascade delete
+	cascade := true
+	res := t.c.DeleteServiceServiceIDHandler(
+		service.DeleteServiceServiceIDParams{HTTPRequest: &headerProject1, ServiceID: serviceId, Cascade: &cascade},
+		nil)
+	assert.IsType(t.T(), &service.DeleteServiceServiceIDAccepted{}, res)
+
+	// Verify all endpoints were transitioned to PENDING_DELETE
+	for _, epID := range []strfmt.UUID{ep1.ID, ep2.ID, ep3.ID} {
+		var status models.EndpointStatus
+		epSQL, epArgs := db.Select("status").From("endpoint").Where("id = ?", epID).MustSql()
+		err = t.c.pool.QueryRow(context.Background(), epSQL, epArgs...).Scan(&status)
+		assert.NoError(t.T(), err)
+		assert.Equal(t.T(), models.EndpointStatusPENDINGDELETE, status, "endpoint %s should be PENDING_DELETE", epID)
+	}
+}
+
 func (t *SuiteTest) TestServiceDeleteWithRejectedEndpoint() {
 	serviceId := t.createService(testService)
 	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")

@@ -161,6 +161,7 @@ err := pgxscan.Get(ctx, tx, &endpoint, sql, args...)
   - `haproxy.FakeHaproxy` (no actual process spawning)
 - HTTP mocking via `gophercloud/v2/testhelper`
 - Test PostgreSQL database required for integration tests
+- **Coverage requirement**: When adding new functionality, ensure test coverage is maintained or increased. New features should include unit tests.
 
 ### Error Handling
 

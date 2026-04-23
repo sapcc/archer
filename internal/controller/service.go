@@ -403,32 +403,31 @@ func (c *Controller) DeleteServiceServiceIDHandler(params service.DeleteServiceS
 		panic(err)
 	}
 
-	// Set rejected/pending-rejected endpoints to PENDING_DELETE so the agent
-	// cleans up their associated Neutron ports before removing the endpoint
-	// from the database. Including PENDING_REJECTED avoids a 409 race when the
-	// operator rejects endpoints and immediately issues DELETE before the agent
-	// has transitioned them from PENDING_REJECTED to REJECTED.
-	rejectedEndpointSQL, rejectedEndpointArgs := db.Update("endpoint").
+	var endpointIDsToNotify []strfmt.UUID
+	cascade := params.Cascade != nil && *params.Cascade
+
+	// Set endpoints to PENDING_DELETE so the agent cleans up their associated Neutron ports.
+	// With cascade: transition ALL non-terminal endpoints.
+	// Without cascade: only transition REJECTED/PENDING_REJECTED endpoints (avoids 409 race
+	// when operator rejects endpoints and immediately issues DELETE before the agent has
+	// transitioned them from PENDING_REJECTED to REJECTED).
+	endpointUpdate := db.Update("endpoint").
 		Set("status", models.EndpointStatusPENDINGDELETE).
 		Set("updated_at", sq.Expr("NOW()")).
 		Where("service_id = ?", params.ServiceID).
-		Where(sq.Eq{"status": []models.EndpointStatus{
+		Suffix("RETURNING id")
+	if cascade {
+		endpointUpdate = endpointUpdate.Where(sq.NotEq{"status": []models.EndpointStatus{
+			models.EndpointStatusPENDINGDELETE,
+		}})
+	} else {
+		endpointUpdate = endpointUpdate.Where(sq.Eq{"status": []models.EndpointStatus{
 			models.EndpointStatusREJECTED,
 			models.EndpointStatusPENDINGREJECTED,
-		}}).
-		Suffix("RETURNING id").
-		MustSql()
-	rows, err := tx.Query(params.HTTPRequest.Context(), rejectedEndpointSQL, rejectedEndpointArgs...)
-	if err != nil {
-		panic(err)
+		}})
 	}
-	var rejectedEndpointIDs []strfmt.UUID
-	var rejectedEndpointID strfmt.UUID
-	_, err = pgx.ForEachRow(rows, []any{&rejectedEndpointID}, func() error {
-		rejectedEndpointIDs = append(rejectedEndpointIDs, rejectedEndpointID)
-		return nil
-	})
-	if err != nil {
+	endpointSQL, endpointArgs := endpointUpdate.MustSql()
+	if err = pgxscan.Select(params.HTTPRequest.Context(), tx, &endpointIDsToNotify, endpointSQL, endpointArgs...); err != nil {
 		panic(err)
 	}
 
@@ -461,8 +460,8 @@ func (c *Controller) DeleteServiceServiceIDHandler(params service.DeleteServiceS
 		panic(err)
 	}
 
-	// Notify agent to clean up Neutron ports for the transitioned rejected endpoints.
-	for _, id := range rejectedEndpointIDs {
+	// Notify agent to clean up Neutron ports for the transitioned endpoints.
+	for _, id := range endpointIDsToNotify {
 		db.NotifyEndpoint(c.pool, host, id)
 	}
 	db.NotifyService(c.pool, host)

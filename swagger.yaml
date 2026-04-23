@@ -359,8 +359,19 @@ paths:
       summary: Remove service from catalog
       x-policy: service:delete
       description: |
-        Deletes this service. There **must** be no active associated endpoint for successfully deleting the service.
-        Active endpoints can be rejected by the service owner via the `/service/{service_id}/reject_endpoints` API.
+        Deletes this service. There **must** be no active associated endpoint for successfully deleting the service,
+        unless the `cascade` query parameter is set to `true`.
+
+        With `cascade=true`, all associated endpoints will be automatically set to PENDING_DELETE status
+        along with the service, allowing for complete cleanup without manually rejecting endpoints first.
+
+        Without cascade, active endpoints can be rejected by the service owner via the `/service/{service_id}/reject_endpoints` API.
+      parameters:
+        - in: query
+          name: cascade
+          type: boolean
+          default: false
+          description: If true, automatically delete all associated endpoints along with the service.
       responses:
         202:
           description: Delete request successfully accepted.

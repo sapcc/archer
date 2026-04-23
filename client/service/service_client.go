@@ -96,9 +96,14 @@ type ClientService interface {
 /*
 	DeleteServiceServiceID removes service from catalog
 
-	Deletes this service. There **must** be no active associated endpoint for successfully deleting the service.
+	Deletes this service. There **must** be no active associated endpoint for successfully deleting the service,
 
-Active endpoints can be rejected by the service owner via the `/service/{service_id}/reject_endpoints` API.
+unless the `cascade` query parameter is set to `true`.
+
+With `cascade=true`, all associated endpoints will be automatically set to PENDING_DELETE status
+along with the service, allowing for complete cleanup without manually rejecting endpoints first.
+
+Without cascade, active endpoints can be rejected by the service owner via the `/service/{service_id}/reject_endpoints` API.
 */
 func (a *Client) DeleteServiceServiceID(params *DeleteServiceServiceIDParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*DeleteServiceServiceIDAccepted, error) {
 	// NOTE: parameters are not validated before sending
