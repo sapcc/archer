@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jessevdk/go-flags"
 	log "github.com/sirupsen/logrus"
 	"github.com/z0ne-dev/mgx/v2"
@@ -35,7 +36,13 @@ func main() {
 
 	config.ParseConfig(parser)
 
-	conn, err := pgx.Connect(context.Background(), config.Global.Database.Connection)
+	// Use pgxpool.ParseConfig to properly handle pool_* parameters in connection string,
+	// then use the underlying ConnConfig for a single connection
+	poolConfig, err := pgxpool.ParseConfig(config.Global.Database.Connection)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	conn, err := pgx.ConnectConfig(context.Background(), poolConfig.ConnConfig)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
