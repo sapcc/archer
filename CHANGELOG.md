@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-04-27
+
 ### Added
 
 - `--cascade` flag to `service delete` command to delete all associated endpoints along with the service
@@ -105,7 +107,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-Release with goreleaser
 
-[Unreleased]: https://github.com/sapcc/archer/compare/v2.3.1...HEAD
+[Unreleased]: https://github.com/sapcc/archer/compare/v2.4.0...HEAD
+
+[2.4.0]: https://github.com/sapcc/archer/compare/v2.3.1...v2.4.0
 
 [2.3.1]: https://github.com/sapcc/archer/compare/v2.3.0...v2.3.1
 
