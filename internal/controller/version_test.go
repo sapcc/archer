@@ -9,8 +9,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/restapi/operations/version"
+	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/restapi/operations/version"
 )
 
 func (t *SuiteTest) TestVersion() {

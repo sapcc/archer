@@ -29,7 +29,7 @@ import (
 	"github.com/sapcc/go-api-declarations/bininfo"
 	"golang.org/x/term"
 
-	"github.com/sapcc/archer/client"
+	"github.com/sapcc/archer/v2/client"
 )
 
 var (

@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/sapcc/archer/client"
+	"github.com/sapcc/archer/v2/client"
 )
 
 func TestResolveServiceID_ValidUUID(t *testing.T) {

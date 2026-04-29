@@ -26,12 +26,12 @@ import (
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 
-	"github.com/sapcc/archer/client/agent"
-	"github.com/sapcc/archer/client/endpoint"
-	"github.com/sapcc/archer/client/quota"
-	"github.com/sapcc/archer/client/rbac"
-	"github.com/sapcc/archer/client/service"
-	"github.com/sapcc/archer/client/version"
+	"github.com/sapcc/archer/v2/client/agent"
+	"github.com/sapcc/archer/v2/client/endpoint"
+	"github.com/sapcc/archer/v2/client/quota"
+	"github.com/sapcc/archer/v2/client/rbac"
+	"github.com/sapcc/archer/v2/client/service"
+	"github.com/sapcc/archer/v2/client/version"
 )
 
 // Default archer HTTP client.

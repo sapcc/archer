@@ -13,8 +13,8 @@ import (
 	"github.com/gophercloud/gophercloud/v2/openstack"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/networks"
 
-	"github.com/sapcc/archer/client/endpoint"
-	"github.com/sapcc/archer/client/service"
+	"github.com/sapcc/archer/v2/client/endpoint"
+	"github.com/sapcc/archer/v2/client/service"
 )
 
 // ResolveServiceID resolves a service name or ID to a UUID.

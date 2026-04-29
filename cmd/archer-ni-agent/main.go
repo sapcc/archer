@@ -10,8 +10,8 @@ import (
 
 	"github.com/jessevdk/go-flags"
 
-	"github.com/sapcc/archer/internal/agent/ni"
-	"github.com/sapcc/archer/internal/config"
+	"github.com/sapcc/archer/v2/internal/agent/ni"
+	"github.com/sapcc/archer/v2/internal/config"
 )
 
 func main() {

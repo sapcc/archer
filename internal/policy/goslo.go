@@ -10,7 +10,7 @@ import (
 	"github.com/sapcc/go-bits/gopherpolicy"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/sapcc/archer/internal/config"
+	"github.com/sapcc/archer/v2/internal/config"
 )
 
 type gosloPolicyEngine struct{}

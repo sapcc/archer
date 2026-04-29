@@ -35,12 +35,12 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 
-	"github.com/sapcc/archer/restapi/operations/agent"
-	"github.com/sapcc/archer/restapi/operations/endpoint"
-	"github.com/sapcc/archer/restapi/operations/quota"
-	"github.com/sapcc/archer/restapi/operations/rbac"
-	"github.com/sapcc/archer/restapi/operations/service"
-	"github.com/sapcc/archer/restapi/operations/version"
+	"github.com/sapcc/archer/v2/restapi/operations/agent"
+	"github.com/sapcc/archer/v2/restapi/operations/endpoint"
+	"github.com/sapcc/archer/v2/restapi/operations/quota"
+	"github.com/sapcc/archer/v2/restapi/operations/rbac"
+	"github.com/sapcc/archer/v2/restapi/operations/service"
+	"github.com/sapcc/archer/v2/restapi/operations/version"
 )
 
 // NewArcherAPI creates a new Archer instance

@@ -31,7 +31,7 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/validate"
 
-	"github.com/sapcc/archer/models"
+	"github.com/sapcc/archer/v2/models"
 )
 
 // NewPostRbacPoliciesParams creates a new PostRbacPoliciesParams object

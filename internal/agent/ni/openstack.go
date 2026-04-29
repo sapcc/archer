@@ -14,11 +14,11 @@ import (
 	"github.com/gophercloud/utils/v2/openstack/clientconfig"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/sapcc/archer/internal/agent/ni/haproxy"
-	"github.com/sapcc/archer/internal/agent/ni/models"
-	"github.com/sapcc/archer/internal/agent/ni/netlink"
+	"github.com/sapcc/archer/v2/internal/agent/ni/haproxy"
+	"github.com/sapcc/archer/v2/internal/agent/ni/models"
+	"github.com/sapcc/archer/v2/internal/agent/ni/netlink"
 
-	"github.com/sapcc/archer/internal/config"
+	"github.com/sapcc/archer/v2/internal/config"
 )
 
 func (a *Agent) SetupOpenStack() error {

@@ -14,7 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/sapcc/archer/internal/config"
+	"github.com/sapcc/archer/v2/internal/config"
 )
 
 // --------------------------------------------------------------------------

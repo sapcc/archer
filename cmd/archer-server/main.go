@@ -12,9 +12,9 @@ import (
 	"github.com/jessevdk/go-flags"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/restapi"
-	"github.com/sapcc/archer/restapi/operations"
+	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/restapi"
+	"github.com/sapcc/archer/v2/restapi/operations"
 )
 
 func main() {

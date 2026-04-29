@@ -31,7 +31,7 @@ import (
 	cr "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 
-	"github.com/sapcc/archer/models"
+	"github.com/sapcc/archer/v2/models"
 )
 
 // NewPutServiceServiceIDParams creates a new PutServiceServiceIDParams object,

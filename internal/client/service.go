@@ -13,8 +13,8 @@ import (
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/sethvargo/go-retry"
 
-	"github.com/sapcc/archer/client/service"
-	"github.com/sapcc/archer/models"
+	"github.com/sapcc/archer/v2/client/service"
+	"github.com/sapcc/archer/v2/models"
 )
 
 var ServiceOptions struct {

@@ -30,7 +30,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 
-	"github.com/sapcc/archer/models"
+	"github.com/sapcc/archer/v2/models"
 )
 
 // GetQuotasProjectIDHandlerFunc turns a function with the right signature into a get quotas project ID handler

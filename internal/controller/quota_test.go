@@ -9,9 +9,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/models"
-	"github.com/sapcc/archer/restapi/operations/quota"
+	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/models"
+	"github.com/sapcc/archer/v2/restapi/operations/quota"
 )
 
 func (t *SuiteTest) createQuota(projectId string) {

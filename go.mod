@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-module github.com/sapcc/archer
+module github.com/sapcc/archer/v2
 
 go 1.26
 

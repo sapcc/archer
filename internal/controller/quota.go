@@ -12,10 +12,10 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/internal/db"
-	"github.com/sapcc/archer/models"
-	"github.com/sapcc/archer/restapi/operations/quota"
+	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/internal/db"
+	"github.com/sapcc/archer/v2/models"
+	"github.com/sapcc/archer/v2/restapi/operations/quota"
 )
 
 func (c *Controller) GetQuotasHandler(params quota.GetQuotasParams, _ any) middleware.Responder {

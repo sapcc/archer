@@ -7,8 +7,8 @@ package client
 import (
 	"github.com/jedib0t/go-pretty/v6/table"
 
-	"github.com/sapcc/archer/client/quota"
-	"github.com/sapcc/archer/models"
+	"github.com/sapcc/archer/v2/client/quota"
+	"github.com/sapcc/archer/v2/models"
 )
 
 var QuotaOptions struct {

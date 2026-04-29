@@ -7,7 +7,7 @@ package as3
 import (
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
 
-	"github.com/sapcc/archer/models"
+	"github.com/sapcc/archer/v2/models"
 )
 
 // ExtendedService is a service with additional fields for snat ports etc.

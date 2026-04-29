@@ -12,8 +12,8 @@ import (
 	"github.com/pashagolub/pgxmock/v5"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/internal/errors"
+	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/internal/errors"
 )
 
 func TestCheckQuotaMet(t *testing.T) {

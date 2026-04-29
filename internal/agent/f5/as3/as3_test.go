@@ -13,8 +13,8 @@ import (
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/models"
+	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/models"
 )
 
 func TestGetEndpointTenants(t *testing.T) {

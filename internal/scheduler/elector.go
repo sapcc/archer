@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/sapcc/archer/internal/db"
+	"github.com/sapcc/archer/v2/internal/db"
 )
 
 // advisoryLockID is a fixed lock ID for the scheduler leader election.

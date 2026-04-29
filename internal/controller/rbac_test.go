@@ -12,9 +12,9 @@ import (
 	"github.com/go-openapi/swag/conv"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/sapcc/archer/models"
-	"github.com/sapcc/archer/restapi/operations/rbac"
-	"github.com/sapcc/archer/restapi/operations/service"
+	"github.com/sapcc/archer/v2/models"
+	"github.com/sapcc/archer/v2/restapi/operations/rbac"
+	"github.com/sapcc/archer/v2/restapi/operations/service"
 )
 
 func (t *SuiteTest) createRbac(target string) strfmt.UUID { //nolint:unparam

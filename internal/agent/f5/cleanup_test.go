@@ -15,10 +15,10 @@ import (
 	"github.com/pashagolub/pgxmock/v5"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/sapcc/archer/internal/agent/f5/as3"
-	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/internal/neutron"
-	"github.com/sapcc/archer/models"
+	"github.com/sapcc/archer/v2/internal/agent/f5/as3"
+	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/internal/neutron"
+	"github.com/sapcc/archer/v2/models"
 )
 
 func TestAgent_TestGetUsedSegments(t *testing.T) {

@@ -10,8 +10,8 @@ import (
 
 	"github.com/go-openapi/strfmt"
 
-	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/models"
+	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/models"
 )
 
 func GetServiceSnatPoolName(Id strfmt.UUID) string {

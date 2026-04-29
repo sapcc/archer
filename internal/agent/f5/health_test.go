@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/sapcc/archer/internal/agent/f5/bigip"
+	"github.com/sapcc/archer/v2/internal/agent/f5/bigip"
 )
 
 func TestComputePoolHealthStatus(t *testing.T) {

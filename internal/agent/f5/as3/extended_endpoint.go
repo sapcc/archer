@@ -8,7 +8,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
 
-	"github.com/sapcc/archer/models"
+	"github.com/sapcc/archer/v2/models"
 )
 
 // ExtendedEndpoint is an endpoint with additional fields...

@@ -4,7 +4,7 @@
 
 package main
 
-import "github.com/sapcc/archer/internal/client"
+import "github.com/sapcc/archer/v2/internal/client"
 
 func main() {
 	client.SetupClient()

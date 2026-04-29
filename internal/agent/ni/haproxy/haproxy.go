@@ -21,10 +21,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/sapcc/archer/internal/agent/ni/models"
-	"github.com/sapcc/archer/internal/agent/ni/proxy"
+	"github.com/sapcc/archer/v2/internal/agent/ni/models"
+	"github.com/sapcc/archer/v2/internal/agent/ni/proxy"
 
-	"github.com/sapcc/archer/internal/config"
+	"github.com/sapcc/archer/v2/internal/config"
 )
 
 var configTemplate = `

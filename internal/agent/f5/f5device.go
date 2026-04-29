@@ -7,9 +7,9 @@ import (
 	"errors"
 	"net/url"
 
-	"github.com/sapcc/archer/internal/agent/f5/as3"
-	"github.com/sapcc/archer/internal/agent/f5/bigip"
-	"github.com/sapcc/archer/internal/agent/f5/f5os"
+	"github.com/sapcc/archer/v2/internal/agent/f5/as3"
+	"github.com/sapcc/archer/v2/internal/agent/f5/bigip"
+	"github.com/sapcc/archer/v2/internal/agent/f5/f5os"
 )
 
 // F5Device defines the interface for interacting with F5 appliances.

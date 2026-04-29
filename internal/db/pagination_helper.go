@@ -18,8 +18,8 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/models"
+	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/models"
 )
 
 var (

@@ -11,7 +11,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/sapcc/archer/internal/db"
+	"github.com/sapcc/archer/v2/internal/db"
 )
 
 // AgentLoad represents an agent and its current service count.

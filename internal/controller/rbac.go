@@ -14,10 +14,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
-	"github.com/sapcc/archer/internal/auth"
-	"github.com/sapcc/archer/internal/db"
-	"github.com/sapcc/archer/models"
-	"github.com/sapcc/archer/restapi/operations/rbac"
+	"github.com/sapcc/archer/v2/internal/auth"
+	"github.com/sapcc/archer/v2/internal/db"
+	"github.com/sapcc/archer/v2/models"
+	"github.com/sapcc/archer/v2/restapi/operations/rbac"
 )
 
 func (c *Controller) GetRbacPoliciesHandler(params rbac.GetRbacPoliciesParams, _ any) middleware.Responder {
