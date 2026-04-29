@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/tracelog"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/sapcc/archer/internal/config"
+	"github.com/sapcc/archer/v2/internal/config"
 )
 
 func GetTracer() *tracelog.TraceLog {

@@ -33,7 +33,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 
-	"github.com/sapcc/archer/models"
+	"github.com/sapcc/archer/v2/models"
 )
 
 // GetQuotasProjectIDReader is a Reader for the GetQuotasProjectID structure.

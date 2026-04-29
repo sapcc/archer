@@ -12,10 +12,10 @@ import (
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/internal/db"
-	"github.com/sapcc/archer/internal/neutron"
-	"github.com/sapcc/archer/models"
+	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/internal/db"
+	"github.com/sapcc/archer/v2/internal/neutron"
+	"github.com/sapcc/archer/v2/models"
 )
 
 func checkCleanupL2(ctx context.Context, tx pgx.Tx, networkID string,

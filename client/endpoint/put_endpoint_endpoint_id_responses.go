@@ -35,7 +35,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 
-	"github.com/sapcc/archer/models"
+	"github.com/sapcc/archer/v2/models"
 )
 
 // PutEndpointEndpointIDReader is a Reader for the PutEndpointEndpointID structure.

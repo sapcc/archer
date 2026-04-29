@@ -17,8 +17,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/internal/db"
+	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/internal/db"
 )
 
 func RegisterAgent(pool db.PgxIface, provider string) {

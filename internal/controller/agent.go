@@ -11,9 +11,9 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/sapcc/archer/internal/db"
-	"github.com/sapcc/archer/models"
-	"github.com/sapcc/archer/restapi/operations/agent"
+	"github.com/sapcc/archer/v2/internal/db"
+	"github.com/sapcc/archer/v2/models"
+	"github.com/sapcc/archer/v2/restapi/operations/agent"
 )
 
 func (c *Controller) GetAgentsHandler(params agent.GetAgentsParams, _ any) middleware.Responder {

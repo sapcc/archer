@@ -22,12 +22,12 @@ import (
 	"github.com/sapcc/go-bits/gopherpolicy"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/sapcc/archer/internal"
-	"github.com/sapcc/archer/internal/auth"
-	"github.com/sapcc/archer/internal/db"
-	aerr "github.com/sapcc/archer/internal/errors"
-	"github.com/sapcc/archer/models"
-	"github.com/sapcc/archer/restapi/operations/endpoint"
+	"github.com/sapcc/archer/v2/internal"
+	"github.com/sapcc/archer/v2/internal/auth"
+	"github.com/sapcc/archer/v2/internal/db"
+	aerr "github.com/sapcc/archer/v2/internal/errors"
+	"github.com/sapcc/archer/v2/models"
+	"github.com/sapcc/archer/v2/restapi/operations/endpoint"
 )
 
 func (c *Controller) GetEndpointHandler(params endpoint.GetEndpointParams, _ any) middleware.Responder {

@@ -7,7 +7,7 @@ package client
 import (
 	"time"
 
-	"github.com/sapcc/archer/client/agent"
+	"github.com/sapcc/archer/v2/client/agent"
 )
 
 var AgentOptions struct {

@@ -7,8 +7,8 @@ package controller
 import (
 	"github.com/go-openapi/loads"
 
-	"github.com/sapcc/archer/internal/db"
-	"github.com/sapcc/archer/internal/neutron"
+	"github.com/sapcc/archer/v2/internal/db"
+	"github.com/sapcc/archer/v2/internal/neutron"
 )
 
 type Controller struct {

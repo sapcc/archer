@@ -25,9 +25,9 @@ import (
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/sapcc/archer/internal/config"
-	aErrors "github.com/sapcc/archer/internal/errors"
-	"github.com/sapcc/archer/models"
+	"github.com/sapcc/archer/v2/internal/config"
+	aErrors "github.com/sapcc/archer/v2/internal/errors"
+	"github.com/sapcc/archer/v2/models"
 )
 
 type NetworkMTU struct {

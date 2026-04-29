@@ -16,11 +16,11 @@ import (
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/subnets"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/sapcc/archer/internal/agent/f5/as3"
-	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/internal/db"
-	internal "github.com/sapcc/archer/internal/errors"
-	"github.com/sapcc/archer/models"
+	"github.com/sapcc/archer/v2/internal/agent/f5/as3"
+	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/internal/db"
+	internal "github.com/sapcc/archer/v2/internal/errors"
+	"github.com/sapcc/archer/v2/models"
 )
 
 func (a *Agent) getExtendedService(s *models.Service) (*as3.ExtendedService, error) {

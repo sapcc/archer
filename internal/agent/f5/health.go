@@ -17,11 +17,11 @@ import (
 	"github.com/go-openapi/strfmt"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/sapcc/archer/internal/agent/f5/as3"
-	"github.com/sapcc/archer/internal/agent/f5/bigip"
-	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/internal/db"
-	"github.com/sapcc/archer/models"
+	"github.com/sapcc/archer/v2/internal/agent/f5/as3"
+	"github.com/sapcc/archer/v2/internal/agent/f5/bigip"
+	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/internal/db"
+	"github.com/sapcc/archer/v2/models"
 )
 
 // Health status constants matching the API enum

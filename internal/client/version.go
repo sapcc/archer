@@ -7,8 +7,8 @@ package client
 import (
 	"fmt"
 
-	"github.com/sapcc/archer/client/version"
-	"github.com/sapcc/archer/internal/config"
+	"github.com/sapcc/archer/v2/client/version"
+	"github.com/sapcc/archer/v2/internal/config"
 )
 
 type VersionOptions struct{}

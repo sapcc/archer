@@ -15,8 +15,8 @@ import (
 	"github.com/gophercloud/gophercloud/v2/testhelper/fixture"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/sapcc/archer/internal/config"
-	aErrors "github.com/sapcc/archer/internal/errors"
+	"github.com/sapcc/archer/v2/internal/config"
+	aErrors "github.com/sapcc/archer/v2/internal/errors"
 )
 
 const NetworkIDFixture = "9bf57c58-5d9f-418b-a879-44d83e194ad0"

@@ -23,8 +23,8 @@ import (
 	"github.com/sethvargo/go-retry"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/sapcc/archer/internal/agent/f5/as3"
-	"github.com/sapcc/archer/internal/config"
+	"github.com/sapcc/archer/v2/internal/agent/f5/as3"
+	"github.com/sapcc/archer/v2/internal/config"
 )
 
 // token represents a JWT token used for authentication with F5OS.

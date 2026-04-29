@@ -10,9 +10,9 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/sapcc/archer/internal/auth"
-	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/internal/errors"
+	"github.com/sapcc/archer/v2/internal/auth"
+	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/internal/errors"
 )
 
 func CheckQuota(pool PgxIface, r *http.Request, resource string) error {

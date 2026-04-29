@@ -5,7 +5,7 @@
 package f5
 
 import (
-	"github.com/sapcc/archer/internal/agent/f5/as3"
+	"github.com/sapcc/archer/v2/internal/agent/f5/as3"
 	mock "github.com/stretchr/testify/mock"
 )
 

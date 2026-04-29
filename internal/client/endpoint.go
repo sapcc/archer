@@ -12,9 +12,9 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/sethvargo/go-retry"
 
-	"github.com/sapcc/archer/client/endpoint"
-	"github.com/sapcc/archer/client/service"
-	"github.com/sapcc/archer/models"
+	"github.com/sapcc/archer/v2/client/endpoint"
+	"github.com/sapcc/archer/v2/client/service"
+	"github.com/sapcc/archer/v2/models"
 )
 
 var EndpointOptions struct {

@@ -24,13 +24,13 @@ import (
 	"github.com/sapcc/go-bits/gopherpolicy"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/sapcc/archer/internal"
-	"github.com/sapcc/archer/internal/auth"
-	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/internal/db"
-	aerr "github.com/sapcc/archer/internal/errors"
-	"github.com/sapcc/archer/models"
-	"github.com/sapcc/archer/restapi/operations/service"
+	"github.com/sapcc/archer/v2/internal"
+	"github.com/sapcc/archer/v2/internal/auth"
+	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/internal/db"
+	aerr "github.com/sapcc/archer/v2/internal/errors"
+	"github.com/sapcc/archer/v2/models"
+	"github.com/sapcc/archer/v2/restapi/operations/service"
 )
 
 // CPNetworkID is the placeholder network ID used for cp provider services that don't have a real network.

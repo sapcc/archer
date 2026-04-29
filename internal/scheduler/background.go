@@ -13,7 +13,7 @@ import (
 	"github.com/go-co-op/gocron/v2"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/sapcc/archer/internal/db"
+	"github.com/sapcc/archer/v2/internal/db"
 )
 
 // BackgroundScheduler runs periodic rescheduling and rebalancing jobs using gocron.

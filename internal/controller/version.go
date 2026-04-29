@@ -10,9 +10,9 @@ import (
 
 	"github.com/go-openapi/runtime/middleware"
 
-	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/models"
-	"github.com/sapcc/archer/restapi/operations/version"
+	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/models"
+	"github.com/sapcc/archer/v2/restapi/operations/version"
 )
 
 // extractMicroversion extracts a valid Keystone version string from a full version string.

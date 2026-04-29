@@ -24,10 +24,10 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/z0ne-dev/mgx/v2"
 
-	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/internal/db/migrations"
-	"github.com/sapcc/archer/internal/neutron"
-	"github.com/sapcc/archer/internal/policy"
+	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/internal/db/migrations"
+	"github.com/sapcc/archer/v2/internal/neutron"
+	"github.com/sapcc/archer/v2/internal/policy"
 )
 
 var (

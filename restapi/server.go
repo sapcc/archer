@@ -40,7 +40,7 @@ import (
 	"github.com/go-openapi/runtime/flagext"
 	"github.com/go-openapi/swag"
 
-	"github.com/sapcc/archer/restapi/operations"
+	"github.com/sapcc/archer/v2/restapi/operations"
 )
 
 const (

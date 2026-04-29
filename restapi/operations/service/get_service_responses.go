@@ -26,7 +26,7 @@ import (
 
 	"github.com/go-openapi/runtime"
 
-	"github.com/sapcc/archer/models"
+	"github.com/sapcc/archer/v2/models"
 )
 
 // GetServiceOKCode is the HTTP code returned for type GetServiceOK

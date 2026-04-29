@@ -22,11 +22,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 
-	common "github.com/sapcc/archer/internal/agent"
-	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/internal/db"
-	"github.com/sapcc/archer/internal/neutron"
-	"github.com/sapcc/archer/models"
+	common "github.com/sapcc/archer/v2/internal/agent"
+	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/internal/db"
+	"github.com/sapcc/archer/v2/internal/neutron"
+	"github.com/sapcc/archer/v2/models"
 )
 
 type Agent struct {

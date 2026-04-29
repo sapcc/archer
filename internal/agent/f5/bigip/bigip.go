@@ -17,10 +17,10 @@ import (
 	"github.com/sethvargo/go-retry"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/sapcc/archer/internal"
-	"github.com/sapcc/archer/internal/agent/f5/as3"
-	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/internal/errors"
+	"github.com/sapcc/archer/v2/internal"
+	"github.com/sapcc/archer/v2/internal/agent/f5/as3"
+	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/internal/errors"
 )
 
 type BigIP bigip.BigIP

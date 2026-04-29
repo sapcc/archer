@@ -12,8 +12,8 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/sapcc/archer/internal/db"
-	"github.com/sapcc/archer/restapi/operations/agent"
+	"github.com/sapcc/archer/v2/internal/db"
+	"github.com/sapcc/archer/v2/restapi/operations/agent"
 )
 
 func (t *SuiteTest) TestGetAgentsHandlerEmpty() {

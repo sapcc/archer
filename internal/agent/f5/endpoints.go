@@ -19,12 +19,12 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/sapcc/archer/internal/agent/f5/as3"
-	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/internal/db"
-	aErrors "github.com/sapcc/archer/internal/errors"
-	"github.com/sapcc/archer/internal/neutron"
-	"github.com/sapcc/archer/models"
+	"github.com/sapcc/archer/v2/internal/agent/f5/as3"
+	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/internal/db"
+	aErrors "github.com/sapcc/archer/v2/internal/errors"
+	"github.com/sapcc/archer/v2/internal/neutron"
+	"github.com/sapcc/archer/v2/models"
 )
 
 func (a *Agent) populateEndpointPorts(endpoints []*as3.ExtendedEndpoint) error {

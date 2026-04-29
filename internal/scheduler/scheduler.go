@@ -14,8 +14,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/sapcc/archer/internal/db"
-	"github.com/sapcc/archer/models"
+	"github.com/sapcc/archer/v2/internal/db"
+	"github.com/sapcc/archer/v2/models"
 )
 
 // Config holds configuration for the service scheduler.

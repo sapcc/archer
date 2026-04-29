@@ -7,7 +7,7 @@ package haproxy
 import (
 	"context"
 
-	"github.com/sapcc/archer/internal/agent/ni/models"
+	"github.com/sapcc/archer/v2/internal/agent/ni/models"
 )
 
 type HAProxy interface {

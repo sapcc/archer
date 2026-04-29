@@ -15,8 +15,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/z0ne-dev/mgx/v2"
 
-	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/internal/db/migrations"
+	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/internal/db/migrations"
 )
 
 func main() {

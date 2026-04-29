@@ -18,11 +18,11 @@ import (
 	"github.com/sapcc/go-bits/gopherpolicy"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/sapcc/archer/internal/config"
-	"github.com/sapcc/archer/internal/db"
-	"github.com/sapcc/archer/models"
-	"github.com/sapcc/archer/restapi/operations/endpoint"
-	"github.com/sapcc/archer/restapi/operations/service"
+	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/internal/db"
+	"github.com/sapcc/archer/v2/models"
+	"github.com/sapcc/archer/v2/restapi/operations/endpoint"
+	"github.com/sapcc/archer/v2/restapi/operations/service"
 )
 
 var (
