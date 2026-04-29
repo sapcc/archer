@@ -4,7 +4,7 @@ SPDX-FileCopyrightText: Copyright 2025 SAP SE or an SAP affiliate company
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# Archer - CCloud Endpoint Service [![Go Reference](https://pkg.go.dev/badge/github.com/sapcc/archer.svg)](https://pkg.go.dev/github.com/sapcc/archer) [![Swagger](https://img.shields.io/badge/Swagger-UI-brightgreen)](https://sapcc.github.io/archer/) [![Go Report Card](https://goreportcard.com/badge/github.com/sapcc/archer)](https://goreportcard.com/report/github.com/sapcc/archer) [![Checks](https://github.com/sapcc/archer/actions/workflows/checks.yaml/badge.svg)](https://github.com/sapcc/archer/actions/workflows/checks.yaml) [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+# Archer - CCloud Endpoint Service [![Go Reference](https://pkg.go.dev/badge/github.com/sapcc/archer/v2.svg)](https://pkg.go.dev/github.com/sapcc/archer/v2) [![Swagger](https://img.shields.io/badge/Swagger-UI-brightgreen)](https://sapcc.github.io/archer/) [![Go Report Card](https://goreportcard.com/badge/github.com/sapcc/archer/v2)](https://goreportcard.com/report/github.com/sapcc/archer/v2) [![Checks](https://github.com/sapcc/archer/actions/workflows/checks.yaml/badge.svg)](https://github.com/sapcc/archer/actions/workflows/checks.yaml) [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 Archer is an API service that can privately connect services from one private [OpenStack Network](https://docs.openstack.org/neutron/latest/admin/intro-os-networking.html) to another. Consumers can select a *service* from a service catalog and **inject** it to their network, which means making this *service* available via a private ip address.
 
