@@ -7,8 +7,8 @@ github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6/go.mod h
 github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c h1:udKWzYgxTojEKWjV8V+WSxDXJ4NFATAsZjh8iIbsQIg=
 github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c/go.mod h1:xomTg63KZ2rFqZQzSB4Vz2SUXa1BpHTVz9L5PTmPC4E=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/IBM/pgxpoolprometheus v1.1.2 h1:sHJwxoL5Lw4R79Zt+H4Uj1zZ4iqXJLdk7XDE7TPs97U=
-github.com/IBM/pgxpoolprometheus v1.1.2/go.mod h1:+vWzISN6S9ssgurhUNmm6AlXL9XLah3TdWJktquKTR8=
+github.com/IBM/pgxpoolprometheus v1.1.3 h1:LYDekhCpo0I6qBrnfZlCSDqdr8UX/ZJ2C3GwhrTSVcw=
+github.com/IBM/pgxpoolprometheus v1.1.3/go.mod h1:Q/NZpDapcg7VJQSfUfhH+KaGV7wZQk0/bFRoyinkjr8=
 github.com/Masterminds/squirrel v1.5.4 h1:uUcX/aBc8O7Fg9kaISIUsHXdKuqehiXAMQTYX8afzqM=
 github.com/Masterminds/squirrel v1.5.4/go.mod h1:NNaOrjSoIDfDA40n7sr2tPNZRfjzjA400rg+riTZj10=
 github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERoyfY=
@@ -106,8 +106,8 @@ github.com/go-openapi/runtime v0.29.4 h1:k2lDxrGoSAJRdhFG2tONKMpkizY/4X1cciSdtzk
 github.com/go-openapi/runtime v0.29.4/go.mod h1:K0k/2raY6oqXJnZAgWJB2i/12QKrhUKpZcH4PfV9P18=
 github.com/go-openapi/spec v0.22.4 h1:4pxGjipMKu0FzFiu/DPwN3CTBRlVM2yLf/YTWorYfDQ=
 github.com/go-openapi/spec v0.22.4/go.mod h1:WQ6Ai0VPWMZgMT4XySjlRIE6GP1bGQOtEThn3gcWLtQ=
-github.com/go-openapi/strfmt v0.26.1 h1:7zGCHji7zSYDC2tCXIusoxYQz/48jAf2q+sF6wXTG+c=
-github.com/go-openapi/strfmt v0.26.1/go.mod h1:Zslk5VZPOISLwmWTMBIS7oiVFem1o1EI6zULY8Uer7Y=
+github.com/go-openapi/strfmt v0.26.2 h1:ysjheCh4i1rmFEo2LanhELDNucNzfWTZhUDKgWWPaFM=
+github.com/go-openapi/strfmt v0.26.2/go.mod h1:fXh1e449cyUn2NYuz+wb3wARBUdMl7qPEZwX00nqivY=
 github.com/go-openapi/swag v0.26.0 h1:GVDXCmfvhfu1BxiHo8/FA+BbKmhecHnG3varjON5/RI=
 github.com/go-openapi/swag v0.26.0/go.mod h1:82g3193sZJRbocs7bNCqGfIgq8pkuwVwCfhKIRlEQF0=
 github.com/go-openapi/swag/cmdutils v0.26.0 h1:iowihOcvq7y4egO8cOq0dmfohz6wfeQ63U1EnuhO2TU=
