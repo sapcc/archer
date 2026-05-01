@@ -7,7 +7,7 @@ module github.com/sapcc/archer/v2
 go 1.26
 
 require (
-	github.com/IBM/pgxpoolprometheus v1.1.2
+	github.com/IBM/pgxpoolprometheus v1.1.3
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/bcicen/go-haproxy v0.0.0-20210728173702-412d077dabc1
 	github.com/databus23/goslo.policy v0.0.0-20250326134918-4afc2c56a903
@@ -21,7 +21,7 @@ require (
 	github.com/go-openapi/loads v0.23.3
 	github.com/go-openapi/runtime v0.29.4
 	github.com/go-openapi/spec v0.22.4
-	github.com/go-openapi/strfmt v0.26.1
+	github.com/go-openapi/strfmt v0.26.2
 	github.com/go-openapi/swag v0.26.0
 	github.com/go-openapi/swag/cmdutils v0.26.0
 	github.com/go-openapi/swag/conv v0.26.0
