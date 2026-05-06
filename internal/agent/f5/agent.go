@@ -6,7 +6,6 @@ package f5
 
 import (
 	"context"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -246,13 +245,6 @@ func (a *Agent) PendingSyncLoop() error {
 	}
 
 	return nil
-}
-
-func (a *Agent) PrometheusListenerThread() {
-	log.Infof("Serving prometheus metrics to %s/metrics", config.Global.Default.PrometheusListen)
-	if err := http.ListenAndServe(config.Global.Default.PrometheusListen, nil); err != nil {
-		log.Fatal(err.Error())
-	}
 }
 
 // UpdateHeartbeat updates the agent's heartbeat in the database.
