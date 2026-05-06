@@ -51,6 +51,23 @@ import (
 var (
 	// SwaggerSpec make parsed swaggerspec available globally
 	SwaggerSpec *loads.Document
+
+	httpRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "http_request_duration_seconds",
+		Help:    "Duration of HTTP requests in seconds.",
+		Buckets: prometheus.DefBuckets,
+	}, []string{"method", "code"})
+
+	httpRequestsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "http_requests_total",
+		Help: "Total number of HTTP requests.",
+	}, []string{"method", "code"})
+
+	httpResponseSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "http_response_size_bytes",
+		Help:    "Size of HTTP responses in bytes.",
+		Buckets: prometheus.ExponentialBuckets(100, 10, 7),
+	}, []string{"method", "code"})
 )
 
 func configureFlags(api *operations.ArcherAPI) {
@@ -90,6 +107,7 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 
 		collector := pgxpoolprometheus.NewCollector(pool, map[string]string{"db_name": connConfig.ConnConfig.Database})
 		prometheus.MustRegister(collector)
+		prometheus.MustRegister(httpRequestDuration, httpRequestsTotal, httpResponseSize)
 	}
 
 	// Keystone authentication
@@ -253,6 +271,13 @@ func setupGlobalMiddleware(handler http.Handler) http.Handler {
 			AllowedMethods: []string{"HEAD", "GET", "POST", "PUT", "DELETE"},
 			AllowedHeaders: []string{"Content-Type", "User-Agent", "X-Auth-Token"},
 		}).Handler(handler)
+	}
+
+	// Prometheus HTTP metrics instrumentation
+	if config.Global.Default.Prometheus {
+		handler = promhttp.InstrumentHandlerDuration(httpRequestDuration,
+			promhttp.InstrumentHandlerCounter(httpRequestsTotal,
+				promhttp.InstrumentHandlerResponseSize(httpResponseSize, handler)))
 	}
 
 	// Pass via sentry handler
