@@ -10,7 +10,6 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/sapcc/go-bits/osext"
-	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/z0ne-dev/mgx/v2"
 )
@@ -24,7 +23,6 @@ func TestMigrate(t *testing.T) {
 	// start postgres container
 	pgContainer, err := postgres.Run(t.Context(),
 		"postgres:16-alpine",
-		testcontainers.WithProvider(testcontainers.ProviderPodman),
 		postgres.BasicWaitStrategies(),
 	)
 	if err != nil {

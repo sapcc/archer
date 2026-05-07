@@ -12,7 +12,6 @@ import (
 	"github.com/sapcc/go-bits/osext"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
@@ -28,7 +27,6 @@ func TestPostgresElector_Integration(t *testing.T) {
 	// Start postgres container
 	pgContainer, err := postgres.Run(ctx,
 		"postgres:16-alpine",
-		testcontainers.WithProvider(testcontainers.ProviderPodman),
 		postgres.BasicWaitStrategies(),
 	)
 	require.NoError(t, err, "Failed starting postgres container")
