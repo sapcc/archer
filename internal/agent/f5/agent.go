@@ -75,15 +75,24 @@ func NewAgent() *Agent {
 
 	// ltm guests
 	for _, url := range config.Global.Agent.Devices {
-		var f5device F5Device
-		f5device, err = GetF5DeviceSession(url)
-		if err != nil {
-			log.Fatalf("failed initialize F5 device: %v", err)
+		f5device, devErr := GetF5DeviceSession(url)
+		if devErr != nil {
+			log.Warningf("Failed to initialize F5 device %s: %v", url, devErr)
+			continue
 		}
 		agent.devices = append(agent.devices, f5device)
 		if f5device.GetFailoverState() == "active" {
 			agent.active = f5device
 		}
+	}
+
+	if agent.active == nil {
+		log.Fatalf("No active F5 device available")
+	}
+
+	if len(agent.devices) < len(config.Global.Agent.Devices) {
+		log.Warningf("Running in degraded mode: %d of %d devices available",
+			len(agent.devices), len(config.Global.Agent.Devices))
 	}
 
 	// hosts
