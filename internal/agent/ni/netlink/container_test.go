@@ -61,7 +61,6 @@ func TestNetlinkPrivilegedContainer(t *testing.T) {
 		testcontainers.GenericContainerRequest{
 			ContainerRequest: req,
 			Started:          true,
-			ProviderType:     testcontainers.ProviderPodman,
 		})
 	require.NoError(t, err, "Failed to start privileged container")
 	defer func() { _ = ctr.Terminate(ctx) }()
