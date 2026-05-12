@@ -17,6 +17,17 @@ import (
 	"github.com/sapcc/archer/v2/models"
 )
 
+func toInetAddresses(addrs []string) []models.InetAddress {
+	if addrs == nil {
+		return nil
+	}
+	result := make([]models.InetAddress, len(addrs))
+	for i, a := range addrs {
+		result[i] = models.InetAddress(a)
+	}
+	return result
+}
+
 var ServiceOptions struct {
 	ServiceList     `command:"list" description:"List Services"`
 	ServiceEndpoint `command:"endpoint" description:"Service Endpoint Commands"`
@@ -90,24 +101,24 @@ func (*ServiceShow) Execute(_ []string) error {
 }
 
 type ServiceCreate struct {
-	Name              string        `short:"n" long:"name" description:"New service name"`
-	Description       string        `long:"description" description:"Set service description"`
-	Provider          *string       `long:"provider" description:"Provider type" choice:"tenant" choice:"cp"`
-	Enable            bool          `long:"enable" description:"Enable service"`
-	Disable           bool          `long:"disable" description:"Disable service"`
-	Network           *string       `long:"network" description:"Network (name or ID, required for tenant provider)"`
-	IPAddresses       []strfmt.IPv4 `long:"ip-address" description:"IP Addresses of the providing service, multiple addresses will be round robin load balanced." required:"true"`
-	Port              []int32       `long:"port" description:"Port exposed by the service (repeat option to set multiple ports)" required:"true"`
-	Protocol          *string       `long:"protocol" description:"Protocol type of the service" choice:"TCP" choice:"HTTP"`
-	ProxyProtocol     bool          `long:"proxy-protocol" description:"Enable proxy protocol v2."`
-	NoProxyProtocol   bool          `long:"no-proxy-protocol" description:"Disable proxy protocol v2."`
-	RequireApproval   bool          `long:"require-approval" description:"Require explicit project approval for the service owner."`
-	NoRequireApproval bool          `long:"no-require-approval" description:"Disable require approval for the service owner."`
-	SnatPoolSize      *int32        `long:"snat-pool-size" description:"Number of SNAT IP addresses allocated for this service (1-8, f5 provider only). Leave unset for default behavior."`
-	Tags              []string      `long:"tag" description:"Tag to be added to the service (repeat option to set multiple tags)"`
-	Visibility        *string       `long:"visibility" description:"Set global visibility of the service. For private visibility, RBAC policies can extend the visibility to specific projects" choice:"private" choice:"public"`
-	Wait              bool          `long:"wait" description:"Wait for service to be ready"`
-	AvailabilityZone  *string       `long:"availability-zone" description:"Availability zone for the service"`
+	Name              string   `short:"n" long:"name" description:"New service name"`
+	Description       string   `long:"description" description:"Set service description"`
+	Provider          *string  `long:"provider" description:"Provider type" choice:"tenant" choice:"cp"`
+	Enable            bool     `long:"enable" description:"Enable service"`
+	Disable           bool     `long:"disable" description:"Disable service"`
+	Network           *string  `long:"network" description:"Network (name or ID, required for tenant provider)"`
+	IPAddresses       []string `long:"ip-address" description:"IP Addresses of the providing service (IPv4 or IPv6), multiple addresses will be round robin load balanced." required:"true"`
+	Port              []int32  `long:"port" description:"Port exposed by the service (repeat option to set multiple ports)" required:"true"`
+	Protocol          *string  `long:"protocol" description:"Protocol type of the service" choice:"TCP" choice:"HTTP"`
+	ProxyProtocol     bool     `long:"proxy-protocol" description:"Enable proxy protocol v2."`
+	NoProxyProtocol   bool     `long:"no-proxy-protocol" description:"Disable proxy protocol v2."`
+	RequireApproval   bool     `long:"require-approval" description:"Require explicit project approval for the service owner."`
+	NoRequireApproval bool     `long:"no-require-approval" description:"Disable require approval for the service owner."`
+	SnatPoolSize      *int32   `long:"snat-pool-size" description:"Number of SNAT IP addresses allocated for this service (1-8, f5 provider only). Leave unset for default behavior."`
+	Tags              []string `long:"tag" description:"Tag to be added to the service (repeat option to set multiple tags)"`
+	Visibility        *string  `long:"visibility" description:"Set global visibility of the service. For private visibility, RBAC policies can extend the visibility to specific projects" choice:"private" choice:"public"`
+	Wait              bool     `long:"wait" description:"Wait for service to be ready"`
+	AvailabilityZone  *string  `long:"availability-zone" description:"Availability zone for the service"`
 }
 
 func (*ServiceCreate) Execute(_ []string) error {
@@ -133,7 +144,7 @@ func (*ServiceCreate) Execute(_ []string) error {
 		Provider:         ServiceOptions.ServiceCreate.Provider,
 		Enabled:          boolFlag(ServiceOptions.ServiceCreate.Enable, ServiceOptions.ServiceCreate.Disable),
 		NetworkID:        networkID,
-		IPAddresses:      ServiceOptions.ServiceCreate.IPAddresses,
+		IPAddresses:      toInetAddresses(ServiceOptions.ServiceCreate.IPAddresses),
 		Ports:            ServiceOptions.ServiceCreate.Port,
 		Protocol:         ServiceOptions.ServiceCreate.Protocol,
 		ProxyProtocol:    boolFlag(ServiceOptions.ServiceCreate.ProxyProtocol, ServiceOptions.ServiceCreate.NoProxyProtocol),
@@ -162,22 +173,22 @@ type ServiceSet struct {
 	Positional struct {
 		Service string `positional-arg-name:"service" description:"Service to set (name or ID)"`
 	} `positional-args:"yes" required:"yes"`
-	NoTags            bool          `long:"no-tag" description:"Clear tags associated with the service. Specify both --tag and --no-tag to overwrite current tags"`
-	Tags              []string      `long:"tag" description:"Tag to be added to the service (repeat option to set multiple tags)"`
-	Description       *string       `long:"description" description:"Set service description"`
-	Enable            bool          `long:"enable" description:"Enable service"`
-	Disable           bool          `long:"disable" description:"Disable service"`
-	IPAddresses       []strfmt.IPv4 `long:"ip-address" description:"IP Addresses of the providing service, multiple addresses will be round robin load balanced."`
-	Name              *string       `long:"name" description:"Service name"`
-	Port              []int32       `long:"port" description:"Port exposed by the service (repeat option to set multiple ports)"`
-	Protocol          *string       `long:"protocol" description:"Protocol type of the service" choice:"TCP" choice:"HTTP"`
-	ProxyProtocol     bool          `long:"proxy-protocol" description:"Enable proxy protocol v2."`
-	NoProxyProtocol   bool          `long:"no-proxy-protocol" description:"Disable proxy protocol v2."`
-	RequireApproval   bool          `long:"require-approval" description:"Require explicit project approval for the service owner."`
-	NoRequireApproval bool          `long:"no-require-approval" description:"Disable require approval for the service owner."`
-	SnatPoolSize      *int32        `long:"snat-pool-size" description:"Number of SNAT IP addresses allocated for this service (1-8, f5 provider only)."`
-	Visibility        *string       `long:"visibility" description:"Set global visibility of the service. For private visibility, RBAC policies can extend the visibility to specific projects" choice:"private" choice:"public"`
-	Wait              bool          `long:"wait" description:"Wait for service to be ready"`
+	NoTags            bool     `long:"no-tag" description:"Clear tags associated with the service. Specify both --tag and --no-tag to overwrite current tags"`
+	Tags              []string `long:"tag" description:"Tag to be added to the service (repeat option to set multiple tags)"`
+	Description       *string  `long:"description" description:"Set service description"`
+	Enable            bool     `long:"enable" description:"Enable service"`
+	Disable           bool     `long:"disable" description:"Disable service"`
+	IPAddresses       []string `long:"ip-address" description:"IP Addresses of the providing service (IPv4 or IPv6), multiple addresses will be round robin load balanced."`
+	Name              *string  `long:"name" description:"Service name"`
+	Port              []int32  `long:"port" description:"Port exposed by the service (repeat option to set multiple ports)"`
+	Protocol          *string  `long:"protocol" description:"Protocol type of the service" choice:"TCP" choice:"HTTP"`
+	ProxyProtocol     bool     `long:"proxy-protocol" description:"Enable proxy protocol v2."`
+	NoProxyProtocol   bool     `long:"no-proxy-protocol" description:"Disable proxy protocol v2."`
+	RequireApproval   bool     `long:"require-approval" description:"Require explicit project approval for the service owner."`
+	NoRequireApproval bool     `long:"no-require-approval" description:"Disable require approval for the service owner."`
+	SnatPoolSize      *int32   `long:"snat-pool-size" description:"Number of SNAT IP addresses allocated for this service (1-8, f5 provider only)."`
+	Visibility        *string  `long:"visibility" description:"Set global visibility of the service. For private visibility, RBAC policies can extend the visibility to specific projects" choice:"private" choice:"public"`
+	Wait              bool     `long:"wait" description:"Wait for service to be ready"`
 }
 
 func (*ServiceSet) Execute(_ []string) error {
@@ -209,7 +220,7 @@ func (*ServiceSet) Execute(_ []string) error {
 	sv := models.ServiceUpdatable{
 		Description:     ServiceOptions.ServiceSet.Description,
 		Enabled:         boolFlag(ServiceOptions.ServiceSet.Enable, ServiceOptions.ServiceSet.Disable),
-		IPAddresses:     ServiceOptions.ServiceSet.IPAddresses,
+		IPAddresses:     toInetAddresses(ServiceOptions.ServiceSet.IPAddresses),
 		Name:            ServiceOptions.ServiceSet.Name,
 		Ports:           ServiceOptions.ServiceSet.Port,
 		Protocol:        ServiceOptions.ServiceSet.Protocol,

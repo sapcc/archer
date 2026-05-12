@@ -270,6 +270,10 @@ paths:
               type: string
               format: uuid
               description: "The UUID of the created resource"
+        400:
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/Error"
         401:
           description: Unauthorized
           schema:
@@ -335,6 +339,10 @@ paths:
           description: Service
           schema:
             $ref: "#/definitions/Service"
+        400:
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/Error"
         401:
           description: Unauthorized
           schema:
@@ -1312,12 +1320,13 @@ definitions:
         x-nullable: true
       ip_addresses:
         type: array
-        description: IP Addresses of the providing service, multiple addresses will be round robin load balanced.
+        description: IP Addresses of the providing service (IPv4 or IPv6), multiple addresses will be round robin load balanced.
         minItems: 1
         items:
           type: string
-          format: ipv4
-          description: IP Address of the providing service.
+          x-go-type:
+            type: InetAddress
+          description: IP Address of the providing service (IPv4 or IPv6).
           example: 1.2.3.4
       status:
         $ref: "#/definitions/ServiceStatus"
@@ -1466,12 +1475,13 @@ definitions:
         x-nullable: true
       ip_addresses:
         type: array
-        description: IP Addresses of the providing service, multiple addresses will be round robin load balanced.
+        description: IP Addresses of the providing service (IPv4 or IPv6), multiple addresses will be round robin load balanced.
         minItems: 1
         items:
           type: string
-          format: ipv4
-          description: IP Address of the providing service.
+          x-go-type:
+            type: InetAddress
+          description: IP Address of the providing service (IPv4 or IPv6).
           example: 1.2.3.4
       ports:
         type: array
@@ -1607,8 +1617,7 @@ definitions:
       ip_address:
         readOnly: true
         type: string
-        format: ipv4
-        description: Endpoint IP address.
+        description: Endpoint IP address (IPv4 or IPv6).
         example: 1.2.3.4
       tags:
         type: array

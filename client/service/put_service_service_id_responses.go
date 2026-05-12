@@ -47,6 +47,12 @@ func (o *PutServiceServiceIDReader) ReadResponse(response runtime.ClientResponse
 			return nil, err
 		}
 		return result, nil
+	case 400:
+		result := NewPutServiceServiceIDBadRequest()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 401:
 		result := NewPutServiceServiceIDUnauthorized()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -143,6 +149,76 @@ func (o *PutServiceServiceIDOK) GetPayload() *models.Service {
 func (o *PutServiceServiceIDOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.Service)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+		return err
+	}
+
+	return nil
+}
+
+// NewPutServiceServiceIDBadRequest creates a PutServiceServiceIDBadRequest with default headers values
+func NewPutServiceServiceIDBadRequest() *PutServiceServiceIDBadRequest {
+	return &PutServiceServiceIDBadRequest{}
+}
+
+/*
+PutServiceServiceIDBadRequest describes a response with status code 400, with default header values.
+
+Bad Request
+*/
+type PutServiceServiceIDBadRequest struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this put service service Id bad request response has a 2xx status code
+func (o *PutServiceServiceIDBadRequest) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this put service service Id bad request response has a 3xx status code
+func (o *PutServiceServiceIDBadRequest) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this put service service Id bad request response has a 4xx status code
+func (o *PutServiceServiceIDBadRequest) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this put service service Id bad request response has a 5xx status code
+func (o *PutServiceServiceIDBadRequest) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this put service service Id bad request response a status code equal to that given
+func (o *PutServiceServiceIDBadRequest) IsCode(code int) bool {
+	return code == 400
+}
+
+// Code gets the status code for the put service service Id bad request response
+func (o *PutServiceServiceIDBadRequest) Code() int {
+	return 400
+}
+
+func (o *PutServiceServiceIDBadRequest) Error() string {
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /service/{service_id}][%d] putServiceServiceIdBadRequest %s", 400, payload)
+}
+
+func (o *PutServiceServiceIDBadRequest) String() string {
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /service/{service_id}][%d] putServiceServiceIdBadRequest %s", 400, payload)
+}
+
+func (o *PutServiceServiceIDBadRequest) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *PutServiceServiceIDBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {

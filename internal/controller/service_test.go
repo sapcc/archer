@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"testing"
 
 	sq "github.com/Masterminds/squirrel"
 	policy "github.com/databus23/goslo.policy"
@@ -34,7 +35,7 @@ var (
 	testService    = models.Service{
 		Name:        "test",
 		NetworkID:   &networkId,
-		IPAddresses: []strfmt.IPv4{"1.2.3.4"},
+		IPAddresses: []models.InetAddress{"1.2.3.4"},
 		Ports:       []int32{0},
 		ProjectID:   testProject1,
 	}
@@ -351,7 +352,7 @@ func (t *SuiteTest) TestServiceDuplicatePayload() {
 	s := models.Service{
 		Name:             "test",
 		NetworkID:        &networkId,
-		IPAddresses:      []strfmt.IPv4{"1.2.3.4"},
+		IPAddresses:      []models.InetAddress{"1.2.3.4"},
 		Ports:            []int32{0},
 		AvailabilityZone: conv.Pointer("zone1"),
 	}
@@ -365,13 +366,13 @@ func (t *SuiteTest) TestServiceDuplicatePayload() {
 	assert.IsType(t.T(), &service.PostServiceConflict{}, res)
 
 	// create a second service with a different ip
-	s.IPAddresses = []strfmt.IPv4{"1.2.3.5"}
+	s.IPAddresses = []models.InetAddress{"1.2.3.5"}
 	serviceID := t.createService(s)
 
 	// update to 1.2.3.4 -> conflict
 	res = t.c.PutServiceServiceIDHandler(
 		service.PutServiceServiceIDParams{HTTPRequest: &headerProject1,
-			ServiceID: serviceID, Body: &models.ServiceUpdatable{IPAddresses: []strfmt.IPv4{"1.2.3.4"}}},
+			ServiceID: serviceID, Body: &models.ServiceUpdatable{IPAddresses: []models.InetAddress{"1.2.3.4"}}},
 		nil)
 	assert.IsType(t.T(), &service.PutServiceServiceIDConflict{}, res)
 }
@@ -777,7 +778,7 @@ func (t *SuiteTest) TestPutServiceServiceIDAcceptEndpointHandlerMultipleServices
 	serviceID1 := t.createService(svcReqApproval)
 
 	svcReqApproval.Name = "test2"
-	svcReqApproval.IPAddresses = []strfmt.IPv4{"2.3.4.5"}
+	svcReqApproval.IPAddresses = []models.InetAddress{"2.3.4.5"}
 	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &svcReqApproval},
 		nil)
 	assert.NotNil(t.T(), res)
@@ -1002,7 +1003,7 @@ func (t *SuiteTest) TestMaskCPServiceIPAddresses() {
 	// Test with CP service and regular user (no principal) - IPs should be masked
 	svc := &models.Service{
 		Provider:    &cpProvider,
-		IPAddresses: []strfmt.IPv4{"1.2.3.4"},
+		IPAddresses: []models.InetAddress{"1.2.3.4"},
 	}
 	maskCPServiceIPAddresses(svc, nil)
 	assert.Nil(t.T(), svc.IPAddresses)
@@ -1011,7 +1012,7 @@ func (t *SuiteTest) TestMaskCPServiceIPAddresses() {
 	tenantProvider := "tenant"
 	svc2 := &models.Service{
 		Provider:    &tenantProvider,
-		IPAddresses: []strfmt.IPv4{"1.2.3.4"},
+		IPAddresses: []models.InetAddress{"1.2.3.4"},
 	}
 	maskCPServiceIPAddresses(svc2, nil)
 	assert.NotNil(t.T(), svc2.IPAddresses)
@@ -1020,7 +1021,7 @@ func (t *SuiteTest) TestMaskCPServiceIPAddresses() {
 	// Test with CP service and cloud_admin (service:read-global) - IPs should NOT be masked
 	svc3 := &models.Service{
 		Provider:    &cpProvider,
-		IPAddresses: []strfmt.IPv4{"5.6.7.8"},
+		IPAddresses: []models.InetAddress{"5.6.7.8"},
 	}
 	maskCPServiceIPAddresses(svc3, &gopherpolicy.Token{Enforcer: &TestEnforcerAllowReadGlobal{}})
 	assert.NotNil(t.T(), svc3.IPAddresses)
@@ -1029,7 +1030,7 @@ func (t *SuiteTest) TestMaskCPServiceIPAddresses() {
 	// Test with CP service and non-admin user - IPs should be masked
 	svc4 := &models.Service{
 		Provider:    &cpProvider,
-		IPAddresses: []strfmt.IPv4{"9.10.11.12"},
+		IPAddresses: []models.InetAddress{"9.10.11.12"},
 	}
 	maskCPServiceIPAddresses(svc4, &gopherpolicy.Token{Enforcer: &TestEnforcerDenyAll{}})
 	assert.Nil(t.T(), svc4.IPAddresses)
@@ -1049,7 +1050,7 @@ func (t *SuiteTest) TestServicePostCPProviderWithoutNetworkID() {
 	cpService := models.Service{
 		Name:        "cp-service-test",
 		Provider:    &cpProvider,
-		IPAddresses: []strfmt.IPv4{"192.168.1.100"},
+		IPAddresses: []models.InetAddress{"192.168.1.100"},
 		Ports:       []int32{8080},
 		ProjectID:   testProject1,
 	}
@@ -1069,7 +1070,7 @@ func (t *SuiteTest) TestServicePostTenantProviderWithoutNetworkIDFails() {
 	// Try to create a tenant service without network_id - should fail
 	svc := models.Service{
 		Name:        "tenant-no-network",
-		IPAddresses: []strfmt.IPv4{"1.2.3.4"},
+		IPAddresses: []models.InetAddress{"1.2.3.4"},
 		Ports:       []int32{0},
 		ProjectID:   testProject1,
 	}
@@ -1097,4 +1098,125 @@ func (t *SuiteTest) addCPAgent(host string, az *string) {
 	if _, err := t.c.pool.Exec(context.Background(), sql, args...); err != nil {
 		t.FailNow("Failed inserting cp agent host", err)
 	}
+}
+
+func TestValidateIPAddresses(t *testing.T) {
+	tests := []struct {
+		name    string
+		ips     []models.InetAddress
+		wantErr bool
+	}{
+		{"valid IPv4", []models.InetAddress{"1.2.3.4"}, false},
+		{"valid IPv4 multiple", []models.InetAddress{"10.0.0.1", "192.168.1.1"}, false},
+		{"valid IPv6 full", []models.InetAddress{"2001:0db8:85a3:0000:0000:8a2e:0370:7334"}, false},
+		{"valid IPv6 compressed", []models.InetAddress{"2001:db8::1"}, false},
+		{"valid IPv6 loopback", []models.InetAddress{"::1"}, false},
+		{"valid IPv6 link-local", []models.InetAddress{"fe80::1"}, false},
+		{"valid mixed IPv4 and IPv6", []models.InetAddress{"1.2.3.4", "2001:db8::1"}, false},
+		{"invalid empty string", []models.InetAddress{""}, true},
+		{"invalid garbage", []models.InetAddress{"not-an-ip"}, true},
+		{"invalid CIDR notation", []models.InetAddress{"1.2.3.4/32"}, true},
+		{"invalid IPv6 CIDR", []models.InetAddress{"2001:db8::1/128"}, true},
+		{"invalid one bad in list", []models.InetAddress{"1.2.3.4", "bad"}, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateIPAddresses(tt.ips)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func (t *SuiteTest) TestServiceCreateWithIPv6() {
+	t.addCPAgent("cp-ipv6-host", nil)
+
+	cpProvider := "cp"
+	svc := models.Service{
+		Name:        "ipv6-service",
+		Provider:    &cpProvider,
+		IPAddresses: []models.InetAddress{"2001:db8::1"},
+		Ports:       []int32{443},
+		ProjectID:   testProject1,
+	}
+
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &svc},
+		&gopherpolicy.Token{Enforcer: &TestEnforcerAllowProvider{}})
+
+	assert.IsType(t.T(), &service.PostServiceCreated{}, res)
+	payload := res.(*service.PostServiceCreated).Payload
+	assert.Equal(t.T(), []models.InetAddress{"2001:db8::1"}, payload.IPAddresses)
+}
+
+func (t *SuiteTest) TestServiceCreateWithMixedIPv4IPv6() {
+	t.addCPAgent("cp-mixed-host", nil)
+
+	cpProvider := "cp"
+	svc := models.Service{
+		Name:        "mixed-ip-service",
+		Provider:    &cpProvider,
+		IPAddresses: []models.InetAddress{"10.0.0.1", "2001:db8::2"},
+		Ports:       []int32{80},
+		ProjectID:   testProject1,
+	}
+
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &svc},
+		&gopherpolicy.Token{Enforcer: &TestEnforcerAllowProvider{}})
+
+	assert.IsType(t.T(), &service.PostServiceCreated{}, res)
+	payload := res.(*service.PostServiceCreated).Payload
+	assert.Equal(t.T(), []models.InetAddress{"10.0.0.1", "2001:db8::2"}, payload.IPAddresses)
+}
+
+func (t *SuiteTest) TestServiceCreateWithInvalidIPReturns400() {
+	svc := models.Service{
+		Name:        "bad-ip-service",
+		Provider:    conv.Pointer("cp"),
+		IPAddresses: []models.InetAddress{"not-an-ip"},
+		Ports:       []int32{80},
+		ProjectID:   testProject1,
+	}
+
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &svc},
+		nil)
+
+	assert.IsType(t.T(), &service.PostServiceBadRequest{}, res)
+	assert.Contains(t.T(), res.(*service.PostServiceBadRequest).Payload.Message, "invalid IP address")
+}
+
+func (t *SuiteTest) TestServicePostNetworkLargeIPv6Subnet() {
+	t.addAgent(nil)
+	t.ResetHttpServer()
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
+		"", GetNetworkResponseFixture, http.StatusOK)
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
+		"", GetNetworkIpAvailabilityLargeIPv6ResponseFixture, http.StatusOK)
+
+	svc := models.Service{
+		Name:        "ipv6-large-subnet",
+		NetworkID:   &networkId,
+		IPAddresses: []models.InetAddress{"fd00:1234:feed:cafe::1fb"},
+		Ports:       []int32{8080},
+		ProjectID:   testProject1,
+	}
+
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &svc}, nil)
+	assert.IsType(t.T(), &service.PostServiceCreated{}, res)
+}
+
+func (t *SuiteTest) TestServiceUpdateWithInvalidIPReturns400() {
+	serviceID := t.createService(testService)
+
+	res := t.c.PutServiceServiceIDHandler(service.PutServiceServiceIDParams{
+		HTTPRequest: &headerProject1,
+		ServiceID:   serviceID,
+		Body:        &models.ServiceUpdatable{IPAddresses: []models.InetAddress{"garbage"}},
+	}, nil)
+
+	assert.IsType(t.T(), &service.PutServiceServiceIDBadRequest{}, res)
+	assert.Contains(t.T(), res.(*service.PutServiceServiceIDBadRequest).Payload.Message, "invalid IP address")
 }

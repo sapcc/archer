@@ -1,0 +1,117 @@
+# SPDX-FileCopyrightText: Copyright 2026 SAP SE or an SAP affiliate company
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# serverside PROXY Protocol V2 implementation
+# https://github.com/haproxy/haproxy/blob/ffdf6a32a7413d5bcf9223c3556b765b5e456a69/doc/proxy-protocol.txt
+
+when RULE_INIT {
+    # https://github.com/haproxy/haproxy/blob/ffdf6a32a7413d5bcf9223c3556b765b5e456a69/doc/proxy-protocol.txt#L335
+    # proxy protocol version 2 signature (12 bytes) + version/command byte (13 bytes as hex)
+    set static::pp2_sig_ver "0d0a0d0a000d0a515549540a21"
+}
+
+# converts an ipv4 address to hex string
+proc ip2hex { ip } {
+    set clean [lindex [split $ip "%"] 0]
+    binary scan [binary format c4 [split $clean "."]] H8 result
+    return $result
+}
+
+# IPv6 support: converts an ipv6 address to 16 bytes binary using IP::addr parse
+proc ipv6tohex { addr } {
+    # Strip route domain if present (e.g. 2001:db8::1%2 -> 2001:db8::1)
+    set clean [lindex [split $addr "%"] 0]
+    set blocks [split $clean ":"]
+    set words {}
+    foreach block $blocks {
+        if {$block ne ""} {
+            lappend words [scan $block %x]
+        } else {
+            for {set x [llength $blocks]} {$x <= 8} {incr x} {
+                lappend words 0
+            }
+        }
+    }
+    binary scan [binary format S8 $words] H32 result
+    return $result
+}
+
+# converts a port to 4-char hex string (2 bytes)
+proc port2hex { port } {
+    return [format "%04x" $port]
+}
+
+proc proxy_addr_v4 {} {
+    # https://github.com/haproxy/haproxy/blob/ffdf6a32a7413d5bcf9223c3556b765b5e456a69/doc/proxy-protocol.txt#L471-L488
+    # proxy_addr
+    clientside {
+        return [call ip2hex [IP::remote_addr]][call ip2hex [IP::local_addr]][call port2hex [TCP::remote_port]][call port2hex [TCP::local_port]]
+    }
+}
+
+# IPv6 support: proxy_addr for IPv6 connections
+proc proxy_addr_v6 {} {
+    clientside {
+        return [call ipv6tohex [IP::remote_addr]][call ipv6tohex [IP::local_addr]][call port2hex [TCP::remote_port]][call port2hex [TCP::local_port]]
+    }
+}
+
+
+#proc tlv_type5 {} {
+#    return [call tlv \x05 [binary format H* [lindex [AES::key 128] 2]]]
+#}
+
+proc tlv_sapcc_hex {uuid4} {
+    # PP2_TYPE_SAPCC 0xEC
+    # prepare TLV
+    # TLV: https://github.com/haproxy/haproxy/blob/ffdf6a32a7413d5bcf9223c3556b765b5e456a69/doc/proxy-protocol.txt#L525-L530
+    binary scan [binary format A* $uuid4] H* uuid_hex
+    set tlv_len [format "%04x" [string length $uuid4]]
+    return "ec${tlv_len}${uuid_hex}"
+}
+
+when SERVER_CONNECTED priority 900 timing on {
+    # create TLV type 5
+    #set pp2_tlv [call tlv_type5]
+    #set pp2_tlv [call tlv_sapcc {497f6eca-6276-4993-bfeb-53cbbbba6f08}]
+    #set pp2_tlv [call tlv_sapcc [string range [virtual name] end-35 end]]
+
+    # proxy protocol addr
+    #set pp_proxy_addr [call proxy_addr]
+
+    # proxy protocol length
+    # number of following bytes part of the header in network endian order
+    # https://github.com/haproxy/haproxy/blob/ffdf6a32a7413d5bcf9223c3556b765b5e456a69/doc/proxy-protocol.txt#L441-L449
+    #                                           $pp_proxy_addr len is 12
+    # NOTE: if the TLV length is static, it could be pre-calculated similar to pp_proxy_addr
+    #set pp2_header_byte1516 [binary format S [expr {12 + [string length $pp2_tlv]}]]
+
+    # construct pp2_header
+    # set pp2_header [binary format a*a*a*a*a*a* $static::pp2_header_signature $static::pp2_header_byte13 $static::pp2_header_byte14 $static::pp2_header_byte1516 [call proxy_addr] [call tlv_sapcc [string range [virtual name] end-35 end]]]
+    #set pp2_header ${static::pp2_header_signature}${static::pp2_header_byte13}${static::pp2_header_byte14}${static::pp2_header_byte1516}[call proxy_addr][call tlv_sapcc [string range [virtual name] end-35 end]]
+
+    # ensure pp header conversion of \x00 to NUL(0x00), not c080
+    # binary scan $pp2_header H* tmp
+
+    # detect IP version and select appropriate protocol byte and address proc
+    set pp2_tlv_hex [call tlv_sapcc_hex [string range [virtual name] end-35 end]]
+    clientside {
+        set ip_version [IP::version]
+    }
+    if { $ip_version == 6 } {
+        # IPv6: protocol byte 0x21, address block = 16+16+2+2 = 36 bytes
+        set pp2_addr_hex [call proxy_addr_v6]
+        set addr_len [expr {[string length $pp2_addr_hex] / 2}]
+        set tlv_len [expr {[string length $pp2_tlv_hex] / 2}]
+        set total_len [format "%04x" [expr {$addr_len + $tlv_len}]]
+        TCP::respond [binary format H* "${static::pp2_sig_ver}21${total_len}${pp2_addr_hex}${pp2_tlv_hex}"]
+    } else {
+        # IPv4: protocol byte 0x11, address block = 4+4+2+2 = 12 bytes
+        set pp2_addr_hex [call proxy_addr_v4]
+        set addr_len [expr {[string length $pp2_addr_hex] / 2}]
+        set tlv_len [expr {[string length $pp2_tlv_hex] / 2}]
+        set total_len [format "%04x" [expr {$addr_len + $tlv_len}]]
+        TCP::respond [binary format H* "${static::pp2_sig_ver}11${total_len}${pp2_addr_hex}${pp2_tlv_hex}"]
+    }
+}
