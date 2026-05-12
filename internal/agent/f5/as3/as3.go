@@ -77,7 +77,10 @@ func GetServiceTenants(endpointServices []*ExtendedService) Tenant {
 
 		var serverAddresses []string
 		for _, ipAddress := range service.IPAddresses {
-			ip, _, _ := net.ParseCIDR(ipAddress.String())
+			ip, _, err := net.ParseCIDR(string(ipAddress))
+			if err != nil {
+				ip = net.ParseIP(string(ipAddress))
+			}
 			serverAddresses = append(serverAddresses, ip.String())
 		}
 

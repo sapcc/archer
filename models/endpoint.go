@@ -60,11 +60,10 @@ type Endpoint struct {
 	// Format: uuid
 	ID strfmt.UUID `json:"id,omitempty"`
 
-	// Endpoint IP address.
+	// Endpoint IP address (IPv4 or IPv6).
 	// Example: 1.2.3.4
 	// Read Only: true
-	// Format: ipv4
-	IPAddress strfmt.IPv4 `json:"ip_address,omitempty"`
+	IPAddress string `json:"ip_address,omitempty"`
 
 	// Name of the endpoint.
 	// Example: Example endpoint.
@@ -104,10 +103,6 @@ func (m *Endpoint) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateID(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateIPAddress(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -171,18 +166,6 @@ func (m *Endpoint) validateID(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("id", "body", "uuid", m.ID.String(), formats); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *Endpoint) validateIPAddress(formats strfmt.Registry) error {
-	if swag.IsZero(m.IPAddress) { // not required
-		return nil
-	}
-
-	if err := validate.FormatOf("ip_address", "body", "ipv4", m.IPAddress.String(), formats); err != nil {
 		return err
 	}
 

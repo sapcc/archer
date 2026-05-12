@@ -79,10 +79,10 @@ type Service struct {
 	// Format: uuid
 	ID strfmt.UUID `json:"id,omitempty"`
 
-	// IP Addresses of the providing service, multiple addresses will be round robin load balanced.
+	// IP Addresses of the providing service (IPv4 or IPv6), multiple addresses will be round robin load balanced.
 	// Required: true
 	// Min Items: 1
-	IPAddresses []strfmt.IPv4 `json:"ip_addresses"`
+	IPAddresses []InetAddress `json:"ip_addresses"`
 
 	// Name of the service.
 	// Example: ExampleService
@@ -333,7 +333,16 @@ func (m *Service) validateIPAddresses(formats strfmt.Registry) error {
 
 	for i := 0; i < len(m.IPAddresses); i++ {
 
-		if err := validate.FormatOf("ip_addresses"+"."+strconv.Itoa(i), "body", "ipv4", m.IPAddresses[i].String(), formats); err != nil {
+		if err := m.IPAddresses[i].Validate(formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("ip_addresses" + "." + strconv.Itoa(i))
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("ip_addresses" + "." + strconv.Itoa(i))
+			}
+
 			return err
 		}
 

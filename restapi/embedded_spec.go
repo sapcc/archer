@@ -1095,6 +1095,12 @@ func init() {
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "401": {
             "description": "Unauthorized",
             "schema": {
@@ -1181,6 +1187,12 @@ func init() {
             "description": "Service",
             "schema": {
               "$ref": "#/definitions/Service"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/Error"
             }
           },
           "401": {
@@ -1646,9 +1658,8 @@ func init() {
           "readOnly": true
         },
         "ip_address": {
-          "description": "Endpoint IP address.",
+          "description": "Endpoint IP address (IPv4 or IPv6).",
           "type": "string",
-          "format": "ipv4",
           "readOnly": true,
           "example": "1.2.3.4"
         },
@@ -1964,13 +1975,15 @@ func init() {
           "readOnly": true
         },
         "ip_addresses": {
-          "description": "IP Addresses of the providing service, multiple addresses will be round robin load balanced.",
+          "description": "IP Addresses of the providing service (IPv4 or IPv6), multiple addresses will be round robin load balanced.",
           "type": "array",
           "minItems": 1,
           "items": {
-            "description": "IP Address of the providing service.",
+            "description": "IP Address of the providing service (IPv4 or IPv6).",
             "type": "string",
-            "format": "ipv4",
+            "x-go-type": {
+              "type": "InetAddress"
+            },
             "example": "1.2.3.4"
           }
         },
@@ -2089,13 +2102,15 @@ func init() {
           "x-nullable": true
         },
         "ip_addresses": {
-          "description": "IP Addresses of the providing service, multiple addresses will be round robin load balanced.",
+          "description": "IP Addresses of the providing service (IPv4 or IPv6), multiple addresses will be round robin load balanced.",
           "type": "array",
           "minItems": 1,
           "items": {
-            "description": "IP Address of the providing service.",
+            "description": "IP Address of the providing service (IPv4 or IPv6).",
             "type": "string",
-            "format": "ipv4",
+            "x-go-type": {
+              "type": "InetAddress"
+            },
             "example": "1.2.3.4"
           }
         },
@@ -3531,6 +3546,12 @@ func init() {
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "401": {
             "description": "Unauthorized",
             "schema": {
@@ -3617,6 +3638,12 @@ func init() {
             "description": "Service",
             "schema": {
               "$ref": "#/definitions/Service"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/Error"
             }
           },
           "401": {
@@ -4097,9 +4124,8 @@ func init() {
           "readOnly": true
         },
         "ip_address": {
-          "description": "Endpoint IP address.",
+          "description": "Endpoint IP address (IPv4 or IPv6).",
           "type": "string",
-          "format": "ipv4",
           "readOnly": true,
           "example": "1.2.3.4"
         },
@@ -4461,13 +4487,15 @@ func init() {
           "readOnly": true
         },
         "ip_addresses": {
-          "description": "IP Addresses of the providing service, multiple addresses will be round robin load balanced.",
+          "description": "IP Addresses of the providing service (IPv4 or IPv6), multiple addresses will be round robin load balanced.",
           "type": "array",
           "minItems": 1,
           "items": {
-            "description": "IP Address of the providing service.",
+            "description": "IP Address of the providing service (IPv4 or IPv6).",
             "type": "string",
-            "format": "ipv4",
+            "x-go-type": {
+              "type": "InetAddress"
+            },
             "example": "1.2.3.4"
           }
         },
@@ -4586,13 +4614,15 @@ func init() {
           "x-nullable": true
         },
         "ip_addresses": {
-          "description": "IP Addresses of the providing service, multiple addresses will be round robin load balanced.",
+          "description": "IP Addresses of the providing service (IPv4 or IPv6), multiple addresses will be round robin load balanced.",
           "type": "array",
           "minItems": 1,
           "items": {
-            "description": "IP Address of the providing service.",
+            "description": "IP Address of the providing service (IPv4 or IPv6).",
             "type": "string",
-            "format": "ipv4",
+            "x-go-type": {
+              "type": "InetAddress"
+            },
             "example": "1.2.3.4"
           }
         },

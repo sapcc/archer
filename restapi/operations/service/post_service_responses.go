@@ -97,6 +97,51 @@ func (o *PostServiceCreated) WriteResponse(rw http.ResponseWriter, producer runt
 	}
 }
 
+// PostServiceBadRequestCode is the HTTP code returned for type PostServiceBadRequest
+const PostServiceBadRequestCode int = 400
+
+/*
+PostServiceBadRequest Bad Request
+
+swagger:response postServiceBadRequest
+*/
+type PostServiceBadRequest struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewPostServiceBadRequest creates PostServiceBadRequest with default headers values
+func NewPostServiceBadRequest() *PostServiceBadRequest {
+
+	return &PostServiceBadRequest{}
+}
+
+// WithPayload adds the payload to the post service bad request response
+func (o *PostServiceBadRequest) WithPayload(payload *models.Error) *PostServiceBadRequest {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the post service bad request response
+func (o *PostServiceBadRequest) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *PostServiceBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(400)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // PostServiceUnauthorizedCode is the HTTP code returned for type PostServiceUnauthorized
 const PostServiceUnauthorizedCode int = 401
 

@@ -18,5 +18,6 @@ type ServiceInjection struct {
 	ServiceID        strfmt.UUID // ID of the service this endpoint belongs to
 	ServicePorts     []int       // Ports exposed by the service
 	ServiceProtocol  string      // Protocol type (HTTP or TCP)
-	ServiceIPAddress strfmt.IPv4 // First IP address of the service (upstream target)
+	ServiceIPAddress string      // First IP address of the service (upstream target)
+	ProxyProtocol    bool        // Whether to send proxy protocol v2 to upstream
 }

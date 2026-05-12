@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"strconv"
@@ -40,34 +41,38 @@ global
 
 defaults
     log global
-    mode http
-    option httplog
     option dontlognull
-    option http-server-close
-    option forwardfor
     retries                 3
-    timeout http-request    30s
     timeout connect         30s
     timeout client          32s
     timeout server          32s
-    timeout http-keep-alive 30s
+    timeout tunnel          1h
 
 {{- $protocol := .Protocol }}
 {{- $upstream := .UpstreamHost }}
 {{- $serviceID := .ServiceID }}
+{{- $proxyProtocol := .ProxyProtocol }}
+{{- $endpointID := .EndpointID }}
 
 {{ range .UpstreamPorts }}
 frontend fronted_{{ . }}
-    bind *:{{ . }}
+    bind :::{{ . }} v4v6
     mode {{ lower $protocol }}
+{{- if eq $protocol "HTTP" }}
+    option httplog
+    option forwardfor
+{{- end }}
     default_backend backend_{{ . }}
 
 backend backend_{{ . }}
     mode {{ lower $protocol }}
-	{{- if eq $protocol "HTTP" }}
-    http-request replace-header Host .* {{ $upstream }}
-	{{- end }}
-    server upstream {{ getSocketPath $serviceID . }}
+{{- if eq $protocol "HTTP" }}
+    option http-server-close
+    timeout http-request    30s
+    timeout http-keep-alive 30s
+    http-request replace-header Host .* {{ formatHost $upstream }}
+{{- end }}
+    server upstream {{ getSocketPath $serviceID . }}{{- if $proxyProtocol }} send-proxy-v2 set-proxy-v2-tlv-fmt(0xEC) %[str({{ $endpointID }})]{{- end }}
 
 {{ end }}
 `
@@ -97,6 +102,15 @@ var (
 		Help: "Counter of haproxy metric scrapes",
 	}, []string{"network"})
 )
+
+// formatHost returns the IP in HTTP Host header format.
+// IPv6 addresses are wrapped in brackets per RFC 2732.
+func formatHost(ip string) string {
+	if parsed := net.ParseIP(ip); parsed != nil && parsed.To4() == nil {
+		return "[" + ip + "]"
+	}
+	return ip
+}
 
 func NewHAProxyController() *HAProxyController {
 	return &HAProxyController{
@@ -149,6 +163,7 @@ func (h *HAProxyController) AddInstance(si *models.ServiceInjection) error {
 
 	funcMap := template.FuncMap{
 		"lower":              strings.ToLower,
+		"formatHost":         formatHost,
 		"getSocketPath":      proxy.GetSocketPath,
 		"getStatsSocketPath": GetStatsSocketPath,
 		"getPidFilePath":     GetPidFilePath,
@@ -161,11 +176,13 @@ func (h *HAProxyController) AddInstance(si *models.ServiceInjection) error {
 	}
 
 	data := map[string]any{
-		"UpstreamHost":  si.ServiceIPAddress.String(),
+		"UpstreamHost":  si.ServiceIPAddress,
 		"UpstreamPorts": si.ServicePorts,
 		"Network":       si.Network.String(),
 		"Protocol":      si.ServiceProtocol,
 		"ServiceID":     si.ServiceID.String(),
+		"ProxyProtocol": si.ProxyProtocol,
+		"EndpointID":    si.ID.String(),
 	}
 	if err = t.Execute(configFile, data); err != nil {
 		return err
