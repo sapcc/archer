@@ -424,3 +424,85 @@ func TestManager_ParallelConnections(t *testing.T) {
 	m.StopProxy(serviceID)
 	assert.False(t, m.IsRunning(serviceID))
 }
+
+func TestManager_StartProxy_IPv6(t *testing.T) {
+	cleanup := setupTempDir(t)
+	defer cleanup()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	m := NewManager(ctx)
+	serviceID := strfmt.UUID("550e8400-e29b-41d4-a716-446655440099")
+	ports := []int32{18080}
+
+	m.StartProxy(serviceID, "::1", ports)
+
+	time.Sleep(50 * time.Millisecond)
+
+	assert.True(t, m.IsRunning(serviceID))
+	assert.FileExists(t, GetSocketPath(serviceID.String(), 18080))
+
+	m.StopProxy(serviceID)
+	assert.False(t, m.IsRunning(serviceID))
+}
+
+func TestManager_UnixProxyConnection_IPv6(t *testing.T) {
+	cleanup := setupTempDir(t)
+	defer cleanup()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Start a TCP echo server on IPv6 loopback
+	tcpListener, err := net.Listen("tcp6", "[::1]:0")
+	require.NoError(t, err)
+	defer func() { _ = tcpListener.Close() }()
+
+	tcpPort := tcpListener.Addr().(*net.TCPAddr).Port
+
+	go func() {
+		for {
+			conn, err := tcpListener.Accept()
+			if err != nil {
+				return
+			}
+			go func(c net.Conn) {
+				defer func() { _ = c.Close() }()
+				buf := make([]byte, 1024)
+				for {
+					n, err := c.Read(buf)
+					if err != nil {
+						return
+					}
+					_, _ = c.Write(buf[:n])
+				}
+			}(conn)
+		}
+	}()
+
+	m := NewManager(ctx)
+	serviceID := strfmt.UUID("550e8400-e29b-41d4-a716-446655440099")
+	m.StartProxy(serviceID, "::1", []int32{int32(tcpPort)})
+
+	time.Sleep(50 * time.Millisecond)
+
+	socketPath := GetSocketPath(serviceID.String(), tcpPort)
+	unixConn, err := net.Dial("unix", socketPath)
+	require.NoError(t, err)
+	defer func() { _ = unixConn.Close() }()
+
+	testData := []byte("hello ipv6 proxy")
+	_, err = unixConn.Write(testData)
+	require.NoError(t, err)
+
+	buf := make([]byte, 1024)
+	err = unixConn.SetReadDeadline(time.Now().Add(time.Second))
+	require.NoError(t, err)
+	n, err := unixConn.Read(buf)
+	require.NoError(t, err)
+
+	assert.Equal(t, testData, buf[:n])
+
+	m.StopProxy(serviceID)
+}

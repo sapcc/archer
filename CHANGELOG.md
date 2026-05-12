@@ -23,6 +23,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Service: optional `snat_pool_size` field to scale outbound SNAT capacity (f5 provider only). When set, the controller allocates service-scoped Neutron ports synchronously on create/update; when unset, the existing per-device SelfIP path is used unchanged.
 - ArcherUI: a TypeScript/React frontend for managing services, endpoints, and RBAC policies, with a topology view that visualizes the relationships between services, endpoints, and external consumers
 
+### Added
+
+- IPv6 address support for service `ip_addresses` and endpoint `ip_address` fields
+- Network Injection agent: IPv6 support for proxy and HAProxy configuration
+- F5 agent: IPv6 support for Proxy Protocol v2 iRule (dual-stack AF_INET/AF_INET6 detection)
+- Network Injection agent: Proxy Protocol v2 support via HAProxy `send-proxy-v2`
+
 ## [2.4.1] - 2026-04-30
 
 ### Fixed

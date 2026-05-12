@@ -207,3 +207,136 @@ func TestGetServiceTenantsWithoutServices(t *testing.T) {
 	expected := Tenant{Class: "Tenant", Label: "", Remark: "", Applications: map[string]Application{"Shared": {Class: "Application", Label: "", Remark: "", Template: "shared", Services: map[string]any{}}}}
 	assert.EqualValues(t, expected, GetServiceTenants([]*ExtendedService{}))
 }
+
+func TestGetEndpointTenantsIPv6(t *testing.T) {
+	config.Global.Agent.L4Profile = "test-l4-profile"
+	config.Global.Agent.TCPProfile = "test-tcp-profile"
+	endpoints := []*ExtendedEndpoint{
+		{
+			Endpoint: models.Endpoint{
+				ID:        "3ad9b1f0-4e5a-44c3-ada6-71696925ae64",
+				ServiceID: strfmt.UUID("4e50bf87-e597-41f2-9ce0-83d3e24dedf3"),
+			},
+			ProxyProtocol:       true,
+			ConnectionMirroring: false,
+			Port: &ports.Port{
+				FixedIPs: []ports.IP{{IPAddress: "2001:db8::1"}},
+			},
+			SegmentId:    conv.Pointer(5),
+			ServicePorts: []int32{443},
+		},
+	}
+	tenant := GetEndpointTenants(endpoints)
+	assert.NotNil(t, tenant)
+	json, err := tenant.MarshalJSON()
+	assert.Nil(t, err)
+
+	// IPv6 virtual address should be formatted as ip%routedomain
+	assert.Contains(t, string(json), `"virtualAddresses":["2001:db8::1%5"]`)
+	assert.Contains(t, string(json), `"mirroring":"none"`)
+	assert.Contains(t, string(json), `"class":"Service_TCP"`)
+}
+
+func TestGetEndpointTenantsIPv6L4(t *testing.T) {
+	config.Global.Agent.L4Profile = "test-l4-profile"
+	config.Global.Agent.TCPProfile = "test-tcp-profile"
+	endpoints := []*ExtendedEndpoint{
+		{
+			Endpoint: models.Endpoint{
+				ID:        "3ad9b1f0-4e5a-44c3-ada6-71696925ae64",
+				ServiceID: strfmt.UUID("4e50bf87-e597-41f2-9ce0-83d3e24dedf3"),
+			},
+			ProxyProtocol:       false,
+			ConnectionMirroring: false,
+			Port: &ports.Port{
+				FixedIPs: []ports.IP{{IPAddress: "fd00::abcd:1234"}},
+			},
+			SegmentId:    conv.Pointer(10),
+			ServicePorts: []int32{80},
+		},
+	}
+	tenant := GetEndpointTenants(endpoints)
+	json, err := tenant.MarshalJSON()
+	assert.Nil(t, err)
+
+	assert.Contains(t, string(json), `"virtualAddresses":["fd00::abcd:1234%10"]`)
+	assert.Contains(t, string(json), `"class":"Service_L4"`)
+}
+
+func TestGetServiceTenantsIPv6(t *testing.T) {
+	services := []*ExtendedService{
+		{
+			Service: models.Service{
+				AvailabilityZone: conv.Pointer("abc"),
+				Description:      "test-ipv6-service",
+				ID:               "test-ipv6-service-id",
+				IPAddresses:      []models.InetAddress{"2001:db8::/128"},
+				Ports:            []int32{443},
+			},
+			NeutronPorts: map[string]*ports.Port{
+				"snat-port-1": {
+					ID: "snat-port-1",
+					FixedIPs: []ports.IP{
+						{IPAddress: "2001:db8::ff", SubnetID: "subnet-v6"},
+					},
+				},
+			},
+			SubnetID:  "subnet-v6",
+			SegmentId: 99,
+			MTU:       9000,
+		},
+	}
+	tenant := GetServiceTenants(services)
+	assert.NotNil(t, tenant)
+
+	app, ok := tenant.Applications["Shared"]
+	assert.True(t, ok)
+
+	// Verify SNAT pool has IPv6 address with route domain
+	snatPool, ok := app.Services["snatpool-test-ipv6-service-id"].(SnatPool)
+	assert.True(t, ok)
+	assert.Equal(t, []string{"2001:db8::ff%99"}, snatPool.SnatAddresses)
+
+	// Verify pool has IPv6 server addresses
+	pool, ok := app.Services["pool-test-ipv6-service-id-443"].(Pool)
+	assert.True(t, ok)
+	assert.Equal(t, []string{"2001:db8::"}, pool.Members[0].ServerAddresses)
+}
+
+func TestGetServiceTenantsDualStack(t *testing.T) {
+	services := []*ExtendedService{
+		{
+			Service: models.Service{
+				AvailabilityZone: conv.Pointer("abc"),
+				Description:      "test-dualstack-service",
+				ID:               "test-ds-service-id",
+				IPAddresses:      []models.InetAddress{"10.0.0.1/32", "2001:db8::1/128"},
+				Ports:            []int32{80},
+			},
+			NeutronPorts: map[string]*ports.Port{
+				"snat-port-1": {
+					ID: "snat-port-1",
+					FixedIPs: []ports.IP{
+						{IPAddress: "10.0.0.100", SubnetID: "subnet-v4"},
+						{IPAddress: "2001:db8::100", SubnetID: "subnet-v6"},
+					},
+				},
+			},
+			SubnetID:  "subnet-v4",
+			SegmentId: 42,
+			MTU:       1500,
+		},
+	}
+	tenant := GetServiceTenants(services)
+	app := tenant.Applications["Shared"]
+
+	// SNAT pool should contain both IPv4 and IPv6 addresses
+	snatPool := app.Services["snatpool-test-ds-service-id"].(SnatPool)
+	assert.Contains(t, snatPool.SnatAddresses, "10.0.0.100%42")
+	assert.Contains(t, snatPool.SnatAddresses, "2001:db8::100%42")
+
+	// Pool should have both server addresses
+	pool := app.Services["pool-test-ds-service-id-80"].(Pool)
+	assert.Contains(t, pool.Members[0].ServerAddresses, "10.0.0.1")
+	assert.Contains(t, pool.Members[0].ServerAddresses, "2001:db8::1")
+}

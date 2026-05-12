@@ -104,6 +104,18 @@ const GetNetworkIpNoAvailabilityResponseFixture = `
 }
 `
 
+const GetNetworkIpAvailabilityLargeIPv6ResponseFixture = `
+{
+	"network_ip_availability": {
+		"network_id": "d714f65e-bffd-494f-8219-8eb0a85d7a2d",
+		"network_name": "test-network-1",
+		"tenant_id": "test-project-1",
+		"total_ips": 18446744073709551616,
+		"used_ips": 2
+	}
+}
+`
+
 type MockedController struct {
 	*Controller
 	db pgxmock.PgxPoolIface
