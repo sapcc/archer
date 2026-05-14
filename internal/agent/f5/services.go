@@ -186,6 +186,16 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 	}
 
 	/* ==================================================
+	   Clean up orphaned endpoint tenants (e.g. after service migration)
+	   ================================================== */
+	var usedSegments map[int]string
+	if usedSegments, err = a.getUsedSegments(); err != nil {
+		log.WithError(err).Warning("ProcessServices: failed to get used segments for orphan cleanup")
+	} else if err = a.cleanupOrphanedTenants(usedSegments); err != nil {
+		log.WithError(err).Warning("ProcessServices: failed to clean up orphaned tenants")
+	}
+
+	/* ==================================================
 	   L2 Configuration Cleanup
 	   ================================================== */
 	for _, service := range services {
