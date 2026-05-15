@@ -256,6 +256,9 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, tok
 	}
 
 	db.NotifyEndpoint(c.pool, host, endpointResponse.ID)
+	if requireApproval && c.notifier != nil {
+		c.notifier.ScheduleImmediate(ctx, c.pool, params.Body.ServiceID, &endpointResponse)
+	}
 	return endpoint.NewPostEndpointCreated().WithXTargetID(endpointResponse.ID).WithPayload(&endpointResponse)
 }
 

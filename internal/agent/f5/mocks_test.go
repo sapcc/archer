@@ -5,8 +5,9 @@
 package f5
 
 import (
-	"github.com/sapcc/archer/v2/internal/agent/f5/as3"
 	mock "github.com/stretchr/testify/mock"
+
+	"github.com/sapcc/archer/v2/internal/agent/f5/as3"
 )
 
 // NewMockF5Device creates a new instance of MockF5Device. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

@@ -9,14 +9,16 @@ import (
 
 	"github.com/sapcc/archer/v2/internal/db"
 	"github.com/sapcc/archer/v2/internal/neutron"
+	"github.com/sapcc/archer/v2/internal/notifier"
 )
 
 type Controller struct {
-	spec    *loads.Document
-	pool    db.PgxIface
-	neutron *neutron.NeutronClient
+	spec     *loads.Document
+	pool     db.PgxIface
+	neutron  *neutron.NeutronClient
+	notifier *notifier.Notifier
 }
 
-func NewController(pool db.PgxIface, spec *loads.Document, client *neutron.NeutronClient) *Controller {
-	return &Controller{pool: pool, spec: spec, neutron: client}
+func NewController(pool db.PgxIface, spec *loads.Document, client *neutron.NeutronClient, n *notifier.Notifier) *Controller {
+	return &Controller{pool: pool, spec: spec, neutron: client, notifier: n}
 }

@@ -1,0 +1,16 @@
+# Archer Endpoint Services {{- if eq .Type "digest" }} Digest{{- end }}
+
+You have **{{len .Services}}** service(s) with endpoints awaiting approval ({{.TotalEndpoints}} endpoint(s) total).
+
+{{ range .Services -}}
+## Service: {{.Name}} ({{.ID}})
+{{- if .Description }}
+{{.Description}}
+{{- end }}
+
+{{ range .Endpoints -}}
+- {{if .Name}}**{{.Name}}** — {{end}}Endpoint `{{.ID}}` created by project `{{.ProjectID}}` (pending for {{since .CreatedAt}})
+{{- end }}
+{{- end }}
+
+Before approving these endpoints, please review the details of each endpoint and ensure they meet your organization's security policies and requirements.

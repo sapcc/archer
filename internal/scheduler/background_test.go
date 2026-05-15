@@ -21,7 +21,7 @@ func TestNewBackgroundScheduler(t *testing.T) {
 	cfg := defaultConfig()
 	serviceScheduler := NewServiceScheduler(mock, cfg, nil)
 
-	bgScheduler, err := NewBackgroundScheduler(serviceScheduler, mock, cfg.CheckInterval, cfg.RebalanceDelay)
+	bgScheduler, err := NewBackgroundScheduler(serviceScheduler, mock, cfg)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, bgScheduler)

@@ -16,6 +16,10 @@ import (
 	"github.com/sapcc/archer/v2/internal/db"
 )
 
+// advisoryLockID is a fixed lock ID for the scheduler leader election.
+// This value should be unique across all advisory locks used by the application.
+const advisoryLockID = 8675309 // arbitrary unique identifier
+
 // BackgroundScheduler runs periodic rescheduling and rebalancing jobs using gocron.
 // It uses PostgreSQL advisory locks for distributed leader election to ensure
 // only one instance runs jobs across multiple API server instances.
@@ -30,8 +34,8 @@ type BackgroundScheduler struct {
 }
 
 // NewBackgroundScheduler creates a new background scheduler with distributed leader election.
-func NewBackgroundScheduler(serviceScheduler *ServiceScheduler, pool db.PgxIface, checkInterval, rebalanceDelay time.Duration) (*BackgroundScheduler, error) {
-	elector := NewPostgresElector(pool)
+func NewBackgroundScheduler(serviceScheduler *ServiceScheduler, pool db.PgxIface, cfg Config) (*BackgroundScheduler, error) {
+	elector := NewPostgresElector(pool, advisoryLockID, "background")
 
 	gocronSched, err := gocron.NewScheduler(
 		gocron.WithDistributedElector(elector),
@@ -46,8 +50,8 @@ func NewBackgroundScheduler(serviceScheduler *ServiceScheduler, pool db.PgxIface
 		scheduler:       serviceScheduler,
 		gocronScheduler: gocronSched,
 		elector:         elector,
-		checkInterval:   checkInterval,
-		rebalanceDelay:  rebalanceDelay,
+		checkInterval:   cfg.CheckInterval,
+		rebalanceDelay:  cfg.RebalanceDelay,
 		recoveredAgents: make(map[string]time.Time),
 	}, nil
 }

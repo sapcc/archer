@@ -28,14 +28,15 @@ var (
 type Archer struct {
 	Version func() `short:"v" long:"version" description:"Show application version"`
 
-	ConfigFile  []string    `long:"config-file" description:"Use config file"`
-	Default     Default     `group:"DEFAULT"`
-	Database    Database    `group:"database"`
-	ApiSettings ApiSettings `group:"api_settings"`
-	ServiceAuth AuthInfo    `group:"service_auth"`
-	Quota       Quota       `group:"quota"`
-	Audit       Audit       `group:"audit_middleware_notifications"`
-	Agent       Agent       `group:"agent"`
+	ConfigFile   []string     `long:"config-file" description:"Use config file"`
+	Default      Default      `group:"DEFAULT"`
+	Database     Database     `group:"database"`
+	ApiSettings  ApiSettings  `group:"api_settings"`
+	ServiceAuth  AuthInfo     `group:"service_auth"`
+	Quota        Quota        `group:"quota"`
+	Audit        Audit        `group:"audit_middleware_notifications"`
+	Notification Notification `group:"notification"`
+	Agent        Agent        `group:"agent"`
 }
 
 type Default struct {
@@ -76,6 +77,13 @@ type Audit struct {
 	Enabled      bool   `long:"enable-audit" ini-name:"enabled" description:"Enables message notification bus."`
 	TransportURL string `long:"transport-url" ini-name:"transport_url" env:"AUDIT_TRANSPORT_URL" description:"The network address and optional user credentials for connecting to the messaging backend."`
 	QueueName    string `long:"queue-name" ini-name:"queue_name" description:"RabbitMQ queue name"`
+}
+
+type Notification struct {
+	Enabled      bool   `long:"enable-notifications" ini-name:"enabled" description:"Enable email notifications via campfire."`
+	CampfireURL  string `long:"campfire-url" ini-name:"campfire_url" env:"NOTIFICATION_CAMPFIRE_URL" description:"Campfire send-email endpoint URL (e.g. https://campfire.cloud/v1/send-email?from=archer)"`
+	TemplatePath string `long:"notification-template-path" ini-name:"template_path" description:"Path to custom email template directory (overrides embedded defaults)."`
+	DigestCron   string `long:"digest-cron" ini-name:"digest_cron" default:"0 9 * * 1" description:"Cron expression for digest emails (default: Monday 9am)."`
 }
 
 type Agent struct {

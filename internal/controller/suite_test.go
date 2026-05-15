@@ -125,7 +125,7 @@ func (t *SuiteTest) GetMockedController() *MockedController {
 		t.FailNow(err.Error())
 	}
 
-	c := NewController(dbMock, spec, &neutron.NeutronClient{ServiceClient: fake.ServiceClient(t.fakeServer)})
+	c := NewController(dbMock, spec, &neutron.NeutronClient{ServiceClient: fake.ServiceClient(t.fakeServer)}, nil)
 	return &MockedController{c, dbMock}
 }
 
@@ -179,7 +179,7 @@ func (t *SuiteTest) SetupSuite() {
 	}
 
 	t.fakeServer = th.SetupPersistentPortHTTP(t.T(), 8931)
-	t.c = NewController(pool, spec, &neutron.NeutronClient{ServiceClient: fake.ServiceClient(t.fakeServer)})
+	t.c = NewController(pool, spec, &neutron.NeutronClient{ServiceClient: fake.ServiceClient(t.fakeServer)}, nil)
 	t.c.neutron.InitCache()
 
 	// Run migration
