@@ -14,10 +14,6 @@ import (
 	"github.com/sapcc/archer/v2/internal/db"
 )
 
-// advisoryLockID is a fixed lock ID for the scheduler leader election.
-// This value should be unique across all advisory locks used by the application.
-const advisoryLockID = 8675309 // arbitrary unique identifier
-
 // ErrNotLeader is returned when the elector determines this instance is not the leader.
 var ErrNotLeader = errors.New("not the leader")
 
@@ -28,14 +24,18 @@ var ErrNotLeader = errors.New("not the leader")
 type PostgresElector struct {
 	pool     db.PgxIface
 	conn     *pgxpool.Conn
+	lockID   int64
+	name     string
 	isLeader bool
 }
 
-// NewPostgresElector creates a new PostgreSQL-based elector.
+// NewPostgresElector creates a new PostgreSQL-based elector with the specified lock ID.
 // Call Start() to acquire the dedicated connection before using IsLeader().
-func NewPostgresElector(pool db.PgxIface) *PostgresElector {
+func NewPostgresElector(pool db.PgxIface, lockID int64, name string) *PostgresElector {
 	return &PostgresElector{
-		pool: pool,
+		pool:   pool,
+		lockID: lockID,
+		name:   name,
 	}
 }
 
@@ -47,7 +47,7 @@ func (e *PostgresElector) Start(ctx context.Context) error {
 		return err
 	}
 	e.conn = conn
-	log.Info("PostgresElector: acquired dedicated connection for leader election")
+	log.WithField("scheduler", e.name).Info("Acquired dedicated connection for leader election")
 	return nil
 }
 
@@ -56,7 +56,7 @@ func (e *PostgresElector) Close() {
 	if e.conn != nil {
 		// Explicitly release the advisory lock before releasing the connection
 		if e.isLeader {
-			_, err := e.conn.Exec(context.Background(), "SELECT pg_advisory_unlock($1)", advisoryLockID)
+			_, err := e.conn.Exec(context.Background(), "SELECT pg_advisory_unlock($1)", e.lockID)
 			if err != nil {
 				log.WithError(err).Error("Failed to release advisory lock")
 			}
@@ -64,7 +64,7 @@ func (e *PostgresElector) Close() {
 		}
 		e.conn.Release()
 		e.conn = nil
-		log.Info("PostgresElector: released dedicated connection")
+		log.WithField("scheduler", e.name).Info("Released dedicated connection")
 	}
 }
 
@@ -73,13 +73,13 @@ func (e *PostgresElector) Close() {
 // or an error if it should not (not the leader).
 func (e *PostgresElector) IsLeader(ctx context.Context) error {
 	if e.conn == nil {
-		log.Error("PostgresElector: dedicated connection not initialized, call Start() first")
+		log.WithField("scheduler", e.name).Error("Dedicated connection not initialized, call Start() first")
 		return errors.New("elector not started")
 	}
 
 	// Try to acquire the advisory lock (non-blocking)
 	var acquired bool
-	err := e.conn.QueryRow(ctx, "SELECT pg_try_advisory_lock($1)", advisoryLockID).Scan(&acquired)
+	err := e.conn.QueryRow(ctx, "SELECT pg_try_advisory_lock($1)", e.lockID).Scan(&acquired)
 	if err != nil {
 		log.WithError(err).Error("Failed to check advisory lock for leader election")
 		return err
@@ -87,14 +87,14 @@ func (e *PostgresElector) IsLeader(ctx context.Context) error {
 
 	if acquired {
 		if !e.isLeader {
-			log.Info("This instance is now the scheduler leader")
+			log.WithField("scheduler", e.name).Info("This instance is now the leader")
 			e.isLeader = true
 		}
 		return nil
 	}
 
 	if e.isLeader {
-		log.Info("This instance is no longer the scheduler leader")
+		log.WithField("scheduler", e.name).Info("This instance is no longer the leader")
 		e.isLeader = false
 	}
 	return ErrNotLeader

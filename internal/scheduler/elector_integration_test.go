@@ -15,6 +15,8 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
+const testLockID = 8675309 // test lock ID
+
 // TestPostgresElector_Integration tests the elector with a real PostgreSQL database
 // to verify that advisory locks work correctly across multiple connections.
 func TestPostgresElector_Integration(t *testing.T) {
@@ -41,7 +43,7 @@ func TestPostgresElector_Integration(t *testing.T) {
 		require.NoError(t, err)
 		defer pool.Close()
 
-		elector := NewPostgresElector(pool)
+		elector := NewPostgresElector(pool, testLockID, "test")
 		require.NoError(t, elector.Start(ctx))
 		defer elector.Close()
 
@@ -60,7 +62,7 @@ func TestPostgresElector_Integration(t *testing.T) {
 		defer pool2.Close()
 
 		// First elector acquires leadership
-		elector1 := NewPostgresElector(pool1)
+		elector1 := NewPostgresElector(pool1, testLockID, "test")
 		require.NoError(t, elector1.Start(ctx))
 		defer elector1.Close()
 
@@ -68,7 +70,7 @@ func TestPostgresElector_Integration(t *testing.T) {
 		require.NoError(t, err, "First elector should become leader")
 
 		// Second elector cannot become leader
-		elector2 := NewPostgresElector(pool2)
+		elector2 := NewPostgresElector(pool2, testLockID, "test")
 		require.NoError(t, elector2.Start(ctx))
 		defer elector2.Close()
 
@@ -87,14 +89,14 @@ func TestPostgresElector_Integration(t *testing.T) {
 		defer pool2.Close()
 
 		// First elector acquires leadership
-		elector1 := NewPostgresElector(pool1)
+		elector1 := NewPostgresElector(pool1, testLockID, "test")
 		require.NoError(t, elector1.Start(ctx))
 
 		err = elector1.IsLeader(ctx)
 		require.NoError(t, err, "First elector should become leader")
 
 		// Second elector cannot become leader yet
-		elector2 := NewPostgresElector(pool2)
+		elector2 := NewPostgresElector(pool2, testLockID, "test")
 		require.NoError(t, elector2.Start(ctx))
 		defer elector2.Close()
 
@@ -115,7 +117,7 @@ func TestPostgresElector_Integration(t *testing.T) {
 		require.NoError(t, err)
 		defer pool.Close()
 
-		elector := NewPostgresElector(pool)
+		elector := NewPostgresElector(pool, testLockID, "test")
 		require.NoError(t, elector.Start(ctx))
 		defer elector.Close()
 
@@ -140,11 +142,11 @@ func TestPostgresElector_Integration(t *testing.T) {
 		defer pool2.Close()
 
 		// Create and start both electors
-		elector1 := NewPostgresElector(pool1)
+		elector1 := NewPostgresElector(pool1, testLockID, "test")
 		require.NoError(t, elector1.Start(ctx))
 		defer elector1.Close()
 
-		elector2 := NewPostgresElector(pool2)
+		elector2 := NewPostgresElector(pool2, testLockID, "test")
 		require.NoError(t, elector2.Start(ctx))
 		defer elector2.Close()
 
@@ -165,7 +167,7 @@ func TestPostgresElector_Integration(t *testing.T) {
 		require.NoError(t, err)
 		defer pool.Close()
 
-		elector := NewPostgresElector(pool)
+		elector := NewPostgresElector(pool, testLockID, "test")
 		require.NoError(t, elector.Start(ctx))
 		defer elector.Close()
 

@@ -72,6 +72,7 @@ reuse:
         - etc/*
         - internal/agent/f5/mocks_test.go
         - build/*
+        - internal/notifier/templates/*.tmpl
       SPDX-FileCopyrightText: 'SAP SE or an SAP affiliate company'
       SPDX-License-Identifier: Apache-2.0
 

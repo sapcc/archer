@@ -35,6 +35,7 @@ import (
 	"github.com/sapcc/archer/v2/internal/db"
 	"github.com/sapcc/archer/v2/internal/middlewares"
 	"github.com/sapcc/archer/v2/internal/neutron"
+	"github.com/sapcc/archer/v2/internal/notifier"
 	"github.com/sapcc/archer/v2/internal/policy"
 	"github.com/sapcc/archer/v2/internal/scheduler"
 	"github.com/sapcc/archer/v2/restapi/operations"
@@ -125,6 +126,21 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 	log.Infof("Connected to Neutron %s", neutronClient.Endpoint)
 	neutronClient.InitCache()
 
+	// Notification system
+	var notif *notifier.Notifier
+	if config.Global.Notification.Enabled {
+		log.Info("Initializing campfire notification system")
+		notif, err = notifier.New(notifier.Config{
+			CampfireURL:    config.Global.Notification.CampfireURL,
+			TemplatePath:   config.Global.Notification.TemplatePath,
+			DigestCron:     config.Global.Notification.DigestCron,
+			ProviderClient: providerClient,
+		}, pool)
+		if err != nil {
+			log.Fatalf("Failed to initialize notifier: %v", err)
+		}
+	}
+
 	var keystone *auth.Keystone
 	if config.Global.ApiSettings.AuthStrategy == "keystone" {
 		keystone, err = auth.InitializeKeystone(providerClient)
@@ -158,7 +174,7 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 		api.XAuthTokenAuth = func(token string) (interface{}, error) { return nil, nil }
 	}
 
-	c := controller.NewController(pool, SwaggerSpec, neutronClient)
+	c := controller.NewController(pool, SwaggerSpec, neutronClient, notif)
 
 	api.VersionGetHandler = version.GetHandlerFunc(c.GetVersionHandler)
 
@@ -204,7 +220,7 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 	}
 	notifyFunc := func(host string) { db.NotifyService(pool, host) }
 	serviceScheduler := scheduler.NewServiceScheduler(pool, schedulerCfg, notifyFunc)
-	bgScheduler, err := scheduler.NewBackgroundScheduler(serviceScheduler, pool, schedulerCfg.CheckInterval, schedulerCfg.RebalanceDelay)
+	bgScheduler, err := scheduler.NewBackgroundScheduler(serviceScheduler, pool, schedulerCfg)
 	if err != nil {
 		log.Fatalf("Failed to create background scheduler: %v", err)
 	}
@@ -212,11 +228,23 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 		log.Fatalf("Failed to start background scheduler: %v", err)
 	}
 
+	// Start digest notification scheduler
+	if config.Global.Notification.Enabled {
+		if err := notif.Start(context.Background()); err != nil {
+			log.Fatalf("Failed to start notification scheduler: %v", err)
+		}
+	}
+
 	api.PreServerShutdown = func() {}
 
 	api.ServerShutdown = func() {
 		if err := bgScheduler.Stop(); err != nil {
 			log.WithError(err).Error("Failed to stop background scheduler")
+		}
+		if notif != nil {
+			if err := notif.Stop(); err != nil {
+				log.WithError(err).Error("Failed to stop notification scheduler")
+			}
 		}
 		pool.Close()
 		sentry.Flush(5 * time.Second)
