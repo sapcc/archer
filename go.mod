@@ -16,10 +16,10 @@ require (
 	github.com/f5devcentral/go-bigip v0.0.0-20260303071915-79fc4d8a2250
 	github.com/georgysavva/scany/v2 v2.1.4
 	github.com/getsentry/sentry-go v0.20.0
-	github.com/go-co-op/gocron/v2 v2.21.1
+	github.com/go-co-op/gocron/v2 v2.21.2
 	github.com/go-openapi/errors v0.22.7
 	github.com/go-openapi/loads v0.23.3
-	github.com/go-openapi/runtime v0.29.5
+	github.com/go-openapi/runtime v0.30.0
 	github.com/go-openapi/spec v0.22.4
 	github.com/go-openapi/strfmt v0.26.2
 	github.com/go-openapi/swag v0.26.0
@@ -39,7 +39,7 @@ require (
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/moby/moby/api v1.54.2
-	github.com/pashagolub/pgxmock/v5 v5.0.1
+	github.com/pashagolub/pgxmock/v5 v5.1.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rs/cors v1.11.1
 	github.com/sapcc/go-api-declarations v1.22.0
@@ -83,6 +83,7 @@ require (
 	github.com/go-openapi/analysis v0.25.0 // indirect
 	github.com/go-openapi/jsonpointer v0.22.5 // indirect
 	github.com/go-openapi/jsonreference v0.21.5 // indirect
+	github.com/go-openapi/runtime/server-middleware v0.30.0 // indirect
 	github.com/go-openapi/swag/fileutils v0.26.0 // indirect
 	github.com/go-openapi/swag/jsonname v0.26.0 // indirect
 	github.com/go-openapi/swag/jsonutils v0.26.0 // indirect
