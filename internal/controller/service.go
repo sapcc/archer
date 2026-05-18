@@ -70,6 +70,11 @@ func (c *Controller) GetServiceHandler(params service.GetServiceParams, principa
 			})
 	}
 
+	// Honor optional project_id query filter: narrow results to a specific project.
+	if params.ProjectID != nil && len(*params.ProjectID) > 0 {
+		q = q.Where(sq.Eq{"project_id": *params.ProjectID})
+	}
+
 	pagination := db.Pagination(params)
 	sql, args, err := pagination.Query(c.pool, q)
 	if err != nil {
