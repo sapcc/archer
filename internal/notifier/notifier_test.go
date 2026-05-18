@@ -166,11 +166,15 @@ func TestNotifier_ScheduleImmediate(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-// TestNotifier_ScheduleImmediate_ParentContextCancelled verifies that cancelling the
-// caller's context after ScheduleImmediate returns does NOT prevent the async job from
-// completing. This regresses against an earlier bug where the HTTP request context was
-// captured into the gocron task closure: net/http cancels that ctx on handler return,
-// causing both the DB lookup and the Campfire HTTP call to fail with context canceled.
+// TestNotifier_ScheduleImmediate_ParentContextCancelled pins the contract that
+// ScheduleImmediate's async work must not be tied to the caller's context lifetime.
+// In production the caller is an HTTP handler whose ctx is cancelled the moment the
+// handler returns; if the gocron task captured that ctx directly, the DB lookup and
+// Campfire send would fail with "context canceled" every time.
+//
+// The parent ctx is cancelled before scheduling so the task is guaranteed to observe
+// a cancelled parent. Cancelling after the call would race the gocron worker and
+// could let the test pass even if cancellation propagation regressed.
 func TestNotifier_ScheduleImmediate_ParentContextCancelled(t *testing.T) {
 	received := make(chan CampfireRequest, 1)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
