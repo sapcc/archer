@@ -22,6 +22,10 @@ import (
 // notificationLockID is a fixed lock ID for digest notification scheduling.
 const notificationLockID = 8675310
 
+// immediateNotificationTimeout bounds the async work in ScheduleImmediate so a
+// hung DB query or Campfire HTTP call cannot delay scheduler shutdown.
+const immediateNotificationTimeout = 30 * time.Second
+
 type Config struct {
 	CampfireURL    string
 	TemplatePath   string
@@ -97,12 +101,17 @@ func (n *Notifier) Stop() error {
 // The job runs asynchronously after the calling HTTP handler returns, so the caller's
 // request-scoped context (which net/http cancels on handler return) must not be captured
 // directly. We detach cancellation with context.WithoutCancel while preserving any
-// request-scoped values (trace IDs, logging fields).
+// request-scoped values (trace IDs, logging fields), then re-attach a bounded
+// timeout so the async DB lookup and Campfire HTTP call cannot run unbounded
+// and stall scheduler shutdown.
 func (n *Notifier) ScheduleImmediate(ctx context.Context, pool db.PgxIface, serviceID strfmt.UUID, ep *models.Endpoint) {
 	asyncCtx := context.WithoutCancel(ctx)
 	_, err := n.gocronScheduler.NewJob(
 		gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
 		gocron.NewTask(func() {
+			taskCtx, cancel := context.WithTimeout(asyncCtx, immediateNotificationTimeout)
+			defer cancel()
+
 			sql, args := db.Select("name", "project_id").
 				From("service").
 				Where("id = ?", serviceID).
@@ -110,7 +119,7 @@ func (n *Notifier) ScheduleImmediate(ctx context.Context, pool db.PgxIface, serv
 
 			var serviceName string
 			var ownerProjectID string
-			if err := pool.QueryRow(asyncCtx, sql, args...).Scan(&serviceName, &ownerProjectID); err != nil {
+			if err := pool.QueryRow(taskCtx, sql, args...).Scan(&serviceName, &ownerProjectID); err != nil {
 				log.WithError(err).WithField("service_id", serviceID).Error("Failed to look up service for notification")
 				return
 			}
@@ -125,7 +134,7 @@ func (n *Notifier) ScheduleImmediate(ctx context.Context, pool db.PgxIface, serv
 				},
 			}
 
-			if err := n.SendNotification(asyncCtx, ownerProjectID, data); err != nil {
+			if err := n.SendNotification(taskCtx, ownerProjectID, data); err != nil {
 				log.WithError(err).WithFields(log.Fields{
 					"service_id":  serviceID,
 					"endpoint_id": ep.ID,
