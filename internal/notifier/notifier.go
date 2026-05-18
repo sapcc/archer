@@ -93,7 +93,13 @@ func (n *Notifier) Stop() error {
 }
 
 // ScheduleImmediate creates a one-shot job that sends an immediate notification for a new pending endpoint.
+//
+// The job runs asynchronously after the calling HTTP handler returns, so the caller's
+// request-scoped context (which net/http cancels on handler return) must not be captured
+// directly. We detach cancellation with context.WithoutCancel while preserving any
+// request-scoped values (trace IDs, logging fields).
 func (n *Notifier) ScheduleImmediate(ctx context.Context, pool db.PgxIface, serviceID strfmt.UUID, ep *models.Endpoint) {
+	asyncCtx := context.WithoutCancel(ctx)
 	_, err := n.gocronScheduler.NewJob(
 		gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
 		gocron.NewTask(func() {
@@ -104,7 +110,7 @@ func (n *Notifier) ScheduleImmediate(ctx context.Context, pool db.PgxIface, serv
 
 			var serviceName string
 			var ownerProjectID string
-			if err := pool.QueryRow(ctx, sql, args...).Scan(&serviceName, &ownerProjectID); err != nil {
+			if err := pool.QueryRow(asyncCtx, sql, args...).Scan(&serviceName, &ownerProjectID); err != nil {
 				log.WithError(err).WithField("service_id", serviceID).Error("Failed to look up service for notification")
 				return
 			}
@@ -119,7 +125,7 @@ func (n *Notifier) ScheduleImmediate(ctx context.Context, pool db.PgxIface, serv
 				},
 			}
 
-			if err := n.SendNotification(ctx, ownerProjectID, data); err != nil {
+			if err := n.SendNotification(asyncCtx, ownerProjectID, data); err != nil {
 				log.WithError(err).WithFields(log.Fields{
 					"service_id":  serviceID,
 					"endpoint_id": ep.ID,

@@ -118,10 +118,12 @@ func TestNotifier_StartFailsWithoutConnection(t *testing.T) {
 }
 
 func TestNotifier_ScheduleImmediate(t *testing.T) {
-	var receivedReq CampfireRequest
+	received := make(chan CampfireRequest, 1)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_ = json.NewDecoder(r.Body).Decode(&receivedReq)
+		var req CampfireRequest
+		_ = json.NewDecoder(r.Body).Decode(&req)
 		w.WriteHeader(http.StatusOK)
+		received <- req
 	}))
 	defer server.Close()
 
@@ -152,12 +154,71 @@ func TestNotifier_ScheduleImmediate(t *testing.T) {
 
 	n.ScheduleImmediate(context.Background(), mock, strfmt.UUID("svc-id-1"), ep)
 
-	assert.Eventually(t, func() bool {
-		return receivedReq.ProjectID != ""
-	}, 2*time.Second, 50*time.Millisecond)
+	select {
+	case req := <-received:
+		assert.Equal(t, "owner-project-123", req.ProjectID)
+		assert.Contains(t, req.Subject, "pending approval")
+		assert.Contains(t, req.MailText, "my-service")
+	case <-time.After(2 * time.Second):
+		t.Fatal("immediate notification was not sent")
+	}
 
-	assert.Equal(t, "owner-project-123", receivedReq.ProjectID)
-	assert.Contains(t, receivedReq.Subject, "pending approval")
-	assert.Contains(t, receivedReq.MailText, "my-service")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// TestNotifier_ScheduleImmediate_ParentContextCancelled verifies that cancelling the
+// caller's context after ScheduleImmediate returns does NOT prevent the async job from
+// completing. This regresses against an earlier bug where the HTTP request context was
+// captured into the gocron task closure: net/http cancels that ctx on handler return,
+// causing both the DB lookup and the Campfire HTTP call to fail with context canceled.
+func TestNotifier_ScheduleImmediate_ParentContextCancelled(t *testing.T) {
+	received := make(chan CampfireRequest, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req CampfireRequest
+		_ = json.NewDecoder(r.Body).Decode(&req)
+		w.WriteHeader(http.StatusOK)
+		received <- req
+	}))
+	defer server.Close()
+
+	mock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherRegexp))
+	require.NoError(t, err)
+	defer mock.Close()
+
+	n, err := New(Config{
+		CampfireURL:    server.URL,
+		DigestCron:     "0 9 * * *",
+		ProviderClient: &gophercloud.ProviderClient{TokenID: "test"},
+	}, mock)
+	require.NoError(t, err)
+	n.gocronScheduler.Start()
+	defer func() { _ = n.gocronScheduler.Shutdown() }()
+
+	rows := pgxmock.NewRows([]string{"name", "project_id"}).
+		AddRow("my-service", "owner-project-123")
+	mock.ExpectQuery("SELECT .+ FROM service").
+		WithArgs(strfmt.UUID("svc-id-1")).
+		WillReturnRows(rows)
+
+	ep := &models.Endpoint{
+		ID:        "ep-id-1",
+		ProjectID: "consumer-project",
+		CreatedAt: time.Now(),
+	}
+
+	// Simulate an HTTP handler scope: parent ctx cancelled the moment the handler returns.
+	parentCtx, cancel := context.WithCancel(context.Background())
+	n.ScheduleImmediate(parentCtx, mock, strfmt.UUID("svc-id-1"), ep)
+	cancel() // cancel BEFORE the async job runs
+
+	select {
+	case req := <-received:
+		assert.Equal(t, "owner-project-123", req.ProjectID)
+		assert.Contains(t, req.Subject, "pending approval")
+		assert.Contains(t, req.MailText, "my-service")
+	case <-time.After(2 * time.Second):
+		t.Fatal("async notification job did not complete after parent context was cancelled")
+	}
+
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
