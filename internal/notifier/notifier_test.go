@@ -210,10 +210,10 @@ func TestNotifier_ScheduleImmediate_ParentContextCancelled(t *testing.T) {
 		CreatedAt: time.Now(),
 	}
 
-	// Cancel BEFORE scheduling so the gocron task is guaranteed to observe
-	// an already-cancelled parent. Without context.WithoutCancel in
-	// ScheduleImmediate, the task's DB lookup would fail with "context
-	// canceled" and the Campfire HTTP server would never receive a request.
+	// Cancel BEFORE scheduling to verify that ScheduleImmediate still enqueues
+	// work that runs independently of the caller's cancelled context. The job
+	// should still complete its DB lookup and send the Campfire request even
+	// though the parent context has already been cancelled.
 	parentCtx, cancel := context.WithCancel(context.Background())
 	cancel()
 	n.ScheduleImmediate(parentCtx, mock, strfmt.UUID("svc-id-1"), ep)
