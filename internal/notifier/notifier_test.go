@@ -121,7 +121,7 @@ func TestNotifier_ScheduleImmediate(t *testing.T) {
 	received := make(chan CampfireRequest, 1)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req CampfireRequest
-		_ = json.NewDecoder(r.Body).Decode(&req)
+		assert.NoError(t, json.NewDecoder(r.Body).Decode(&req))
 		w.WriteHeader(http.StatusOK)
 		received <- req
 	}))
@@ -179,7 +179,7 @@ func TestNotifier_ScheduleImmediate_ParentContextCancelled(t *testing.T) {
 	received := make(chan CampfireRequest, 1)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req CampfireRequest
-		_ = json.NewDecoder(r.Body).Decode(&req)
+		assert.NoError(t, json.NewDecoder(r.Body).Decode(&req))
 		w.WriteHeader(http.StatusOK)
 		received <- req
 	}))
