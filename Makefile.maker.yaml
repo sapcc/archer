@@ -75,6 +75,22 @@ reuse:
         - internal/notifier/templates/*.tmpl
       SPDX-FileCopyrightText: 'SAP SE or an SAP affiliate company'
       SPDX-License-Identifier: Apache-2.0
+    - paths:
+        - web/.gitignore
+        - web/.prettierrc
+        - web/CLAUDE.md
+        - web/README.md
+        - web/appProps.example.json
+        - web/appProps.template.json
+        - web/package.json
+        - web/package-lock.json
+        - web/pnpm-lock.yaml
+        - web/pnpm-workspace.yaml
+        - web/public/index.html
+        - web/public/mockServiceWorker.js
+        - web/tsconfig.json
+      SPDX-FileCopyrightText: 'SAP SE or an SAP affiliate company'
+      SPDX-License-Identifier: Apache-2.0
 
 verbatim: |
   mockery:
@@ -100,3 +116,4 @@ typos:
   enabled: true
   extendWords:
     recovr: recovr
+    Hashi: Hashi

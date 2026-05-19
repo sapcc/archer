@@ -1,0 +1,56 @@
+{
+  "name": "@sapcc/archer-ui",
+  "version": "2.4.1",
+  "author": "SAP SE",
+  "license": "Apache-2.0",
+  "source": "src/index.tsx",
+  "module": "build/index.js",
+  "private": false,
+  "packageManager": "pnpm@11.1.2",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "files": [
+    "build",
+    "public",
+    "LICENSE"
+  ],
+  "devDependencies": {
+    "@svgr/core": "^8.0.0",
+    "@svgr/plugin-jsx": "^8.0.0",
+    "@tanstack/react-query": "^5.96.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.2",
+    "postcss": "^8.4.21",
+    "postcss-url": "^10.1.3",
+    "prettier": "^3.2.5",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "sass": "^1.60.0",
+    "tailwindcss": "^4.1.11",
+    "typescript": "^6.0.3",
+    "zustand": "^5.0.12"
+  },
+  "dependencies": {
+    "@cloudoperators/juno-ui-components": "^6.2.0",
+    "@tailwindcss/postcss": "^4.1.11",
+    "@xyflow/react": "^12.10.2",
+    "esbuild": "^0.28.0",
+    "msw": "^2.6.6",
+    "react-router": "^7.5.1"
+  },
+  "scripts": {
+    "build": "NODE_ENV=production node esbuild.config.js",
+    "start": "APP_PORT=${APP_PORT:-8000} node devserver.js",
+    "start:simple": "PORT=$APP_PORT NODE_ENV=development node esbuild.config.js --serve --watch",
+    "format": "prettier --log-level warn --write \"**/*.{ts,tsx,md}\"",
+    "check-format": "prettier --log-level warn --check \"**/*.{ts,tsx,md}\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
+  }
+}

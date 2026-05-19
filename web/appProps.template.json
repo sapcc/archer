@@ -1,0 +1,11 @@
+{
+  "endpoint": "",
+  "projectID": "",
+  "token": "",
+  "canEdit": true,
+  "mockAPI": true,
+  "theme": "theme-dark",
+  "embedded": false,
+  "archerctlUrl": "https://github.com/sapcc/archer/releases/latest",
+  "docsUrl": "https://sapcc.github.io/archer/"
+}
