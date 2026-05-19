@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Server: immediate notification job no longer captures the HTTP request context, so the DB lookup and Campfire send no longer fail with "context canceled" once the handler returns
 
+### Added
+
+- ArcherUI: a TypeScript/React frontend for managing services, endpoints, and RBAC policies, with a topology view that visualizes the relationships between services, endpoints, and external consumers
+
 ## [2.4.1] - 2026-04-30
 
 ### Fixed

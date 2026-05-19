@@ -27,13 +27,28 @@ repos:
         entry: sh -c "gmake check || make check"
         language: system
         pass_filenames: false
+        files: '\.go$|^go\.(mod|sum)$|^Makefile|^Makefile\.maker\.yaml$'
       - id: swagger
         name: swagger
         entry: sh -c "gmake swagger || make swagger"
         language: system
         pass_filenames: false
+        files: '^swagger\.yaml$'
       - id: go-build
         name: go build
         entry: sh -c "gmake build-all || make build-all"
         language: system
         pass_filenames: false
+        files: '\.go$|^go\.(mod|sum)$|^Makefile|^Makefile\.maker\.yaml$'
+      - id: web-format
+        name: web prettier check
+        entry: sh -c "cd web && pnpm check-format"
+        language: system
+        pass_filenames: false
+        files: '^web/.*\.(ts|tsx|md)$'
+      - id: web-typecheck
+        name: web typecheck
+        entry: sh -c "cd web && pnpm typecheck"
+        language: system
+        pass_filenames: false
+        files: '^web/.*\.(ts|tsx)$|^web/tsconfig\.json$|^web/package\.json$'

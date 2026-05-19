@@ -1,0 +1,8 @@
+{
+  "endpoint": "https://archer-api.example.com/v1",
+  "projectID": "your-project-id",
+  "token": "your-keystone-token",
+  "canEdit": true,
+  "mockAPI": true,
+  "theme": "theme-dark"
+}
