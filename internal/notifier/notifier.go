@@ -98,18 +98,20 @@ func (n *Notifier) Stop() error {
 
 // ScheduleImmediate creates a one-shot job that sends an immediate notification for a new pending endpoint.
 //
-// The job runs asynchronously after the calling HTTP handler returns, so the caller's
-// request-scoped context (which net/http cancels on handler return) must not be captured
-// directly. We detach cancellation with context.WithoutCancel while preserving any
-// request-scoped values (trace IDs, logging fields), then re-attach a bounded
-// timeout so the async DB lookup and Campfire HTTP call cannot run unbounded
-// and stall scheduler shutdown.
-func (n *Notifier) ScheduleImmediate(ctx context.Context, pool db.PgxIface, serviceID strfmt.UUID, ep *models.Endpoint) {
-	asyncCtx := context.WithoutCancel(ctx)
+// The job runs asynchronously after the calling HTTP handler returns. Rather than capturing
+// the caller's request-scoped context (which net/http cancels on handler return), the task
+// receives a job-scoped context from gocron. That context is independent of the caller's
+// lifetime and is cancelled when the scheduler shuts down, so in-flight tasks short-circuit
+// cleanly on shutdown. We re-attach a bounded timeout so the DB lookup and Campfire HTTP
+// call cannot run unbounded.
+//
+// The ctx parameter is intentionally unused: it exists for API symmetry with other notifier
+// methods and to keep the call site in controller/endpoint.go natural.
+func (n *Notifier) ScheduleImmediate(_ context.Context, pool db.PgxIface, serviceID strfmt.UUID, ep *models.Endpoint) {
 	_, err := n.gocronScheduler.NewJob(
 		gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
-		gocron.NewTask(func() {
-			taskCtx, cancel := context.WithTimeout(asyncCtx, immediateNotificationTimeout)
+		gocron.NewTask(func(ctx context.Context) {
+			taskCtx, cancel := context.WithTimeout(ctx, immediateNotificationTimeout)
 			defer cancel()
 
 			sql, args := db.Select("name", "project_id").
