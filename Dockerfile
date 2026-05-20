@@ -53,6 +53,10 @@ RUN cd /src \
 FROM alpine:3.23
 
 ARG TARGETARCH
+RUN if [ -z "$TARGETARCH" ]; then \
+      echo 'This image must be built with BuildKit (otherwise the required variable $TARGETARCH will not be present). If you cannot enable BuildKit, pass it explicitly via --build-arg.' >&2; \
+      exit 1; \
+    fi
 # upgrade all installed packages to fix potential CVEs in advance
 # also remove apk package manager to hopefully remove dependency on OpenSSL 🤞
 RUN apk upgrade --no-cache --no-progress \
