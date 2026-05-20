@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"embed"
 	"fmt"
-	"os"
 	"path/filepath"
 	"text/template"
 	"time"
@@ -16,8 +15,13 @@ import (
 	"github.com/sapcc/archer/v2/models"
 )
 
-//go:embed templates/notification.tmpl
+//go:embed templates/subject.tmpl templates/notification.tmpl
 var embeddedTemplates embed.FS
+
+const (
+	subjectName = "subject.tmpl"
+	bodyName    = "notification.tmpl"
+)
 
 type NotificationData struct {
 	Type     string // "immediate" or "digest"
@@ -38,7 +42,7 @@ type ServiceInfo struct {
 }
 
 type Templates struct {
-	notification *template.Template
+	tmpl *template.Template
 }
 
 var funcMap = template.FuncMap{
@@ -48,31 +52,41 @@ var funcMap = template.FuncMap{
 }
 
 func LoadTemplates(overridePath string) (*Templates, error) {
-	var tmpl *template.Template
-	var err error
+	root := template.New("notifier").Funcs(funcMap)
 
+	var (
+		parsed *template.Template
+		err    error
+	)
 	if overridePath != "" {
-		path := filepath.Join(overridePath, "notification.tmpl")
-		content, readErr := os.ReadFile(path)
-		if readErr != nil {
-			return nil, fmt.Errorf("reading template override %s: %w", path, readErr)
-		}
-		tmpl, err = template.New("notification.tmpl").Funcs(funcMap).Parse(string(content))
+		parsed, err = root.ParseFiles(
+			filepath.Join(overridePath, subjectName),
+			filepath.Join(overridePath, bodyName),
+		)
 	} else {
-		tmpl, err = template.New("notification.tmpl").Funcs(funcMap).ParseFS(embeddedTemplates, "templates/notification.tmpl")
+		parsed, err = root.ParseFS(embeddedTemplates,
+			"templates/"+subjectName,
+			"templates/"+bodyName,
+		)
 	}
-
 	if err != nil {
-		return nil, fmt.Errorf("parsing notification template: %w", err)
+		return nil, fmt.Errorf("parsing notification templates: %w", err)
 	}
-
-	return &Templates{notification: tmpl}, nil
+	return &Templates{tmpl: parsed}, nil
 }
 
-func (t *Templates) Render(data NotificationData) (string, error) {
+func (t *Templates) render(name string, data NotificationData) (string, error) {
 	var buf bytes.Buffer
-	if err := t.notification.Execute(&buf, data); err != nil {
-		return "", fmt.Errorf("rendering notification template: %w", err)
+	if err := t.tmpl.ExecuteTemplate(&buf, name, data); err != nil {
+		return "", fmt.Errorf("rendering %s: %w", name, err)
 	}
 	return buf.String(), nil
+}
+
+func (t *Templates) RenderSubject(data NotificationData) (string, error) {
+	return t.render(subjectName, data)
+}
+
+func (t *Templates) RenderBody(data NotificationData) (string, error) {
+	return t.render(bodyName, data)
 }

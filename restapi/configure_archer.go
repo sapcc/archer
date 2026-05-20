@@ -140,7 +140,6 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 			log.Fatalf("Failed to initialize notifier: %v", err)
 		}
 	}
-
 	var keystone *auth.Keystone
 	if config.Global.ApiSettings.AuthStrategy == "keystone" {
 		keystone, err = auth.InitializeKeystone(providerClient)
@@ -224,13 +223,13 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 	if err != nil {
 		log.Fatalf("Failed to create background scheduler: %v", err)
 	}
-	if err := bgScheduler.Start(context.Background()); err != nil {
+	if err = bgScheduler.Start(context.Background()); err != nil {
 		log.Fatalf("Failed to start background scheduler: %v", err)
 	}
 
 	// Start digest notification scheduler
-	if config.Global.Notification.Enabled {
-		if err := notif.Start(context.Background()); err != nil {
+	if notif != nil {
+		if err = notif.Start(context.Background()); err != nil {
 			log.Fatalf("Failed to start notification scheduler: %v", err)
 		}
 	}
@@ -238,11 +237,11 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 	api.PreServerShutdown = func() {}
 
 	api.ServerShutdown = func() {
-		if err := bgScheduler.Stop(); err != nil {
+		if err = bgScheduler.Stop(); err != nil {
 			log.WithError(err).Error("Failed to stop background scheduler")
 		}
 		if notif != nil {
-			if err := notif.Stop(); err != nil {
+			if err = notif.Stop(); err != nil {
 				log.WithError(err).Error("Failed to stop notification scheduler")
 			}
 		}

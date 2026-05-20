@@ -84,6 +84,7 @@ type Notification struct {
 	CampfireURL  string `long:"campfire-url" ini-name:"campfire_url" env:"NOTIFICATION_CAMPFIRE_URL" description:"Campfire send-email endpoint URL (e.g. https://campfire.cloud/v1/send-email?from=archer)"`
 	TemplatePath string `long:"notification-template-path" ini-name:"template_path" description:"Path to custom email template directory (overrides embedded defaults)."`
 	DigestCron   string `long:"digest-cron" ini-name:"digest_cron" default:"0 9 * * 1" description:"Cron expression for digest emails (default: Monday 9am)."`
+	MimeType     string `long:"mime-type" ini-name:"mime_type" default:"text/plain; charset=utf-8" description:"MIME type to use for email templates"`
 }
 
 type Agent struct {
