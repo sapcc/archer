@@ -12,6 +12,7 @@ import (
 	"github.com/go-co-op/gocron/v2"
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud/v2"
+	"github.com/sapcc/archer/v2/internal/config"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/v2/internal/db"
@@ -22,9 +23,9 @@ import (
 // notificationLockID is a fixed lock ID for digest notification scheduling.
 const notificationLockID = 8675310
 
-// immediateNotificationTimeout bounds the async work in ScheduleImmediate so a
+// timeout bounds the async work in so a
 // hung DB query or Campfire HTTP call cannot delay scheduler shutdown.
-const immediateNotificationTimeout = 30 * time.Second
+const timeout = 30 * time.Second
 
 type Config struct {
 	CampfireURL    string
@@ -51,7 +52,7 @@ func New(cfg Config, pool db.PgxIface) (*Notifier, error) {
 	elector := scheduler.NewPostgresElector(pool, notificationLockID, "notification")
 
 	gocronSched, err := gocron.NewScheduler(
-		gocron.WithStopTimeout(time.Second * 30),
+		gocron.WithStopTimeout(timeout),
 	)
 	if err != nil {
 		return nil, err
@@ -75,8 +76,14 @@ func (n *Notifier) Start(ctx context.Context) error {
 
 	_, err := n.gocronScheduler.NewJob(
 		gocron.CronJob(n.cronExpr, false),
-		gocron.NewTask(func() {
-			n.runDigest(ctx)
+		gocron.NewTask(func(ctx context.Context) {
+			ctx, cancel := context.WithTimeout(ctx, timeout)
+			defer cancel()
+			if err := n.elector.IsLeader(ctx); err != nil {
+				return
+			}
+
+			n.RunDigest(ctx, n.pool)
 		}),
 		gocron.WithName("DigestNotification"),
 	)
@@ -107,11 +114,11 @@ func (n *Notifier) Stop() error {
 //
 // The ctx parameter is intentionally unused: it exists for API symmetry with other notifier
 // methods and to keep the call site in controller/endpoint.go natural.
-func (n *Notifier) ScheduleImmediate(_ context.Context, pool db.PgxIface, serviceID strfmt.UUID, ep *models.Endpoint) {
+func (n *Notifier) ScheduleImmediate(pool db.PgxIface, serviceID strfmt.UUID, ep *models.Endpoint) {
 	_, err := n.gocronScheduler.NewJob(
 		gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
 		gocron.NewTask(func(ctx context.Context) {
-			taskCtx, cancel := context.WithTimeout(ctx, immediateNotificationTimeout)
+			taskCtx, cancel := context.WithTimeout(ctx, timeout)
 			defer cancel()
 
 			sql, args := db.Select("name", "project_id").
@@ -151,17 +158,20 @@ func (n *Notifier) ScheduleImmediate(_ context.Context, pool db.PgxIface, servic
 }
 
 func (n *Notifier) SendNotification(ctx context.Context, projectID string, data NotificationData) error {
-	body, err := n.templates.Render(data)
+	subject, err := n.templates.RenderSubject(data)
 	if err != nil {
-		return fmt.Errorf("rendering notification: %w", err)
+		return fmt.Errorf("rendering notification subject: %w", err)
 	}
 
-	subject := buildSubject(data)
+	body, err := n.templates.RenderBody(data)
+	if err != nil {
+		return fmt.Errorf("rendering notification body: %w", err)
+	}
 
 	req := &CampfireRequest{
 		ProjectID: projectID,
 		Subject:   subject,
-		MimeType:  "text/plain",
+		MimeType:  config.Global.Notification.MimeType,
 		MailText:  body,
 	}
 
@@ -174,20 +184,4 @@ func (n *Notifier) SendNotification(ctx context.Context, projectID string, data 
 		"type":       data.Type,
 	}).Debug("Notification sent successfully")
 	return nil
-}
-
-// runDigest executes the digest notification with distributed leadership.
-func (n *Notifier) runDigest(ctx context.Context) {
-	if err := n.elector.IsLeader(ctx); err != nil {
-		return
-	}
-
-	n.RunDigest(ctx, n.pool)
-}
-
-func buildSubject(data NotificationData) string {
-	if data.Type == "immediate" {
-		return "Archer Endpoint Services: New endpoint(s) pending approval"
-	}
-	return fmt.Sprintf("Archer Endpoint Services: %d endpoint(s) awaiting approval", data.TotalEndpoints())
 }

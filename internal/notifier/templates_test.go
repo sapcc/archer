@@ -30,11 +30,15 @@ func TestRenderTemplate_Immediate(t *testing.T) {
 		},
 	}
 
-	result, err := tmpl.Render(data)
+	body, err := tmpl.RenderBody(data)
 	require.NoError(t, err)
-	assert.Contains(t, result, "my-service")
-	assert.Contains(t, result, "ep-001")
-	assert.Contains(t, result, "pending for")
+	assert.Contains(t, body, "my-service")
+	assert.Contains(t, body, "ep-001")
+	assert.Contains(t, body, "pending for")
+
+	subject, err := tmpl.RenderSubject(data)
+	require.NoError(t, err)
+	assert.Equal(t, "Archer Endpoint Services: New endpoint(s) pending approval", subject)
 }
 
 func TestRenderTemplate_Digest(t *testing.T) {
@@ -60,11 +64,15 @@ func TestRenderTemplate_Digest(t *testing.T) {
 		},
 	}
 
-	result, err := tmpl.Render(data)
+	body, err := tmpl.RenderBody(data)
 	require.NoError(t, err)
-	assert.Contains(t, result, "service-a")
-	assert.Contains(t, result, "service-b")
-	assert.Contains(t, result, "ep-001")
-	assert.Contains(t, result, "ep-003")
-	assert.Contains(t, result, "3 endpoint(s)")
+	assert.Contains(t, body, "service-a")
+	assert.Contains(t, body, "service-b")
+	assert.Contains(t, body, "ep-001")
+	assert.Contains(t, body, "ep-003")
+	assert.Contains(t, body, "3 endpoint(s)")
+
+	subject, err := tmpl.RenderSubject(data)
+	require.NoError(t, err)
+	assert.Equal(t, "Archer Endpoint Services: 3 endpoint(s) awaiting approval", subject)
 }

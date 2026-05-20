@@ -14,14 +14,18 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud/v2"
+	"github.com/jessevdk/go-flags"
 	"github.com/pashagolub/pgxmock/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/sapcc/archer/v2/internal/config"
 	"github.com/sapcc/archer/v2/models"
 )
 
 func TestNotifier_SendNotification(t *testing.T) {
+	_, err := flags.NewParser(&config.Global, flags.Default).ParseArgs(nil)
+	require.NoError(t, err)
 	var receivedReq CampfireRequest
 	var receivedToken string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -63,28 +67,10 @@ func TestNotifier_SendNotification(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "owner-project-id", receivedReq.ProjectID)
-	assert.Equal(t, "text/plain", receivedReq.MimeType)
+	assert.Equal(t, "text/plain; charset=utf-8", receivedReq.MimeType)
 	assert.Contains(t, receivedReq.Subject, "pending approval")
 	assert.Contains(t, receivedReq.MailText, "test-service")
 	assert.Equal(t, "test-token-123", receivedToken)
-}
-
-func TestNotifier_BuildSubject_Immediate(t *testing.T) {
-	data := NotificationData{Type: "immediate"}
-	subject := buildSubject(data)
-	assert.Equal(t, "Archer Endpoint Services: New endpoint(s) pending approval", subject)
-}
-
-func TestNotifier_BuildSubject_Digest(t *testing.T) {
-	data := NotificationData{
-		Type: "digest",
-		Services: []ServiceInfo{
-			{Endpoints: []*models.Endpoint{{}, {}}},
-			{Endpoints: []*models.Endpoint{{}}},
-		},
-	}
-	subject := buildSubject(data)
-	assert.Equal(t, "Archer Endpoint Services: 3 endpoint(s) awaiting approval", subject)
 }
 
 func TestNotifier_StopWithoutStart(t *testing.T) {
@@ -152,7 +138,7 @@ func TestNotifier_ScheduleImmediate(t *testing.T) {
 		CreatedAt: time.Now(),
 	}
 
-	n.ScheduleImmediate(context.Background(), mock, strfmt.UUID("svc-id-1"), ep)
+	n.ScheduleImmediate(mock, strfmt.UUID("svc-id-1"), ep)
 
 	select {
 	case req := <-received:
@@ -161,70 +147,6 @@ func TestNotifier_ScheduleImmediate(t *testing.T) {
 		assert.Contains(t, req.MailText, "my-service")
 	case <-time.After(2 * time.Second):
 		t.Fatal("immediate notification was not sent")
-	}
-
-	assert.NoError(t, mock.ExpectationsWereMet())
-}
-
-// TestNotifier_ScheduleImmediate_ParentContextCancelled pins the contract that
-// ScheduleImmediate's async work must not be tied to the caller's context lifetime.
-// In production the caller is an HTTP handler whose ctx is cancelled the moment the
-// handler returns; if the gocron task captured that ctx directly, the DB lookup and
-// Campfire send would fail with "context canceled" every time.
-//
-// The parent ctx is cancelled before scheduling so the task is guaranteed to observe
-// a cancelled parent. Cancelling after the call would race the gocron worker and
-// could let the test pass even if cancellation propagation regressed.
-func TestNotifier_ScheduleImmediate_ParentContextCancelled(t *testing.T) {
-	received := make(chan CampfireRequest, 1)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var req CampfireRequest
-		assert.NoError(t, json.NewDecoder(r.Body).Decode(&req))
-		w.WriteHeader(http.StatusOK)
-		received <- req
-	}))
-	defer server.Close()
-
-	mock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherRegexp))
-	require.NoError(t, err)
-	defer mock.Close()
-
-	n, err := New(Config{
-		CampfireURL:    server.URL,
-		DigestCron:     "0 9 * * *",
-		ProviderClient: &gophercloud.ProviderClient{TokenID: "test"},
-	}, mock)
-	require.NoError(t, err)
-	n.gocronScheduler.Start()
-	defer func() { _ = n.gocronScheduler.Shutdown() }()
-
-	rows := pgxmock.NewRows([]string{"name", "project_id"}).
-		AddRow("my-service", "owner-project-123")
-	mock.ExpectQuery("SELECT .+ FROM service").
-		WithArgs(strfmt.UUID("svc-id-1")).
-		WillReturnRows(rows)
-
-	ep := &models.Endpoint{
-		ID:        "ep-id-1",
-		ProjectID: "consumer-project",
-		CreatedAt: time.Now(),
-	}
-
-	// Cancel BEFORE scheduling to verify that ScheduleImmediate still enqueues
-	// work that runs independently of the caller's cancelled context. The job
-	// should still complete its DB lookup and send the Campfire request even
-	// though the parent context has already been cancelled.
-	parentCtx, cancel := context.WithCancel(context.Background())
-	cancel()
-	n.ScheduleImmediate(parentCtx, mock, strfmt.UUID("svc-id-1"), ep)
-
-	select {
-	case req := <-received:
-		assert.Equal(t, "owner-project-123", req.ProjectID)
-		assert.Contains(t, req.Subject, "pending approval")
-		assert.Contains(t, req.MailText, "my-service")
-	case <-time.After(2 * time.Second):
-		t.Fatal("async notification job did not complete after parent context was cancelled")
 	}
 
 	assert.NoError(t, mock.ExpectationsWereMet())
