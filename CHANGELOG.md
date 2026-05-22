@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.2] - 2026-05-22
+
 ### Fixed
 
 - Server: immediate notification job no longer captures the HTTP request context, so the DB lookup and Campfire send no longer fail with "context canceled" once the handler returns
@@ -117,7 +119,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-Release with goreleaser
 
-[Unreleased]: https://github.com/sapcc/archer/compare/v2.4.1...HEAD
+[Unreleased]: https://github.com/sapcc/archer/compare/v2.4.2...HEAD
+
+[2.4.2]: https://github.com/sapcc/archer/compare/v2.4.1...v2.4.2
 
 [2.4.1]: https://github.com/sapcc/archer/compare/v2.4.0...v2.4.1
 
