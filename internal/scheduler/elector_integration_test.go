@@ -162,6 +162,43 @@ func TestPostgresElector_Integration(t *testing.T) {
 		assert.True(t, isLeader1 != isLeader2, "Exactly one elector should be leader, got elector1=%v, elector2=%v", isLeader1, isLeader2)
 	})
 
+	t.Run("recovers when dedicated connection is killed", func(t *testing.T) {
+		pool, err := pgxpool.New(ctx, connStr)
+		require.NoError(t, err)
+		defer pool.Close()
+
+		elector := NewPostgresElector(pool, testLockID, "test")
+		require.NoError(t, elector.Start(ctx))
+		defer elector.Close()
+
+		// Become leader and capture the backend pid of the dedicated session.
+		require.NoError(t, elector.IsLeader(ctx))
+		require.True(t, elector.isLeader)
+
+		var pid int32
+		require.NoError(t, elector.conn.QueryRow(ctx, "SELECT pg_backend_pid()").Scan(&pid))
+
+		// Kill that backend from a separate connection. This simulates a Postgres
+		// restart / proxy cycling / idle timeout that drops the dedicated conn.
+		killConn, err := pool.Acquire(ctx)
+		require.NoError(t, err)
+		_, err = killConn.Exec(ctx, "SELECT pg_terminate_backend($1)", pid)
+		require.NoError(t, err)
+		killConn.Release()
+
+		// Next IsLeader call must recover (not return a permanent error).
+		// Either path is acceptable: it reacquires and immediately becomes leader
+		// (the lock is free again because the prior session died), or it bounces
+		// once with ErrNotLeader and succeeds on the following tick.
+		err = elector.IsLeader(ctx)
+		if err != nil {
+			assert.ErrorIs(t, err, ErrNotLeader, "post-kill error must be recoverable, got %v", err)
+			// Subsequent tick must succeed.
+			require.NoError(t, elector.IsLeader(ctx))
+		}
+		assert.True(t, elector.isLeader, "elector should be leader again after recovery")
+	})
+
 	t.Run("leadership stable across multiple checks", func(t *testing.T) {
 		pool, err := pgxpool.New(ctx, connStr)
 		require.NoError(t, err)
