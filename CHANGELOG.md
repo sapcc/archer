@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Server: immediate notification job no longer captures the HTTP request context, so the DB lookup and Campfire send no longer fail with "context canceled" once the handler returns
+- Scheduler: leader election now recovers when its dedicated PostgreSQL connection dies (server restart, proxy cycling, idle timeout) — previously the elector logged `failed to deallocate cached statement(s): conn closed` on every tick and the instance could never become leader again until restart
 
 ## [2.4.1] - 2026-04-30
 
