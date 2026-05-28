@@ -13,7 +13,7 @@ jobs:
   create-tag:
     name: Create release tag
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'release/next'
+    if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'chore/release-next'
     permissions:
       contents: write
     steps:
