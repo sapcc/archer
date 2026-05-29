@@ -7,7 +7,6 @@ const pkg = require("./package.json");
 const postcss = require("postcss");
 const sass = require("sass");
 const { transform } = require("@svgr/core");
-const url = require("postcss-url");
 const tailwindcss = require("@tailwindcss/postcss");
 const autoprefixer = require("autoprefixer");
 
@@ -98,18 +97,7 @@ const build = async () => {
       {
         name: "parse-styles",
         setup(build) {
-          const postcssProcessor = postcss([
-            tailwindcss,
-            autoprefixer,
-            url({
-              url: "inline",
-              maxSize: 10,
-              fallback: "copy",
-              assetsPath: "./build/assets",
-              useHash: true,
-              optimizeSvgEncode: true,
-            }),
-          ]);
+          const postcssProcessor = postcss([tailwindcss, autoprefixer]);
 
           build.onLoad(
             { filter: /.\.(css|scss)$/, namespace: "file" },
