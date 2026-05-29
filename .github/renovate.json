@@ -4,8 +4,7 @@
     "config:recommended",
     "default:pinDigestsDisabled",
     "mergeConfidence:all-badges",
-    "docker:disable",
-    "github-actions:disable"
+    "docker:disable"
   ],
   "assignees": [
     "notandy",
