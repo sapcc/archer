@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-name: Draft Release
+name: Release - Open PR
 
 on:
   push:
@@ -105,5 +105,5 @@ jobs:
 
             ---
 
-            Merging this PR will automatically create an annotated tag `v${{ steps.bump.outputs.version }}` on main.
+            Merging this PR will automatically create a **draft** GitHub Release `v${{ steps.bump.outputs.version }}`. Publish that release from the GitHub UI to create the tag and trigger goreleaser.
           labels: release

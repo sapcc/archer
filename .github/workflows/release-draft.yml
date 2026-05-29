@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-name: Create Release Tag
+name: Release - Draft GitHub Release
 
 on:
   pull_request:
@@ -10,8 +10,8 @@ on:
     branches: [main]
 
 jobs:
-  create-tag:
-    name: Create release tag
+  draft-release:
+    name: Draft GitHub Release
     runs-on: ubuntu-latest
     if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'chore/release-next'
     permissions:
@@ -28,17 +28,18 @@ jobs:
           command: query
           version: latest
 
-      - name: Create annotated tag
+      - name: Create draft GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: v${{ steps.version.outputs.version }}
+          RELEASE_NOTES: ${{ steps.version.outputs.release-notes }}
         run: |
-          VERSION="v${{ steps.version.outputs.version }}"
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-
-          # Check if tag already exists
-          if git rev-parse "${VERSION}" >/dev/null 2>&1; then
-            echo "Tag ${VERSION} already exists, skipping"
+          if gh release view "${VERSION}" >/dev/null 2>&1; then
+            echo "Release ${VERSION} already exists, skipping"
             exit 0
           fi
 
-          git tag -a "${VERSION}" -m "Release ${VERSION}"
-          git push origin "${VERSION}"
+          gh release create "${VERSION}" \
+            --draft \
+            --title "${VERSION}" \
+            --notes "${RELEASE_NOTES}"
