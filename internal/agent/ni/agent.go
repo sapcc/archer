@@ -7,8 +7,8 @@ package ni
 import (
 	"context"
 	"errors"
+	"net"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -187,10 +187,10 @@ func (a *Agent) migrateServiceIPAddresses(ctx context.Context) error {
 
 func (a *Agent) ProcessServices(ctx context.Context) error {
 	type serviceInfo struct {
-		ID          strfmt.UUID   `db:"id"`
-		IPAddresses []strfmt.IPv4 `db:"ip_addresses"`
-		Ports       []int32       `db:"ports"`
-		Status      string        `db:"status"`
+		ID          strfmt.UUID          `db:"id"`
+		IPAddresses []models.InetAddress `db:"ip_addresses"`
+		Ports       []int32              `db:"ports"`
+		Status      string               `db:"status"`
 	}
 
 	// Query all services assigned to this host
@@ -213,9 +213,16 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 			toDelete = append(toDelete, svc.ID)
 		} else {
 			if !a.proxyManager.IsRunning(svc.ID) && len(svc.IPAddresses) > 0 && len(svc.Ports) > 0 {
-				// strfmt.IPv4.String() returns CIDR notation (e.g., "1.1.1.1/32"), strip the suffix
-				ip := strings.TrimSuffix(svc.IPAddresses[0].String(), "/32")
-				a.proxyManager.StartProxy(svc.ID, ip, svc.Ports)
+				// INET values may include CIDR prefix (e.g., "1.1.1.1/32" or "2001:db8::1/128")
+				ip, _, err := net.ParseCIDR(string(svc.IPAddresses[0]))
+				if err != nil {
+					ip = net.ParseIP(string(svc.IPAddresses[0]))
+				}
+				if ip == nil {
+					log.WithField("service_id", svc.ID).Warnf("invalid IP: %s", svc.IPAddresses[0])
+					continue
+				}
+				a.proxyManager.StartProxy(svc.ID, ip.String(), svc.Ports)
 			}
 			// Mark for status update to AVAILABLE
 			if svc.Status != string(models.ServiceStatusAVAILABLE) {
@@ -259,9 +266,9 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
 		var si ni.ServiceInjection
 		var err error
 
-		sql, args := db.Select("e.id", "e.status", "ep.port_id", "ep.network", "ep.ip_address",
+		sql, args := db.Select("e.id", "e.status", "ep.port_id", "ep.network", "host(ep.ip_address) AS ip_address",
 			"s.id AS service_id", "s.protocol AS service_protocol", "s.ports AS service_ports",
-			"s.ip_addresses[1] AS service_ip_address").
+			"host(s.ip_addresses[1]) AS service_ip_address", "s.proxy_protocol").
 			From("endpoint e").
 			Join("endpoint_port ep ON ep.endpoint_id = e.id").
 			Join("service s ON s.id = service_id").

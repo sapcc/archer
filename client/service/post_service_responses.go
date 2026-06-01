@@ -48,6 +48,12 @@ func (o *PostServiceReader) ReadResponse(response runtime.ClientResponse, consum
 			return nil, err
 		}
 		return result, nil
+	case 400:
+		result := NewPostServiceBadRequest()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 401:
 		result := NewPostServiceUnauthorized()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -156,6 +162,76 @@ func (o *PostServiceCreated) readResponse(response runtime.ClientResponse, consu
 	}
 
 	o.Payload = new(models.Service)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+		return err
+	}
+
+	return nil
+}
+
+// NewPostServiceBadRequest creates a PostServiceBadRequest with default headers values
+func NewPostServiceBadRequest() *PostServiceBadRequest {
+	return &PostServiceBadRequest{}
+}
+
+/*
+PostServiceBadRequest describes a response with status code 400, with default header values.
+
+Bad Request
+*/
+type PostServiceBadRequest struct {
+	Payload *models.Error
+}
+
+// IsSuccess returns true when this post service bad request response has a 2xx status code
+func (o *PostServiceBadRequest) IsSuccess() bool {
+	return false
+}
+
+// IsRedirect returns true when this post service bad request response has a 3xx status code
+func (o *PostServiceBadRequest) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this post service bad request response has a 4xx status code
+func (o *PostServiceBadRequest) IsClientError() bool {
+	return true
+}
+
+// IsServerError returns true when this post service bad request response has a 5xx status code
+func (o *PostServiceBadRequest) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this post service bad request response a status code equal to that given
+func (o *PostServiceBadRequest) IsCode(code int) bool {
+	return code == 400
+}
+
+// Code gets the status code for the post service bad request response
+func (o *PostServiceBadRequest) Code() int {
+	return 400
+}
+
+func (o *PostServiceBadRequest) Error() string {
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /service][%d] postServiceBadRequest %s", 400, payload)
+}
+
+func (o *PostServiceBadRequest) String() string {
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /service][%d] postServiceBadRequest %s", 400, payload)
+}
+
+func (o *PostServiceBadRequest) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *PostServiceBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {

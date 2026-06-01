@@ -9,10 +9,10 @@ import (
 	"net/http"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/go-openapi/strfmt"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/sapcc/archer/v2/internal/db"
+	"github.com/sapcc/archer/v2/models"
 	"github.com/sapcc/archer/v2/restapi/operations/agent"
 )
 
@@ -100,7 +100,7 @@ func (t *SuiteTest) TestGetAgentsAgentHostHandlerWithServices() {
 	// Create services assigned to this agent
 	_ = t.createService(testService)
 	testService2 := testService
-	testService2.IPAddresses = []strfmt.IPv4{"2.3.4.5"}
+	testService2.IPAddresses = []models.InetAddress{"2.3.4.5"}
 	_ = t.createService(testService2)
 
 	res := t.c.GetAgentsAgentHostHandler(

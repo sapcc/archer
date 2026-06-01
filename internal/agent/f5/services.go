@@ -60,8 +60,11 @@ func (a *Agent) getExtendedService(s *models.Service) (*as3.ExtendedService, err
 		found := false
 		for _, ip := range service.IPAddresses {
 			var ipAddress net.IP
-			if ipAddress, _, err = net.ParseCIDR(ip.String()); err != nil {
-				return nil, fmt.Errorf("ParseCIDR: %w", err)
+			if ipAddress, _, err = net.ParseCIDR(string(ip)); err != nil {
+				ipAddress = net.ParseIP(string(ip))
+				if ipAddress == nil {
+					return nil, fmt.Errorf("ParseCIDR: invalid CIDR address: %s", ip)
+				}
 			}
 
 			if ipnet.Contains(ipAddress) {

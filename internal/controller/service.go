@@ -7,8 +7,10 @@ package controller
 import (
 	"context"
 	"errors"
+	"fmt"
+	"math/big"
+	"net"
 	"net/http"
-	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/v2/dbscan"
@@ -154,20 +156,28 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 			}
 			panic(err)
 		} else {
-			var totalIPs, usedIPs int
-			if usedIPs, err = strconv.Atoi(networkIpAvailability.UsedIPs); err != nil {
-				panic(err)
+			var totalIPs, usedIPs big.Int
+			if _, ok := usedIPs.SetString(networkIpAvailability.UsedIPs, 10); !ok {
+				panic(fmt.Errorf("failed to parse UsedIPs: %s", networkIpAvailability.UsedIPs))
 			}
-			if totalIPs, err = strconv.Atoi(networkIpAvailability.TotalIPs); err != nil {
-				panic(err)
+			if _, ok := totalIPs.SetString(networkIpAvailability.TotalIPs, 10); !ok {
+				panic(fmt.Errorf("failed to parse TotalIPs: %s", networkIpAvailability.TotalIPs))
 			}
-			if usedIPs >= totalIPs {
+			if usedIPs.Cmp(&totalIPs) >= 0 {
 				return service.NewPostServiceConflict().WithPayload(&models.Error{
 					Code:    http.StatusConflict,
 					Message: "No available IP addresses in network.",
 				})
 			}
 		}
+	}
+
+	// Validate IP addresses
+	if err := validateIPAddresses(params.Body.IPAddresses); err != nil {
+		return service.NewPostServiceBadRequest().WithPayload(&models.Error{
+			Code:    http.StatusBadRequest,
+			Message: err.Error(),
+		})
 	}
 
 	// Set default values
@@ -304,13 +314,23 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 		upd = upd.Where("project_id = ?", projectId)
 	}
 
+	// Validate IP addresses if provided
+	if params.Body.IPAddresses != nil {
+		if err := validateIPAddresses(params.Body.IPAddresses); err != nil {
+			return service.NewPutServiceServiceIDBadRequest().WithPayload(&models.Error{
+				Code:    http.StatusBadRequest,
+				Message: err.Error(),
+			})
+		}
+	}
+
 	var serviceResponse models.Service
 	if err := pgx.BeginFunc(ctx, c.pool, func(tx pgx.Tx) error {
 		// Check for conflicts only for tenant/F5 provider when IP or ports change
 		if params.Body.IPAddresses != nil || params.Body.Ports != nil {
 			var provider string
 			var networkID *strfmt.UUID
-			var ipAddresses []strfmt.IPv4
+			var ipAddresses []models.InetAddress
 			var ports []int32
 			q := db.Select("provider", "network_id", "ip_addresses", "ports").
 				From("service").
@@ -652,7 +672,7 @@ func commonEndpointsActionHandler(pool db.PgxIface, body any, _ any) ([]*models.
 // Only used for tenant/F5 provider services.
 type ServiceConflictChecker struct {
 	networkID   strfmt.UUID
-	ipAddresses []strfmt.IPv4
+	ipAddresses []models.InetAddress
 	ports       []int32
 	serviceID   *strfmt.UUID
 }
@@ -685,6 +705,15 @@ func (s *ServiceConflictChecker) checkForServiceConflict(ctx context.Context, tx
 	}
 	if ct > 0 {
 		return &pgconn.PgError{Code: pgerrcode.CheckViolation}
+	}
+	return nil
+}
+
+func validateIPAddresses(ipAddresses []models.InetAddress) error {
+	for _, ip := range ipAddresses {
+		if net.ParseIP(string(ip)) == nil {
+			return fmt.Errorf("invalid IP address: %s", ip)
+		}
 	}
 	return nil
 }
