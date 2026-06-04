@@ -43,7 +43,7 @@ require (
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rs/cors v1.11.1
 	github.com/sapcc/go-api-declarations v1.22.0
-	github.com/sapcc/go-bits v0.0.0-20260604095421-6bd206943957
+	github.com/sapcc/go-bits v0.0.0-20260604151206-e698d422ff96
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/sirupsen/logrus v1.9.4
 	github.com/stretchr/testify v1.11.1
@@ -148,7 +148,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.43.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.37.0 // indirect
 	go.opentelemetry.io/otel/trace v1.43.0 // indirect
-	go.xyrillian.de/gg v1.8.1 // indirect
+	go.xyrillian.de/gg v1.9.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.51.0 // indirect
 	golang.org/x/text v0.37.0 // indirect
