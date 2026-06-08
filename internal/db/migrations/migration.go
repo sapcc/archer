@@ -338,4 +338,12 @@ var Migrations = mgx.Migrations(
 		`)
 		return err
 	}),
+	mgx.NewMigration("add_snat_pool_size", func(ctx context.Context, commands mgx.Commands) error {
+		_, err := commands.Exec(ctx, `
+			ALTER TABLE service
+				ADD COLUMN snat_pool_size INTEGER NULL
+				CONSTRAINT snat_pool_size CHECK (snat_pool_size IS NULL OR (snat_pool_size BETWEEN 1 AND 8));
+		`)
+		return err
+	}),
 )

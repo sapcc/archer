@@ -2034,6 +2034,15 @@ func init() {
           "type": "boolean",
           "default": false
         },
+        "snat_pool_size": {
+          "description": "Number of SNAT IP addresses allocated for this service. Increase to scale outbound port capacity. When unset, the agent uses its default behavior. Provider support varies; the cp provider does not support custom values.\n",
+          "type": "integer",
+          "format": "int32",
+          "maximum": 8,
+          "minimum": 1,
+          "x-nullable": true,
+          "x-omitempty": true
+        },
         "status": {
           "$ref": "#/definitions/ServiceStatus"
         },
@@ -2136,6 +2145,15 @@ func init() {
           "description": "Require explicit project approval for the service owner.",
           "type": "boolean",
           "x-nullable": true
+        },
+        "snat_pool_size": {
+          "description": "Number of SNAT IP addresses allocated for this service. Increase to scale outbound port capacity. Set to null to reset to default behavior. Provider support varies; the cp provider does not support custom values.\n",
+          "type": "integer",
+          "format": "int32",
+          "maximum": 8,
+          "minimum": 1,
+          "x-nullable": true,
+          "x-omitempty": true
         },
         "tags": {
           "description": "The list of tags on the resource.",
@@ -4531,6 +4549,15 @@ func init() {
           "type": "boolean",
           "default": false
         },
+        "snat_pool_size": {
+          "description": "Number of SNAT IP addresses allocated for this service. Increase to scale outbound port capacity. When unset, the agent uses its default behavior. Provider support varies; the cp provider does not support custom values.\n",
+          "type": "integer",
+          "format": "int32",
+          "maximum": 8,
+          "minimum": 1,
+          "x-nullable": true,
+          "x-omitempty": true
+        },
         "status": {
           "$ref": "#/definitions/ServiceStatus"
         },
@@ -4634,6 +4661,15 @@ func init() {
           "description": "Require explicit project approval for the service owner.",
           "type": "boolean",
           "x-nullable": true
+        },
+        "snat_pool_size": {
+          "description": "Number of SNAT IP addresses allocated for this service. Increase to scale outbound port capacity. Set to null to reset to default behavior. Provider support varies; the cp provider does not support custom values.\n",
+          "type": "integer",
+          "format": "int32",
+          "maximum": 8,
+          "minimum": 1,
+          "x-nullable": true,
+          "x-omitempty": true
         },
         "tags": {
           "description": "The list of tags on the resource.",

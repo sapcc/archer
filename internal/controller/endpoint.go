@@ -51,8 +51,7 @@ func (c *Controller) GetEndpointHandler(params endpoint.GetEndpointParams, _ any
 
 	var items = make([]*models.Endpoint, 0)
 	if err := pgxscan.Select(params.HTTPRequest.Context(), c.pool, &items, sql, args...); err != nil {
-		var pe *pgconn.PgError
-		if errors.As(err, &pe) && pe.Code == pgerrcode.UndefinedColumn {
+		if pe, ok := errors.AsType[*pgconn.PgError](err); ok && pe.Code == pgerrcode.UndefinedColumn {
 			return endpoint.NewGetEndpointBadRequest().WithPayload(&models.Error{
 				Code:    400,
 				Message: "Unknown sort column.",
@@ -156,8 +155,8 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, tok
 			panic(err)
 		}
 	}
-	port, err := c.neutron.AllocateNeutronEndpointPort(&params.Body.Target, &endpointResponse, string(params.Body.ProjectID),
-		host, client)
+	port, err := c.neutron.AllocateNeutronEndpointPort(ctx, &params.Body.Target, &endpointResponse,
+		string(params.Body.ProjectID), host, client)
 	if err != nil {
 		if errors.Is(err, aerr.ErrProjectMismatch) {
 			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
@@ -171,8 +170,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, tok
 				Message: "target_port needs at least one IP address.",
 			})
 		}
-		var codeError gophercloud.ErrUnexpectedResponseCode
-		if errors.As(err, &codeError) {
+		if codeError, ok := errors.AsType[gophercloud.ErrUnexpectedResponseCode](err); ok {
 			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
 				Code:    int64(codeError.GetStatusCode()),
 				Message: codeError.Error(),
@@ -185,7 +183,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, tok
 
 	if serviceNetwork == port.NetworkID {
 		if owned {
-			log.Infof("Deallocating port %s: %+v", port.ID, c.neutron.DeletePort(port.ID))
+			log.Infof("Deallocating port %s: %+v", port.ID, c.neutron.DeletePort(ctx, port.ID))
 		}
 		return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
 			Code:    400,
@@ -211,7 +209,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, tok
 	if physnet.Valid {
 		// Fetch segment ID from neutron
 		var seg int
-		seg, err = c.neutron.GetNetworkSegment(port.NetworkID, physnet.String)
+		seg, err = c.neutron.GetNetworkSegment(ctx, port.NetworkID, physnet.String)
 		if err != nil {
 			if errors.Is(err, aerr.ErrNoPhysNetFound) {
 				log.WithError(err)
@@ -234,15 +232,14 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, tok
 		MustSql()
 	row := tx.QueryRow(params.HTTPRequest.Context(), sql, args...)
 	if err = row.Scan(&endpointResponse.Target.Port, &endpointResponse.Target.Subnet, &endpointResponse.Target.Network); err != nil {
-		var pe *pgconn.PgError
-		if errors.As(err, &pe) && pe.Code == pgerrcode.UniqueViolation {
+		if pe, ok := errors.AsType[*pgconn.PgError](err); ok && pe.Code == pgerrcode.UniqueViolation {
 			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
 				Code:    400,
 				Message: fmt.Sprintf("Port '%s' is already used by another endpoint.", port.ID),
 			})
 		}
 		if owned {
-			log.Errorf("Deallocating port %s: %+v", port.ID, c.neutron.DeletePort(port.ID))
+			log.Errorf("Deallocating port %s: %+v", port.ID, c.neutron.DeletePort(ctx, port.ID))
 		}
 		panic(err)
 	}
@@ -250,7 +247,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, tok
 	// done and done
 	if err := tx.Commit(ctx); err != nil {
 		if owned {
-			log.Errorf("Deallocating port %s: %+v", port.ID, c.neutron.DeletePort(port.ID))
+			log.Errorf("Deallocating port %s: %+v", port.ID, c.neutron.DeletePort(ctx, port.ID))
 		}
 		panic(err)
 	}

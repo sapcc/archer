@@ -17,7 +17,6 @@ import (
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/go-openapi/strfmt"
-	"github.com/gophercloud/gophercloud/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
@@ -36,7 +35,7 @@ import (
 type Agent struct {
 	scheduler    gocron.Scheduler
 	pool         *pgxpool.Pool // thread safe
-	neutron      *gophercloud.ServiceClient
+	neutron      *neutron.NeutronClient
 	haproxy      haproxy.HAProxy
 	proxyManager *proxy.Manager // manages Unix proxy threads per service
 }
@@ -304,21 +303,21 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
 				return err
 			}
 		case models.EndpointStatusAVAILABLE:
-			if err = a.EnableInjection(&si); err != nil {
+			if err = a.EnableInjection(ctx, &si); err != nil {
 				return err
 			}
 		case models.EndpointStatusPENDINGUPDATE:
 			// Update port binding to this host (needed after service migration)
 			log.Infof("ProcessEndpoint: Updating port binding for endpoint %s to host %s",
 				si.ID, config.Global.Default.Host)
-			if err = neutron.UpdatePortBinding(ctx, a.neutron, si.PortId.String(), config.Global.Default.Host); err != nil {
+			if err = a.neutron.UpdatePortBinding(ctx, si.PortId.String(), config.Global.Default.Host); err != nil {
 				return err
 			}
 			fallthrough
 		case models.EndpointStatusFAILED:
 			fallthrough
 		case models.EndpointStatusPENDINGCREATE:
-			if err = a.EnableInjection(&si); err != nil {
+			if err = a.EnableInjection(ctx, &si); err != nil {
 				return err
 			}
 			sql, args, err = db.Update("endpoint").

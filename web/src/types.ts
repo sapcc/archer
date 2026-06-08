@@ -46,6 +46,7 @@ export interface Service {
   health_status: HealthStatus | null;
   host: string | null;
   project_id: string;
+  snat_pool_size?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -64,6 +65,7 @@ export interface ServiceCreate {
   protocol?: Protocol;
   tags?: string[];
   provider?: Provider;
+  snat_pool_size?: number;
 }
 
 export interface ServiceUpdate {
@@ -78,6 +80,7 @@ export interface ServiceUpdate {
   connection_mirroring?: boolean;
   protocol?: Protocol;
   tags?: string[];
+  snat_pool_size?: number;
 }
 
 export interface EndpointTarget {

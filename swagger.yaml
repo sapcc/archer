@@ -1411,6 +1411,18 @@ definitions:
           - UNCHECKED
         readOnly: true
         x-nullable: true
+      snat_pool_size:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 8
+        x-nullable: true
+        x-omitempty: true
+        description: >
+          Number of SNAT IP addresses allocated for this service. Increase to
+          scale outbound port capacity. When unset, the agent uses its default
+          behavior. Provider support varies; the cp provider does not support
+          custom values.
   ServiceStatus:
     type: string
     description: |
@@ -1507,6 +1519,18 @@ definitions:
         items:
           type: string
           maxLength: 128
+      snat_pool_size:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 8
+        x-nullable: true
+        x-omitempty: true
+        description: >
+          Number of SNAT IP addresses allocated for this service. Increase to
+          scale outbound port capacity. Set to null to reset to default
+          behavior. Provider support varies; the cp provider does not support
+          custom values.
   EndpointConsumer:
     type: object
     properties:

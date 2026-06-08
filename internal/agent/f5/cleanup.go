@@ -21,13 +21,13 @@ import (
 	"github.com/sapcc/archer/v2/models"
 )
 
-func (a *Agent) cleanupL2() error {
-	if err := a.cleanOrphanSelfIPs(); err != nil {
+func (a *Agent) cleanupL2(ctx context.Context) error {
+	if err := a.cleanOrphanSelfIPs(ctx); err != nil {
 		log.WithError(err).Error("cleanOrphanSelfIPs")
 		// continue
 	}
 
-	usedSegments, err := a.getUsedSegments()
+	usedSegments, err := a.getUsedSegments(ctx)
 	if err != nil {
 		return err
 	}
@@ -47,7 +47,7 @@ func (a *Agent) cleanupL2() error {
 		log.WithError(err).Error("cleanOrphanedVCMPVLANs")
 		// continue
 	}
-	if err := a.cleanOrphanedNeutronPorts(usedSegments); err != nil {
+	if err := a.cleanOrphanedNeutronPorts(ctx, usedSegments); err != nil {
 		log.WithError(err).Error("cleanOrphanedNeutronPorts")
 		// continue
 	}
@@ -55,7 +55,7 @@ func (a *Agent) cleanupL2() error {
 }
 
 // cleanOrphanSelfIPs deletes SelfIPs that are not associated with a port
-func (a *Agent) cleanOrphanSelfIPs() error {
+func (a *Agent) cleanOrphanSelfIPs(ctx context.Context) error {
 	log.Debug("Running CleanOrphanSelfIPs")
 	for _, bigip := range a.devices {
 		selfips, err := bigip.GetSelfIPs()
@@ -69,7 +69,7 @@ func (a *Agent) cleanOrphanSelfIPs() error {
 				continue
 			}
 
-			_, err := a.neutron.GetPort(portID)
+			_, err := a.neutron.GetPort(ctx, portID)
 			if err != nil {
 				log.WithError(err).WithField("port_id", portID).Info("cleanOrphanSelfIPs")
 				if gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
@@ -93,7 +93,7 @@ func (a *Agent) cleanOrphanSelfIPs() error {
 	return nil
 }
 
-func (a *Agent) getUsedSegments() (map[int]string, error) {
+func (a *Agent) getUsedSegments(ctx context.Context) (map[int]string, error) {
 	sql, args := db.Select("s.network_id", "ep.segment_id", "ep.network").
 		LeftJoin("endpoint e ON s.id = e.service_id").
 		LeftJoin("endpoint_port ep ON ep.endpoint_id = e.id").
@@ -102,7 +102,7 @@ func (a *Agent) getUsedSegments() (map[int]string, error) {
 		Where("s.provider = ?", models.ServiceProviderTenant).
 		MustSql()
 
-	rows, err := a.pool.Query(context.Background(), sql, args...)
+	rows, err := a.pool.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func (a *Agent) getUsedSegments() (map[int]string, error) {
 		if epNetworkID.Valid && !segmentID.Valid {
 			// refresh segmentID from neutron
 			var tmp int
-			if tmp, err = a.neutron.GetNetworkSegment(epNetworkID.String(),
+			if tmp, err = a.neutron.GetNetworkSegment(ctx, epNetworkID.String(),
 				config.Global.Agent.PhysicalNetwork); err != nil {
 				return nil, err
 			}
@@ -132,7 +132,7 @@ func (a *Agent) getUsedSegments() (map[int]string, error) {
 			// add endpoint to used segment map
 			usedSegments[int(segmentID.Int32)] = epNetworkID.String()
 		}
-		serviceSegment, err := a.neutron.GetNetworkSegment(networkID, config.Global.Agent.PhysicalNetwork)
+		serviceSegment, err := a.neutron.GetNetworkSegment(ctx, networkID, config.Global.Agent.PhysicalNetwork)
 		if err != nil {
 			return nil, err
 		}
@@ -218,18 +218,18 @@ func (a *Agent) cleanOrphanedVCMPVLANs(usedSegments map[int]string) error {
 	return nil
 }
 
-func (a *Agent) cleanOrphanedNeutronPorts(usedSegments map[int]string) error {
+func (a *Agent) cleanOrphanedNeutronPorts(ctx context.Context, usedSegments map[int]string) error {
 	log.Debug("Running cleanOrphanedNeutronPorts")
 
 	// Fetch all selfips from neutron
-	selfips, err := a.neutron.FetchSelfIPPorts()
+	selfips, err := a.neutron.FetchSelfIPPorts(ctx)
 	if err != nil {
 		return err
 	}
 
 	// Fetch all segments for every selfip network
 	for networkID, ports := range selfips {
-		segment, err := a.neutron.GetNetworkSegment(networkID, config.Global.Agent.PhysicalNetwork)
+		segment, err := a.neutron.GetNetworkSegment(ctx, networkID, config.Global.Agent.PhysicalNetwork)
 		if err != nil {
 			log.Errorf("cleanOrphanedNeutronPorts: %s", err.Error())
 			continue
@@ -243,7 +243,7 @@ func (a *Agent) cleanOrphanedNeutronPorts(usedSegments map[int]string) error {
 		for _, port := range ports {
 			log.WithFields(log.Fields{"network": networkID, "port": port.ID, "segment": segment}).
 				Warningf("found orphan SelfIP port '%s', deleting", port.Name)
-			if err := a.neutron.DeletePort(port.ID); err != nil {
+			if err := a.neutron.DeletePort(ctx, port.ID); err != nil {
 				log.Errorf("cleanOrphanedNeutronPorts: %s", err.Error())
 			}
 		}

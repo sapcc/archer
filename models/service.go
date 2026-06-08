@@ -123,6 +123,12 @@ type Service struct {
 	// Require explicit project approval for the service owner.
 	RequireApproval *bool `json:"require_approval,omitempty"`
 
+	// Number of SNAT IP addresses allocated for this service. Increase to scale outbound port capacity. When unset, the agent uses its default behavior. Provider support varies; the cp provider does not support custom values.
+	//
+	// Maximum: 8
+	// Minimum: 1
+	SnatPoolSize *int32 `json:"snat_pool_size,omitempty"`
+
 	// status
 	Status ServiceStatus `json:"status,omitempty"`
 
@@ -190,6 +196,10 @@ func (m *Service) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateProvider(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateSnatPoolSize(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -496,6 +506,22 @@ func (m *Service) validateProvider(formats strfmt.Registry) error {
 
 	// value enum
 	if err := m.validateProviderEnum("provider", "body", *m.Provider); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Service) validateSnatPoolSize(formats strfmt.Registry) error {
+	if swag.IsZero(m.SnatPoolSize) { // not required
+		return nil
+	}
+
+	if err := validate.MinimumInt("snat_pool_size", "body", int64(*m.SnatPoolSize), 1, false); err != nil {
+		return err
+	}
+
+	if err := validate.MaximumInt("snat_pool_size", "body", int64(*m.SnatPoolSize), 8, false); err != nil {
 		return err
 	}
 

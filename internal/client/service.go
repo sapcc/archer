@@ -103,6 +103,7 @@ type ServiceCreate struct {
 	NoProxyProtocol   bool          `long:"no-proxy-protocol" description:"Disable proxy protocol v2."`
 	RequireApproval   bool          `long:"require-approval" description:"Require explicit project approval for the service owner."`
 	NoRequireApproval bool          `long:"no-require-approval" description:"Disable require approval for the service owner."`
+	SnatPoolSize      *int32        `long:"snat-pool-size" description:"Number of SNAT IP addresses allocated for this service (1-8, f5 provider only). Leave unset for default behavior."`
 	Tags              []string      `long:"tag" description:"Tag to be added to the service (repeat option to set multiple tags)"`
 	Visibility        *string       `long:"visibility" description:"Set global visibility of the service. For private visibility, RBAC policies can extend the visibility to specific projects" choice:"private" choice:"public"`
 	Wait              bool          `long:"wait" description:"Wait for service to be ready"`
@@ -137,6 +138,7 @@ func (*ServiceCreate) Execute(_ []string) error {
 		Protocol:         ServiceOptions.ServiceCreate.Protocol,
 		ProxyProtocol:    boolFlag(ServiceOptions.ServiceCreate.ProxyProtocol, ServiceOptions.ServiceCreate.NoProxyProtocol),
 		RequireApproval:  boolFlag(ServiceOptions.ServiceCreate.RequireApproval, ServiceOptions.ServiceCreate.NoRequireApproval),
+		SnatPoolSize:     ServiceOptions.ServiceCreate.SnatPoolSize,
 		Tags:             ServiceOptions.ServiceCreate.Tags,
 		Visibility:       ServiceOptions.ServiceCreate.Visibility,
 		AvailabilityZone: ServiceOptions.ServiceCreate.AvailabilityZone,
@@ -173,6 +175,7 @@ type ServiceSet struct {
 	NoProxyProtocol   bool          `long:"no-proxy-protocol" description:"Disable proxy protocol v2."`
 	RequireApproval   bool          `long:"require-approval" description:"Require explicit project approval for the service owner."`
 	NoRequireApproval bool          `long:"no-require-approval" description:"Disable require approval for the service owner."`
+	SnatPoolSize      *int32        `long:"snat-pool-size" description:"Number of SNAT IP addresses allocated for this service (1-8, f5 provider only)."`
 	Visibility        *string       `long:"visibility" description:"Set global visibility of the service. For private visibility, RBAC policies can extend the visibility to specific projects" choice:"private" choice:"public"`
 	Wait              bool          `long:"wait" description:"Wait for service to be ready"`
 }
@@ -212,6 +215,7 @@ func (*ServiceSet) Execute(_ []string) error {
 		Protocol:        ServiceOptions.ServiceSet.Protocol,
 		ProxyProtocol:   boolFlag(ServiceOptions.ServiceSet.ProxyProtocol, ServiceOptions.ServiceSet.NoProxyProtocol),
 		RequireApproval: boolFlag(ServiceOptions.ServiceSet.RequireApproval, ServiceOptions.ServiceSet.NoRequireApproval),
+		SnatPoolSize:    ServiceOptions.ServiceSet.SnatPoolSize,
 		Tags:            tags,
 		Visibility:      ServiceOptions.ServiceSet.Visibility,
 	}

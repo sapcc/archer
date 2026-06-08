@@ -118,7 +118,7 @@ func (ns *LinuxNetworkNamespace) Close() error {
 }
 
 // EnsureNetworkNamespace ensures that a network namespace for the given port exists
-func (ns *LinuxNetworkNamespace) EnsureNetworkNamespace(port *ports.Port, client *gophercloud.ServiceClient) error {
+func (ns *LinuxNetworkNamespace) EnsureNetworkNamespace(ctx context.Context, port *ports.Port, client *gophercloud.ServiceClient) error {
 	name := fmt.Sprintf("qinjector-%s", port.NetworkID)
 
 	// Check if namespace already exists and matches
@@ -223,7 +223,7 @@ func (ns *LinuxNetworkNamespace) EnsureNetworkNamespace(port *ports.Port, client
 			return fmt.Errorf("failed parsing ip address '%s'", fixedIP.IPAddress)
 		}
 
-		subnet, err := subnets.Get(context.Background(), client, fixedIP.SubnetID).Extract()
+		subnet, err := subnets.Get(ctx, client, fixedIP.SubnetID).Extract()
 		if err != nil {
 			ns.cleanupFailedNamespace(name, newns, nil)
 			return fmt.Errorf("failed to get subnet %s: %w", fixedIP.SubnetID, err)
