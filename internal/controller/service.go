@@ -183,6 +183,14 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 		}
 	}
 
+	// snat_pool_size is only supported for the f5/tenant provider.
+	if params.Body.SnatPoolSize != nil && *params.Body.Provider != "tenant" {
+		return service.NewPostServiceUnprocessableEntity().WithPayload(&models.Error{
+			Code:    http.StatusUnprocessableEntity,
+			Message: "snat_pool_size is only supported for provider=f5",
+		})
+	}
+
 	var host string
 	if err := pgx.BeginFunc(ctx, c.pool, func(tx pgx.Tx) error {
 		// schedule: find least-loaded healthy agent
@@ -229,12 +237,13 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 
 		sql, args, err = db.Insert("service").
 			Columns("enabled", "name", "description", "network_id", "ip_addresses", "require_approval",
-				"visibility", "availability_zone", "proxy_protocol", "project_id", "ports", "tags", "provider", "host", "protocol").
+				"visibility", "availability_zone", "proxy_protocol", "project_id", "ports", "tags", "provider", "host",
+				"protocol", "snat_pool_size").
 			Values(params.Body.Enabled, params.Body.Name, params.Body.Description, params.Body.NetworkID,
 				params.Body.IPAddresses, params.Body.RequireApproval, params.Body.Visibility,
 				params.Body.AvailabilityZone, params.Body.ProxyProtocol, params.Body.ProjectID,
 				params.Body.Ports, internal.Unique(params.Body.Tags), params.Body.Provider, params.Body.Host,
-				params.Body.Protocol).
+				params.Body.Protocol, params.Body.SnatPoolSize).
 			Suffix("RETURNING *").ToSql()
 		if err != nil {
 			return err
@@ -252,8 +261,7 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 			})
 		}
 
-		var pe *pgconn.PgError
-		if errors.As(err, &pe) && pgerrcode.IsIntegrityConstraintViolation(pe.Code) {
+		if pe, ok := errors.AsType[*pgconn.PgError](err); ok && pgerrcode.IsIntegrityConstraintViolation(pe.Code) {
 			return service.NewPostServiceConflict().WithPayload(&models.Error{
 				Code:    409,
 				Message: "Entry for network_id, ip_address and port(s) already exists.",
@@ -307,21 +315,23 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 	var serviceResponse models.Service
 	if err := pgx.BeginFunc(ctx, c.pool, func(tx pgx.Tx) error {
 		// Check for conflicts only for tenant/F5 provider when IP or ports change
-		if params.Body.IPAddresses != nil || params.Body.Ports != nil {
-			var provider string
-			var networkID *strfmt.UUID
-			var ipAddresses []strfmt.IPv4
-			var ports []int32
-			q := db.Select("provider", "network_id", "ip_addresses", "ports").
-				From("service").
-				Where("id = ?", params.ServiceID)
-			sql, args := q.MustSql()
-			if err := tx.QueryRow(ctx, sql, args...).Scan(&provider, &networkID, &ipAddresses, &ports); err != nil {
-				return err
-			}
+		var existingProvider string
+		var existingNetworkID *strfmt.UUID
+		var existingIPAddresses []strfmt.IPv4
+		var existingPorts []int32
+		q := db.Select("provider", "network_id", "ip_addresses", "ports").
+			From("service").
+			Where("id = ?", params.ServiceID)
+		sql, args := q.MustSql()
+		if err := tx.QueryRow(ctx, sql, args...).Scan(&existingProvider, &existingNetworkID, &existingIPAddresses, &existingPorts); err != nil {
+			return err
+		}
 
+		if params.Body.IPAddresses != nil || params.Body.Ports != nil {
 			// Only check conflicts for tenant/F5 provider
-			if provider == "tenant" {
+			if existingProvider == "tenant" {
+				ipAddresses := existingIPAddresses
+				ports := existingPorts
 				if params.Body.IPAddresses != nil {
 					ipAddresses = params.Body.IPAddresses
 				}
@@ -330,7 +340,7 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 				}
 
 				check := &ServiceConflictChecker{
-					networkID:   *networkID,
+					networkID:   *existingNetworkID,
 					ipAddresses: ipAddresses,
 					ports:       ports,
 					serviceID:   &params.ServiceID,
@@ -339,6 +349,11 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 					return err
 				}
 			}
+		}
+
+		// snat_pool_size is only supported for the f5/tenant provider.
+		if params.Body.SnatPoolSize != nil && existingProvider != "tenant" {
+			return aerr.ErrSnatPoolSizeUnsupportedProvider
 		}
 
 		upd = upd.Set("enabled", sq.Expr("COALESCE(?, enabled)", params.Body.Enabled)).
@@ -351,20 +366,33 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 			Set("visibility", sq.Expr("COALESCE(?, visibility)", params.Body.Visibility)).
 			Set("tags", sq.Expr("COALESCE(?, tags)", internal.UniqueOrNil(params.Body.Tags))).
 			Set("protocol", sq.Expr("COALESCE(?, protocol)", params.Body.Protocol)).
+			// snat_pool_size: a nil pointer means "no change" (consistent with the rest of the
+			// PUT body). Resetting to NULL is not currently expressible through this endpoint
+			// because go-swagger's omitempty collapses absent and explicit null.
+			Set("snat_pool_size", sq.Expr("COALESCE(?, snat_pool_size)", params.Body.SnatPoolSize)).
 			Set("status", models.ServiceStatusPENDINGUPDATE).
 			Set("updated_at", sq.Expr("NOW()")).
 			Where("id = ?", params.ServiceID).
 			Suffix("RETURNING *")
 
-		sql, args := upd.MustSql()
-		return pgxscan.Get(ctx, tx, &serviceResponse, sql, args...)
+		sql, args = upd.MustSql()
+		if err := pgxscan.Get(ctx, tx, &serviceResponse, sql, args...); err != nil {
+			return err
+		}
+		return nil
 	}); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return service.NewPutServiceServiceIDNotFound()
 		}
 
-		var pe *pgconn.PgError
-		if errors.As(err, &pe) && pgerrcode.IsIntegrityConstraintViolation(pe.Code) {
+		if errors.Is(err, aerr.ErrSnatPoolSizeUnsupportedProvider) {
+			return service.NewPutServiceServiceIDUnprocessableEntity().WithPayload(&models.Error{
+				Code:    http.StatusUnprocessableEntity,
+				Message: "snat_pool_size is only supported for provider=f5",
+			})
+		}
+
+		if pe, ok := errors.AsType[*pgconn.PgError](err); ok && pgerrcode.IsIntegrityConstraintViolation(pe.Code) {
 			return service.NewPutServiceServiceIDConflict().WithPayload(&models.Error{
 				Code:    409,
 				Message: "Entry for network_id, ip_address and port(s) already exists.",
@@ -510,8 +538,7 @@ func (c *Controller) GetServiceServiceIDEndpointsHandler(params service.GetServi
 
 	var endpointsResponse = make([]*models.EndpointConsumer, 0)
 	if err = pgxscan.Select(ctx, c.pool, &endpointsResponse, sql, args...); err != nil {
-		var pe *pgconn.PgError
-		if errors.As(err, &pe) && pe.Code == pgerrcode.UndefinedColumn {
+		if pe, ok := errors.AsType[*pgconn.PgError](err); ok && pe.Code == pgerrcode.UndefinedColumn {
 			return service.NewGetServiceServiceIDEndpointsBadRequest().WithPayload(&models.Error{
 				Code:    400,
 				Message: "Unknown sort column.",

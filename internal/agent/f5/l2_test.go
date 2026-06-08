@@ -61,7 +61,7 @@ func TestAgent_EnsureSelfIPs_Create(t *testing.T) {
 	}
 
 	subnetID := "e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e"
-	assert.Nil(t, a.EnsureSelfIPs(subnetID, false), "EnsureSelfIPs() should not return an error")
+	assert.Nil(t, a.EnsureSelfIPs(t.Context(), subnetID, false), "EnsureSelfIPs() should not return an error")
 }
 
 func TestAgent_EnsureSelfIPs_NoOp(t *testing.T) {
@@ -110,7 +110,7 @@ func TestAgent_EnsureSelfIPs_NoOp(t *testing.T) {
 	}
 
 	subnetID := "e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e"
-	assert.Nil(t, a.EnsureSelfIPs(subnetID, false), "EnsureSelfIPs() should not return an error")
+	assert.Nil(t, a.EnsureSelfIPs(t.Context(), subnetID, false), "EnsureSelfIPs() should not return an error")
 }
 
 func TestAgent_CleanupSelfIPs(t *testing.T) {
@@ -150,5 +150,5 @@ func TestAgent_CleanupSelfIPs(t *testing.T) {
 
 	// Port should be deleted
 	subnetID := "e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e"
-	assert.Nil(t, a.CleanupSelfIPs(subnetID), "CleanupSelfIPs() should not return an error")
+	assert.Nil(t, a.CleanupSelfIPs(t.Context(), subnetID), "CleanupSelfIPs() should not return an error")
 }

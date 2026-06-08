@@ -77,7 +77,7 @@ func TestAgent_TestGetUsedSegments(t *testing.T) {
 
 	// run the test function
 	var usedSegments map[int]string
-	usedSegments, err = a.getUsedSegments()
+	usedSegments, err = a.getUsedSegments(t.Context())
 	assert.Nil(t, err)
 	assert.EqualValues(t, map[int]string{123: someOtherNetwork, 666: serviceNetwork, 999: anotherOneBitesTheDust}, usedSegments)
 	if err != nil {
@@ -130,7 +130,7 @@ func TestAgent_TestCleanOrphanedNeutronPorts(t *testing.T) {
 	usedSegments := map[int]string{
 		123: "b0b0b0b0-b0b0-4b0b-8b0b-0b0b0b0b0b0b",
 	}
-	assert.Nil(t, a.cleanOrphanedNeutronPorts(usedSegments))
+	assert.Nil(t, a.cleanOrphanedNeutronPorts(t.Context(), usedSegments))
 }
 
 func TestAgent_TestCleanupOrphanedTenants(t *testing.T) {

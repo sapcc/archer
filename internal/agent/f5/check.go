@@ -91,7 +91,7 @@ func (a *Agent) checkCleanupSelfIPs(ctx context.Context, tx pgx.Tx, networkID st
 	}
 
 	var network *neutron.NetworkMTU
-	network, err = a.neutron.GetNetwork(networkID)
+	network, err = a.neutron.GetNetwork(ctx, networkID)
 	if gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
 		// The network is already deleted
 		return nil, false

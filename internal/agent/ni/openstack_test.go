@@ -22,6 +22,7 @@ import (
 	"github.com/sapcc/archer/v2/internal/agent/ni/haproxy"
 	"github.com/sapcc/archer/v2/internal/agent/ni/models"
 	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/internal/neutron"
 )
 
 // setupTestServer creates a test HTTP server for mocking OpenStack API
@@ -119,7 +120,7 @@ func TestAgent_EnableInjection_PortNotFound(t *testing.T) {
 	defer server.Close()
 
 	agent := &Agent{
-		neutron: client,
+		neutron: &neutron.NeutronClient{ServiceClient: client},
 	}
 
 	networkID := strfmt.UUID("660e8400-e29b-41d4-a716-446655440000")
@@ -131,7 +132,7 @@ func TestAgent_EnableInjection_PortNotFound(t *testing.T) {
 		ServiceProtocol: "tcp",
 	}
 
-	err := agent.EnableInjection(si)
+	err := agent.EnableInjection(t.Context(), si)
 	assert.Error(t, err)
 }
 
@@ -148,7 +149,7 @@ func TestAgent_EnableInjection_Success(t *testing.T) {
 }`
 
 	a := &Agent{
-		neutron: fake.ServiceClient(fakeServer),
+		neutron: &neutron.NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)},
 		haproxy: haproxy.NewFakeHaproxy(),
 	}
 	si := &models.ServiceInjection{
@@ -158,14 +159,14 @@ func TestAgent_EnableInjection_Success(t *testing.T) {
 	fixture.SetupHandler(t, fakeServer, "/v2.0/ports/"+si.PortId.String(), "GET",
 		"", portFixture, http.StatusOK)
 
-	assert.NoError(t, a.EnableInjection(si))
+	assert.NoError(t, a.EnableInjection(t.Context(), si))
 
 	a.haproxy.(*haproxy.FakeHaproxy).AddInstanceReturnError = fmt.Errorf("haproxy error")
-	assert.Error(t, a.EnableInjection(si))
+	assert.Error(t, a.EnableInjection(t.Context(), si))
 
 	a.haproxy.(*haproxy.FakeHaproxy).Running = true
 	a.haproxy.(*haproxy.FakeHaproxy).AddInstanceReturnError = nil
-	assert.NoError(t, a.EnableInjection(si))
+	assert.NoError(t, a.EnableInjection(t.Context(), si))
 }
 
 func TestAgent_DisableInjection_PortNotFound(t *testing.T) {
@@ -253,11 +254,11 @@ func TestAgent_EnableInjection_GetPortSuccess(t *testing.T) {
 	defer server.Close()
 
 	agent := &Agent{
-		neutron: client,
+		neutron: &neutron.NeutronClient{ServiceClient: client},
 	}
 
 	// Test that port can be retrieved successfully
-	port, err := ports.Get(context.Background(), agent.neutron, portID).Extract()
+	port, err := ports.Get(context.Background(), agent.neutron.ServiceClient, portID).Extract()
 	assert.NoError(t, err)
 	assert.NotNil(t, port)
 	assert.Equal(t, portID, port.ID)
@@ -304,11 +305,11 @@ func TestAgent_DisableInjection_GetPortSuccess(t *testing.T) {
 	defer server.Close()
 
 	agent := &Agent{
-		neutron: client,
+		neutron: &neutron.NeutronClient{ServiceClient: client},
 	}
 
 	// Test validation - port can be retrieved
-	port, err := ports.Get(context.Background(), agent.neutron, portID).Extract()
+	port, err := ports.Get(context.Background(), agent.neutron.ServiceClient, portID).Extract()
 	assert.NoError(t, err)
 	assert.NotNil(t, port)
 	assert.Equal(t, portID, port.ID)

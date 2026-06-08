@@ -17,8 +17,8 @@ import (
 	"github.com/sapcc/archer/v2/internal/agent/ni/haproxy"
 	"github.com/sapcc/archer/v2/internal/agent/ni/models"
 	"github.com/sapcc/archer/v2/internal/agent/ni/netlink"
-
 	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/internal/neutron"
 )
 
 func (a *Agent) SetupOpenStack() error {
@@ -44,16 +44,19 @@ func (a *Agent) SetupOpenStack() error {
 		log.Fatalf("Invalid endpoint type: %s", config.Global.Default.EndpointType)
 	}
 	eo := gophercloud.EndpointOpts{Availability: availability}
-	if a.neutron, err = openstack.NewNetworkV2(providerClient, eo); err != nil {
+	serviceClient, err := openstack.NewNetworkV2(providerClient, eo)
+	if err != nil {
 		return err
 	}
 	// Set timeout to 10 secs
-	a.neutron.HTTPClient.Timeout = time.Second * 10
+	serviceClient.HTTPClient.Timeout = time.Second * 10
+	a.neutron = &neutron.NeutronClient{ServiceClient: serviceClient}
+	a.neutron.InitCache()
 	return nil
 }
 
-func (a *Agent) EnableInjection(si *models.ServiceInjection) error {
-	injectorPort, err := ports.Get(context.Background(), a.neutron, si.PortId.String()).Extract()
+func (a *Agent) EnableInjection(ctx context.Context, si *models.ServiceInjection) error {
+	injectorPort, err := ports.Get(ctx, a.neutron.ServiceClient, si.PortId.String()).Extract()
 	if err != nil {
 		return fmt.Errorf("failed to get port %s: %w", si.PortId, err)
 	}
@@ -62,7 +65,7 @@ func (a *Agent) EnableInjection(si *models.ServiceInjection) error {
 	ns := netlink.NewNetworkNamespace()
 	defer func() { _ = ns.Close() }()
 
-	if err = ns.EnsureNetworkNamespace(injectorPort, a.neutron); err != nil {
+	if err = ns.EnsureNetworkNamespace(ctx, injectorPort, a.neutron.ServiceClient); err != nil {
 		return fmt.Errorf("failed to ensure network namespace: %w", err)
 	}
 

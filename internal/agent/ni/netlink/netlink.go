@@ -4,12 +4,14 @@
 package netlink
 
 import (
+	"context"
+
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
 )
 
 type Netlink interface {
-	EnsureNetworkNamespace(port *ports.Port, client *gophercloud.ServiceClient) error
+	EnsureNetworkNamespace(ctx context.Context, port *ports.Port, client *gophercloud.ServiceClient) error
 	EnableNetworkNamespace() error
 	DisableNetworkNamespace() error
 	DeleteNetworkNamespace() error

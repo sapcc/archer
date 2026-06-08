@@ -4,6 +4,7 @@
 package netlink
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/gophercloud/gophercloud/v2"
@@ -34,7 +35,7 @@ func (ns *FakeNetlink) Close() error {
 	return nil
 }
 
-func (ns *FakeNetlink) EnsureNetworkNamespace(port *ports.Port, _ *gophercloud.ServiceClient) error {
+func (ns *FakeNetlink) EnsureNetworkNamespace(_ context.Context, port *ports.Port, _ *gophercloud.ServiceClient) error {
 	// Fake network namespace implementation for debugging
 	ns.name = fmt.Sprintf("qinjector-%s", port.NetworkID)
 	log.Infof("FakeNetlink: ensuring network namespace '%s'", ns.name)

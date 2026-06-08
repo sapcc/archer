@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Service: optional `snat_pool_size` field to scale outbound SNAT capacity (f5 provider only). When set, the controller allocates service-scoped Neutron ports synchronously on create/update; when unset, the existing per-device SelfIP path is used unchanged.
 - ArcherUI: a TypeScript/React frontend for managing services, endpoints, and RBAC policies, with a topology view that visualizes the relationships between services, endpoints, and external consumers
 
 ## [2.4.1] - 2026-04-30
