@@ -42,8 +42,8 @@ require (
 	github.com/pashagolub/pgxmock/v5 v5.1.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rs/cors v1.11.1
-	github.com/sapcc/go-api-declarations v1.22.0
-	github.com/sapcc/go-bits v0.0.0-20260609114743-3bf4546d2a8d
+	github.com/sapcc/go-api-declarations v1.23.0
+	github.com/sapcc/go-bits v0.0.0-20260611141223-328f49772fed
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/sirupsen/logrus v1.9.4
 	github.com/stretchr/testify v1.11.1
@@ -151,6 +151,6 @@ require (
 	go.xyrillian.de/gg v1.9.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.51.0 // indirect
-	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/text v0.38.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
