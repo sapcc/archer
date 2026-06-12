@@ -32,7 +32,7 @@
     "zustand": "^5.0.12"
   },
   "dependencies": {
-    "@cloudoperators/juno-ui-components": "^6.2.0",
+    "@cloudoperators/juno-ui-components": "^7.0.0",
     "@tailwindcss/postcss": "^4.1.11",
     "@xyflow/react": "^12.10.2",
     "esbuild": "^0.28.0",
