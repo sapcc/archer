@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@cloudoperators/juno-ui-components':
-        specifier: ^6.2.0
-        version: 6.5.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        specifier: ^7.0.0
+        version: 7.0.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@tailwindcss/postcss':
         specifier: ^4.1.11
         version: 4.3.0
@@ -143,8 +143,8 @@ packages:
     resolution: {integrity: sha512-LwdZHpScM4Qz8Xw2iKSzS+cfglZzJGvofQICy7W7v4caru4EaAmyUuO6BGrbyQ2mYV11W0U8j5mBhd14dd3B0A==}
     engines: {node: '>=6.9.0'}
 
-  '@cloudoperators/juno-ui-components@6.5.0':
-    resolution: {integrity: sha512-gWpQPioXMD/EWhpsLsH6thTeWDJqmss4jxqj7mmxc0Y6eKVVBdBddBdQy7dTH1MFVPgqEr9LyMnXkMtoKkv6NQ==}
+  '@cloudoperators/juno-ui-components@7.0.0':
+    resolution: {integrity: sha512-yJ1v9t0HdBQI78xkFJtzP4akdaWl3tgAaW00LhGxT8w79QQfVPHWdzDwG9mLVWsrVfx/0/wDzqHknp+0EX+igw==}
     engines: {node: '>=20.19.0', pnpm: '>=8.0.0'}
     peerDependencies:
       react: ^19.1.0
@@ -1361,7 +1361,7 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.28.5
 
-  '@cloudoperators/juno-ui-components@6.5.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@cloudoperators/juno-ui-components@7.0.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
