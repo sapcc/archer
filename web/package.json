@@ -1,6 +1,6 @@
 {
   "name": "@sapcc/archer-ui",
-  "version": "2.4.1",
+  "version": "2.4.2",
   "author": "SAP SE",
   "license": "Apache-2.0",
   "source": "src/index.tsx",
