@@ -25,7 +25,7 @@ require (
 	github.com/go-openapi/swag v0.26.1
 	github.com/go-openapi/swag/cmdutils v0.26.1
 	github.com/go-openapi/swag/conv v0.26.1
-	github.com/go-openapi/validate v0.25.3
+	github.com/go-openapi/validate v0.26.0
 	github.com/google/uuid v1.6.0
 	github.com/gophercloud/gophercloud/v2 v2.12.0
 	github.com/gophercloud/utils/v2 v2.0.0-20260424064311-2eeed4ceb3e9
@@ -35,7 +35,7 @@ require (
 	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
 	github.com/jackc/pgx-logrus v0.0.0-20220919124836-b099d8ce75da
 	github.com/jackc/pgx/v5 v5.10.0
-	github.com/jedib0t/go-pretty/v6 v6.8.0
+	github.com/jedib0t/go-pretty/v6 v6.8.1
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/moby/moby/api v1.54.2
@@ -52,10 +52,10 @@ require (
 	github.com/vishvananda/netlink v1.3.1
 	github.com/vishvananda/netns v0.0.5
 	github.com/z0ne-dev/mgx/v2 v2.0.1
-	golang.org/x/net v0.55.0
+	golang.org/x/net v0.56.0
 	golang.org/x/sync v0.21.0
 	golang.org/x/sys v0.46.0
-	golang.org/x/term v0.43.0
+	golang.org/x/term v0.44.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -150,7 +150,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.44.0 // indirect
 	go.xyrillian.de/gg v1.9.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/crypto v0.51.0 // indirect
+	golang.org/x/crypto v0.53.0 // indirect
 	golang.org/x/text v0.38.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )

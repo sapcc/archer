@@ -16,7 +16,7 @@ importers:
         version: 4.3.0
       '@xyflow/react':
         specifier: ^12.10.2
-        version: 12.11.0(@types/react-dom@19.2.3(@types/react@19.2.16))(@types/react@19.2.16)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 12.11.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       esbuild:
         specifier: ^0.28.0
         version: 0.28.0
@@ -38,10 +38,10 @@ importers:
         version: 5.101.0(react@19.2.7)
       '@types/react':
         specifier: ^19.0.0
-        version: 19.2.16
+        version: 19.2.17
       '@types/react-dom':
         specifier: ^19.0.0
-        version: 19.2.3(@types/react@19.2.16)
+        version: 19.2.3(@types/react@19.2.17)
       autoprefixer:
         specifier: ^10.4.2
         version: 10.5.0(postcss@8.5.15)
@@ -50,7 +50,7 @@ importers:
         version: 8.5.15
       prettier:
         specifier: ^3.2.5
-        version: 3.8.3
+        version: 3.8.4
       react:
         specifier: ^19.2.4
         version: 19.2.7
@@ -68,7 +68,7 @@ importers:
         version: 6.0.3
       zustand:
         specifier: ^5.0.12
-        version: 5.0.14(@types/react@19.2.16)(react@19.2.7)(use-sync-external-store@1.6.0(react@19.2.7))
+        version: 5.0.14(@types/react@19.2.17)(react@19.2.7)(use-sync-external-store@1.6.0(react@19.2.7))
 
 packages:
 
@@ -655,8 +655,8 @@ packages:
     peerDependencies:
       '@types/react': ^19.2.0
 
-  '@types/react@19.2.16':
-    resolution: {integrity: sha512-esJiCAnl0kfpNdE69f3So4WJUXy95dLZydX0KwK46riIHDzHM7O9Vtf9xCHW0PXIqvgqNrswl522kA/5yx+F4w==}
+  '@types/react@19.2.17':
+    resolution: {integrity: sha512-MXfmqaVPEVgkBT/aY0aGCkRWWtByiYQXo3xdQ8r5RzuFrPiRn8Gar2tQdXSUQ2GKV3bkXckek89V8wQBY2Q/Aw==}
 
   '@types/set-cookie-parser@2.4.10':
     resolution: {integrity: sha512-GGmQVGpQWUe5qglJozEjZV/5dyxbOOZ0LHe/lqyWssB88Y4svNfst0uqBVscdDeIKl5Jy5+aPSvy7mI9tYRguw==}
@@ -1068,8 +1068,8 @@ packages:
     resolution: {integrity: sha512-FfR8sjd4em2T6fb3I2MwAJU7HWVMr9zba+enmQeeWFfCbm+UOC/0X4DS8XtpUTMwWMGbjKYP7xjfNekzyGmB3A==}
     engines: {node: ^10 || ^12 || >=14}
 
-  prettier@3.8.3:
-    resolution: {integrity: sha512-7igPTM53cGHMW8xWuVTydi2KO233VFiTNyF5hLJqpilHfmn8C8gPf+PS7dUT64YcXFbiMGZxS9pCSxL/Dxm/Jw==}
+  prettier@3.8.4:
+    resolution: {integrity: sha512-N2MylSdi48+5N/6S5j+maeHbUSIzzZ5uOcX5Hm4QpV8Dkb1HFjfAKTKX6yNPJQD9AhcT3ifHNB66tWTTJDi11Q==}
     engines: {node: '>=14'}
     hasBin: true
 
@@ -1742,11 +1742,11 @@ snapshots:
     dependencies:
       undici-types: 7.24.6
 
-  '@types/react-dom@19.2.3(@types/react@19.2.16)':
+  '@types/react-dom@19.2.3(@types/react@19.2.17)':
     dependencies:
-      '@types/react': 19.2.16
+      '@types/react': 19.2.17
 
-  '@types/react@19.2.16':
+  '@types/react@19.2.17':
     dependencies:
       csstype: 3.2.3
 
@@ -1756,16 +1756,16 @@ snapshots:
 
   '@types/statuses@2.0.6': {}
 
-  '@xyflow/react@12.11.0(@types/react-dom@19.2.3(@types/react@19.2.16))(@types/react@19.2.16)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@xyflow/react@12.11.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@xyflow/system': 0.0.77
       classcat: 5.0.5
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
-      zustand: 4.5.7(@types/react@19.2.16)(react@19.2.7)
+      zustand: 4.5.7(@types/react@19.2.17)(react@19.2.7)
     optionalDependencies:
-      '@types/react': 19.2.16
-      '@types/react-dom': 19.2.3(@types/react@19.2.16)
+      '@types/react': 19.2.17
+      '@types/react-dom': 19.2.3(@types/react@19.2.17)
     transitivePeerDependencies:
       - immer
 
@@ -2136,7 +2136,7 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
-  prettier@3.8.3: {}
+  prettier@3.8.4: {}
 
   react-dom@19.2.7(react@19.2.7):
     dependencies:
@@ -2262,15 +2262,15 @@ snapshots:
       y18n: 5.0.8
       yargs-parser: 21.1.1
 
-  zustand@4.5.7(@types/react@19.2.16)(react@19.2.7):
+  zustand@4.5.7(@types/react@19.2.17)(react@19.2.7):
     dependencies:
       use-sync-external-store: 1.6.0(react@19.2.7)
     optionalDependencies:
-      '@types/react': 19.2.16
+      '@types/react': 19.2.17
       react: 19.2.7
 
-  zustand@5.0.14(@types/react@19.2.16)(react@19.2.7)(use-sync-external-store@1.6.0(react@19.2.7)):
+  zustand@5.0.14(@types/react@19.2.17)(react@19.2.7)(use-sync-external-store@1.6.0(react@19.2.7)):
     optionalDependencies:
-      '@types/react': 19.2.16
+      '@types/react': 19.2.17
       react: 19.2.7
       use-sync-external-store: 1.6.0(react@19.2.7)
