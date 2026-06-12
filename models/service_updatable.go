@@ -76,6 +76,12 @@ type ServiceUpdatable struct {
 	// Require explicit project approval for the service owner.
 	RequireApproval *bool `json:"require_approval,omitempty"`
 
+	// Number of SNAT IP addresses allocated for this service. Increase to scale outbound port capacity. Set to null to reset to default behavior. Provider support varies; the cp provider does not support custom values.
+	//
+	// Maximum: 8
+	// Minimum: 1
+	SnatPoolSize *int32 `json:"snat_pool_size,omitempty"`
+
 	// The list of tags on the resource.
 	Tags []string `json:"tags"`
 
@@ -105,6 +111,10 @@ func (m *ServiceUpdatable) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateProtocol(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateSnatPoolSize(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -234,6 +244,22 @@ func (m *ServiceUpdatable) validateProtocol(formats strfmt.Registry) error {
 
 	// value enum
 	if err := m.validateProtocolEnum("protocol", "body", *m.Protocol); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ServiceUpdatable) validateSnatPoolSize(formats strfmt.Registry) error {
+	if swag.IsZero(m.SnatPoolSize) { // not required
+		return nil
+	}
+
+	if err := validate.MinimumInt("snat_pool_size", "body", int64(*m.SnatPoolSize), 1, false); err != nil {
+		return err
+	}
+
+	if err := validate.MaximumInt("snat_pool_size", "body", int64(*m.SnatPoolSize), 8, false); err != nil {
 		return err
 	}
 

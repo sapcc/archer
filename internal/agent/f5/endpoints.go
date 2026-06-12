@@ -27,7 +27,7 @@ import (
 	"github.com/sapcc/archer/v2/models"
 )
 
-func (a *Agent) populateEndpointPorts(endpoints []*as3.ExtendedEndpoint) error {
+func (a *Agent) populateEndpointPorts(ctx context.Context, endpoints []*as3.ExtendedEndpoint) error {
 	// Build map of port ID -> endpoints for O(1) lookup
 	endpointsByPort := make(map[string][]*as3.ExtendedEndpoint, len(endpoints))
 	opts := neutron.PortListOpts{
@@ -40,7 +40,7 @@ func (a *Agent) populateEndpointPorts(endpoints []*as3.ExtendedEndpoint) error {
 	}
 
 	// Fetch ports from neutron
-	pages, err := ports.List(a.neutron.ServiceClient, opts).AllPages(context.Background())
+	pages, err := ports.List(a.neutron.ServiceClient, opts).AllPages(ctx)
 	if err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func refreshSegments(ctx context.Context, pool db.PgxIface, endpoints []*as3.Ext
 			// we loose the segment-id and therefor the ability to delete the l2 configuration
 			var err error
 			var segmentId int
-			segmentId, err = n.GetNetworkSegment(endpoint.Target.Network.String(), config.Global.Agent.PhysicalNetwork)
+			segmentId, err = n.GetNetworkSegment(ctx, endpoint.Target.Network.String(), config.Global.Agent.PhysicalNetwork)
 			if err != nil {
 				logger.WithError(err).Warning("ProcessEndpoint: Could not find valid segment")
 				continue
@@ -203,17 +203,17 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 
 	if !cleanupL2 {
 		g.Go(func() (err error) {
-			serviceSegmentID, err = a.neutron.GetNetworkSegment(endpoints[0].ServiceNetworkId.String(),
+			serviceSegmentID, err = a.neutron.GetNetworkSegment(ctx, endpoints[0].ServiceNetworkId.String(),
 				config.Global.Agent.PhysicalNetwork)
 			return
 		})
 		g.Go(func() error {
-			serviceMTU, err = a.neutron.GetNetworkMTU(endpoints[0].ServiceNetworkId.String())
+			serviceMTU, err = a.neutron.GetNetworkMTU(ctx, endpoints[0].ServiceNetworkId.String())
 			return err
 		})
 	}
 	g.Go(func() error {
-		return a.populateEndpointPorts(endpoints)
+		return a.populateEndpointPorts(ctx, endpoints)
 	})
 
 	// Wait for populating endpoints struct
@@ -238,7 +238,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 			if len(ep.Port.FixedIPs) == 0 {
 				return fmt.Errorf("EnsureSelfIPs: no fixedIPs found for EP port %s", ep.Port.ID)
 			}
-			if err := a.EnsureSelfIPs(subnetID, false); err != nil {
+			if err := a.EnsureSelfIPs(ctx, subnetID, false); err != nil {
 				return err
 			}
 		}
@@ -265,7 +265,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	// Get segmentID for subnet before we delete SelfIPs, since they could be the last ports holding the segment
 	var segmentID int
 	if cleanupL2 {
-		segmentID, err = a.neutron.GetSubnetSegment(subnetID, config.Global.Agent.PhysicalNetwork)
+		segmentID, err = a.neutron.GetSubnetSegment(ctx, subnetID, config.Global.Agent.PhysicalNetwork)
 		if err != nil {
 			if !errors.Is(err, aErrors.ErrNoPhysNetFound) {
 				return err
@@ -276,7 +276,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 
 	if cleanupSelfIPs {
 		logWith.WithField("subnet", subnetID).Info("ProcessEndpoint: deleting SelfIPs")
-		if err := a.CleanupSelfIPs(subnetID); err != nil {
+		if err := a.CleanupSelfIPs(ctx, subnetID); err != nil {
 			return err
 		}
 	}
@@ -304,7 +304,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		case models.EndpointStatusPENDINGDELETE:
 			// Delete endpoint neutron port, if it exists and is owned by the agent
 			if endpoint.Port != nil && endpoint.Owned {
-				if err = a.neutron.DeletePort(endpoint.Port.ID); err != nil {
+				if err = a.neutron.DeletePort(ctx, endpoint.Port.ID); err != nil {
 					if !gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
 						return err
 					}

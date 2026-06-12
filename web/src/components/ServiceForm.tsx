@@ -38,6 +38,7 @@ export const ServiceForm = () => {
     connection_mirroring: false,
     protocol: "TCP" as Protocol,
     tags: "",
+    snat_pool_size: "",
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -56,6 +57,7 @@ export const ServiceForm = () => {
         connection_mirroring: editService.connection_mirroring,
         protocol: editService.protocol,
         tags: editService.tags?.join(", ") ?? "",
+        snat_pool_size: editService.snat_pool_size != null ? String(editService.snat_pool_size) : "",
       });
     }
   }, [editService]);
@@ -83,6 +85,13 @@ export const ServiceForm = () => {
     if (!form.ip_addresses.trim()) return setError("IP addresses required");
     if (!form.ports.trim()) return setError("Ports required");
 
+    let snatPoolSize: number | undefined;
+    if (form.snat_pool_size.trim() !== "") {
+      const n = parseInt(form.snat_pool_size, 10);
+      if (isNaN(n) || n < 1 || n > 8) return setError("SNAT pool size must be between 1 and 8");
+      snatPoolSize = n;
+    }
+
     try {
       if (isEdit) {
         const newIPs = parseIPs(form.ip_addresses);
@@ -107,6 +116,11 @@ export const ServiceForm = () => {
         };
         if (ipsChanged) data.ip_addresses = newIPs;
         if (portsChanged) data.ports = newPorts;
+        // snat_pool_size only applies to f5/tenant provider; only send when the value changed
+        // and the service is not cp.
+        if (editService!.provider !== "cp" && snatPoolSize !== (editService!.snat_pool_size ?? undefined)) {
+          data.snat_pool_size = snatPoolSize;
+        }
 
         await update.mutateAsync({ id: editService!.id, data });
       } else {
@@ -124,6 +138,7 @@ export const ServiceForm = () => {
           protocol: form.protocol,
           tags: parseList(form.tags),
           provider: createServiceProvider ?? undefined,
+          snat_pool_size: isNI ? undefined : snatPoolSize,
         };
         await create.mutateAsync(data);
       }
@@ -263,6 +278,15 @@ export const ServiceForm = () => {
                   onClick={() => set("connection_mirroring", !form.connection_mirroring)}
                 />
               </div>
+              <FormRow>
+                <TextInput
+                  label="SNAT Pool Size"
+                  value={form.snat_pool_size}
+                  onChange={(e) => set("snat_pool_size", e.target.value)}
+                  placeholder="Default"
+                  helptext="Allocate extra SNAT IPs (1-8) to expand outbound port capacity. Leave empty for default."
+                />
+              </FormRow>
             </>
           )}
         </Stack>

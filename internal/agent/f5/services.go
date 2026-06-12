@@ -13,6 +13,7 @@ import (
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/subnets"
 	log "github.com/sirupsen/logrus"
 
@@ -23,13 +24,13 @@ import (
 	"github.com/sapcc/archer/v2/models"
 )
 
-func (a *Agent) getExtendedService(s *models.Service) (*as3.ExtendedService, error) {
+func (a *Agent) getExtendedService(ctx context.Context, s *models.Service) (*as3.ExtendedService, error) {
 	// Fetch SNAT ports from neutron
 	service := &as3.ExtendedService{Service: *s}
 	deviceIDs := a.getDeviceIDs()
 	pendingDelete := service.Status == models.ServiceStatusPENDINGDELETE
 
-	network, err := a.neutron.GetNetwork(service.NetworkID.String())
+	network, err := a.neutron.GetNetwork(ctx, service.NetworkID.String())
 	if err != nil {
 		if pendingDelete {
 			// We tolerate deleted networks in case the service is going to be deleted
@@ -44,11 +45,25 @@ func (a *Agent) getExtendedService(s *models.Service) (*as3.ExtendedService, err
 		return nil, fmt.Errorf("GetNetwork: %w", internal.ErrNoSubnetFound)
 	}
 
-	// Try to allocate SNAT ports from the subnet hat has the service in it
+	// allocate picks between service-scoped SNAT ports (snat_pool_size set) and per-device
+	// SelfIP ports. The two paths share identical 409/quota handling below, so the only thing
+	// that varies per subnet is which Neutron helper to call and the error label used in wraps.
+	allocate := func(subnetID string) (map[string]*ports.Port, string, error) {
+		if service.SnatPoolSize != nil {
+			ports, err := a.neutron.EnsureServiceSnatPorts(ctx,
+				service.ID, subnetID, int(*service.SnatPoolSize), pendingDelete)
+			return ports, "EnsureServiceSnatPorts", err
+		}
+		ports, err := a.neutron.EnsureNeutronSelfIPs(ctx, deviceIDs, subnetID, pendingDelete)
+		return ports, "EnsureNeutronSelfIPs", err
+	}
+
+	// Try to allocate SNAT ports from the subnet that has the service in it
 	err = nil
+	var label string
 	for i, subnetID := range network.Subnets {
 		var subnet *subnets.Subnet
-		if subnet, err = a.neutron.GetSubnet(subnetID); err != nil {
+		if subnet, err = a.neutron.GetSubnet(ctx, subnetID); err != nil {
 			return nil, fmt.Errorf("GetSubnet: %w", err)
 		}
 
@@ -75,34 +90,32 @@ func (a *Agent) getExtendedService(s *models.Service) (*as3.ExtendedService, err
 			continue
 		}
 
-		// Allocate SNAT ports as SelfIPs in Neutron
-		service.NeutronPorts, err = a.neutron.EnsureNeutronSelfIPs(deviceIDs, subnetID, pendingDelete)
+		service.NeutronPorts, label, err = allocate(subnetID)
 		if err == nil {
 			service.SubnetID = subnetID
 			break
 		}
 
-		var gerr gophercloud.ErrUnexpectedResponseCode
-		if errors.As(err, &gerr) && gerr.Actual == 409 {
+		if gerr, ok := errors.AsType[gophercloud.ErrUnexpectedResponseCode](err); ok && gerr.Actual == 409 {
 			if bytes.Contains(gerr.Body, []byte("OverQuota")) {
-				return nil, fmt.Errorf("EnsureNeutronSelfIPs: %w, %w", err, internal.ErrQuotaExceeded)
+				return nil, fmt.Errorf("%s: %w, %w", label, err, internal.ErrQuotaExceeded)
 			} else if bytes.Contains(gerr.Body, []byte("No more IP addresses available")) {
 				continue // try next subnet
 			}
 		}
 
 		// unexpected error from neutron
-		return nil, fmt.Errorf("EnsureNeutronSelfIPs: %w", err)
+		return nil, fmt.Errorf("%s: %w", label, err)
 	}
 	if err != nil || service.SubnetID == "" {
 		// All subnet IPs are exhausted
-		return nil, fmt.Errorf("EnsureNeutronSelfIPs: %w, %w", err, internal.ErrNoIPsAvailable)
+		return nil, fmt.Errorf("%s: %w, %w", label, err, internal.ErrNoIPsAvailable)
 	}
 
 	// Fetch segmentID for the network
 	if len(service.NeutronPorts) > 0 {
 		// we only expect a valid segment if we have at least one Service port bound
-		if service.SegmentId, err = a.neutron.GetNetworkSegment(service.NetworkID.String(),
+		if service.SegmentId, err = a.neutron.GetNetworkSegment(ctx, service.NetworkID.String(),
 			config.Global.Agent.PhysicalNetwork); err != nil {
 			return nil, fmt.Errorf("GetNetworkSegment: %w", err)
 		}
@@ -135,7 +148,7 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 	   ================================================== */
 	var services []*as3.ExtendedService
 	for _, service := range dbServices {
-		if extendedService, err := a.getExtendedService(service); err != nil {
+		if extendedService, err := a.getExtendedService(ctx, service); err != nil {
 			l := log.WithFields(log.Fields{"service": service.ID, "network": service.NetworkID})
 			if errors.Is(err, internal.ErrQuotaExceeded) {
 				service.Status = models.ServiceStatusERRORQUOTA
@@ -168,7 +181,7 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 			if err := a.EnsureL2(ctx, service.SegmentId, nil, service.MTU); err != nil {
 				return err
 			}
-			if err := a.EnsureSelfIPs(service.SubnetID, true); err != nil {
+			if err := a.EnsureSelfIPs(ctx, service.SubnetID, true); err != nil {
 				return err
 			}
 		}
@@ -189,7 +202,7 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 	   Clean up orphaned endpoint tenants (e.g. after service migration)
 	   ================================================== */
 	var usedSegments map[int]string
-	if usedSegments, err = a.getUsedSegments(); err != nil {
+	if usedSegments, err = a.getUsedSegments(ctx); err != nil {
 		log.WithError(err).Warning("ProcessServices: failed to get used segments for orphan cleanup")
 	} else if err = a.cleanupOrphanedTenants(usedSegments); err != nil {
 		log.WithError(err).Warning("ProcessServices: failed to clean up orphaned tenants")
@@ -223,7 +236,7 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 			// segment
 			var segmentID int
 			if cleanupL2 {
-				segmentID, err = a.neutron.GetSubnetSegment(service.SubnetID, config.Global.Agent.PhysicalNetwork)
+				segmentID, err = a.neutron.GetSubnetSegment(ctx, service.SubnetID, config.Global.Agent.PhysicalNetwork)
 				if errors.Is(err, internal.ErrNoPhysNetFound) {
 					// No segment found, skip L2 cleanup
 					cleanupL2 = false
@@ -234,13 +247,17 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 
 			if cleanupSelfIPs {
 				logWith.WithField("subnet", service.SubnetID).Info("ProcessServices: deleting SelfIPs")
-				if err := a.CleanupSelfIPs(service.SubnetID); err != nil {
+				if err := a.CleanupSelfIPs(ctx, service.SubnetID); err != nil {
 					return err
 				}
+			}
 
-				// TODO: Remove after a while, we switched to normal f5selfips instead of f5snat
-				if err := a.CleanupSNATPorts(service.NetworkID.String()); err != nil {
-					return err
+			// Delete service-scoped SNAT ports if the service uses them. Independent of the
+			// L2/SelfIP cleanup gating because these ports belong to the service, not the
+			// shared subnet pool.
+			if service.SnatPoolSize != nil {
+				if err = a.neutron.CleanupServiceSnatPorts(ctx, service.ID); err != nil {
+					return fmt.Errorf("CleanupServiceSnatPorts: %w", err)
 				}
 			}
 

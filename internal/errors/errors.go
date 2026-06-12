@@ -21,4 +21,6 @@ var (
 	ErrNoSubnetFound    = errors.New("no subnet(s) found")
 	ErrNoIPsAvailable   = errors.New("no IPs left")
 	ErrNoPortsFound     = errors.New("no neutron ports found")
+
+	ErrSnatPoolSizeUnsupportedProvider = errors.New("snat_pool_size is only supported for provider=f5")
 )

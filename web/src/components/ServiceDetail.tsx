@@ -133,6 +133,7 @@ export const ServiceDetail = ({ canEdit }: { canEdit: boolean }) => {
                 ["Availability Zone", service.availability_zone || "-"],
                 ["Proxy Protocol", service.proxy_protocol ? "Yes" : "No"],
                 ["Connection Mirroring", service.connection_mirroring ? "Yes" : "No"],
+                ["SNAT Pool Size", service.snat_pool_size != null ? String(service.snat_pool_size) : "Default"],
                 ["Tags", service.tags?.join(", ") || "-"],
                 ["Project", service.project_id],
                 ["Created", fmt(service.created_at)],

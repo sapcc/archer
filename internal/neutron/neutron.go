@@ -9,25 +9,17 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"strings"
 	"time"
 
-	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/mtu"
-	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/portsbinding"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/provider"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/networks"
-	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/subnets"
-	"github.com/gophercloud/gophercloud/v2/pagination"
 	"github.com/hashicorp/golang-lru/v2/expirable"
-	log "github.com/sirupsen/logrus"
 
-	"github.com/sapcc/archer/v2/internal/config"
 	aErrors "github.com/sapcc/archer/v2/internal/errors"
-	"github.com/sapcc/archer/v2/models"
 )
 
 type NetworkMTU struct {
@@ -38,28 +30,25 @@ type NetworkMTU struct {
 
 type NeutronClient struct {
 	*gophercloud.ServiceClient
-	portCache    *expirable.LRU[string, map[string]*ports.Port] // networkID -> map[hostname]*ports.port, 10 min expiry
-	networkCache *expirable.LRU[string, *NetworkMTU]            // networkID -> *networks.network, expires after 10 mins
-	subnetCache  *expirable.LRU[string, *subnets.Subnet]        // subnetID -> *subnets.subnet, expires after 10 mins
+	networkCache *expirable.LRU[string, *NetworkMTU]       // networkID -> *networks.network, expires after 10 mins
+	subnetCache  *expirable.LRU[string, *subnets.Subnet]   // subnetID -> *subnets.subnet, expires after 10 mins
+	portCache    *expirable.LRU[string, []PortWithBinding] // listOpts query -> ports + binding ext, 10 min expiry
 }
 
 func (n *NeutronClient) InitCache() {
 	// Initialize local cache
-	n.portCache = expirable.NewLRU[string, map[string]*ports.Port](32, nil, time.Minute*10)
 	n.networkCache = expirable.NewLRU[string, *NetworkMTU](32, nil, time.Minute*10)
 	n.subnetCache = expirable.NewLRU[string, *subnets.Subnet](32, nil, time.Minute*10)
+	n.portCache = expirable.NewLRU[string, []PortWithBinding](64, nil, time.Minute*10)
 }
 
 func (n *NeutronClient) ResetCache() {
-	n.portCache.Purge()
 	n.networkCache.Purge()
 	n.subnetCache.Purge()
+	n.portCache.Purge()
 }
 
 func (n *NeutronClient) RemoveFromCache(id string) {
-	// Remove from port cache
-	n.portCache.Remove(id)
-
 	// Remove from network cache
 	n.networkCache.Remove(id)
 
@@ -80,8 +69,8 @@ func ConnectToNeutron(providerClient *gophercloud.ProviderClient) (*NeutronClien
 
 // GetNetworkSegment return the segmentation ID for the given network
 // throws ErrNoPhysNetFound if the physical network is not found
-func (n *NeutronClient) GetNetworkSegment(networkID, physnet string) (int, error) {
-	network, err := n.GetNetwork(networkID)
+func (n *NeutronClient) GetNetworkSegment(ctx context.Context, networkID, physnet string) (int, error) {
+	network, err := n.GetNetwork(ctx, networkID)
 	if err != nil {
 		if gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
 			return 0, fmt.Errorf("%w, network not found, %s", aErrors.ErrNoPhysNetFound, err.Error())
@@ -99,8 +88,8 @@ func (n *NeutronClient) GetNetworkSegment(networkID, physnet string) (int, error
 		aErrors.ErrNoPhysNetFound, physnet, networkID)
 }
 
-func (n *NeutronClient) GetSubnetSegment(subnetID, physnet string) (int, error) {
-	subnet, err := n.GetSubnet(subnetID)
+func (n *NeutronClient) GetSubnetSegment(ctx context.Context, subnetID, physnet string) (int, error) {
+	subnet, err := n.GetSubnet(ctx, subnetID)
 	if err != nil {
 		if gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
 			return 0, fmt.Errorf("%w, subnet not found, %s", aErrors.ErrNoPhysNetFound, err.Error())
@@ -108,13 +97,13 @@ func (n *NeutronClient) GetSubnetSegment(subnetID, physnet string) (int, error) 
 		return 0, err
 	}
 
-	return n.GetNetworkSegment(subnet.NetworkID, physnet)
+	return n.GetNetworkSegment(ctx, subnet.NetworkID, physnet)
 }
 
 // GetNetworkMTU returns the MTU of the network
 // throws ErrNoPhysNetFound if the physical network is not found
-func (n *NeutronClient) GetNetworkMTU(networkID string) (int, error) {
-	network, err := n.GetNetwork(networkID)
+func (n *NeutronClient) GetNetworkMTU(ctx context.Context, networkID string) (int, error) {
+	network, err := n.GetNetwork(ctx, networkID)
 	if err != nil {
 		if gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
 			return 0, fmt.Errorf("%w, network not found, %s", aErrors.ErrNoPhysNetFound, err.Error())
@@ -126,120 +115,13 @@ func (n *NeutronClient) GetNetworkMTU(networkID string) (int, error) {
 	return network.MTU, nil
 }
 
-func (n *NeutronClient) GetPort(portId string) (*ports.Port, error) {
-	return ports.Get(context.Background(), n.ServiceClient, portId).Extract()
-}
-
-func (n *NeutronClient) DeletePort(portId string) error {
-	return ports.Delete(context.Background(), n.ServiceClient, portId).ExtractErr()
-}
-
-type fixedIP struct {
-	SubnetID string `json:"subnet_id"`
-}
-
-func (n *NeutronClient) AllocateNeutronEndpointPort(target *models.EndpointTarget, endpoint *models.Endpoint,
-	projectID string, host string, client *gophercloud.ServiceClient) (*ports.Port, error) {
-
-	if target.Port != nil {
-		port, err := ports.Get(context.Background(), client, target.Port.String()).Extract()
-		if err != nil {
-			return nil, err
-		}
-
-		if port.ProjectID != projectID {
-			return nil, aErrors.ErrProjectMismatch
-		}
-
-		if len(port.FixedIPs) < 1 {
-			return nil, aErrors.ErrMissingIPAddress
-		}
-
-		return port, nil
-	}
-
-	var fixedIPs []fixedIP
-	if target.Network == nil {
-		subnet, err := subnets.Get(context.Background(), client, target.Subnet.String()).Extract()
-		if err != nil {
-			return nil, err
-		}
-
-		fixedIPs = append(fixedIPs, fixedIP{subnet.ID})
-		networkID := strfmt.UUID(subnet.NetworkID)
-		target.Network = &networkID
-	} else {
-		network, err := n.GetNetwork(target.Network.String())
-		if err != nil {
-			return nil, err
-		}
-		if len(network.Subnets) == 0 {
-			return nil, aErrors.ErrMissingSubnets
-		}
-
-		fixedIPs = append(fixedIPs, fixedIP{network.Subnets[0]})
-	}
-
-	// allocate neutron port
-	port := portsbinding.CreateOptsExt{
-		CreateOptsBuilder: ports.CreateOpts{
-			Name:        fmt.Sprintf("endpoint-%s", endpoint.ID),
-			DeviceOwner: "network:archer",
-			DeviceID:    endpoint.ID.String(),
-			NetworkID:   target.Network.String(),
-			TenantID:    projectID,
-			FixedIPs:    fixedIPs,
-		},
-		HostID: host,
-	}
-
-	res, err := ports.Create(context.Background(), n.ServiceClient, port).Extract()
-	if err != nil {
-		return nil, err
-	}
-	// to ensure fresh segment cache
-	n.RemoveFromCache(res.NetworkID)
-	return res, nil
-}
-
-// TODO: Remove after a while
-func (n *NeutronClient) FetchSNATPorts(networkID string) (map[string]*ports.Port, error) {
-	if p, ok := n.portCache.Get(networkID); ok {
-		return p, nil
-	}
-
-	portMap := make(map[string]*ports.Port)
-	opts := PortListOptsExt{
-		ListOptsBuilder: ports.ListOpts{
-			NetworkID:   networkID,
-			DeviceOwner: "network:f5snat",
-		},
-		HostID: config.Global.Default.Host,
-	}
-	pages, err := ports.List(n.ServiceClient, opts).AllPages(context.Background())
-	if err != nil {
-		return nil, err
-	}
-	snatPorts, err := ports.ExtractPorts(pages)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, port := range snatPorts {
-		hostname := strings.TrimPrefix(port.Name, "local-")
-		portMap[hostname] = &port
-	}
-	n.portCache.Add(networkID, portMap)
-	return portMap, nil
-}
-
-func (n *NeutronClient) GetNetwork(networkID string) (*NetworkMTU, error) {
+func (n *NeutronClient) GetNetwork(ctx context.Context, networkID string) (*NetworkMTU, error) {
 	if network, ok := n.networkCache.Get(networkID); ok {
 		return network, nil
 	}
 
 	var network NetworkMTU
-	err := networks.Get(context.Background(), n.ServiceClient, networkID).ExtractInto(&network)
+	err := networks.Get(ctx, n.ServiceClient, networkID).ExtractInto(&network)
 	if err != nil {
 		return nil, err
 	}
@@ -247,12 +129,12 @@ func (n *NeutronClient) GetNetwork(networkID string) (*NetworkMTU, error) {
 	return &network, nil
 }
 
-func (n *NeutronClient) GetSubnet(subnetID string) (*subnets.Subnet, error) {
+func (n *NeutronClient) GetSubnet(ctx context.Context, subnetID string) (*subnets.Subnet, error) {
 	if network, ok := n.subnetCache.Get(subnetID); ok {
 		return network, nil
 	}
 
-	subnet, err := subnets.Get(context.Background(), n.ServiceClient, subnetID).Extract()
+	subnet, err := subnets.Get(ctx, n.ServiceClient, subnetID).Extract()
 	if err != nil {
 		return nil, err
 	}
@@ -260,106 +142,8 @@ func (n *NeutronClient) GetSubnet(subnetID string) (*subnets.Subnet, error) {
 	return subnet, nil
 }
 
-func (n *NeutronClient) FetchSelfIPPorts() (map[string][]*ports.Port, error) {
-	portMap := make(map[string][]*ports.Port)
-	opts := PortListOptsExt{
-		ListOptsBuilder: ports.ListOpts{
-			DeviceOwner: "network:f5selfip",
-		},
-		HostID: config.Global.Default.Host,
-	}
-	pages, err := ports.List(n.ServiceClient, opts).AllPages(context.Background())
-	if err != nil {
-		return nil, err
-	}
-	selfIPPorts, err := ports.ExtractPorts(pages)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, port := range selfIPPorts {
-		portMap[port.NetworkID] = append(portMap[port.NetworkID], &port)
-	}
-	return portMap, nil
-}
-
-// EnsureNeutronSelfIPs ensures that a SelfIPs exists for the given deviceID and subnetID
-func (n *NeutronClient) EnsureNeutronSelfIPs(deviceIDs []string, subnetID string, dryRun bool) (map[string]*ports.Port, error) {
-	log.WithFields(log.Fields{
-		"subnet":  subnetID,
-		"devices": deviceIDs,
-		"dry_run": dryRun,
-	}).Debug("EnsureNeutronSelfIPs")
-	subnet, err := n.GetSubnet(subnetID)
-	if err != nil {
-		return nil, err
-	}
-
-	var pages pagination.Page
-	opts := PortListOptsExt{
-		ListOptsBuilder: ports.ListOpts{
-			NetworkID:   subnet.NetworkID,
-			FixedIPs:    []ports.FixedIPOpts{{SubnetID: subnetID}},
-			DeviceOwner: "network:f5selfip",
-		},
-		HostID: config.Global.Default.Host,
-	}
-	pages, err = ports.List(n.ServiceClient, opts).AllPages(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
-	neutronPorts, err := ports.ExtractPorts(pages)
-	if err != nil {
-		return nil, err
-	}
-
-	selfIPs := make(map[string]*ports.Port, len(deviceIDs))
-	for _, deviceID := range deviceIDs {
-		for _, neutronPort := range neutronPorts {
-			if neutronPort.DeviceOwner != "network:f5selfip" {
-				continue
-			}
-
-			if neutronPort.Name == fmt.Sprintf("local-%s", deviceID) {
-				neutronPort := neutronPort
-				selfIPs[deviceID] = &neutronPort
-			}
-		}
-
-		if _, ok := selfIPs[deviceID]; !ok && !dryRun {
-			// allocate neutron port
-			log.WithFields(log.Fields{
-				"network": subnet.NetworkID,
-				"subnet":  subnetID,
-				"device":  deviceID,
-			}).Info("EnsureNeutronSelfIP: Allocating new SelfIP")
-			port := portsbinding.CreateOptsExt{
-				CreateOptsBuilder: ports.CreateOpts{
-					Name:        fmt.Sprintf("local-%s", deviceID),
-					Description: fmt.Sprintf("Archer SelfIP for device %s", deviceID),
-					DeviceOwner: "network:f5selfip",
-					DeviceID:    subnetID,
-					NetworkID:   subnet.NetworkID,
-					TenantID:    subnet.TenantID,
-					FixedIPs:    []fixedIP{{SubnetID: subnetID}},
-				},
-				HostID: config.Global.Default.Host,
-			}
-
-			selfIPs[deviceID], err = ports.Create(context.Background(), n.ServiceClient, port).Extract()
-			if err != nil {
-				return nil, err
-			}
-			// to ensure fresh segment cache
-			n.RemoveFromCache(subnet.NetworkID)
-		}
-	}
-	return selfIPs, nil
-}
-
-func (n *NeutronClient) GetMask(subnetID string) (int, error) {
-	subnet, err := n.GetSubnet(subnetID)
+func (n *NeutronClient) GetMask(ctx context.Context, subnetID string) (int, error) {
+	subnet, err := n.GetSubnet(ctx, subnetID)
 	if err != nil {
 		return 0, err
 	}
@@ -369,21 +153,4 @@ func (n *NeutronClient) GetMask(subnetID string) (int, error) {
 	}
 	mask, _ := ipNet.Mask.Size()
 	return mask, nil
-}
-
-// UpdatePortBinding updates the binding:host_id of a Neutron port.
-// This is needed when a service is migrated to a different host.
-func (n *NeutronClient) UpdatePortBinding(ctx context.Context, portID, hostID string) error {
-	return UpdatePortBinding(ctx, n.ServiceClient, portID, hostID)
-}
-
-// UpdatePortBinding updates the binding:host_id of a Neutron port using a raw ServiceClient.
-// This is a standalone function that can be used without NeutronClient wrapper.
-func UpdatePortBinding(ctx context.Context, client *gophercloud.ServiceClient, portID, hostID string) error {
-	updateOpts := portsbinding.UpdateOptsExt{
-		UpdateOptsBuilder: ports.UpdateOpts{},
-		HostID:            &hostID,
-	}
-	_, err := ports.Update(ctx, client, portID, updateOpts).Extract()
-	return err
 }
