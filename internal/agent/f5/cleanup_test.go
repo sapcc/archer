@@ -133,6 +133,59 @@ func TestAgent_TestCleanOrphanedNeutronPorts(t *testing.T) {
 	assert.Nil(t, a.cleanOrphanedNeutronPorts(t.Context(), usedSegments))
 }
 
+// TestAgent_TestCleanOrphanedSnatPorts verifies that SNAT ports whose owning
+// service is no longer in the DB on this host are deleted, while ports for
+// live services are preserved.
+func TestAgent_TestCleanOrphanedSnatPorts(t *testing.T) {
+	const liveSvc = "11111111-1111-4111-8111-111111111111"
+	const orphanSvc = "22222222-2222-4222-8222-222222222222"
+
+	listResp := `{
+		"ports": [
+			{
+				"id": "live-port-id",
+				"name": "snat-` + liveSvc + `-0",
+				"device_owner": "network:f5snat",
+				"device_id": "` + liveSvc + `",
+				"network_id": "n0"
+			},
+			{
+				"id": "orphan-port-id",
+				"name": "snat-` + orphanSvc + `-0",
+				"device_owner": "network:f5snat",
+				"device_id": "` + orphanSvc + `",
+				"network_id": "n0"
+			}
+		]
+	}`
+
+	config.Global.Default.Host = "host-123"
+
+	fakeServer := th.SetupPersistentPortHTTP(t, 8931)
+	defer fakeServer.Teardown()
+	fixture.SetupHandler(t, fakeServer, "/v2.0/ports", "GET", "", listResp, http.StatusOK)
+	fixture.SetupHandler(t, fakeServer, "/v2.0/ports/orphan-port-id", "DELETE",
+		"", "", http.StatusNoContent)
+
+	dbMock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dbMock.Close()
+	dbMock.ExpectQuery("SELECT id FROM service WHERE host = $1 AND provider = $2").
+		WithArgs(config.Global.Default.Host, models.ServiceProviderTenant).
+		WillReturnRows(dbMock.NewRows([]string{"id"}).AddRow(liveSvc))
+
+	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)}
+	neutronClient.InitCache()
+	a := &Agent{neutron: &neutronClient, pool: dbMock}
+
+	assert.Nil(t, a.cleanOrphanedSnatPorts(t.Context()))
+	if err := dbMock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
 func TestAgent_TestCleanupOrphanedTenants(t *testing.T) {
 	f5DeviceMock := NewMockF5Device(t)
 	f5DeviceMock.On("GetHostname").Return("host-123")

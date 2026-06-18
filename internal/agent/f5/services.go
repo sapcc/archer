@@ -13,7 +13,6 @@ import (
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/gophercloud/gophercloud/v2"
-	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/subnets"
 	log "github.com/sirupsen/logrus"
 
@@ -27,7 +26,6 @@ import (
 func (a *Agent) getExtendedService(ctx context.Context, s *models.Service) (*as3.ExtendedService, error) {
 	// Fetch SNAT ports from neutron
 	service := &as3.ExtendedService{Service: *s}
-	deviceIDs := a.getDeviceIDs()
 	pendingDelete := service.Status == models.ServiceStatusPENDINGDELETE
 
 	network, err := a.neutron.GetNetwork(ctx, service.NetworkID.String())
@@ -45,22 +43,9 @@ func (a *Agent) getExtendedService(ctx context.Context, s *models.Service) (*as3
 		return nil, fmt.Errorf("GetNetwork: %w", internal.ErrNoSubnetFound)
 	}
 
-	// allocate picks between service-scoped SNAT ports (snat_pool_size set) and per-device
-	// SelfIP ports. The two paths share identical 409/quota handling below, so the only thing
-	// that varies per subnet is which Neutron helper to call and the error label used in wraps.
-	allocate := func(subnetID string) (map[string]*ports.Port, string, error) {
-		if service.SnatPoolSize != nil {
-			ports, err := a.neutron.EnsureServiceSnatPorts(ctx,
-				service.ID, subnetID, int(*service.SnatPoolSize), pendingDelete)
-			return ports, "EnsureServiceSnatPorts", err
-		}
-		ports, err := a.neutron.EnsureNeutronSelfIPs(ctx, deviceIDs, subnetID, pendingDelete)
-		return ports, "EnsureNeutronSelfIPs", err
-	}
-
-	// Try to allocate SNAT ports from the subnet that has the service in it
+	// Try to allocate SNAT ports from the subnet that has the service in it.
+	// Sized by snat_pool_size (default 1).
 	err = nil
-	var label string
 	for i, subnetID := range network.Subnets {
 		var subnet *subnets.Subnet
 		if subnet, err = a.neutron.GetSubnet(ctx, subnetID); err != nil {
@@ -93,7 +78,8 @@ func (a *Agent) getExtendedService(ctx context.Context, s *models.Service) (*as3
 			continue
 		}
 
-		service.NeutronPorts, label, err = allocate(subnetID)
+		service.NeutronPorts, err = a.neutron.EnsureServiceSnatPorts(ctx,
+			service.ID, subnetID, int(*service.SnatPoolSize), pendingDelete)
 		if err == nil {
 			service.SubnetID = subnetID
 			break
@@ -101,18 +87,18 @@ func (a *Agent) getExtendedService(ctx context.Context, s *models.Service) (*as3
 
 		if gerr, ok := errors.AsType[gophercloud.ErrUnexpectedResponseCode](err); ok && gerr.Actual == 409 {
 			if bytes.Contains(gerr.Body, []byte("OverQuota")) {
-				return nil, fmt.Errorf("%s: %w, %w", label, err, internal.ErrQuotaExceeded)
+				return nil, fmt.Errorf("EnsureServiceSnatPorts: %w, %w", err, internal.ErrQuotaExceeded)
 			} else if bytes.Contains(gerr.Body, []byte("No more IP addresses available")) {
 				continue // try next subnet
 			}
 		}
 
 		// unexpected error from neutron
-		return nil, fmt.Errorf("%s: %w", label, err)
+		return nil, fmt.Errorf("EnsureServiceSnatPorts: %w", err)
 	}
 	if err != nil || service.SubnetID == "" {
 		// All subnet IPs are exhausted
-		return nil, fmt.Errorf("%s: %w, %w", label, err, internal.ErrNoIPsAvailable)
+		return nil, fmt.Errorf("EnsureServiceSnatPorts: %w, %w", err, internal.ErrNoIPsAvailable)
 	}
 
 	// Fetch segmentID for the network
@@ -255,13 +241,12 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 				}
 			}
 
-			// Delete service-scoped SNAT ports if the service uses them. Independent of the
-			// L2/SelfIP cleanup gating because these ports belong to the service, not the
-			// shared subnet pool.
-			if service.SnatPoolSize != nil {
-				if err = a.neutron.CleanupServiceSnatPorts(ctx, service.ID); err != nil {
-					return fmt.Errorf("CleanupServiceSnatPorts: %w", err)
-				}
+			// Delete service-scoped SNAT ports. Independent of the L2/SelfIP
+			// cleanup gating because these ports belong to the service, not the
+			// shared subnet pool. CleanupServiceSnatPorts is idempotent, so a
+			// missing pool is a no-op.
+			if err = a.neutron.CleanupServiceSnatPorts(ctx, service.ID); err != nil {
+				return fmt.Errorf("CleanupServiceSnatPorts: %w", err)
 			}
 
 			if cleanupL2 {

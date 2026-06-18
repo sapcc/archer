@@ -346,4 +346,18 @@ var Migrations = mgx.Migrations(
 		`)
 		return err
 	}),
+	mgx.NewMigration("default_snat_pool_size", func(ctx context.Context, commands mgx.Commands) error {
+		// Make every service own a dedicated SNAT pool. Existing non-NULL
+		// values (e.g. an operator who already set snat_pool_size = 3) are
+		// preserved; only NULL rows are backfilled to 1.
+		_, err := commands.Exec(ctx, `
+			UPDATE service SET snat_pool_size = 1 WHERE snat_pool_size IS NULL;
+			ALTER TABLE service ALTER COLUMN snat_pool_size SET NOT NULL;
+			ALTER TABLE service ALTER COLUMN snat_pool_size SET DEFAULT 1;
+			ALTER TABLE service DROP CONSTRAINT snat_pool_size;
+			ALTER TABLE service ADD CONSTRAINT snat_pool_size
+				CHECK (snat_pool_size BETWEEN 1 AND 8);
+		`)
+		return err
+	}),
 )

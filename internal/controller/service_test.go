@@ -1220,3 +1220,82 @@ func (t *SuiteTest) TestServiceUpdateWithInvalidIPReturns400() {
 	assert.IsType(t.T(), &service.PutServiceServiceIDBadRequest{}, res)
 	assert.Contains(t.T(), res.(*service.PutServiceServiceIDBadRequest).Payload.Message, "invalid IP address")
 }
+
+// TestServicePostSnatPoolSizeDefault verifies that POST without snat_pool_size
+// stores 1 (the DB default) regardless of provider.
+func (t *SuiteTest) TestServicePostSnatPoolSizeDefault() {
+	serviceID := t.createService(testService)
+
+	res := t.c.GetServiceServiceIDHandler(
+		service.GetServiceServiceIDParams{HTTPRequest: &http.Request{}, ServiceID: serviceID},
+		nil)
+	assert.IsType(t.T(), &service.GetServiceServiceIDOK{}, res)
+	payload := res.(*service.GetServiceServiceIDOK).Payload
+	if assert.NotNil(t.T(), payload.SnatPoolSize) {
+		assert.Equal(t.T(), int32(1), *payload.SnatPoolSize)
+	}
+}
+
+// TestServicePostSnatPoolSizeExplicit verifies that a client-supplied value is
+// preserved as-is.
+func (t *SuiteTest) TestServicePostSnatPoolSizeExplicit() {
+	svc := testService
+	svc.SnatPoolSize = conv.Pointer(int32(5))
+	serviceID := t.createService(svc)
+
+	res := t.c.GetServiceServiceIDHandler(
+		service.GetServiceServiceIDParams{HTTPRequest: &http.Request{}, ServiceID: serviceID},
+		nil)
+	assert.IsType(t.T(), &service.GetServiceServiceIDOK{}, res)
+	payload := res.(*service.GetServiceServiceIDOK).Payload
+	if assert.NotNil(t.T(), payload.SnatPoolSize) {
+		assert.Equal(t.T(), int32(5), *payload.SnatPoolSize)
+	}
+}
+
+// TestServicePostSnatPoolSizeRejectedForCP verifies that a client-supplied
+// snat_pool_size is rejected for non-tenant providers.
+func (t *SuiteTest) TestServicePostSnatPoolSizeRejectedForCP() {
+	t.addCPAgent("cp-test-host", nil)
+
+	cpProvider := "cp"
+	svc := models.Service{
+		Name:         "cp-snat-rejected",
+		Provider:     &cpProvider,
+		IPAddresses:  []models.InetAddress{"192.168.1.101"},
+		Ports:        []int32{8080},
+		ProjectID:    testProject1,
+		SnatPoolSize: conv.Pointer(int32(3)),
+	}
+
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &svc},
+		&gopherpolicy.Token{Enforcer: &TestEnforcerAllowProvider{}})
+
+	assert.IsType(t.T(), &service.PostServiceUnprocessableEntity{}, res)
+	assert.Equal(t.T(), "snat_pool_size is only supported for provider=f5",
+		res.(*service.PostServiceUnprocessableEntity).Payload.Message)
+}
+
+// TestServicePostSnatPoolSizeCPDefault verifies that a CP service created
+// without snat_pool_size gets the inert DB default 1 stored, since the column
+// is NOT NULL.
+func (t *SuiteTest) TestServicePostSnatPoolSizeCPDefault() {
+	t.addCPAgent("cp-test-host", nil)
+
+	cpProvider := "cp"
+	svc := models.Service{
+		Name:        "cp-snat-default",
+		Provider:    &cpProvider,
+		IPAddresses: []models.InetAddress{"192.168.1.102"},
+		Ports:       []int32{8080},
+		ProjectID:   testProject1,
+	}
+
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &svc},
+		&gopherpolicy.Token{Enforcer: &TestEnforcerAllowProvider{}})
+	assert.IsType(t.T(), &service.PostServiceCreated{}, res)
+	payload := res.(*service.PostServiceCreated).Payload
+	if assert.NotNil(t.T(), payload.SnatPoolSize) {
+		assert.Equal(t.T(), int32(1), *payload.SnatPoolSize)
+	}
+}

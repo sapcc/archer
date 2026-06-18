@@ -245,6 +245,15 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 			}
 		}
 
+		// When the client didn't supply snat_pool_size, bind the literal SQL
+		// DEFAULT keyword so the column's DB DEFAULT (1) applies. A nil bind
+		// would emit SQL NULL, which violates the NOT NULL constraint
+		// (DEFAULT only fires when the column is absent or DEFAULT is bound,
+		// not when NULL is bound).
+		var snatPoolSize any = sq.Expr("DEFAULT")
+		if params.Body.SnatPoolSize != nil {
+			snatPoolSize = *params.Body.SnatPoolSize
+		}
 		sql, args, err = db.Insert("service").
 			Columns("enabled", "name", "description", "network_id", "ip_addresses", "require_approval",
 				"visibility", "availability_zone", "proxy_protocol", "project_id", "ports", "tags", "provider", "host",
@@ -253,7 +262,7 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 				params.Body.IPAddresses, params.Body.RequireApproval, params.Body.Visibility,
 				params.Body.AvailabilityZone, params.Body.ProxyProtocol, params.Body.ProjectID,
 				params.Body.Ports, internal.Unique(params.Body.Tags), params.Body.Provider, params.Body.Host,
-				params.Body.Protocol, params.Body.SnatPoolSize).
+				params.Body.Protocol, snatPoolSize).
 			Suffix("RETURNING *").ToSql()
 		if err != nil {
 			return err
