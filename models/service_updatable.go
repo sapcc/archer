@@ -77,7 +77,7 @@ type ServiceUpdatable struct {
 	// Require explicit project approval for the service owner.
 	RequireApproval *bool `json:"require_approval,omitempty"`
 
-	// Number of SNAT IP addresses allocated for this service. Increase to scale outbound port capacity. Set to null to reset to default behavior. Provider support varies; the cp provider does not support custom values.
+	// Number of SNAT IP addresses allocated for this service. Increase to scale outbound port capacity. Omit to leave the current value unchanged. The cp provider does not support custom values.
 	//
 	// Maximum: 8
 	// Minimum: 1

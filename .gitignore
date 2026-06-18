@@ -23,5 +23,8 @@ build/
 
 *.ini
 
+# Generated API documentation (produced by `make markdown`)
+/docs/api.md
+
 # Claude Code user-specific settings
 .claude/

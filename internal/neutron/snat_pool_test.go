@@ -306,3 +306,44 @@ func TestEnsureServiceSnatPorts_SkipsRebindWhenHostMatches(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, got, 2)
 }
+
+// TestFetchSnatPorts_Flat verifies SNAT ports are returned as a flat slice
+// (the orphan signal is per-service, not per-network).
+func TestFetchSnatPorts_Flat(t *testing.T) {
+	fakeServer := th.SetupPersistentPortHTTP(t, 8931)
+	defer fakeServer.Teardown()
+	config.Global.Default.Host = "host-a"
+
+	listResponse := fmt.Sprintf(`{"ports":[
+        {"id": "p0", "name": "snat-svc-A-0", "device_owner": "network:f5snat",
+         "device_id": "svc-A", "network_id": "net-1",
+         "fixed_ips": [{"subnet_id": %q, "ip_address": "10.0.0.10"}]},
+        {"id": "p1", "name": "snat-svc-B-0", "device_owner": "network:f5snat",
+         "device_id": "svc-B", "network_id": "net-2",
+         "fixed_ips": [{"subnet_id": %q, "ip_address": "10.0.0.11"}]}
+    ]}`, SubnetIDFixture, SubnetIDFixture)
+	fixture.SetupHandler(t, fakeServer, "/v2.0/ports", "GET", "", listResponse, http.StatusOK)
+
+	n := &NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)}
+	n.InitCache()
+
+	got, err := n.FetchSnatPorts(context.Background())
+	assert.NoError(t, err)
+	assert.Len(t, got, 2)
+	deviceIDs := []string{got[0].DeviceID, got[1].DeviceID}
+	assert.Contains(t, deviceIDs, "svc-A")
+	assert.Contains(t, deviceIDs, "svc-B")
+}
+
+func TestFetchSnatPorts_Empty(t *testing.T) {
+	fakeServer := th.SetupPersistentPortHTTP(t, 8931)
+	defer fakeServer.Teardown()
+	fixture.SetupHandler(t, fakeServer, "/v2.0/ports", "GET", "", `{"ports":[]}`, http.StatusOK)
+
+	n := &NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)}
+	n.InitCache()
+
+	got, err := n.FetchSnatPorts(context.Background())
+	assert.NoError(t, err)
+	assert.Len(t, got, 0)
+}

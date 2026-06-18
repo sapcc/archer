@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Service: F5/tenant services now always allocate a dedicated Neutron SNAT port pool. The `snat_pool_size` field defaults to 1 and is no longer optional in storage. **Upgrade impact:** existing services that previously used per-device SelfIP addresses for SNAT will be reallocated dedicated SNAT ports on the next agent sync. In-flight connections through the old SNAT addresses will be reset.
+
 ### Fixed
 
 - Server: immediate notification job no longer captures the HTTP request context, so the DB lookup and Campfire send no longer fail with "context canceled" once the handler returns
@@ -20,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Service: optional `snat_pool_size` field to scale outbound SNAT capacity (f5 provider only). When set, the controller allocates service-scoped Neutron ports synchronously on create/update; when unset, the existing per-device SelfIP path is used unchanged.
+- Service: `snat_pool_size` field on services to scale outbound SNAT capacity (f5 provider only, range 1-8, default 1). The controller allocates service-scoped Neutron ports synchronously on create/update.
 - ArcherUI: a TypeScript/React frontend for managing services, endpoints, and RBAC policies, with a topology view that visualizes the relationships between services, endpoints, and external consumers
 
 ### Added

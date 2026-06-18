@@ -123,7 +123,7 @@ type Service struct {
 	// Require explicit project approval for the service owner.
 	RequireApproval *bool `json:"require_approval,omitempty"`
 
-	// Number of SNAT IP addresses allocated for this service. Increase to scale outbound port capacity. When unset, the agent uses its default behavior. Provider support varies; the cp provider does not support custom values.
+	// Number of SNAT IP addresses allocated for this service. Increase to scale outbound port capacity. Defaults to 1 when omitted on create. The cp provider does not support custom values.
 	//
 	// Maximum: 8
 	// Minimum: 1

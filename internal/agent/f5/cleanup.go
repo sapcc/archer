@@ -51,6 +51,10 @@ func (a *Agent) cleanupL2(ctx context.Context) error {
 		log.WithError(err).Error("cleanOrphanedNeutronPorts")
 		// continue
 	}
+	if err := a.cleanOrphanedSnatPorts(ctx); err != nil {
+		log.WithError(err).Error("cleanOrphanedSnatPorts")
+		// continue
+	}
 	return nil
 }
 
@@ -250,6 +254,63 @@ func (a *Agent) cleanOrphanedNeutronPorts(ctx context.Context, usedSegments map[
 	}
 
 	log.Debug("Finished cleanOrphanedNeutronPorts")
+	return nil
+}
+
+// cleanOrphanedSnatPorts deletes SNAT pool ports whose owning service no longer
+// exists in the DB on this host. SNAT ports are normally cleaned up by the
+// PENDING_DELETE branch of ProcessServices via CleanupServiceSnatPorts; this
+// catches the leftover cases — e.g. a row removed without going through that
+// flow, or a CleanupServiceSnatPorts that errored after the row was gone.
+//
+// The orphan signal here is per-service (device_id), not per-segment as for
+// SelfIPs, because SNAT pools are owned by a single service rather than shared
+// across a subnet.
+func (a *Agent) cleanOrphanedSnatPorts(ctx context.Context) error {
+	log.Debug("Running cleanOrphanedSnatPorts")
+
+	snats, err := a.neutron.FetchSnatPorts(ctx)
+	if err != nil {
+		return err
+	}
+	if len(snats) == 0 {
+		log.Debug("Finished cleanOrphanedSnatPorts (no ports)")
+		return nil
+	}
+
+	sql, args := db.Select("id").From("service").
+		Where("host = ?", config.Global.Default.Host).
+		Where("provider = ?", models.ServiceProviderTenant).
+		MustSql()
+	rows, err := a.pool.Query(ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("cleanOrphanedSnatPorts: list services: %w", err)
+	}
+	defer rows.Close()
+	live := make(map[string]struct{})
+	for rows.Next() {
+		var id strfmt.UUID
+		if err := rows.Scan(&id); err != nil {
+			return fmt.Errorf("cleanOrphanedSnatPorts: scan: %w", err)
+		}
+		live[id.String()] = struct{}{}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("cleanOrphanedSnatPorts: rows: %w", err)
+	}
+
+	for _, port := range snats {
+		if _, ok := live[port.DeviceID]; ok {
+			continue // service still exists, port is live
+		}
+		log.WithFields(log.Fields{"port": port.ID, "service": port.DeviceID}).
+			Warningf("found orphan SNAT port '%s', deleting", port.Name)
+		if err := a.neutron.DeletePort(ctx, port.ID); err != nil {
+			log.Errorf("cleanOrphanedSnatPorts: %s", err.Error())
+		}
+	}
+
+	log.Debug("Finished cleanOrphanedSnatPorts")
 	return nil
 }
 

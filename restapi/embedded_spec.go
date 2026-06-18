@@ -2048,7 +2048,7 @@ func init() {
           "default": false
         },
         "snat_pool_size": {
-          "description": "Number of SNAT IP addresses allocated for this service. Increase to scale outbound port capacity. When unset, the agent uses its default behavior. Provider support varies; the cp provider does not support custom values.\n",
+          "description": "Number of SNAT IP addresses allocated for this service. Increase to scale outbound port capacity. Defaults to 1 when omitted on create. The cp provider does not support custom values.\n",
           "type": "integer",
           "format": "int32",
           "maximum": 8,
@@ -2162,7 +2162,7 @@ func init() {
           "x-nullable": true
         },
         "snat_pool_size": {
-          "description": "Number of SNAT IP addresses allocated for this service. Increase to scale outbound port capacity. Set to null to reset to default behavior. Provider support varies; the cp provider does not support custom values.\n",
+          "description": "Number of SNAT IP addresses allocated for this service. Increase to scale outbound port capacity. Omit to leave the current value unchanged. The cp provider does not support custom values.\n",
           "type": "integer",
           "format": "int32",
           "maximum": 8,
@@ -4578,7 +4578,7 @@ func init() {
           "default": false
         },
         "snat_pool_size": {
-          "description": "Number of SNAT IP addresses allocated for this service. Increase to scale outbound port capacity. When unset, the agent uses its default behavior. Provider support varies; the cp provider does not support custom values.\n",
+          "description": "Number of SNAT IP addresses allocated for this service. Increase to scale outbound port capacity. Defaults to 1 when omitted on create. The cp provider does not support custom values.\n",
           "type": "integer",
           "format": "int32",
           "maximum": 8,
@@ -4693,7 +4693,7 @@ func init() {
           "x-nullable": true
         },
         "snat_pool_size": {
-          "description": "Number of SNAT IP addresses allocated for this service. Increase to scale outbound port capacity. Set to null to reset to default behavior. Provider support varies; the cp provider does not support custom values.\n",
+          "description": "Number of SNAT IP addresses allocated for this service. Increase to scale outbound port capacity. Omit to leave the current value unchanged. The cp provider does not support custom values.\n",
           "type": "integer",
           "format": "int32",
           "maximum": 8,

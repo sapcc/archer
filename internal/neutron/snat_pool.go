@@ -68,3 +68,22 @@ func (n *NeutronClient) CleanupServiceSnatPorts(ctx context.Context, serviceID s
 	}
 	return nil
 }
+
+// FetchSnatPorts lists every SNAT pool port bound to this agent's host. Returns
+// a flat slice (not grouped) because the orphan signal for SNAT ports is
+// per-service (device_id) rather than per-segment.
+func (n *NeutronClient) FetchSnatPorts(ctx context.Context) ([]*ports.Port, error) {
+	got, err := n.ListPorts(ctx,
+		ports.ListOpts{DeviceOwner: SnatPortDeviceOwner},
+		config.Global.Default.Host,
+	)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*ports.Port, 0, len(got))
+	for i := range got {
+		p := got[i].Port
+		out = append(out, &p)
+	}
+	return out, nil
+}
