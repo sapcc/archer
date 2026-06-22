@@ -62,13 +62,6 @@ jobs:
           VERSION="${{ steps.bump.outputs.version }}"
           sed -i "s/^  version: .*/  version: \"${VERSION}\"/" swagger.yaml
 
-      - name: Update web/package.json version
-        if: steps.check.outputs.has_changes == 'true'
-        working-directory: web
-        run: |
-          VERSION="${{ steps.bump.outputs.version }}"
-          npm version --no-git-tag-version --allow-same-version "${VERSION}"
-
       - name: Set up Go
         if: steps.check.outputs.has_changes == 'true'
         uses: actions/setup-go@v6
@@ -97,7 +90,6 @@ jobs:
             **Changes in this release:**
             - Updated CHANGELOG.md with release date
             - Updated swagger.yaml version to ${{ steps.bump.outputs.version }}
-            - Updated web/package.json version to ${{ steps.bump.outputs.version }}
 
             ### Release Notes
 
