@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-06-22
+
 ### Changed
 
 - Service: F5/tenant services now always allocate a dedicated Neutron SNAT port pool. The `snat_pool_size` field defaults to 1 and is no longer optional in storage. **Upgrade impact:** existing services that previously used per-device SelfIP addresses for SNAT will be reallocated dedicated SNAT ports on the next agent sync. In-flight connections through the old SNAT addresses will be reset.
@@ -27,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Service: `snat_pool_size` field on services to scale outbound SNAT capacity (f5 provider only, range 1-8, default 1). The controller allocates service-scoped Neutron ports synchronously on create/update.
 - IPv6 address support for service `ip_addresses` and endpoint `ip_address` fields
 - Network Injection agent: IPv6 support for proxy and HAProxy configuration
-- F5 agent: IPv6 support for Proxy Protocol v2 iRule (dual-stack AF_INET/AF_INET6 detection)
+- F5 agent: IPv6 support for Proxy Protocol v2 iRule (dual-stack AF\_INET/AF\_INET6 detection)
 - Network Injection agent: Proxy Protocol v2 support via HAProxy `send-proxy-v2`
 
 ## [2.4.1] - 2026-04-30
@@ -130,7 +132,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-Release with goreleaser
 
-[Unreleased]: https://github.com/sapcc/archer/compare/v2.4.1...HEAD
+[Unreleased]: https://github.com/sapcc/archer/compare/v2.5.0...HEAD
+
+[2.5.0]: https://github.com/sapcc/archer/compare/v2.4.1...v2.5.0
 
 [2.4.1]: https://github.com/sapcc/archer/compare/v2.4.0...v2.4.1
 
