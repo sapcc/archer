@@ -40,15 +40,3 @@ repos:
         language: system
         pass_filenames: false
         files: '\.go$|^go\.(mod|sum)$|^Makefile|^Makefile\.maker\.yaml$'
-      - id: web-format
-        name: web prettier check
-        entry: sh -c "cd web && pnpm check-format"
-        language: system
-        pass_filenames: false
-        files: '^web/.*\.(ts|tsx|md)$'
-      - id: web-typecheck
-        name: web typecheck
-        entry: sh -c "cd web && pnpm typecheck"
-        language: system
-        pass_filenames: false
-        files: '^web/.*\.(ts|tsx)$|^web/tsconfig\.json$|^web/package\.json$'
