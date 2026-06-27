@@ -27,8 +27,8 @@ require (
 	github.com/go-openapi/swag/conv v0.26.1
 	github.com/go-openapi/validate v0.26.0
 	github.com/google/uuid v1.6.0
-	github.com/gophercloud/gophercloud/v2 v2.12.0
-	github.com/gophercloud/utils/v2 v2.0.0-20260424064311-2eeed4ceb3e9
+	github.com/gophercloud/gophercloud/v2 v2.13.0
+	github.com/gophercloud/utils/v2 v2.0.0-20260626221802-4ae35253ac13
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/iancoleman/strcase v0.3.0
