@@ -14,7 +14,6 @@ import (
 
 	"github.com/IBM/pgxpoolprometheus"
 	"github.com/didip/tollbooth/v8"
-	"github.com/dre1080/recovr"
 	"github.com/getsentry/sentry-go"
 	sentryhttp "github.com/getsentry/sentry-go/http"
 	"github.com/go-openapi/errors"
@@ -287,9 +286,37 @@ func setupMiddlewares(handler http.Handler) http.Handler {
 
 // The middleware configuration happens before anything, this middleware also applies to serving the swagger.json document.
 // So this is a good place to plug in a panic handling middleware, logging and metrics.
+//
+// Middleware order matters here. The chain (outermost → innermost) is:
+//
+//	CORS → Prometheus → Recovery → sentry → HealthCheck → handler
+//
+// Recovery sits inside the Prometheus instrumentation so that panic-induced
+// 500 responses are written via WriteHeader before promhttp's delegating
+// ResponseWriter unwinds — otherwise the metric would be recorded with
+// code="0" instead of "500". Sentry uses Repanic:true so the panic still
+// reaches our Recovery middleware after Sentry has reported it.
 func setupGlobalMiddleware(handler http.Handler) http.Handler {
-	// health check middleware
+	// health check middleware (innermost; preserves prior behavior where
+	// /healthcheck requests are still counted in Prometheus metrics)
 	handler = middlewares.HealthCheckMiddleware(handler)
+
+	// Sentry reports the panic, then re-panics so Recovery can write the 500.
+	handler = sentryhttp.New(sentryhttp.Options{
+		Repanic: true,
+	}).Handle(handler)
+
+	// Recovery catches the re-panic and writes a 500 response. Must sit
+	// inside the Prometheus middleware so promhttp sees WriteHeader(500).
+	handler = middlewares.RecoveryMiddleware(handler)
+
+	// Prometheus HTTP metrics instrumentation — outside recovery so it
+	// observes the recovered 500 status code.
+	if config.Global.Default.Prometheus {
+		handler = promhttp.InstrumentHandlerDuration(httpRequestDuration,
+			promhttp.InstrumentHandlerCounter(httpRequestsTotal,
+				promhttp.InstrumentHandlerResponseSize(httpResponseSize, handler)))
+	}
 
 	if !config.Global.ApiSettings.DisableCors {
 		log.Info("Initializing CORS middleware")
@@ -300,20 +327,7 @@ func setupGlobalMiddleware(handler http.Handler) http.Handler {
 		}).Handler(handler)
 	}
 
-	// Prometheus HTTP metrics instrumentation
-	if config.Global.Default.Prometheus {
-		handler = promhttp.InstrumentHandlerDuration(httpRequestDuration,
-			promhttp.InstrumentHandlerCounter(httpRequestsTotal,
-				promhttp.InstrumentHandlerResponseSize(httpResponseSize, handler)))
-	}
-
-	// Pass via sentry handler
-	handler = sentryhttp.New(sentryhttp.Options{
-		Repanic: true,
-	}).Handle(handler)
-
-	// recover with recovr
-	return recovr.New()(handler)
+	return handler
 }
 
 func prometheusListenerThread() {
