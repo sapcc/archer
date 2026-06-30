@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- archer-server: panic-induced HTTP 500 responses are now correctly labelled `code="500"` in the Prometheus `http_requests_total`, `http_request_duration_seconds`, and `http_response_size_bytes` metrics. Previously, the panic-recovery middleware ran outside the Prometheus instrumentation, so these requests were recorded with `code="0"` instead.
+
+### Removed
+
+- archer-server: dropped the `github.com/dre1080/recovr` dependency in favor of a small in-tree panic recovery middleware. Panic responses are now a plain `500 Internal Server Error` with no panic details in the body (the previous recovr middleware leaked the panic message, file, and line number into the HTML/JSON response). Stack traces are still logged server-side.
+
 ## [2.5.2] - 2026-07-06
 
 ### Fixed
