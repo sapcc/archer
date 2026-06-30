@@ -139,6 +139,7 @@ type AuthInfo struct {
 	DomainID                    string `ini-name:"domain_id"`
 	DefaultDomain               string `ini-name:"default_domain"`
 	AllowReauth                 bool   `ini-name:"allow_reauth"`
+	TrustID                     string `ini-name:"trust_id"`
 }
 
 func init() {
