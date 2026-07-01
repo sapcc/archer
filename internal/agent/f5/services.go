@@ -170,9 +170,6 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 			if err := a.EnsureL2(ctx, service.SegmentId, nil, service.MTU); err != nil {
 				return err
 			}
-			if err := a.EnsureSelfIPs(ctx, service.SubnetID, true); err != nil {
-				return err
-			}
 		}
 	}
 
