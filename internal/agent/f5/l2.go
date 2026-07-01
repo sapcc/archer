@@ -126,15 +126,27 @@ func (a *Agent) EnsureSelfIPs(ctx context.Context, subnetID string, dryRun bool)
 		return err
 	}
 
+	mask, err := a.neutron.GetMask(ctx, subnetID)
+	if err != nil {
+		return err
+	}
+
 	for _, big := range a.devices {
-		// Fetch netmask
-		mask, err := a.neutron.GetMask(ctx, subnetID)
-		if err != nil {
-			return err
+		port, ok := neutronPorts[big.GetHostname()]
+		if !ok || port == nil {
+			// In dryRun mode EnsureNeutronSelfIPs does not create missing ports, so a device
+			// may legitimately be absent from the map on the first pass. Skip it — the next
+			// non-dryRun invocation (from the endpoint path) will materialize the port.
+			log.WithFields(log.Fields{"device": big.GetHostname(), "subnetID": subnetID, "dryRun": dryRun}).
+				Debug("EnsureSelfIPs: no neutron port for device, skipping")
+			continue
+		}
+		if len(port.FixedIPs) == 0 {
+			return fmt.Errorf("EnsureSelfIPs: no fixedIPs on neutron port %s for device %s", port.ID, big.GetHostname())
 		}
 
-		name := fmt.Sprint("selfip-", neutronPorts[big.GetHostname()].ID)
-		ip := neutronPorts[big.GetHostname()].FixedIPs[0].IPAddress
+		name := fmt.Sprint("selfip-", port.ID)
+		ip := port.FixedIPs[0].IPAddress
 		address := fmt.Sprint(ip, "%", segmentID, "/", mask)
 		if err := big.EnsureBigIPSelfIP(name, address, segmentID); err != nil {
 			return err

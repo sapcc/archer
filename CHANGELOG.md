@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- F5 agent: `ProcessServices` no longer panics with a nil-pointer dereference in `EnsureSelfIPs` when a subnet has no matching Neutron SelfIP ports yet. Services don't need per-device SelfIPs (only endpoints do, and `ProcessEndpoint` already ensures them), so the redundant call has been removed. `EnsureSelfIPs` now also skips (rather than dereferences) devices with no port when invoked in dry-run.
+
 ## [2.5.0] - 2026-06-22
 
 ### Changed
