@@ -56,7 +56,7 @@ func init() {
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "version": "2.5.0",
+    "version": "2.5.1",
     "x-logo": {
       "altText": "Archer logo",
       "backgroundColor": "#FFFFFF",
@@ -2431,7 +2431,7 @@ func init() {
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "version": "2.5.0",
+    "version": "2.5.1",
     "x-logo": {
       "altText": "Archer logo",
       "backgroundColor": "#FFFFFF",

@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.1] - 2026-07-01
+
 ### Fixed
 
 - F5 agent: `ProcessServices` no longer panics with a nil-pointer dereference in `EnsureSelfIPs` when a subnet has no matching Neutron SelfIP ports yet. Services don't need per-device SelfIPs (only endpoints do, and `ProcessEndpoint` already ensures them), so the redundant call has been removed. `EnsureSelfIPs` now also skips (rather than dereferences) devices with no port when invoked in dry-run.
@@ -136,7 +138,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-Release with goreleaser
 
-[Unreleased]: https://github.com/sapcc/archer/compare/v2.5.0...HEAD
+[Unreleased]: https://github.com/sapcc/archer/compare/v2.5.1...HEAD
+
+[2.5.1]: https://github.com/sapcc/archer/compare/v2.5.0...v2.5.1
 
 [2.5.0]: https://github.com/sapcc/archer/compare/v2.4.1...v2.5.0
 
