@@ -13,9 +13,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Audit: POST and PUT request bodies (JSON only, capped at 64 KiB) are now included in CADF audit events as a `request_body` attachment, so audit trails record what changed, not just that something changed.
+
+### Changed
+
+- Audit: 4xx responses (auth rejections, missing resources, validation failures) are no longer recorded as audit events. These represent requests that never took effect and were polluting the audit trail with non-state-changing noise. 2xx/3xx successes and 5xx server errors continue to be audited.
+- Audit: `NewAuditController` now returns an error instead of panicking when the audit backend configuration is invalid, so the caller can decide how to handle audit-config problems at startup.
+
 ### Fixed
 
 - archer-server: panic-induced HTTP 500 responses are now correctly labelled `code="500"` in the Prometheus `http_requests_total`, `http_request_duration_seconds`, and `http_response_size_bytes` metrics. Previously, the panic-recovery middleware ran outside the Prometheus instrumentation, so these requests were recorded with `code="0"` instead.
+- Audit: fixed a nil-pointer panic in the audit response wrapper when the security principal was missing from the request context (e.g. requests rejected before the auth middleware attached a token). Failing to audit now logs an error instead of crashing the HTTP handler.
+- Audit: `WriteHeader` is now idempotent — a second call (from an error renderer, or the stdlib's implicit call from `Write`) no longer produces a duplicate audit event.
 
 ### Removed
 
