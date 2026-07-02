@@ -278,7 +278,13 @@ func setupMiddlewares(handler http.Handler) http.Handler {
 
 	if config.Global.Audit.Enabled {
 		log.Info("Initializing audit middleware")
-		auditMiddleware := middlewares.NewAuditController()
+		auditMiddleware, err := middlewares.NewAuditController()
+		if err != nil {
+			// A broken audit backend at boot is a hard failure: running
+			// without audit when audit is enabled would be a silent
+			// compliance gap.
+			log.WithError(err).Fatal("Failed to initialize audit middleware")
+		}
 		handler = auditMiddleware.AuditHandler(handler)
 	}
 
