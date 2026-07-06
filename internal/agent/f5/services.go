@@ -170,6 +170,10 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 			if err := a.EnsureL2(ctx, service.SegmentId, nil, service.MTU); err != nil {
 				return err
 			}
+			// SelfIP on service subnet: BIG-IP L3 presence for SNAT pool and pool members in the service route domain.
+			if err := a.EnsureSelfIPs(ctx, service.SubnetID, false); err != nil {
+				return err
+			}
 		}
 	}
 
