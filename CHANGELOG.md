@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.2] - 2026-07-06
+
 ### Fixed
 
 - F5 agent: `ProcessServices` now provisions a SelfIP on the service subnet again. The 2.5.1 fix removed the call under the assumption that only endpoints need SelfIPs, but the AS3 SnatPool addresses and pool members are pinned to the service's route domain and require the BIG-IP to have L3 presence on the service VLAN — otherwise ARP for SNAT IPs and health monitors against pool members fail. The nil-pointer hardening in `EnsureSelfIPs` from 2.5.1 is retained; the new call runs with `dryRun=false` so the Neutron port is materialized and the SelfIP is created on the device.
@@ -142,7 +144,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-Release with goreleaser
 
-[Unreleased]: https://github.com/sapcc/archer/compare/v2.5.1...HEAD
+[Unreleased]: https://github.com/sapcc/archer/compare/v2.5.2...HEAD
+
+[2.5.2]: https://github.com/sapcc/archer/compare/v2.5.1...v2.5.2
 
 [2.5.1]: https://github.com/sapcc/archer/compare/v2.5.0...v2.5.1
 
