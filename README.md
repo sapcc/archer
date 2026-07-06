@@ -4,39 +4,60 @@ SPDX-FileCopyrightText: Copyright 2025 SAP SE or an SAP affiliate company
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# Archer - CCloud Endpoint Service [![Go Reference](https://pkg.go.dev/badge/github.com/sapcc/archer/v2.svg)](https://pkg.go.dev/github.com/sapcc/archer/v2) [![Swagger](https://img.shields.io/badge/Swagger-UI-brightgreen)](https://sapcc.github.io/archer/) [![Go Report Card](https://goreportcard.com/badge/github.com/sapcc/archer/v2)](https://goreportcard.com/report/github.com/sapcc/archer/v2) [![Checks](https://github.com/sapcc/archer/actions/workflows/checks.yaml/badge.svg)](https://github.com/sapcc/archer/actions/workflows/checks.yaml) [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+# Archer — SCI Endpoint Service
 
-Archer is an API service that can privately connect services from one private [OpenStack Network](https://docs.openstack.org/neutron/latest/admin/intro-os-networking.html) to another. Consumers can select a *service* from a service catalog and **inject** it to their network, which means making this *service* available via a private ip address.
+[![Go Reference](https://pkg.go.dev/badge/github.com/sapcc/archer/v2.svg)](https://pkg.go.dev/github.com/sapcc/archer/v2)
+[![Swagger](https://img.shields.io/badge/Swagger-UI-brightgreen)](https://sapcc.github.io/archer/)
+[![Checks](https://github.com/sapcc/archer/actions/workflows/checks.yaml/badge.svg)](https://github.com/sapcc/archer/actions/workflows/checks.yaml)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-Archer implements an *OpenStack* like API and integrates with *OpenStack Keystone* and *OpenStack Neutron*.
+Archer is an OpenStack-style API service that privately connects services across [OpenStack Networks](https://docs.openstack.org/neutron/latest/admin/intro-os-networking.html). Consumers pick a *service* from a catalog and **inject** it into their own network — the service becomes reachable through a private IP, without exposing either network to the other.
 
-## Architecture
-There are two types of resources: **services** and **endpoints**
+Archer integrates with *OpenStack Keystone* for authentication and *OpenStack Neutron* for network and port management.
 
-* **Services** are private or public services that are manually configured in *Archer*. They can be accessed by creating an endpoint.
-* **Service endpoints**, or short **endpoints**, are IP endpoints in a local network used to transparently access services residing in different private networks.
+## Concepts
 
-### Features
-* Multi-tenant capable via OpenStack Identity service
-* OpenStack `policy.json` access policy support
-* Prometheus Exporter
-* Rate limiting
-* CORS
-* CADF compatible audit tracing
-* Sentry support
-* CLI Client `archerctl`
+Archer exposes two resource types:
 
-### Supported Backends
-* F5 BigIP
-* Network Injection agent (together with `openvswitch-agent` or `linuxbridge-agent`)
+- **Services** — private or public services registered in Archer. They are reached by creating an endpoint.
+- **Endpoints** — IP endpoints in a local network that transparently forward to a service living in another private network.
 
-### Requirements
-* PostgreSQL Database
-* OpenStack Keystone
-* OpenStack Neutron
+## Features
+
+- Multi-tenant via OpenStack Identity
+- OpenStack `policy.json` access policies
+- Prometheus exporter
+- Rate limiting and CORS
+- CADF-compatible audit trail
+- Sentry error reporting
+- OpenStack-style CLI client (`archerctl`)
+
+## Supported Backends
+
+- **F5 BigIP** — provisioned via the `archer-f5-agent`
+- **Network Injection** — the `archer-ni-agent`, using HAProxy inside Linux network namespaces; works alongside `openvswitch-agent` or `linuxbridge-agent`
+
+## Requirements
+
+- PostgreSQL
+- OpenStack Keystone
+- OpenStack Neutron
+
+## Components
+
+| Binary | Description |
+|--------|-------------|
+| `archer-server` | REST API server |
+| `archer-f5-agent` | Backend agent for F5 BigIP |
+| `archer-ni-agent` | Network Injection agent (HAProxy in netns) |
+| `archer-migrate` | Database schema migration tool |
+| `archerctl` | CLI client |
+
+Build all of them with `make build-all`. Run `make check` to lint, test and build.
 
 ## CLI Client
-`archerctl` provides a OpenStack-like CLI client for interacting with the Archer API Service. It supports common OpenStack environment setting as set by the OpenStack RC File.
+
+`archerctl` is an OpenStack-style CLI for the Archer API. It honours the standard OpenStack environment variables set by an OpenStack RC file.
 
 ```sh
 # archerctl --help
@@ -74,8 +95,8 @@ Available commands:
   version   Version
 ```
 
+### Example
 
-#### Example
 ```sh
 # archerctl service list
 +--------------------------------------+------+------+---------+----------+-----------+-------------------+
@@ -85,128 +106,102 @@ Available commands:
 +--------------------------------------+------+------+---------+----------+-----------+-------------------+
 ```
 
-#### Colorized Output
-The CLI provides colorized output by default when connected to an interactive terminal. Colors help distinguish between different states and values:
+### Colorized Output
 
-* **Green**: Active states (`true`, `enabled`, `active`, `available`, `success`, `accepted`)
-* **Red**: Inactive or error states (`false`, `disabled`, `inactive`, `error`, `failed`, `rejected`)
-* **Yellow**: Pending states (`pending`, `processing`, `waiting`)
-* **Cyan**: Headers, status values, and names
-* **Gray**: IDs, project IDs, and null values
+Table output is colorized by default on interactive terminals to make states easier to scan:
+
+| Color | Values |
+|-------|--------|
+| Green | `true`, `enabled`, `active`, `available`, `success`, `accepted` |
+| Red | `false`, `disabled`, `inactive`, `error`, `failed`, `rejected` |
+| Yellow | `pending`, `processing`, `waiting` |
+| Cyan | Headers, status values, names |
+| Gray | IDs, project IDs, null values |
 
 Colors are automatically disabled when:
-* Output is piped or redirected (e.g., `archerctl service list | less`)
-* `NO_COLOR` environment variable is set
-* `TERM` is set to `dumb`
-* Using non-table output formats (`--format=csv`, `--format=markdown`, etc.)
 
-To explicitly disable colors, use the `--no-color` flag:
-```sh
-# Disable colorized output
-archerctl service list --no-color
+- Output is piped or redirected (e.g. `archerctl service list | less`)
+- `NO_COLOR` is set in the environment
+- `TERM` is `dumb`
+- A non-table format is used (`--format=csv`, `--format=markdown`, …)
 
-# Or via environment variable
-NO_COLOR=1 archerctl service list
-```
-
+To force-disable colors, use `--no-color` or `NO_COLOR=1`.
 
 ## API
-This section describes properties of the Archer API. It uses a ReSTful HTTP API.
 
-#### Request format
-The Archer API only accepts requests with the JSON data serialization format. The Content-Type header for POST requests is always expected to be `application/json`.
+Archer exposes a RESTful HTTP API. The full spec is browsable via [Swagger UI](https://sapcc.github.io/archer/).
 
-#### Response format
-The Archer API always response with JSON data serialization format. The Content-Type header is always `Content-Type: application/json`.
+### Request / Response Format
 
-#### Authentication and authorization
-The **Archer API** uses the OpenStack Identity service as the default authentication service. When Keystone is enabled, users that submit requests to the OpenStack Networking service must provide an authentication token in `X-Auth-Token` request header.
-You obtain the token by authenticating to the Keystone endpoint.
+Requests and responses use JSON. `POST` requests must set `Content-Type: application/json`; responses always come back with `Content-Type: application/json`.
 
-When Keystone is enabled, the `project_id` attribute is not required in create requests because the project ID is derived from the authentication token.
+### Authentication
 
-#### Pagination
-To reduce load on the service, list operations will return a maximum number of items at a time. To navigate the collection, the parameters limit, marker and page_reverse can be set in the URI. For example:
+Archer uses OpenStack Keystone. Requests must include a Keystone token in the `X-Auth-Token` header. Because the project ID is derived from the token, `project_id` is not required on create requests.
+
+### Pagination
+
+List operations return a bounded number of items. Navigate the collection with URI parameters:
 
 ```
 ?limit=100&marker=1234&page_reverse=False
 ```
 
-The `marker` parameter is the ID of the last item in the previous list. The `limit` parameter sets the page size. The `page_reverse` parameter sets the page direction.
-These parameters are optional.
-If the client requests a limit beyond the maximum limit configured by the deployment, the server returns the maximum limit number of items.
+- `marker` — the ID of the last item from the previous page
+- `limit` — page size (clamped to the deployment maximum)
+- `page_reverse` — reverse pagination direction
 
-For convenience, list responses contain atom **next** links and **previous** links. The last page in the list requested with `page_reverse=False` will not contain **next** link, and the last page in the list requested with `page_reverse=True` will not contain **previous** link.
+Responses include atom `next` and `previous` links. The final forward page has no `next`; the final reverse page has no `previous`. Deployments advertise pagination support through the `pagination` capability on the API detail endpoint.
 
-To determine if pagination is supported, a user can check whether the `pagination` capability is available through the Archer API detail endpoint.
+### Sorting
 
-#### Sorting
-You can use the `sort` parameter to sort the results of list operations.
-The sort parameter contains a comma-separated list of sort keys, in order of the sort priority. Each sort key can be optionally prepended with a minus **-** character to reverse default sort direction (ascending).
-
-For example:
+Use `sort` with a comma-separated list of keys, in priority order. Prefix a key with `-` to sort descending:
 
 ```
 ?sort=key1,-key2,key3
 ```
 
-**key1** is the first key (ascending order), **key2** is the second key (descending order) and **key3** is the third key in ascending order.
+Sort support is advertised through the `sort` capability on the API detail endpoint.
 
+### Filtering by Tags
 
-To determine if sorting is supported, a user can check whether the `sort` capability is available through the Archer API detail endpoint.
+Most resources (services, endpoints, …) accept tags. Archer supports four tag filters on list operations:
 
-#### Filtering by tags
-Most resources (e.g. service and endpoint) support adding tags to the resource attributes. Archer supports advanced filtering using these tags for list operations. The following tag filters are supported by the Archer API:
+- `tags` — entities that have **all** the given tags
+- `tags-any` — entities that have **any** of the given tags
+- `not-tags` — entities that do **not** have all of the given tags
+- `not-tags-any` — entities that do **not** have any of the given tags
 
-* `tags` - Return the list of entities that have this tag or tags.
-* `tags-any` - Return the list of entities that have one or more of the given tags.
-* `not-tags` - Return the list of entities that do not have one or more of the given tags.
-* `not-tags-any` - Return the list of entities that do not have at least one of the given tags.
-
-Each tag supports a maximum amount of 64 characters.
-
-For example to get a list of resources having both, **red** and **blue** tags:
-
-```
-?tags=red,blue
-```
-
-To get a list of resourcing having either, **red** or **blue** tags:
-
-```
-?tags-any=red,blue
-```
-
-Tag filters can also be combined in the same request:
+Each tag is limited to 64 characters. Filters can be combined:
 
 ```
 ?tags=red,blue&tags-any=green,orange
 ```
 
-#### Response Codes (Faults)
+### Response Codes
 
-| Code | Description                                                                                    |
-|------|------------------------------------------------------------------------------------------------|
-| 400  | Validation Error                                                                               |
-| 401  | Unauthorized                                                                                   |
-| 403  | Policy does not allow current user to do this <br> The project is over quota for the request   |
-| 404  | Not Found <br> Resource not found                                                              |
-| 409  | Conflict                                                                                       |
-| 429  | You have reached maximum request limit                                                         |
-| 500  | Internal server error                                                                          |
+| Code | Meaning |
+|------|---------|
+| 400 | Validation error |
+| 401 | Unauthorized |
+| 403 | Policy denies the action, or the project is over quota |
+| 404 | Resource not found |
+| 409 | Conflict |
+| 429 | Rate limit exceeded |
+| 500 | Internal server error |
 
 ## Support, Feedback, Contributing
 
-This project is open to feature requests/suggestions, bug reports etc. via [GitHub issues](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/creating-an-issue). Contribution and feedback are encouraged and always welcome. For more information about how to contribute, the project structure, as well as additional contribution information, see our [Contribution Guidelines](https://github.com/SAP-cloud-infrastructure/.github/blob/main/CONTRIBUTING.md).
+This project is open to feature requests, suggestions, and bug reports via [GitHub issues](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/creating-an-issue). Contributions and feedback are welcome — see our [Contribution Guidelines](https://github.com/SAP-cloud-infrastructure/.github/blob/main/CONTRIBUTING.md) for project structure and how to get involved.
 
 ## Security / Disclosure
 
-If you find any bug that may be a security problem, please follow our instructions [in our security policy](https://github.com/SAP-cloud-infrastructure/.github/blob/main/SECURITY.md) on how to report it. Please do not create GitHub issues for security-related doubts or problems.
+If you find a bug that may be a security problem, please follow our [security policy](https://github.com/SAP-cloud-infrastructure/.github/blob/main/SECURITY.md). Do not open GitHub issues for security-related concerns.
 
 ## Code of Conduct
 
-We as members, contributors, and leaders pledge to make participation in our community a harassment-free experience for everyone. By participating in this project, you agree to abide by its [Code of Conduct](https://github.com/SAP-cloud-infrastructure/.github/blob/main/CODE_OF_CONDUCT.md) at all times.
+We pledge to make participation in our community a harassment-free experience for everyone. By participating in this project, you agree to abide by our [Code of Conduct](https://github.com/SAP-cloud-infrastructure/.github/blob/main/CODE_OF_CONDUCT.md).
 
 ## Licensing
 
-Copyright 2023-2025 SAP SE or an SAP affiliate company and archer contributors. Please see our [LICENSE](./LICENSE) for copyright and license information. Detailed information including third-party components and their licensing/copyright information is available [via the REUSE tool](https://api.reuse.software/info/github.com/sapcc/archer).
+Copyright 2023-2025 SAP SE or an SAP affiliate company and Archer contributors. See [LICENSE](./LICENSE) for copyright and license information. Detailed third-party component information is available via the [REUSE tool](https://api.reuse.software/info/github.com/sapcc/archer).
