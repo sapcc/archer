@@ -41,6 +41,10 @@ swagger:
 	swagger generate client --copyright-file COPYRIGHT.txt
 markdown:
 	swagger generate markdown --copyright-file COPYRIGHT.txt --output=docs/api.md
+# Invoked by the release-pr GitHub workflow with VERSION set to the bumped
+# version. Keeps swagger.yaml's version in sync with the release tag.
+release-prepare:
+	$(SED) -i 's/^  version: .*/  version: "$(VERSION)"/' swagger.yaml
 
 install-goimports: FORCE
 	@if ! hash goimports 2>/dev/null; then printf "\e[1;36m>> Installing goimports (this may take a while)...\e[0m\n"; go install golang.org/x/tools/cmd/goimports@latest; fi

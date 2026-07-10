@@ -85,6 +85,10 @@ verbatim: |
       swagger generate client --copyright-file COPYRIGHT.txt
   markdown:
       swagger generate markdown --copyright-file COPYRIGHT.txt --output=docs/api.md
+  # Invoked by the release-pr GitHub workflow with VERSION set to the bumped
+  # version. Keeps swagger.yaml's version in sync with the release tag.
+  release-prepare:
+      $(SED) -i 's/^  version: .*/  version: "$(VERSION)"/' swagger.yaml
 
 coverageTest:
   only: '/internal'
