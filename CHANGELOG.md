@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.3] - 2026-07-10
+
 ### Added
 
 - Audit: POST and PUT request bodies (JSON only, capped at 64 KiB) are now included in CADF audit events as a `request_body` attachment, so audit trails record what changed, not just that something changed.
@@ -163,7 +165,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-Release with goreleaser
 
-[Unreleased]: https://github.com/sapcc/archer/compare/v2.5.2...HEAD
+[Unreleased]: https://github.com/sapcc/archer/compare/v2.5.3...HEAD
+
+[2.5.3]: https://github.com/sapcc/archer/compare/v2.5.2...v2.5.3
 
 [2.5.2]: https://github.com/sapcc/archer/compare/v2.5.1...v2.5.2
 
