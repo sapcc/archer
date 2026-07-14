@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Requests whose context is cancelled or times out (e.g. the client disconnects or the request deadline is hit while waiting on a `FOR UPDATE` row lock) no longer surface as HTTP 500 with an error-level stack trace. The recovery middleware now detects context-cancellation panics and returns HTTP 499 (Client Closed Request), logged at info level.
+
 ## [2.5.3] - 2026-07-10
 
 ### Added
