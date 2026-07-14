@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	policy "github.com/databus23/goslo.policy"
@@ -17,6 +18,8 @@ import (
 	"github.com/go-openapi/swag/conv"
 	"github.com/gophercloud/gophercloud/v2/testhelper/fixture"
 	"github.com/sapcc/go-bits/gopherpolicy"
+	"github.com/sirupsen/logrus"
+	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/sapcc/archer/v2/internal/config"
@@ -340,6 +343,95 @@ func (t *SuiteTest) TestServiceDelete() {
 			ServiceID: "11fb8be3-6154-4244-80f1-6b0bef94aa1e"},
 		nil)
 	assert.IsType(t.T(), &service.DeleteServiceServiceIDNotFound{}, res)
+}
+
+// TestServiceDeleteLockContention reproduces the incident: a concurrent holder
+// keeps a FOR UPDATE lock on the service row while the DELETE handler tries to
+// acquire it. With the bounded lock_timeout the handler must fail fast with a
+// lock-timeout panic well before the (30s) request deadline, rather than
+// blocking and panicking on a cancelled context. The recovery middleware maps
+// that panic to a retryable 503 (see the middlewares package tests).
+func (t *SuiteTest) TestServiceDeleteLockContention() {
+	serviceId := t.createService(testService)
+
+	// Shorten the lock timeout for the test and restore it afterwards.
+	orig := t.c.lockTimeout
+	t.c.lockTimeout = 500 * time.Millisecond
+	defer func() { t.c.lockTimeout = orig }()
+
+	// Hold a FOR UPDATE lock on the service row in a separate transaction,
+	// simulating an agent mid-reconcile.
+	holderTx, err := t.c.pool.Begin(context.Background())
+	assert.NoError(t.T(), err)
+	defer func() { _ = holderTx.Rollback(context.Background()) }()
+
+	sql, args := db.Select("id").From("service").
+		Where("id = ?", serviceId).Suffix("FOR UPDATE").MustSql()
+	var lockedID strfmt.UUID
+	assert.NoError(t.T(), holderTx.QueryRow(context.Background(), sql, args...).Scan(&lockedID))
+
+	// The DELETE handler should panic with a lock-timeout error promptly
+	// (bounded by lock_timeout), not hang until the request deadline.
+	start := time.Now()
+	var recovered any
+	func() {
+		defer func() { recovered = recover() }()
+		t.c.DeleteServiceServiceIDHandler(
+			service.DeleteServiceServiceIDParams{HTTPRequest: &headerProject1, ServiceID: serviceId},
+			nil)
+	}()
+	elapsed := time.Since(start)
+
+	assert.Less(t.T(), elapsed, 5*time.Second, "handler should fail fast on lock timeout")
+	err, ok := recovered.(error)
+	assert.True(t.T(), ok, "handler should panic with an error")
+	assert.True(t.T(), db.IsLockTimeout(err), "panic should be a lock_timeout error, got: %v", recovered)
+}
+
+// TestLogLockBlockersIntegration verifies against a real Postgres that
+// LogLockBlockers finds the session actually holding a lock on the service row
+// and reports it. A dedicated connection with a recognizable application_name
+// holds a FOR UPDATE lock inside an open transaction (mirroring an agent
+// mid-reconcile); LogLockBlockers must surface that connection.
+func (t *SuiteTest) TestLogLockBlockersIntegration() {
+	serviceId := t.createService(testService)
+
+	// Acquire a separate connection whose application_name we control, so we can
+	// unambiguously recognize it in the diagnostic output.
+	holder, err := t.c.pool.Acquire(context.Background())
+	assert.NoError(t.T(), err)
+	defer holder.Release()
+
+	_, err = holder.Exec(context.Background(), "SET application_name = 'archer-test-holder'")
+	assert.NoError(t.T(), err)
+
+	holderTx, err := holder.Begin(context.Background())
+	assert.NoError(t.T(), err)
+	defer func() { _ = holderTx.Rollback(context.Background()) }()
+
+	sql, args := db.Select("id").From("service").
+		Where("id = ?", serviceId).Suffix("FOR UPDATE").MustSql()
+	var lockedID strfmt.UUID
+	assert.NoError(t.T(), holderTx.QueryRow(context.Background(), sql, args...).Scan(&lockedID))
+
+	hook := logtest.NewGlobal()
+	defer hook.Reset()
+
+	db.LogLockBlockers(context.Background(), t.c.pool, "service")
+
+	// Find the error-level entry naming our holder connection.
+	var found *logrus.Entry
+	for _, e := range hook.AllEntries() {
+		if e.Level == logrus.ErrorLevel && e.Data["application_name"] == "archer-test-holder" {
+			found = e
+			break
+		}
+	}
+	if assert.NotNil(t.T(), found, "LogLockBlockers should report the holding session") {
+		assert.Equal(t.T(), "service", found.Data["relation"])
+		assert.Contains(t.T(), found.Data["blocker_query"], "FOR UPDATE")
+		assert.NotEmpty(t.T(), found.Data["blocker_pid"])
+	}
 }
 
 func (t *SuiteTest) TestServiceDuplicatePayload() {
