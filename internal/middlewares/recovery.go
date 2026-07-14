@@ -12,6 +12,8 @@ import (
 	"runtime/debug"
 
 	log "github.com/sirupsen/logrus"
+
+	"github.com/sapcc/archer/v2/internal/db"
 )
 
 // clientClosedRequest is the (unofficial but widely used) HTTP status code for
@@ -31,6 +33,11 @@ const clientClosedRequest = 499
 // handler panicking on the error returned when a FOR UPDATE lock wait exceeds
 // the request deadline) are a client-side condition, not a server fault. Those
 // are converted to HTTP 499 and logged at info level without a stack trace.
+//
+// Panics caused by a bounded FOR UPDATE lock wait timing out (the row is busy,
+// typically an agent mid-reconcile) are converted to HTTP 503 with a
+// Retry-After header — retryable, and not a server bug. The handler is expected
+// to have already logged the blocking session before re-panicking.
 func RecoveryMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
@@ -53,6 +60,19 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 				}).Infof("request context cancelled: %v", err)
 
 				w.WriteHeader(clientClosedRequest)
+				return
+			}
+
+			// A bounded FOR UPDATE lock wait timed out: the row is busy, not a
+			// server fault. Report a retryable 503.
+			if db.IsLockTimeout(err) {
+				log.WithFields(log.Fields{
+					"method": r.Method,
+					"path":   r.URL.Path,
+				}).Infof("lock timeout, responding 503: %v", err)
+
+				w.Header().Set("Retry-After", "5")
+				w.WriteHeader(http.StatusServiceUnavailable)
 				return
 			}
 

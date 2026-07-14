@@ -445,7 +445,7 @@ func (c *Controller) DeleteServiceServiceIDHandler(params service.DeleteServiceS
 		q = q.Where("project_id = ?", projectId)
 	}
 
-	tx, err := c.pool.Begin(params.HTTPRequest.Context())
+	tx, err := db.BeginWithLockTimeout(params.HTTPRequest.Context(), c.pool, c.lockTimeout)
 	if err != nil {
 		panic(err)
 	}
@@ -456,6 +456,9 @@ func (c *Controller) DeleteServiceServiceIDHandler(params service.DeleteServiceS
 	if err := tx.QueryRow(params.HTTPRequest.Context(), sql, args...).Scan(&host); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return service.NewDeleteServiceServiceIDNotFound()
+		}
+		if db.IsLockTimeout(err) {
+			db.LogLockBlockers(params.HTTPRequest.Context(), c.pool, "service")
 		}
 		panic(err)
 	}
@@ -763,6 +766,10 @@ func (c *Controller) PostServiceServiceIDMigrateHandler(params service.PostServi
 	var az *string
 
 	if err := pgx.BeginFunc(ctx, c.pool, func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, fmt.Sprintf("SET LOCAL lock_timeout = %d", c.lockTimeout.Milliseconds())); err != nil {
+			return err
+		}
+
 		// Get current service details
 		sql, args := db.Select("host", "provider", "availability_zone").
 			From("service").
@@ -878,6 +885,9 @@ func (c *Controller) PostServiceServiceIDMigrateHandler(params service.PostServi
 				Code:    400,
 				Message: "Service is already on the target host",
 			})
+		}
+		if db.IsLockTimeout(err) {
+			db.LogLockBlockers(ctx, c.pool, "service")
 		}
 		panic(err)
 	}

@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -44,6 +45,16 @@ func TestRecoveryMiddleware(t *testing.T) {
 			name:       "wrapped context canceled becomes 499",
 			panicValue: fmt.Errorf("failed to send query: %w", context.Canceled),
 			wantStatus: clientClosedRequest,
+		},
+		{
+			name:       "lock timeout becomes 503",
+			panicValue: &pgconn.PgError{Code: "55P03"},
+			wantStatus: http.StatusServiceUnavailable,
+		},
+		{
+			name:       "wrapped lock timeout becomes 503",
+			panicValue: fmt.Errorf("query failed: %w", &pgconn.PgError{Code: "55P03"}),
+			wantStatus: http.StatusServiceUnavailable,
 		},
 	}
 

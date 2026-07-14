@@ -95,7 +95,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, tok
 		})
 	}
 
-	tx, err := c.pool.Begin(ctx)
+	tx, err := db.BeginWithLockTimeout(ctx, c.pool, c.lockTimeout)
 	if err != nil {
 		panic(err)
 	}
@@ -127,6 +127,9 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, tok
 				Message: fmt.Sprintf("Service '%s' is not accessible.",
 					params.Body.ServiceID),
 			})
+		}
+		if db.IsLockTimeout(err) {
+			db.LogLockBlockers(ctx, c.pool, "service")
 		}
 		panic(err)
 	}
