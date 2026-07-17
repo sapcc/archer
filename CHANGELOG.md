@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - API handlers that lock a service row with `FOR UPDATE` (service delete, service migrate, endpoint create) now bound the lock wait with a 5s `lock_timeout` instead of blocking until the 30s request deadline. When the lock is held by another operation (e.g. an agent mid-reconcile), the handler now returns HTTP 503 with a `Retry-After` header, and logs the blocking session — its PID, `application_name`, state, how long it has held the lock, and its running query — so the actual lock holder can be identified from the logs.
-- Requests whose context is cancelled or times out (e.g. the client disconnects or the request deadline is hit while waiting on a `FOR UPDATE` row lock) no longer surface as HTTP 500 with an error-level stack trace. The recovery middleware now detects context-cancellation panics and returns HTTP 499 (Client Closed Request), logged at info level.
+- Requests whose context is cancelled or times out (e.g. the client disconnects or the request deadline is hit while waiting on a `FOR UPDATE` row lock) no longer surface as HTTP 500 with an error-level stack trace. The recovery middleware now detects context-cancellation panics and returns HTTP 499 (Client Closed Request), logged at info level. Such panics are also filtered out in Sentry via `BeforeSend`, so client disconnects no longer create Sentry issues.
 
 ## [2.5.3] - 2026-07-10
 

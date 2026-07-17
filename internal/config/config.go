@@ -7,6 +7,8 @@
 package config
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -188,6 +190,17 @@ func InitSentry() {
 			AttachStacktrace: true,
 			Release:          Version,
 			ServerName:       Global.Default.Host,
+			BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
+				// A canceled or timed-out request context is a client-side
+				// condition (disconnect or request deadline), not a server
+				// fault. The recovery middleware already maps these to HTTP 499;
+				// don't also report them to Sentry.
+				if hint != nil && (errors.Is(hint.OriginalException, context.Canceled) ||
+					errors.Is(hint.OriginalException, context.DeadlineExceeded)) {
+					return nil
+				}
+				return event
+			},
 		}); err != nil {
 			log.Fatalf("Sentry initialization failed: %v", err)
 		}
