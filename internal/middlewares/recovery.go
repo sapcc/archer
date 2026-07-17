@@ -5,12 +5,21 @@
 package middlewares
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"runtime/debug"
 
 	log "github.com/sirupsen/logrus"
+
+	"github.com/sapcc/archer/v2/internal/db"
 )
+
+// clientClosedRequest is the (unofficial but widely used) HTTP status code for
+// a request whose context was canceled by the client or by hitting the
+// request deadline. It signals that the failure is not a server fault.
+const clientClosedRequest = 499
 
 // RecoveryMiddleware catches panics from downstream handlers, logs them with a
 // stack trace, and writes a plain 500 response. It is intended to wrap the
@@ -19,6 +28,16 @@ import (
 //
 // The 500 is written via WriteHeader so that any outer Prometheus
 // instrumentation observes the correct status code.
+//
+// Panics caused solely by a canceled or timed-out request context (e.g. a
+// handler panicking on the error returned when a FOR UPDATE lock wait exceeds
+// the request deadline) are a client-side condition, not a server fault. Those
+// are converted to HTTP 499 and logged at info level without a stack trace.
+//
+// Panics caused by a bounded FOR UPDATE lock wait timing out (the row is busy,
+// typically an agent mid-reconcile) are converted to HTTP 503 with a
+// Retry-After header — retryable, and not a server bug. The handler is expected
+// to have already logged the blocking session before re-panicking.
 func RecoveryMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
@@ -30,6 +49,31 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 			err, ok := rec.(error)
 			if !ok {
 				err = fmt.Errorf("%v", rec)
+			}
+
+			// A canceled/timed-out request context is not a server bug.
+			// Avoid the error-level log + stack trace and report 499.
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				log.WithFields(log.Fields{
+					"method": r.Method,
+					"path":   r.URL.Path,
+				}).Infof("request context cancelled: %v", err)
+
+				w.WriteHeader(clientClosedRequest)
+				return
+			}
+
+			// A bounded FOR UPDATE lock wait timed out: the row is busy, not a
+			// server fault. Report a retryable 503.
+			if db.IsLockTimeout(err) {
+				log.WithFields(log.Fields{
+					"method": r.Method,
+					"path":   r.URL.Path,
+				}).Infof("lock timeout, responding 503: %v", err)
+
+				w.Header().Set("Retry-After", "5")
+				w.WriteHeader(http.StatusServiceUnavailable)
+				return
 			}
 
 			log.WithFields(log.Fields{
