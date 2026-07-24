@@ -17,14 +17,14 @@ require (
 	github.com/getsentry/sentry-go v0.20.0
 	github.com/go-co-op/gocron/v2 v2.22.0
 	github.com/go-openapi/errors v0.22.8
-	github.com/go-openapi/loads v0.24.0
-	github.com/go-openapi/runtime v0.32.5
-	github.com/go-openapi/spec v0.22.6
+	github.com/go-openapi/loads v0.25.0
+	github.com/go-openapi/runtime v0.32.6
+	github.com/go-openapi/spec v0.22.9
 	github.com/go-openapi/strfmt v0.27.0
-	github.com/go-openapi/swag v0.27.0
-	github.com/go-openapi/swag/cmdutils v0.27.0
-	github.com/go-openapi/swag/conv v0.27.0
-	github.com/go-openapi/validate v0.26.0
+	github.com/go-openapi/swag v0.27.3
+	github.com/go-openapi/swag/cmdutils v0.27.3
+	github.com/go-openapi/swag/conv v0.27.3
+	github.com/go-openapi/validate v0.26.1
 	github.com/google/uuid v1.6.0
 	github.com/gophercloud/gophercloud/v2 v2.13.0
 	github.com/gophercloud/utils/v2 v2.0.0-20260626221802-4ae35253ac13
@@ -34,16 +34,16 @@ require (
 	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
 	github.com/jackc/pgx-logrus v0.0.0-20220919124836-b099d8ce75da
 	github.com/jackc/pgx/v5 v5.10.0
-	github.com/jedib0t/go-pretty/v6 v6.8.2
+	github.com/jedib0t/go-pretty/v6 v6.8.3
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/moby/moby/api v1.55.0
 	github.com/pashagolub/pgxmock/v5 v5.1.0
-	github.com/prometheus/client_golang v1.23.2
+	github.com/prometheus/client_golang v1.24.0
 	github.com/rs/cors v1.11.1
 	github.com/sapcc/go-api-declarations v1.24.0
 	github.com/sapcc/go-bits v0.0.0-20260716112359-12c1e998f741
-	github.com/sethvargo/go-retry v0.3.0
+	github.com/sethvargo/go-retry v0.4.0
 	github.com/sirupsen/logrus v1.9.4
 	github.com/stretchr/testify v1.11.1
 	github.com/testcontainers/testcontainers-go v0.43.0
@@ -76,22 +76,22 @@ require (
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/ebitengine/purego v0.10.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
+	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
-	github.com/go-openapi/analysis v0.25.3 // indirect
-	github.com/go-openapi/jsonpointer v0.24.0 // indirect
-	github.com/go-openapi/jsonreference v0.21.6 // indirect
+	github.com/go-openapi/analysis v0.25.5 // indirect
+	github.com/go-openapi/jsonpointer v1.0.0 // indirect
+	github.com/go-openapi/jsonreference v1.0.0 // indirect
 	github.com/go-openapi/runtime/server-middleware v0.30.0 // indirect
-	github.com/go-openapi/swag/fileutils v0.27.0 // indirect
-	github.com/go-openapi/swag/jsonname v0.26.1 // indirect
-	github.com/go-openapi/swag/jsonutils v0.27.0 // indirect
-	github.com/go-openapi/swag/loading v0.27.0 // indirect
-	github.com/go-openapi/swag/mangling v0.27.0 // indirect
-	github.com/go-openapi/swag/netutils v0.27.0 // indirect
-	github.com/go-openapi/swag/stringutils v0.27.0 // indirect
-	github.com/go-openapi/swag/typeutils v0.27.0 // indirect
-	github.com/go-openapi/swag/yamlutils v0.27.0 // indirect
+	github.com/go-openapi/swag/fileutils v0.27.3 // indirect
+	github.com/go-openapi/swag/jsonutils v0.27.3 // indirect
+	github.com/go-openapi/swag/loading v0.27.3 // indirect
+	github.com/go-openapi/swag/mangling v0.27.3 // indirect
+	github.com/go-openapi/swag/netutils v0.27.3 // indirect
+	github.com/go-openapi/swag/pools v0.27.3 // indirect
+	github.com/go-openapi/swag/stringutils v0.27.3 // indirect
+	github.com/go-openapi/swag/typeutils v0.27.3 // indirect
+	github.com/go-openapi/swag/yamlutils v0.27.3 // indirect
 	github.com/go-pkgz/expirable-cache/v3 v3.0.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/gocarina/gocsv v0.0.0-20210516172204-ca9e8a8ddea8 // indirect
@@ -122,7 +122,7 @@ require (
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.70.0 // indirect
-	github.com/prometheus/procfs v0.21.0 // indirect
+	github.com/prometheus/procfs v0.21.1 // indirect
 	github.com/rabbitmq/amqp091-go v1.12.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
