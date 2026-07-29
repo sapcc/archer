@@ -80,19 +80,58 @@ func TestProcessServicesWithDeletedNetwork(t *testing.T) {
 		active:  f5DeviceHost,
 	}
 
+	// Advisory-lock transaction: acquired successfully.
 	dbMock.ExpectBegin()
-	dbMock.ExpectQuery("SELECT * FROM service WHERE host = $1 AND provider = $2 FOR UPDATE OF service").
+	dbMock.ExpectQuery("SELECT pg_try_advisory_xact_lock($1)").
+		WithArgs(advisoryLockProcessServices).
+		WillReturnRows(dbMock.NewRows([]string{"pg_try_advisory_xact_lock"}).AddRow(true))
+	// Services are read without FOR UPDATE now.
+	dbMock.ExpectQuery("SELECT * FROM service WHERE host = $1 AND provider = $2").
 		WithArgs("host-123", models.ServiceProviderTenant).
 		WillReturnRows(dbMock.NewRows([]string{"id", "network_id", "status"}).AddRow(service, &network, models.ServiceStatusPENDINGDELETE))
 	f5DeviceHost.EXPECT().
 		PostAS3(PostAs3BigipFixture, "Common").
 		Return(nil)
-	// delete service
+	// Short write transaction: delete the pending-delete service.
+	dbMock.ExpectBegin()
 	dbMock.ExpectExec("DELETE FROM service WHERE id = $1 AND status = 'PENDING_DELETE';").
 		WithArgs(service).
 		WillReturnResult(pgxmock.NewResult("DELETE", 1))
 	dbMock.ExpectCommit()
-	// beginFuncExec does always a rollback at the end
+	// beginFuncExec does always a rollback at the end; the write tx rollback is a
+	// no-op after commit, followed by the advisory-lock tx rollback (releases the
+	// xact-scoped advisory lock).
+	dbMock.ExpectRollback()
+	dbMock.ExpectRollback()
+
+	if err := a.ProcessServices(ctx); err != nil {
+		t.Errorf("Agent.ProcessServices() error = %v", err)
+	}
+	if err := dbMock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
+// TestProcessServicesSkipsWhenLockHeld verifies that when the advisory lock is
+// already held by another run, ProcessServices returns without reading or
+// mutating any service rows — i.e. it never takes a `service` row lock that
+// could block the API's DELETE/PUT handlers.
+func TestProcessServicesSkipsWhenLockHeld(t *testing.T) {
+	ctx := context.Background()
+	dbMock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dbMock.Close()
+
+	config.Global.Default.Host = "host-locked"
+	a := &Agent{pool: dbMock}
+
+	// Advisory-lock transaction: not acquired -> rolled back, no further queries.
+	dbMock.ExpectBegin()
+	dbMock.ExpectQuery("SELECT pg_try_advisory_xact_lock($1)").
+		WithArgs(advisoryLockProcessServices).
+		WillReturnRows(dbMock.NewRows([]string{"pg_try_advisory_xact_lock"}).AddRow(false))
 	dbMock.ExpectRollback()
 
 	if err := a.ProcessServices(ctx); err != nil {

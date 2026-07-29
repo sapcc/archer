@@ -114,21 +114,26 @@ func (a *Agent) getExtendedService(ctx context.Context, s *models.Service) (*as3
 }
 
 func (a *Agent) ProcessServices(ctx context.Context) error {
-	tx, err := a.pool.Begin(ctx)
+	// Serialize runs without row locks; see tryAdvisoryLock.
+	lockTx, err := a.tryAdvisoryLock(ctx, advisoryLockProcessServices)
 	if err != nil {
+		if errors.Is(err, errAdvisoryLockHeld) {
+			log.Warn("ProcessServices: another run is already in progress, skipping")
+			return nil
+		}
 		return err
 	}
-	defer func() { _ = tx.Rollback(ctx) }()
+	defer func() { _ = lockTx.Rollback(ctx) }()
 
 	var dbServices []*models.Service
-	// We need to fetch all services of this host since the AS3 tenant is shared
+	// Read without FOR UPDATE: all I/O runs with no open write tx, and status
+	// transitions are persisted in a short, status-guarded final tx below.
 	sql, args := db.Select("*").
 		From("service").
 		Where("host = ?", config.Global.Default.Host).
 		Where("provider = ?", models.ServiceProviderTenant).
-		Suffix("FOR UPDATE OF service").
 		MustSql()
-	if err = pgxscan.Select(ctx, tx, &dbServices, sql, args...); err != nil {
+	if err = pgxscan.Select(ctx, a.pool, &dbServices, sql, args...); err != nil {
 		return err
 	}
 
@@ -136,16 +141,14 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 	   Populate ExtendedService instance
 	   ================================================== */
 	var services []*as3.ExtendedService
+	// Quota-failed services; status persisted in the final tx below.
+	var quotaExceeded []*models.Service
 	for _, service := range dbServices {
 		if extendedService, err := a.getExtendedService(ctx, service); err != nil {
 			l := log.WithFields(log.Fields{"service": service.ID, "network": service.NetworkID})
 			if errors.Is(err, internal.ErrQuotaExceeded) {
 				service.Status = models.ServiceStatusERRORQUOTA
-				if _, err = tx.Exec(ctx,
-					`UPDATE service SET status = 'ERROR_QUOTA', updated_at = NOW() WHERE id = $1;`,
-					service.ID); err != nil {
-					return err
-				}
+				quotaExceeded = append(quotaExceeded, service)
 			} else if errors.Is(err, internal.ErrNoIPsAvailable) {
 				// No more IPs available in the subnet
 				l.WithError(err).Warning("ProcessServices: no more IPs available in any subnet")
@@ -211,12 +214,12 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 				continue
 			}
 
-			err, cleanupL2 := checkCleanupL2(ctx, tx, service.NetworkID.String(),
+			err, cleanupL2 := checkCleanupL2(ctx, a.pool, service.NetworkID.String(),
 				false, true)
 			if err != nil {
 				return err
 			}
-			err, cleanupSelfIPs := a.checkCleanupSelfIPs(ctx, tx, service.NetworkID.String(),
+			err, cleanupSelfIPs := a.checkCleanupSelfIPs(ctx, a.pool, service.NetworkID.String(),
 				service.SubnetID, false, true)
 			if err != nil {
 				return err
@@ -261,7 +264,25 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 		}
 	}
 
-	// Successfully updated the tenant
+	/* ==================================================
+	   Persist status transitions in a short transaction
+	   ================================================== */
+	// I/O done; writes are status-guarded, so a row the API changed meanwhile is
+	// a 0-row no-op and reconciles on the next run.
+	tx, err := a.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	for _, service := range quotaExceeded {
+		if _, err = tx.Exec(ctx,
+			`UPDATE service SET status = 'ERROR_QUOTA', updated_at = NOW() WHERE id = $1;`,
+			service.ID); err != nil {
+			return err
+		}
+	}
+
 	for _, service := range services {
 		if service.Status == models.ServiceStatusPENDINGDELETE {
 			if _, err = tx.Exec(ctx, `DELETE FROM service WHERE id = $1 AND status = 'PENDING_DELETE';`,
@@ -275,6 +296,5 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 			}
 		}
 	}
-	_ = tx.Commit(ctx)
-	return nil
+	return tx.Commit(ctx)
 }

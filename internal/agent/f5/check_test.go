@@ -32,7 +32,6 @@ func TestCheckCleanupL2(t *testing.T) {
 		dbMock.Close()
 	}()
 
-	dbMock.ExpectBegin()
 	dbMock.ExpectExec("SELECT 1 FROM service WHERE network_id = $1 AND host = $2 AND provider = $3").
 		WithArgs(networkID, config.Global.Default.Host, models.ServiceProviderTenant).
 		WillReturnResult(pgxmock.NewResult("SELECT 1", 0))
@@ -41,8 +40,7 @@ func TestCheckCleanupL2(t *testing.T) {
 		WillReturnResult(pgxmock.NewResult("SELECT 1", 0))
 
 	ctx := context.TODO()
-	tx, _ := dbMock.Begin(ctx)
-	err, ret := checkCleanupL2(ctx, tx, networkID, false, false)
+	err, ret := checkCleanupL2(ctx, dbMock, networkID, false, false)
 	assert.Nil(t, err, "checkCleanupL2() should not return an error")
 	assert.True(t, ret, "checkCleanupL2() should return true")
 	if err = dbMock.ExpectationsWereMet(); err != nil {
@@ -69,19 +67,17 @@ func TestCheckCleanupSelfIPs(t *testing.T) {
 	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/"+networkID, "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
 
-	dbMock.ExpectBegin()
 	dbMock.ExpectExec("SELECT 1 FROM endpoint INNER JOIN service ON endpoint.service_id = service.id JOIN endpoint_port ON endpoint_id = endpoint.id WHERE endpoint_port.subnet = $1 AND service.host = $2 AND service.provider = $3").
 		WithArgs(subnetID, config.Global.Default.Host, models.ServiceProviderTenant).
 		WillReturnResult(pgxmock.NewResult("SELECT 1", 0))
 
 	ctx := context.TODO()
-	tx, _ := dbMock.Begin(ctx)
 	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)}
 	neutronClient.InitCache()
 	a := &Agent{
 		neutron: &neutronClient,
 	}
-	err, ret := a.checkCleanupSelfIPs(ctx, tx, networkID, subnetID,
+	err, ret := a.checkCleanupSelfIPs(ctx, dbMock, networkID, subnetID,
 		false, false)
 	assert.Nil(t, err, "checkCleanupL2() should not return an error")
 	assert.True(t, ret, "checkCleanupL2() should return true")
@@ -109,7 +105,6 @@ func TestCheckCleanupSelfIPs_negative(t *testing.T) {
 	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/"+networkID, "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
 
-	dbMock.ExpectBegin()
 	dbMock.ExpectExec("SELECT 1 FROM endpoint INNER JOIN service ON endpoint.service_id = service.id JOIN endpoint_port ON endpoint_id = endpoint.id WHERE endpoint_port.subnet = $1 AND service.host = $2 AND service.provider = $3").
 		WithArgs(subnetID, config.Global.Default.Host, models.ServiceProviderTenant).
 		WillReturnResult(pgxmock.NewResult("SELECT 1", 0))
@@ -118,13 +113,12 @@ func TestCheckCleanupSelfIPs_negative(t *testing.T) {
 		WillReturnResult(pgxmock.NewResult("SELECT 1", 1))
 
 	ctx := context.TODO()
-	tx, _ := dbMock.Begin(ctx)
 	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)}
 	neutronClient.InitCache()
 	a := &Agent{
 		neutron: &neutronClient,
 	}
-	err, ret := a.checkCleanupSelfIPs(ctx, tx, networkID, subnetID,
+	err, ret := a.checkCleanupSelfIPs(ctx, dbMock, networkID, subnetID,
 		false, false)
 	assert.Nil(t, err, "checkCleanupL2() should not return an error")
 	assert.False(t, ret, "checkCleanupL2() should return true")
