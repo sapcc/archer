@@ -119,26 +119,23 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	var endpoints []*as3.ExtendedEndpoint
 	var networkID strfmt.UUID
 	var subnetID string
-	var tx pgx.Tx
 
-	{
-		var err error
-		if tx, err = a.pool.Begin(ctx); err != nil {
-			return err
+	// Serialize runs without row locks; see tryAdvisoryLock.
+	lockTx, err := a.tryAdvisoryLock(ctx, advisoryLockProcessEndpoints)
+	if err != nil {
+		if errors.Is(err, errAdvisoryLockHeld) {
+			log.WithField("id", endpointID).Warn("ProcessEndpoint: another run is already in progress, skipping")
+			return nil
 		}
+		return err
 	}
-
-	defer func(tx pgx.Tx, ctx context.Context) {
-		// Rollback is safe to call even if the tx is already closed, so if
-		// the tx commits successfully, this is a no-op
-		_ = tx.Rollback(ctx)
-	}(tx, ctx)
+	defer func() { _ = lockTx.Rollback(ctx) }()
 
 	sql, args := db.Select("network", "subnet").
 		From("endpoint_port").
 		Where("endpoint_id = ?", endpointID).
 		MustSql()
-	if err := tx.QueryRow(ctx, sql, args...).Scan(&networkID, &subnetID); err != nil {
+	if err := a.pool.QueryRow(ctx, sql, args...).Scan(&networkID, &subnetID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			log.WithField("id", endpointID).Warning("Endpoint not found")
 			return nil
@@ -146,7 +143,8 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		return err
 	}
 
-	// Sync endpoint segment cache, is a no-op if already cached
+	// Read without FOR UPDATE: all I/O runs with no open write tx, and status
+	// transitions are persisted in a short final tx below.
 	sql, args = db.Select("endpoint.*",
 		"service.ports AS service_ports",
 		"service.proxy_protocol",
@@ -165,9 +163,8 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		Where("network = ?", networkID).
 		Where("service.host = ?", config.Global.Default.Host).
 		Where("service.provider = ?", models.ServiceProviderTenant).
-		Suffix("FOR UPDATE OF endpoint").
 		MustSql()
-	if err := pgxscan.Select(ctx, tx, &endpoints, sql, args...); err != nil {
+	if err := pgxscan.Select(ctx, a.pool, &endpoints, sql, args...); err != nil {
 		return err
 	}
 
@@ -181,13 +178,12 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	var cleanupL2 bool
 	if checkAllPendingDelete(endpoints, subnetID) {
 		// Consider cleaning up L2 configuration if all endpoints of a subnet are deleted
-		var err error
-		if err, cleanupL2 = checkCleanupL2(ctx, tx, networkID.String(),
+		if err, cleanupL2 = checkCleanupL2(ctx, a.pool, networkID.String(),
 			true, false); err != nil {
 			return err
 		}
 	}
-	err, cleanupSelfIPs := a.checkCleanupSelfIPs(ctx, tx, networkID.String(), subnetID,
+	err, cleanupSelfIPs := a.checkCleanupSelfIPs(ctx, a.pool, networkID.String(), subnetID,
 		true, false)
 	if err != nil {
 		return err
@@ -288,7 +284,13 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		}
 	}
 
-	// 3. Finalize endpoint deletion and related ports
+	// 3. Do the Neutron side effects (port delete / rebind) first, collecting the
+	// resulting DB statement per endpoint, then apply the writes in a short tx.
+	type endpointWrite struct {
+		sql  string
+		args []any
+	}
+	var writes []endpointWrite
 	for _, endpoint := range endpoints {
 		switch endpoint.Status {
 		case models.EndpointStatusPENDINGREJECTED:
@@ -339,7 +341,18 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 				Where("id = ?", endpoint.ID).
 				MustSql()
 		}
-		if _, err = tx.Exec(ctx, sql, args...); err != nil {
+		writes = append(writes, endpointWrite{sql: sql, args: args})
+	}
+
+	// I/O done; persist status transitions in a short tx (scoped by endpoint id).
+	tx, err := a.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	for _, w := range writes {
+		if _, err = tx.Exec(ctx, w.sql, w.args...); err != nil {
 			return err
 		}
 	}

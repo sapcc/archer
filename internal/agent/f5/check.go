@@ -10,7 +10,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/gophercloud/gophercloud/v2"
-	"github.com/jackc/pgx/v5"
 
 	"github.com/sapcc/archer/v2/internal/config"
 	"github.com/sapcc/archer/v2/internal/db"
@@ -18,7 +17,7 @@ import (
 	"github.com/sapcc/archer/v2/models"
 )
 
-func checkCleanupL2(ctx context.Context, tx pgx.Tx, networkID string,
+func checkCleanupL2(ctx context.Context, dbc db.PgxIface, networkID string,
 	ignorePendingEndpoint bool, ignorePendingService bool) (error, bool) {
 
 	q := db.Select("1").
@@ -30,7 +29,7 @@ func checkCleanupL2(ctx context.Context, tx pgx.Tx, networkID string,
 		q = q.Where(sq.NotEq{"status": models.ServiceStatusPENDINGDELETE})
 	}
 	sql, args := q.MustSql()
-	ct, err := tx.Exec(ctx, sql, args...)
+	ct, err := dbc.Exec(ctx, sql, args...)
 	if err != nil {
 		return err, false
 	}
@@ -52,7 +51,7 @@ func checkCleanupL2(ctx context.Context, tx pgx.Tx, networkID string,
 			models.EndpointStatusPENDINGREJECTED}})
 	}
 	sql, args = q.MustSql()
-	ct, err = tx.Exec(ctx, sql, args...)
+	ct, err = dbc.Exec(ctx, sql, args...)
 	if err != nil {
 		return err, false
 	}
@@ -65,7 +64,7 @@ func checkCleanupL2(ctx context.Context, tx pgx.Tx, networkID string,
 	return nil, true
 }
 
-func (a *Agent) checkCleanupSelfIPs(ctx context.Context, tx pgx.Tx, networkID string, subnetID string,
+func (a *Agent) checkCleanupSelfIPs(ctx context.Context, dbc db.PgxIface, networkID string, subnetID string,
 	ignorePendingEndpoint bool, ignorePendingService bool) (error, bool) {
 	// Check if there are existing endpoints in the subnet
 	q := db.Select("1").
@@ -81,7 +80,7 @@ func (a *Agent) checkCleanupSelfIPs(ctx context.Context, tx pgx.Tx, networkID st
 			models.EndpointStatusPENDINGREJECTED}})
 	}
 	sql, args := q.MustSql()
-	ct, err := tx.Exec(ctx, sql, args...)
+	ct, err := dbc.Exec(ctx, sql, args...)
 	if err != nil {
 		return err, false
 	}
@@ -111,7 +110,7 @@ func (a *Agent) checkCleanupSelfIPs(ctx context.Context, tx pgx.Tx, networkID st
 		}
 		sql, args = q.MustSql()
 
-		ct, err = tx.Exec(ctx, sql, args...)
+		ct, err = dbc.Exec(ctx, sql, args...)
 		if err != nil {
 			return err, false
 		}
