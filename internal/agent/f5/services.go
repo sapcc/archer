@@ -16,6 +16,7 @@ import (
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/subnets"
 	log "github.com/sirupsen/logrus"
 
+	common "github.com/sapcc/archer/v2/internal/agent"
 	"github.com/sapcc/archer/v2/internal/agent/f5/as3"
 	"github.com/sapcc/archer/v2/internal/config"
 	"github.com/sapcc/archer/v2/internal/db"
@@ -118,8 +119,9 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 	lockTx, err := a.tryAdvisoryLock(ctx, advisoryLockProcessServices)
 	if err != nil {
 		if errors.Is(err, errAdvisoryLockHeld) {
-			log.Warn("ProcessServices: another run is already in progress, skipping")
-			return nil
+			// Benign serialization; caller reschedules promptly (see processServicesTask).
+			log.Debug("ProcessServices: another run is already in progress, skipping")
+			return common.ErrProcessBusy
 		}
 		return err
 	}
@@ -143,6 +145,11 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 	var services []*as3.ExtendedService
 	// Quota-failed services; status persisted in the final tx below.
 	var quotaExceeded []*models.Service
+	// deferredErr holds the first unexpected per-service error. We keep iterating,
+	// still reconcile Common and persist healthy services' statuses, then return it
+	// so the run is retried — a single failing co-tenant service must not block
+	// pruning migrated-away services or persisting the others.
+	var deferredErr error
 	for _, service := range dbServices {
 		if extendedService, err := a.getExtendedService(ctx, service); err != nil {
 			l := log.WithFields(log.Fields{"service": service.ID, "network": service.NetworkID})
@@ -157,8 +164,12 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 			} else if errors.Is(err, internal.ErrNoSubnetFound) {
 				l.WithError(err).Warning("ProcessServices: no subnet found for network")
 			} else {
-				// Unexpected error, don't skip the service but abort update
-				return err
+				// Unexpected error: record it and skip this service, but keep
+				// going so the Common re-post still prunes departed services.
+				l.WithError(err).Error("ProcessServices: unexpected error resolving service")
+				if deferredErr == nil {
+					deferredErr = err
+				}
 			}
 		} else {
 			services = append(services, extendedService)
@@ -183,10 +194,12 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 	/* ==================================================
 	   Post AS3 Declaration to active BigIP
 	   ================================================== */
+	// updateMode "selective" fully reconciles the named tenant, so services
+	// absent from `services` (e.g. one migrated to another host and thus no
+	// longer in the WHERE host=<me> set) are removed from Common by absence.
 	data := as3.GetAS3Declaration(map[string]as3.Tenant{
 		"Common": as3.GetServiceTenants(services),
 	})
-
 	if err = a.active.PostAS3(&data, "Common"); err != nil {
 		return err
 	}
@@ -276,8 +289,9 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	for _, service := range quotaExceeded {
+		// Guard so a concurrent delete (PENDING_DELETE) is not clobbered to ERROR_QUOTA.
 		if _, err = tx.Exec(ctx,
-			`UPDATE service SET status = 'ERROR_QUOTA', updated_at = NOW() WHERE id = $1;`,
+			`UPDATE service SET status = 'ERROR_QUOTA', updated_at = NOW() WHERE id = $1 AND status <> 'PENDING_DELETE';`,
 			service.ID); err != nil {
 			return err
 		}
@@ -290,11 +304,18 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 				return err
 			}
 		} else {
-			if _, err = tx.Exec(ctx, `UPDATE service SET status = 'AVAILABLE', updated_at = NOW() WHERE id = $1;`,
-				service.ID); err != nil {
+			// Guard on the read status so a concurrent API change (e.g. a delete
+			// arriving mid-run) is a 0-row no-op and reconciles on the next run.
+			if _, err = tx.Exec(ctx,
+				`UPDATE service SET status = 'AVAILABLE', updated_at = NOW() WHERE id = $1 AND status = $2;`,
+				service.ID, service.Status); err != nil {
 				return err
 			}
 		}
 	}
-	return tx.Commit(ctx)
+	if err = tx.Commit(ctx); err != nil {
+		return err
+	}
+	// Healthy services' statuses are now persisted; surface any deferred per-service error so the run is retried.
+	return deferredErr
 }

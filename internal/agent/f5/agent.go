@@ -29,16 +29,22 @@ import (
 )
 
 type Agent struct {
-	scheduler gocron.Scheduler
-	pool      db.PgxIface // thread safe
-	neutron   *neutron.NeutronClient
-	devices   []F5Device
-	hosts     []F5Device
-	active    F5Device // active target
+	scheduler  gocron.Scheduler
+	pool       db.PgxIface // thread safe
+	neutron    *neutron.NeutronClient
+	devices    []F5Device
+	hosts      []F5Device
+	active     F5Device // active target
+	psCoalesce common.Coalescer
 }
 
 func (a *Agent) GetScheduler() gocron.Scheduler {
 	return a.scheduler
+}
+
+// ProcessServicesCoalescer lets ScheduleProcessServices collapse enqueue bursts.
+func (a *Agent) ProcessServicesCoalescer() *common.Coalescer {
+	return &a.psCoalesce
 }
 
 func (a *Agent) GetPool() db.PgxIface {
@@ -208,11 +214,7 @@ func (a *Agent) PendingSyncLoop() error {
 	}
 
 	if ret.RowsAffected() > 0 {
-		if _, err := a.scheduler.NewJob(
-			gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
-			gocron.NewTask(a.ProcessServices),
-			gocron.WithName("ProcessServices"),
-		); err != nil {
+		if err := common.ScheduleProcessServices(context.Background(), a); err != nil {
 			return err
 		}
 	}

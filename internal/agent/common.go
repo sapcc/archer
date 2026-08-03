@@ -6,7 +6,9 @@ package agent
 
 import (
 	"context"
+	"errors"
 	"strings"
+	"sync"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -58,6 +60,11 @@ func UpdateHeartbeat(pool db.PgxIface) {
 		log.WithError(err).Error("Failed to update heartbeat")
 	}
 }
+
+// ErrProcessBusy is returned by a Worker's ProcessServices/ProcessEndpoint when
+// another run already holds the serialization lock, so the caller knows the work
+// was skipped (not completed) and should be retried.
+var ErrProcessBusy = errors.New("another process run is already in progress")
 
 type Worker interface {
 	ProcessServices(context.Context) error
@@ -145,6 +152,141 @@ func DBNotificationThread(ctx context.Context, w Worker) {
 	}
 }
 
+// Retried after a service notification because a migrated-away service leaves
+// nothing for PendingSyncLoop to re-trigger. Vars so tests can shrink the delay.
+var (
+	processServicesRetryDelay = 10 * time.Second
+	processServicesMaxRetries = 20
+	processServicesBusyDelay  = 5 * time.Second
+)
+
+// Coalescer collapses a burst of ProcessServices enqueue signals into at most
+// one queued run, guaranteeing that a signal arriving while a run executes
+// triggers exactly one follow-up run. The zero value is ready to use.
+type Coalescer struct {
+	mu      sync.Mutex
+	running bool // a run is queued or executing
+	rerun   bool // a signal arrived during the current run
+}
+
+// requestEnqueue returns true if the caller should enqueue a new run, or false
+// if one is already queued/running (recording that a re-run is needed).
+func (c *Coalescer) requestEnqueue() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.running {
+		c.rerun = true
+		return false
+	}
+	c.running = true
+	return true
+}
+
+// reset clears the state after a failed enqueue so the next signal can retry.
+func (c *Coalescer) reset() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.running = false
+	c.rerun = false
+}
+
+// wrap runs task, then re-enqueues exactly once if a signal arrived meanwhile.
+func (c *Coalescer) wrap(ctx context.Context, scheduler gocron.Scheduler, task func() error) func() error {
+	return func() error {
+		err := task()
+		c.mu.Lock()
+		rerun := c.rerun
+		c.rerun = false
+		c.running = rerun // stay "running" iff we are about to re-enqueue
+		c.mu.Unlock()
+		if rerun && ctx.Err() == nil {
+			if _, serr := scheduler.NewJob(
+				gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
+				gocron.NewTask(c.wrap(ctx, scheduler, task)),
+				gocron.WithName("ProcessServices"),
+				gocron.WithContext(ctx),
+			); serr != nil {
+				log.WithError(serr).Error("failed re-enqueueing coalesced ProcessServices job")
+				c.reset()
+			}
+		}
+		return err
+	}
+}
+
+// processServicesTask returns a ProcessServices task that, on failure,
+// reschedules itself after a short delay until it succeeds or the retry budget
+// is exhausted.
+func processServicesTask(ctx context.Context, scheduler gocron.Scheduler, w Worker) func() error {
+	var attempt int
+	var run func() error
+	reschedule := func(delay time.Duration) {
+		if _, serr := scheduler.NewJob(
+			gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(time.Now().Add(delay))),
+			gocron.NewTask(run),
+			gocron.WithName("ProcessServices"),
+			gocron.WithContext(ctx),
+		); serr != nil {
+			log.WithError(serr).Error("failed rescheduling ProcessServices job")
+		}
+	}
+	run = func() error {
+		err := w.ProcessServices(ctx)
+		if err == nil {
+			return nil
+		}
+		// Lost the advisory-lock race: reschedule promptly instead of waiting for the 120s PendingSyncLoop.
+		if errors.Is(err, ErrProcessBusy) {
+			if ctx.Err() == nil {
+				reschedule(processServicesBusyDelay)
+			}
+			return nil
+		}
+		attempt++
+		if attempt >= processServicesMaxRetries || ctx.Err() != nil {
+			return err
+		}
+		log.WithError(err).Warnf("ProcessServices failed, retrying in %s (attempt %d/%d)",
+			processServicesRetryDelay, attempt, processServicesMaxRetries)
+		reschedule(processServicesRetryDelay)
+		return err
+	}
+	return run
+}
+
+// ScheduleProcessServices enqueues a ProcessServices run that reschedules itself
+// on failure or advisory-lock contention, so a busy-skipped run is re-driven
+// promptly rather than at the next sync interval. The scheduler is taken from
+// the Worker, so both the notification handler and PendingSyncLoop share it.
+//
+// Enqueues are coalesced when the Worker provides a *Coalescer via
+// ProcessServicesCoalescer(): a burst of signals collapses to at most one queued
+// run, with exactly one follow-up run if a signal arrives while one is executing.
+func ScheduleProcessServices(ctx context.Context, w Worker) error {
+	scheduler := w.GetScheduler()
+	var c *Coalescer
+	if cw, ok := w.(interface{ ProcessServicesCoalescer() *Coalescer }); ok {
+		c = cw.ProcessServicesCoalescer()
+	}
+	if c != nil && !c.requestEnqueue() {
+		return nil // a run is already queued/running; it will re-run for this signal
+	}
+	task := processServicesTask(ctx, scheduler, w)
+	if c != nil {
+		task = c.wrap(ctx, scheduler, task)
+	}
+	_, err := scheduler.NewJob(
+		gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
+		gocron.NewTask(task),
+		gocron.WithName("ProcessServices"),
+		gocron.WithContext(ctx),
+	)
+	if err != nil && c != nil {
+		c.reset() // enqueue failed; allow the next signal to try again
+	}
+	return err
+}
+
 func processNotifications(ctx context.Context, conn *pgxpool.Conn, w Worker) error {
 	for {
 		notification, err := conn.Conn().WaitForNotification(ctx)
@@ -177,12 +319,7 @@ func processNotifications(ctx context.Context, conn *pgxpool.Conn, w Worker) err
 		scheduler := w.GetScheduler()
 		switch notification.Channel {
 		case "service":
-			if _, err := scheduler.NewJob(
-				gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
-				gocron.NewTask(w.ProcessServices),
-				gocron.WithName("ProcessServices"),
-				gocron.WithContext(ctx),
-			); nil != err {
+			if err := ScheduleProcessServices(ctx, w); err != nil {
 				log.WithError(err).Error("failed enqueueing ProcessServices job")
 			}
 		case "endpoint":
