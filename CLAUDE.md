@@ -177,6 +177,7 @@ err := pgxscan.Get(ctx, tx, &endpoint, sql, args...)
 - Imports: grouped (stdlib, external, internal) via `goimports`
 - Linting: `golangci-lint` with strict rules
 - Avoid over-engineering: simple solutions over abstractions
+- Comments: at most one line of comment per code block; only when it adds non-obvious context
 
 ### Swagger/OpenAPI
 

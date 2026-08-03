@@ -764,6 +764,7 @@ func (c *Controller) PostServiceServiceIDMigrateHandler(params service.PostServi
 	var currentHost, targetHost string
 	var provider string
 	var az *string
+	var currentStatus string
 
 	if err := pgx.BeginFunc(ctx, c.pool, func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, fmt.Sprintf("SET LOCAL lock_timeout = %d", c.lockTimeout.Milliseconds())); err != nil {
@@ -771,14 +772,19 @@ func (c *Controller) PostServiceServiceIDMigrateHandler(params service.PostServi
 		}
 
 		// Get current service details
-		sql, args := db.Select("host", "provider", "availability_zone").
+		sql, args := db.Select("host", "provider", "availability_zone", "status").
 			From("service").
 			Where("id = ?", params.ServiceID).
 			Suffix("FOR UPDATE").
 			MustSql()
 
-		if err := tx.QueryRow(ctx, sql, args...).Scan(&currentHost, &provider, &az); err != nil {
+		if err := tx.QueryRow(ctx, sql, args...).Scan(&currentHost, &provider, &az, &currentStatus); err != nil {
 			return err
+		}
+
+		// Reject re-migration while in flight; resetting PENDING_UPDATE would prevent convergence.
+		if currentStatus == string(models.ServiceStatusPENDINGUPDATE) {
+			return aerr.ErrMigrationInProgress
 		}
 
 		// Determine target host
@@ -884,6 +890,12 @@ func (c *Controller) PostServiceServiceIDMigrateHandler(params service.PostServi
 			return service.NewPostServiceServiceIDMigrateBadRequest().WithPayload(&models.Error{
 				Code:    400,
 				Message: "Service is already on the target host",
+			})
+		}
+		if errors.Is(err, aerr.ErrMigrationInProgress) {
+			return service.NewPostServiceServiceIDMigrateBadRequest().WithPayload(&models.Error{
+				Code:    400,
+				Message: "Migration already in progress; wait for the service to become AVAILABLE before migrating again",
 			})
 		}
 		if db.IsLockTimeout(err) {

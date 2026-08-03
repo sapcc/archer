@@ -177,14 +177,22 @@ func (s *ServiceScheduler) MigrateService(ctx context.Context, serviceID strfmt.
 		// Get service details
 		var provider string
 		var az *string
-		sql, args := db.Select("provider", "availability_zone").
+		var status string
+		sql, args := db.Select("provider", "availability_zone", "status").
 			From("service").
 			Where("id = ?", serviceID).
 			Suffix("FOR UPDATE").
 			MustSql()
 
-		if err := tx.QueryRow(ctx, sql, args...).Scan(&provider, &az); err != nil {
+		if err := tx.QueryRow(ctx, sql, args...).Scan(&provider, &az, &status); err != nil {
 			return err
+		}
+
+		// Skip re-migration while in flight; rebalance/stale retries pick it up once settled.
+		if status == string(models.ServiceStatusPENDINGUPDATE) {
+			log.WithField("service", serviceID).
+				Debug("MigrateService: migration already in progress, skipping")
+			return nil
 		}
 
 		// Determine target host
