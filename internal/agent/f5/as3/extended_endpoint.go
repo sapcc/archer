@@ -17,6 +17,7 @@ type ExtendedEndpoint struct {
 	Port                *ports.Port
 	ServicePorts        []int32
 	ServiceNetworkId    strfmt.UUID
+	ServiceStatus       string
 	SegmentId           *int
 	ProxyProtocol       bool
 	Owned               bool
