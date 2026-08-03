@@ -6,6 +6,7 @@ package f5
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"testing"
 
@@ -15,7 +16,9 @@ import (
 	th "github.com/gophercloud/gophercloud/v2/testhelper"
 	"github.com/gophercloud/gophercloud/v2/testhelper/fixture"
 	"github.com/pashagolub/pgxmock/v5"
+	"github.com/stretchr/testify/mock"
 
+	agentpkg "github.com/sapcc/archer/v2/internal/agent"
 	"github.com/sapcc/archer/v2/internal/agent/f5/as3"
 	"github.com/sapcc/archer/v2/internal/config"
 	"github.com/sapcc/archer/v2/internal/neutron"
@@ -112,6 +115,89 @@ func TestProcessServicesWithDeletedNetwork(t *testing.T) {
 	}
 }
 
+// TestProcessServicesRepostsCommonDespiteServiceError verifies that an
+// unexpected getExtendedService error on one service no longer short-circuits
+// the whole run: the Common tenant is still re-posted (so services that have
+// left this host, e.g. after a migration, are pruned by absence), and the
+// unexpected error is surfaced as the return value so the run is retried.
+func TestProcessServicesRepostsCommonDespiteServiceError(t *testing.T) {
+	deletingNet := strfmt.UUID("3cf2f3fb-7527-45aa-accc-6880e783e5c8")
+	deletingSvc := strfmt.UUID("2975c302-4a0d-47ab-82df-42e7597ae41f")
+	brokenNet := strfmt.UUID("11111111-1111-4111-8111-111111111111")
+	brokenSvc := strfmt.UUID("22222222-2222-4222-8222-222222222222")
+
+	fakeServer := th.SetupPersistentPortHTTP(t, 8931)
+	defer fakeServer.Teardown()
+	config.Global.Agent.PhysicalNetwork = "physnet1"
+	// The pending-delete service tolerates a 404 network.
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/"+deletingNet.String(), "GET",
+		"", "", http.StatusNotFound)
+	// The other service hits an unexpected 500 -> deferred error.
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/"+brokenNet.String(), "GET",
+		"", "", http.StatusInternalServerError)
+
+	ctx := context.Background()
+	dbMock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dbMock.Close()
+
+	f5DeviceHost := NewMockF5Device(t)
+	config.Global.Default.Host = "host-123"
+	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)}
+	neutronClient.InitCache()
+	a := &Agent{
+		pool:    dbMock,
+		neutron: &neutronClient,
+		devices: []F5Device{f5DeviceHost},
+		hosts:   []F5Device{},
+		active:  f5DeviceHost,
+	}
+
+	dbMock.ExpectBegin()
+	dbMock.ExpectQuery("SELECT pg_try_advisory_xact_lock($1)").
+		WithArgs(advisoryLockProcessServices).
+		WillReturnRows(dbMock.NewRows([]string{"pg_try_advisory_xact_lock"}).AddRow(true))
+	dbMock.ExpectQuery("SELECT * FROM service WHERE host = $1 AND provider = $2").
+		WithArgs("host-123", models.ServiceProviderTenant).
+		WillReturnRows(dbMock.NewRows([]string{"id", "network_id", "status"}).
+			AddRow(deletingSvc, &deletingNet, models.ServiceStatusPENDINGDELETE).
+			AddRow(brokenSvc, &brokenNet, models.ServiceStatusPENDINGCREATE))
+
+	// The Common re-post must still happen even though brokenSvc errored. We
+	// don't pin the exact declaration here (the deleting service contributes
+	// nothing and the broken one is absent) - only that Common is posted.
+	var posted bool
+	f5DeviceHost.EXPECT().
+		PostAS3(mock.MatchedBy(func(d *as3.AS3) bool {
+			adc, ok := d.Declaration.(as3.ADC)
+			return ok && len(adc.Tenants) == 1
+		}), "Common").
+		Run(func(*as3.AS3, string) { posted = true }).
+		Return(nil)
+
+	// Statuses are now persisted before the deferred error is returned: the
+	// pending-delete service (tolerated 404 network) is deleted in a short tx.
+	dbMock.ExpectBegin()
+	dbMock.ExpectExec("DELETE FROM service WHERE id = $1 AND status = 'PENDING_DELETE';").
+		WithArgs(deletingSvc).
+		WillReturnResult(pgxmock.NewResult("DELETE", 1))
+	dbMock.ExpectCommit()
+	dbMock.ExpectRollback() // persist tx defer (no-op after commit)
+	dbMock.ExpectRollback() // advisory-lock tx defer
+
+	if err := a.ProcessServices(ctx); err == nil {
+		t.Error("Agent.ProcessServices() expected an error from the broken service, got nil")
+	}
+	if !posted {
+		t.Error("expected Common to be re-posted despite the service error")
+	}
+	if err := dbMock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
 // TestProcessServicesSkipsWhenLockHeld verifies that when the advisory lock is
 // already held by another run, ProcessServices returns without reading or
 // mutating any service rows — i.e. it never takes a `service` row lock that
@@ -134,8 +220,9 @@ func TestProcessServicesSkipsWhenLockHeld(t *testing.T) {
 		WillReturnRows(dbMock.NewRows([]string{"pg_try_advisory_xact_lock"}).AddRow(false))
 	dbMock.ExpectRollback()
 
-	if err := a.ProcessServices(ctx); err != nil {
-		t.Errorf("Agent.ProcessServices() error = %v", err)
+	// A held lock returns ErrProcessBusy so the caller reschedules promptly; no rows are read or mutated.
+	if err := a.ProcessServices(ctx); !errors.Is(err, agentpkg.ErrProcessBusy) {
+		t.Errorf("Agent.ProcessServices() error = %v, want ErrProcessBusy", err)
 	}
 	if err := dbMock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
