@@ -124,7 +124,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	lockTx, err := a.tryAdvisoryLock(ctx, advisoryLockProcessEndpoints)
 	if err != nil {
 		if errors.Is(err, errAdvisoryLockHeld) {
-			log.WithField("id", endpointID).Warn("ProcessEndpoint: another run is already in progress, skipping")
+			log.WithField("id", endpointID).Debug("ProcessEndpoint: another run is already in progress, skipping")
 			return nil
 		}
 		return err
@@ -149,6 +149,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		"service.ports AS service_ports",
 		"service.proxy_protocol",
 		"service.network_id AS service_network_id",
+		"service.status AS service_status",
 		"endpoint_port.segment_id",
 		`endpoint_port.port_id AS "target.port"`,
 		`endpoint_port.network AS "target.network"`,
@@ -243,6 +244,18 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	/* ==================================================
 	   Post AS3 Declaration to active BigIP
 	   ================================================== */
+	// Defer until the owning service is AVAILABLE, else its /Common/Shared snatpool is missing and AS3 422s.
+	for _, ep := range endpoints {
+		if ep.Status == models.EndpointStatusPENDINGDELETE || ep.Status == models.EndpointStatusPENDINGREJECTED {
+			continue
+		}
+		if ep.ServiceStatus != string(models.ServiceStatusAVAILABLE) {
+			log.WithFields(log.Fields{"endpoint": endpointID, "service": ep.ServiceID, "service_status": ep.ServiceStatus}).
+				Debug("ProcessEndpoint: owning service not yet AVAILABLE, deferring AS3 post")
+			return nil
+		}
+	}
+
 	tenantName := as3.GetEndpointTenantName(networkID)
 	data := as3.GetAS3Declaration(map[string]as3.Tenant{
 		tenantName: as3.GetEndpointTenants(endpoints),
@@ -297,12 +310,8 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 			// Don't delete the port here - keep it so the endpoint can be re-accepted later.
 			// The port will be deleted when the endpoint is actually deleted.
 			log.Infof("ProcessEndpoint: Rejecting endpoint %s", endpoint.ID)
-			sql, args = db.
-				Update("endpoint").
-				Set("status", models.EndpointStatusREJECTED).
-				Set("updated_at", sq.Expr("NOW()")).
-				Where("id = ?", endpoint.ID).
-				MustSql()
+			sql, args = db.UpdateStatusGuarded("endpoint", endpoint.ID,
+				models.EndpointStatusPENDINGREJECTED, models.EndpointStatusREJECTED)
 		case models.EndpointStatusPENDINGDELETE:
 			// Delete endpoint neutron port, if it exists and is owned by the agent
 			if endpoint.Port != nil && endpoint.Owned {
@@ -314,10 +323,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 			}
 
 			log.Debugf("ProcessEndpoint: Deleting endpoint %s", endpoint.ID)
-			sql, args = db.
-				Delete("endpoint").
-				Where("id = ?", endpoint.ID).
-				MustSql()
+			sql, args = db.DeleteIfStatus("endpoint", endpoint.ID, models.EndpointStatusPENDINGDELETE)
 		case models.EndpointStatusPENDINGUPDATE:
 			// Update port binding to this host (needed after service migration)
 			if endpoint.Port != nil {
@@ -327,19 +333,13 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 					return err
 				}
 			}
-			sql, args = db.
-				Update("endpoint").
-				Set("status", models.EndpointStatusAVAILABLE).
-				Set("updated_at", sq.Expr("NOW()")).
-				Where("id = ?", endpoint.ID).
-				MustSql()
+			sql, args = db.UpdateStatusGuarded("endpoint", endpoint.ID,
+				models.EndpointStatusPENDINGUPDATE, models.EndpointStatusAVAILABLE)
 		default:
-			sql, args = db.
-				Update("endpoint").
-				Set("status", models.EndpointStatusAVAILABLE).
-				Set("updated_at", sq.Expr("NOW()")).
-				Where("id = ?", endpoint.ID).
-				MustSql()
+			// Guard on the read status so a concurrent API transition (e.g. a delete
+			// arriving mid-reconcile) is a 0-row no-op and reconciles on the next run.
+			sql, args = db.UpdateStatusGuarded("endpoint", endpoint.ID,
+				endpoint.Status, models.EndpointStatusAVAILABLE)
 		}
 		writes = append(writes, endpointWrite{sql: sql, args: args})
 	}
