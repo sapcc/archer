@@ -18,6 +18,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/sethvargo/go-retry"
@@ -29,6 +30,9 @@ import (
 
 // token represents a JWT token used for authentication with F5OS.
 type token string
+
+// tokenExpirySkew re-authenticates this long before the JWT's exp.
+const tokenExpirySkew = 60 * time.Second
 
 // Valid checks if the token is valid by decoding it and checking the expiry time.
 func (t token) Valid() bool {
@@ -55,9 +59,9 @@ func (t token) Valid() bool {
 		return false
 	}
 
-	// Convert the expiry time from seconds since epoch to time.Time
+	// Refresh 60s before exp so a near-expiry token is never sent (avoids 401 + retry backoff).
 	expiry := time.Unix(int64(exp), 0)
-	return time.Now().Before(expiry)
+	return time.Now().Add(tokenExpirySkew).Before(expiry)
 }
 
 // F5OS represents a session with an F5OS device.
@@ -65,8 +69,39 @@ type F5OS struct {
 	client   *http.Client
 	user     string
 	password string
+	tokenMu  sync.Mutex
 	token    token
 	uri      *url.URL
+}
+
+// applyAuth sets the auth header from a valid token, else basic auth. Locked.
+func (f *F5OS) applyAuth(req *http.Request) {
+	f.tokenMu.Lock()
+	defer f.tokenMu.Unlock()
+	if f.token.Valid() {
+		req.Header.Set("X-Auth-Token", string(f.token))
+		req.Header.Set("Authorization", "Bearer "+string(f.token))
+	} else {
+		req.SetBasicAuth(f.user, f.password)
+	}
+}
+
+// clearToken forces re-authentication on the next call. Locked.
+func (f *F5OS) clearToken() {
+	f.tokenMu.Lock()
+	defer f.tokenMu.Unlock()
+	f.token = ""
+}
+
+// storeToken saves a fresh token from a response header. Locked; returns false if the token is already expired.
+func (f *F5OS) storeToken(t string) bool {
+	f.tokenMu.Lock()
+	defer f.tokenMu.Unlock()
+	if t == "" || string(f.token) == t {
+		return true
+	}
+	f.token = token(t)
+	return f.token.Valid()
 }
 
 func (f *F5OS) newRequest(method, path string, body any) *http.Request {
@@ -107,13 +142,7 @@ func (f *F5OS) apiCall(req *http.Request, v any) error {
 	}
 
 	return retry.Do(req.Context(), backoff, func(ctx context.Context) error {
-		// Set the Authorization header
-		if f.token.Valid() {
-			req.Header.Set("X-Auth-Token", string(f.token))
-			req.Header.Set("Authorization", string("Bearer "+f.token))
-		} else {
-			req.SetBasicAuth(f.user, f.password)
-		}
+		f.applyAuth(req)
 
 		var resp *http.Response
 		var err error
@@ -141,8 +170,7 @@ func (f *F5OS) apiCall(req *http.Request, v any) error {
 
 		if resp.StatusCode == http.StatusUnauthorized {
 			log.Warningf("unauthorized request to %s, token may be expired", req.URL.Redacted())
-			// If the token is invalid, we need to re-authenticate
-			f.token = "" // Clear the token to force re-authentication
+			f.clearToken()
 			return retry.RetryableError(fmt.Errorf("unauthorized request to %s", req.URL.Redacted()))
 		}
 
@@ -153,12 +181,9 @@ func (f *F5OS) apiCall(req *http.Request, v any) error {
 		}
 
 		// Update the token if the response contains a new one
-		if tokenHeader := resp.Header.Get("X-Auth-Token"); tokenHeader != "" && string(f.token) != tokenHeader {
-			f.token = token(tokenHeader)
-			if !f.token.Valid() {
-				log.Warningf("received expired token from %s", req.URL.Redacted())
-				return retry.RetryableError(fmt.Errorf("received expired token from %s", req.URL.Redacted()))
-			}
+		if tokenHeader := resp.Header.Get("X-Auth-Token"); !f.storeToken(tokenHeader) {
+			log.Warningf("received expired token from %s", req.URL.Redacted())
+			return retry.RetryableError(fmt.Errorf("received expired token from %s", req.URL.Redacted()))
 		}
 
 		if err = json.NewDecoder(resp.Body).Decode(v); err != nil {
