@@ -232,11 +232,13 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 
 	// Update services to AVAILABLE status
 	if len(toUpdate) > 0 {
+		// Guard so a concurrent delete (PENDING_DELETE) is not clobbered to AVAILABLE.
 		sql, args = db.Update("service").
 			Set("status", models.ServiceStatusAVAILABLE).
 			Set("updated_at", sq.Expr("NOW()")).
 			Set("health_status", models.ServiceHealthStatusONLINE).
 			Where(sq.Eq{"id": toUpdate}).
+			Where(sq.NotEq{"status": models.ServiceStatusPENDINGDELETE}).
 			MustSql()
 		if _, err := a.pool.Exec(ctx, sql, args...); err != nil {
 			return err
@@ -247,6 +249,7 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 	if len(toDelete) > 0 {
 		sql, args = db.Delete("service").
 			Where(sq.Eq{"id": toDelete}).
+			Where(sq.Eq{"status": models.ServiceStatusPENDINGDELETE}).
 			MustSql()
 		if _, err := a.pool.Exec(ctx, sql, args...); err != nil {
 			return err
@@ -288,11 +291,8 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
 			if err = a.DisableInjection(&si); err != nil {
 				return err
 			}
-			sql, args = db.Update("endpoint").
-				Set("status", models.EndpointStatusREJECTED).
-				Set("updated_at", sq.Expr("NOW()")).
-				Where("id = ?", si.ID).
-				MustSql()
+			sql, args = db.UpdateStatusGuarded("endpoint", si.ID,
+				models.EndpointStatusPENDINGREJECTED, models.EndpointStatusREJECTED)
 			if _, err = tx.Exec(ctx, sql, args...); err != nil {
 				return err
 			}
@@ -300,12 +300,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
 			if err = a.DisableInjection(&si); err != nil {
 				return err
 			}
-			sql, args, err = db.Delete("endpoint").
-				Where("id = ?", si.ID).
-				ToSql()
-			if err != nil {
-				return err
-			}
+			sql, args = db.DeleteIfStatus("endpoint", si.ID, models.EndpointStatusPENDINGDELETE)
 			if _, err = tx.Exec(ctx, sql, args...); err != nil {
 				return err
 			}
@@ -327,14 +322,8 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
 			if err = a.EnableInjection(ctx, &si); err != nil {
 				return err
 			}
-			sql, args, err = db.Update("endpoint").
-				Set("status", models.EndpointStatusAVAILABLE).
-				Set("updated_at", sq.Expr("NOW()")).
-				Where("id = ?", si.ID).
-				ToSql()
-			if err != nil {
-				return err
-			}
+			sql, args = db.UpdateStatusGuarded("endpoint", si.ID,
+				si.Status, models.EndpointStatusAVAILABLE)
 			if _, err = tx.Exec(ctx, sql, args...); err != nil {
 				return err
 			}
