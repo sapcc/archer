@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/pashagolub/pgxmock/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -152,4 +153,38 @@ func TestServiceScheduler_NotifyCallback(t *testing.T) {
 		// Should not panic when notify is nil
 		assert.Nil(t, scheduler.notify)
 	})
+}
+
+// TestServiceScheduler_MigrateService_SkipsInProgress verifies that a service
+// already PENDING_UPDATE is not re-migrated: MigrateService reads the status
+// under FOR UPDATE and returns without issuing any host UPDATE or notify, so
+// rebalance/stale retries cannot reset an in-flight migration.
+func TestServiceScheduler_MigrateService_SkipsInProgress(t *testing.T) {
+	ctx := context.Background()
+	cfg := defaultConfig()
+
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	notified := 0
+	scheduler := NewServiceScheduler(mock, cfg, func(string) { notified++ })
+
+	serviceID := strfmt.UUID("46ca20cf-84c3-4210-a360-3f79875f6b9b")
+	az := "az1"
+
+	mock.ExpectBegin()
+	// FOR UPDATE select now also returns status; PENDING_UPDATE means in flight.
+	mock.ExpectQuery("SELECT provider, availability_zone, status FROM service").
+		WithArgs(serviceID).
+		WillReturnRows(pgxmock.NewRows([]string{"provider", "availability_zone", "status"}).
+			AddRow("tenant", &az, "PENDING_UPDATE"))
+	// No UPDATE expected — the guard returns before any write.
+	mock.ExpectCommit()
+	mock.ExpectRollback() // BeginFunc's deferred rollback (no-op after commit)
+
+	err = scheduler.MigrateService(ctx, serviceID, "lb011-01", "lb017-archer")
+	assert.NoError(t, err)
+	assert.Equal(t, 0, notified, "must not notify agents when skipping in-flight migration")
+	assert.NoError(t, mock.ExpectationsWereMet())
 }

@@ -1085,6 +1085,34 @@ func (t *SuiteTest) TestServiceMigrateSameHostFails() {
 		res.(*service.PostServiceServiceIDMigrateBadRequest).Payload.Message)
 }
 
+// TestServiceMigrateRejectsWhileInProgress verifies that migrating a service
+// that is already PENDING_UPDATE (a migration/reconcile in flight) is rejected
+// with 400, so a retry cannot reset the in-flight run and cause host ping-pong.
+func (t *SuiteTest) TestServiceMigrateRejectsWhileInProgress() {
+	serviceId := t.createService(testService)
+	t.addAgentWithHost("in-progress-target", nil)
+
+	// Force the service into PENDING_UPDATE (simulating an in-flight migration).
+	sql, args := db.Update("service").
+		Set("status", models.ServiceStatusPENDINGUPDATE).
+		Where("id = ?", serviceId).
+		MustSql()
+	_, err := t.c.pool.Exec(context.Background(), sql, args...)
+	assert.NoError(t.T(), err)
+
+	res := t.c.PostServiceServiceIDMigrateHandler(
+		service.PostServiceServiceIDMigrateParams{
+			HTTPRequest: &headerProject1,
+			ServiceID:   serviceId,
+			Body:        service.PostServiceServiceIDMigrateBody{TargetHost: "in-progress-target"},
+		},
+		nil)
+
+	assert.IsType(t.T(), &service.PostServiceServiceIDMigrateBadRequest{}, res)
+	assert.Contains(t.T(), res.(*service.PostServiceServiceIDMigrateBadRequest).Payload.Message,
+		"Migration already in progress")
+}
+
 // TestMaskCPServiceIPAddresses tests the IP address masking for CP services
 func (t *SuiteTest) TestMaskCPServiceIPAddresses() {
 	cpProvider := "cp"
