@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.4] - 2026-08-04
+
 ### Fixed
 
 - archer-server: reject migrating a service that is already `PENDING_UPDATE`. `POST /service/{id}/migrate` returns 400 and the scheduler skips it, so a retry cannot reset an in-flight migration and ping-pong the service between hosts.
@@ -178,7 +180,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-Release with goreleaser
 
-[Unreleased]: https://github.com/sapcc/archer/compare/v2.5.3...HEAD
+[Unreleased]: https://github.com/sapcc/archer/compare/v2.5.4...HEAD
+
+[2.5.4]: https://github.com/sapcc/archer/compare/v2.5.3...v2.5.4
 
 [2.5.3]: https://github.com/sapcc/archer/compare/v2.5.2...v2.5.3
 
