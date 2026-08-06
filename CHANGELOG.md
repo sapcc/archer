@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- archer-ni-agent: HAProxy log verbosity now follows the agent's log level — `--debug` surfaces HAProxy `debug` logs, otherwise it is capped at `info` (previously HAProxy defaulted to emitting all levels).
+
+### Security
+
+- archer-ni-agent: the data path between HAProxy and the upstream service is now proxied by `socat` (one process per port) instead of root goroutines inside the agent. socat is spawned per network only when an endpoint on that network needs it (endpoint-triggered, alongside HAProxy), runs in the pod network namespace, and drops to an unprivileged user via socat's `su-d` — so a compromise of the byte-forwarding component cannot reach the agent's netns/netlink/DB/Neutron access. Requires `SYS_CHROOT`, `SETUID`, `SETGID`, and `KILL` capabilities on the agent container.
+- archer-ni-agent: HAProxy and socat runtime files are unified under a single per-network directory `/run/archer/<network>/` (HAProxy `haproxy.conf`/`haproxy.pid`/`haproxy-stats.sock` and the `<port>.sock` sockets together), replacing the previous flat `haproxy-<network>.*` files. HAProxy chroots into that per-network directory.
+- archer-ni-agent: HAProxy no longer runs as root — it drops privileges to an unprivileged user/group and runs chrooted, so a compromised worker cannot act as root or reach the wider filesystem. The drop user/group are configurable (`--run-user`/`--run-group`, default `nobody`/`nogroup`) and shared with socat. The runtime directory moved from world-writable `/tmp` to root-owned `/run/archer` (mode `0700`, configurable via `--run-dir`; the former `--temp-dir` is a deprecated alias); the generated config is created `0600`. HAProxy's stdout/stderr is forwarded to the agent's own output instead of per-network log files, and the `haproxy` binary is resolved to an absolute path at spawn time.
+
 ## [2.5.4] - 2026-08-04
 
 ### Fixed

@@ -24,19 +24,19 @@ import (
 
 	"github.com/sapcc/archer/v2/internal/agent/ni/models"
 	"github.com/sapcc/archer/v2/internal/agent/ni/proxy"
-
 	"github.com/sapcc/archer/v2/internal/config"
 )
 
 var configTemplate = `
 global
-    log         stdout format raw local0
+    log         stdout format raw local0 {{.LogLevel}}
     stats       socket "{{getStatsSocketPath .Network}}" mode 600 level admin
     stats       timeout 2m
     maxconn     1024
     pidfile     "{{getPidFilePath .Network}}"
-    #user        haproxy
-    #group       haproxy
+    chroot      "{{.ChrootDir}}"
+    user        {{.RunUser}}
+    group       {{.RunGroup}}
     daemon
 
 defaults
@@ -50,7 +50,6 @@ defaults
 
 {{- $protocol := .Protocol }}
 {{- $upstream := .UpstreamHost }}
-{{- $serviceID := .ServiceID }}
 {{- $proxyProtocol := .ProxyProtocol }}
 {{- $endpointID := .EndpointID }}
 
@@ -72,7 +71,7 @@ backend backend_{{ . }}
     timeout http-keep-alive 30s
     http-request replace-header Host .* {{ formatHost $upstream }}
 {{- end }}
-    server upstream {{ getSocketPath $serviceID . }}{{- if $proxyProtocol }} send-proxy-v2 set-proxy-v2-tlv-fmt(0xEC) %[str({{ $endpointID }})]{{- end }}
+    server upstream {{ getChrootSocketPath . }}{{- if $proxyProtocol }} send-proxy-v2 set-proxy-v2-tlv-fmt(0xEC) %[str({{ $endpointID }})]{{- end }}
 
 {{ end }}
 `
@@ -110,6 +109,14 @@ func formatHost(ip string) string {
 		return "[" + ip + "]"
 	}
 	return ip
+}
+
+// haproxyLogLevel maps the agent's verbosity to HAProxy's max syslog level (--debug -> debug, else info).
+func haproxyLogLevel() string {
+	if config.IsDebug() {
+		return "debug"
+	}
+	return "info"
 }
 
 func NewHAProxyController() *HAProxyController {
@@ -153,7 +160,7 @@ func (h *HAProxyController) IsRunning(networkID string) bool {
 func (h *HAProxyController) AddInstance(si *models.ServiceInjection) error {
 	// create config
 	filename := GetConfigFilePath(si.Network.String())
-	configFile, err := os.Create(filename)
+	configFile, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
 	if err != nil {
 		return err
 	}
@@ -162,11 +169,12 @@ func (h *HAProxyController) AddInstance(si *models.ServiceInjection) error {
 	log.Debugf("Created HAProxy config file '%s'", configFile.Name())
 
 	funcMap := template.FuncMap{
-		"lower":              strings.ToLower,
-		"formatHost":         formatHost,
-		"getSocketPath":      proxy.GetSocketPath,
-		"getStatsSocketPath": GetStatsSocketPath,
-		"getPidFilePath":     GetPidFilePath,
+		"lower":      strings.ToLower,
+		"formatHost": formatHost,
+		// Backend socket path inside HAProxy's chroot (rooted at the network dir).
+		"getChrootSocketPath": func(port int) string { return fmt.Sprintf("/%d.sock", port) },
+		"getStatsSocketPath":  GetStatsSocketPath,
+		"getPidFilePath":      GetPidFilePath,
 	}
 
 	// template config
@@ -180,24 +188,26 @@ func (h *HAProxyController) AddInstance(si *models.ServiceInjection) error {
 		"UpstreamPorts": si.ServicePorts,
 		"Network":       si.Network.String(),
 		"Protocol":      si.ServiceProtocol,
-		"ServiceID":     si.ServiceID.String(),
 		"ProxyProtocol": si.ProxyProtocol,
 		"EndpointID":    si.ID.String(),
+		"ChrootDir":     proxy.GetNetworkDir(si.Network.String()),
+		"LogLevel":      haproxyLogLevel(),
+		"RunUser":       config.Global.Agent.RunUser,
+		"RunGroup":      config.Global.Agent.RunGroup,
 	}
 	if err = t.Execute(configFile, data); err != nil {
 		return err
 	}
 
-	outfile, err := os.Create(GetLogFilePath(si.Network.String()))
-	if err != nil {
-		panic(err)
-	}
-	defer func() { _ = outfile.Close() }()
-
 	// run haproxy
-	cmd := exec.Command("haproxy", "-f", configFile.Name())
-	cmd.Stdout = outfile
-	cmd.Stderr = outfile
+	haproxyPath, err := exec.LookPath("haproxy")
+	if err != nil {
+		return fmt.Errorf("haproxy binary not found in PATH: %w", err)
+	}
+	cmd := exec.Command(haproxyPath, "-f", configFile.Name())
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	log.Infof("exec %s", cmd.String())
 	if err = cmd.Run(); err != nil {
 		return err
 	}
@@ -296,17 +306,13 @@ func TryRemoveFile(file string) {
 }
 
 func GetStatsSocketPath(networkID string) string {
-	return fmt.Sprintf("%s/haproxy-stats-%s.sock", config.Global.Agent.TempDir, networkID)
+	return fmt.Sprintf("%s/haproxy-stats.sock", proxy.GetNetworkDir(networkID))
 }
 
 func GetPidFilePath(networkID string) string {
-	return fmt.Sprintf("%s/haproxy-%s.pid", config.Global.Agent.TempDir, networkID)
-}
-
-func GetLogFilePath(networkID string) string {
-	return fmt.Sprintf("%s/haproxy-%s.log", config.Global.Agent.TempDir, networkID)
+	return fmt.Sprintf("%s/haproxy.pid", proxy.GetNetworkDir(networkID))
 }
 
 func GetConfigFilePath(networkID string) string {
-	return fmt.Sprintf("%s/haproxy-%s.conf", config.Global.Agent.TempDir, networkID)
+	return fmt.Sprintf("%s/haproxy.conf", proxy.GetNetworkDir(networkID))
 }

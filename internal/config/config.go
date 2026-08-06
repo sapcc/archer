@@ -90,6 +90,7 @@ type Notification struct {
 }
 
 type Agent struct {
+	// F5 agent configuration
 	Devices                []string      `long:"device" ini-name:"device[]" description:"F5 Hostnames"`
 	VCMPs                  []string      `long:"vcmp" ini-name:"vcmp[]" description:"F5 Platform Hostnames"`
 	ValidateCert           bool          `long:"validate-certificates" ini-name:"validate_certificates" description:"Validate HTTPS Certificate."`
@@ -98,19 +99,26 @@ type Agent struct {
 	PendingSyncInterval    time.Duration `long:"pending-sync-interval" ini-name:"sync-interval" default:"120s" description:"Interval for pending sync scans, supports suffix (e.g. 10s)."`
 	HealthScrapeInterval   time.Duration `long:"health-scrape-interval" ini-name:"health_scrape_interval" default:"5m" description:"Interval for health monitor status scraping."`
 	HealthScrapePrometheus string        `long:"health-scrape-prometheus" ini-name:"health_scrape_prometheus" description:"Prometheus API URL for health scraping. If set, uses Prometheus instead of direct F5 API."`
-	CreateService          bool          `long:"create-service" ini-name:"create_service" description:"Auto-create Service for network injection agent. Deprecated: services should be created via API."`
-	ServicePublic          bool          `long:"service-public" ini-name:"service_public" description:"Service public to all projects for auto-created service. Deprecated."`
-	ServiceName            string        `long:"service-name" ini-name:"service_name" description:"Service name for auto-created service. Deprecated."`
-	ServicePort            int           `long:"service-port" ini-name:"service_port" description:"Service port for auto-created service. Deprecated."`
-	ServicePorts           []string      `long:"service-ports" ini-name:"service_ports[]" description:"Service ports for auto-created service. Deprecated."`
-	ServiceRequireApproval bool          `long:"service-require-approval" ini-name:"service_require_approval" description:"Service requires approval. Deprecated."`
-	ServiceUpstreamHost    string        `long:"service-upstream-host" ini-name:"service_upstream_host" description:"Service upstream host."`
-	ServiceProtocol        string        `long:"service-protocol" ini-name:"service_protocol" description:"Service protocol. Deprecated."`
-	TempDir                string        `long:"temp-dir" ini-name:"temp_dir" description:"Temporary directory used for temporary files" default:"/tmp"`
 	L4Profile              string        `long:"l4-profile" ini-name:"l4_profile" description:"L4 profile to use for F5 endpoint service." default:"/Common/fastL4"`
 	TCPProfile             string        `long:"tcp-profile" ini-name:"tcp_profile" description:"TCP profile to use for F5 endpoint service." default:"/Common/tcp"`
 	MaxRetries             uint64        `long:"max-retries" ini-name:"max_retries" description:"Maximum number of retries for F5 operations." default:"3"`
 	MaxDuration            time.Duration `long:"max-duration" ini-name:"max_duration" description:"Maximum duration for F5 operations, supports suffix (e.g. 10s)." default:"1.5m"`
+
+	// Network Injection (cp) agent configuration
+	RunDir     string `long:"run-dir" ini-name:"run_dir" description:"Base directory for the NI agent's per-network runtime state (HAProxy config/chroot and socat sockets)." default:"/run/archer"`
+	RunDirTemp string `long:"temp-dir" ini-name:"temp_dir" description:"Deprecated: use run-dir." hidden:"yes"`
+	RunUser    string `long:"run-user" ini-name:"run_user" description:"Unprivileged user HAProxy and socat drop to." default:"nobody"`
+	RunGroup   string `long:"run-group" ini-name:"run_group" description:"Unprivileged group HAProxy drops to." default:"nogroup"`
+
+	// Deprecated auto-create-service configuration (services should be created via API)
+	CreateService          bool     `long:"create-service" ini-name:"create_service" description:"Auto-create Service for network injection agent. Deprecated: services should be created via API."`
+	ServicePublic          bool     `long:"service-public" ini-name:"service_public" description:"Service public to all projects for auto-created service. Deprecated."`
+	ServiceName            string   `long:"service-name" ini-name:"service_name" description:"Service name for auto-created service. Deprecated."`
+	ServicePort            int      `long:"service-port" ini-name:"service_port" description:"Service port for auto-created service. Deprecated."`
+	ServicePorts           []string `long:"service-ports" ini-name:"service_ports[]" description:"Service ports for auto-created service. Deprecated."`
+	ServiceRequireApproval bool     `long:"service-require-approval" ini-name:"service_require_approval" description:"Service requires approval. Deprecated."`
+	ServiceUpstreamHost    string   `long:"service-upstream-host" ini-name:"service_upstream_host" description:"Service upstream host."`
+	ServiceProtocol        string   `long:"service-protocol" ini-name:"service_protocol" description:"Service protocol. Deprecated."`
 
 	// Scheduling configuration
 	HeartbeatInterval       time.Duration `long:"heartbeat-interval" ini-name:"heartbeat_interval" default:"30s" description:"Interval for agent heartbeat updates."`
@@ -178,6 +186,12 @@ func ParseConfig(parser *flags.Parser) {
 
 	if Global.Default.Debug {
 		log.SetLevel(log.DebugLevel)
+	}
+
+	// Backward compat: the NI agent's --run-dir was formerly --temp-dir/temp_dir.
+	if Global.Agent.RunDirTemp != "" {
+		log.Warn("config: 'temp-dir'/'temp_dir' is deprecated, use 'run-dir'/'run_dir'")
+		Global.Agent.RunDir = Global.Agent.RunDirTemp
 	}
 
 	log.Infof("Running Archer @%s (%s)", Version, BuildTime)

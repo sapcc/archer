@@ -64,7 +64,7 @@ RUN if [ -z "$TARGETARCH" ]; then \
 # upgrade all installed packages to fix potential CVEs in advance
 # also remove apk package manager to hopefully remove dependency on OpenSSL 🤞
 RUN apk upgrade --no-cache --no-progress \
-  && apk add --no-cache --no-progress haproxy iproute2 \
+  && apk add --no-cache --no-progress haproxy iproute2 socat \
   && wget -qO /usr/bin/linkerd-await https://github.com/linkerd/linkerd-await/releases/download/release%2Fv0.3.3/linkerd-await-v0.3.3-$TARGETARCH \
   && chmod 755 /usr/bin/linkerd-await \
   && apk del --no-cache --no-progress apk-tools musl-utils
