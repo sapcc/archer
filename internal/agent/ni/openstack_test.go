@@ -21,9 +21,17 @@ import (
 
 	"github.com/sapcc/archer/v2/internal/agent/ni/haproxy"
 	"github.com/sapcc/archer/v2/internal/agent/ni/models"
+	"github.com/sapcc/archer/v2/internal/agent/ni/proxy"
 	"github.com/sapcc/archer/v2/internal/config"
 	"github.com/sapcc/archer/v2/internal/neutron"
 )
+
+// noopStartProc is a proxy.StartProc that never spawns socat; it blocks until
+// the manager cancels it, so agent tests need no socat/root.
+func noopStartProc(ctx context.Context, _ strfmt.UUID, _ string, _ []int32) error {
+	<-ctx.Done()
+	return nil
+}
 
 // setupTestServer creates a test HTTP server for mocking OpenStack API
 func setupTestServer(handler http.Handler) (*httptest.Server, *gophercloud.ServiceClient) {
@@ -148,9 +156,11 @@ func TestAgent_EnableInjection_Success(t *testing.T) {
         }
 }`
 
+	config.Global.Agent.RunDir = t.TempDir()
 	a := &Agent{
-		neutron: &neutron.NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)},
-		haproxy: haproxy.NewFakeHaproxy(),
+		neutron:      &neutron.NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)},
+		haproxy:      haproxy.NewFakeHaproxy(),
+		proxyManager: proxy.NewManager(t.Context(), noopStartProc),
 	}
 	si := &models.ServiceInjection{
 		PortId:  strfmt.UUID("550e8400-e29b-41d4-a716-446655440000"),
@@ -177,7 +187,8 @@ func TestAgent_DisableInjection_PortNotFound(t *testing.T) {
 	networkID := strfmt.UUID("660e8400-e29b-41d4-a716-446655440000")
 
 	agent := &Agent{
-		haproxy: haproxy.NewFakeHaproxy(),
+		haproxy:      haproxy.NewFakeHaproxy(),
+		proxyManager: proxy.NewManager(t.Context(), noopStartProc),
 	}
 
 	si := &models.ServiceInjection{
@@ -193,7 +204,8 @@ func TestAgent_DisableInjection_PortNotFound(t *testing.T) {
 
 func TestAgent_DisableInjection(t *testing.T) {
 	a := &Agent{
-		haproxy: haproxy.NewFakeHaproxy(),
+		haproxy:      haproxy.NewFakeHaproxy(),
+		proxyManager: proxy.NewManager(t.Context(), noopStartProc),
 	}
 	si := &models.ServiceInjection{
 		PortId:  strfmt.UUID("550e8400-e29b-41d4-a716-446655440000"),

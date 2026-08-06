@@ -6,6 +6,7 @@ package ni
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/gophercloud/gophercloud/v2"
@@ -17,6 +18,7 @@ import (
 	"github.com/sapcc/archer/v2/internal/agent/ni/haproxy"
 	"github.com/sapcc/archer/v2/internal/agent/ni/models"
 	"github.com/sapcc/archer/v2/internal/agent/ni/netlink"
+	"github.com/sapcc/archer/v2/internal/agent/ni/proxy"
 	"github.com/sapcc/archer/v2/internal/config"
 	"github.com/sapcc/archer/v2/internal/neutron"
 )
@@ -74,6 +76,18 @@ func (a *Agent) EnableInjection(ctx context.Context, si *models.ServiceInjection
 		return nil
 	}
 
+	// Ensure the per-network directory exists (holds the proxy socket + HAProxy
+	// files) and start the unprivileged proxy for this network's service before
+	// HAProxy, whose backend connects to the proxy socket.
+	if err = os.MkdirAll(proxy.GetNetworkDir(si.Network.String()), 0o777); err != nil {
+		return fmt.Errorf("failed to create network dir: %w", err)
+	}
+	ports := make([]int32, len(si.ServicePorts))
+	for i, p := range si.ServicePorts {
+		ports[i] = int32(p)
+	}
+	a.proxyManager.StartProxy(si.Network, si.ServiceIPAddress, ports)
+
 	// Run haproxy inside network namespace
 	if err = ns.EnableNetworkNamespace(); err != nil {
 		return fmt.Errorf("failed to enable network namespace: %w", err)
@@ -85,11 +99,9 @@ func (a *Agent) EnableInjection(ctx context.Context, si *models.ServiceInjection
 	}()
 
 	if err = a.haproxy.AddInstance(si); err != nil {
-		log.Errorf("Error enabling haproxy: %s, dumping conf/log", err)
-		haproxy.Dump(haproxy.GetLogFilePath(si.Network.String()))
+		log.Errorf("Error enabling haproxy: %s, dumping conf", err)
 		haproxy.Dump(haproxy.GetConfigFilePath(si.Network.String()))
 		haproxy.TryRemoveFile(haproxy.GetConfigFilePath(si.Network.String()))
-		haproxy.TryRemoveFile(haproxy.GetLogFilePath(si.Network.String()))
 		return fmt.Errorf("failed to add haproxy instance: %w", err)
 	}
 
@@ -110,6 +122,7 @@ func (a *Agent) DisableInjection(si *models.ServiceInjection) error {
 			return fmt.Errorf("failed to remove haproxy instance: %w", err)
 		}
 	}
+	a.proxyManager.StopProxy(si.Network)
 	return nil
 }
 
