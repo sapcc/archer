@@ -7,7 +7,7 @@ package ni
 import (
 	"context"
 	"errors"
-	"net"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -82,6 +82,16 @@ func NewAgent() *Agent {
 	}
 
 	agent.haproxy = haproxy.NewHAProxyController()
+
+	// Ensure the run directory exists. It is the parent of the per-network dirs;
+	// both HAProxy and socat chroot into <run-dir>/<network> directly, so the base
+	// needs no traversal by the unprivileged user and stays 0700 root.
+	if err := os.MkdirAll(config.Global.Agent.RunDir, 0o700); err != nil {
+		log.Fatalf("Failed to create run directory %s: %v", config.Global.Agent.RunDir, err)
+	}
+	if err := os.Chmod(config.Global.Agent.RunDir, 0o700); err != nil {
+		log.Fatalf("Failed to chmod run directory %s: %v", config.Global.Agent.RunDir, err)
+	}
 
 	common.RegisterAgent(agent.pool, "cp")
 
@@ -186,14 +196,12 @@ func (a *Agent) migrateServiceIPAddresses(ctx context.Context) error {
 
 func (a *Agent) ProcessServices(ctx context.Context) error {
 	type serviceInfo struct {
-		ID          strfmt.UUID          `db:"id"`
-		IPAddresses []models.InetAddress `db:"ip_addresses"`
-		Ports       []int32              `db:"ports"`
-		Status      string               `db:"status"`
+		ID     strfmt.UUID `db:"id"`
+		Status string      `db:"status"`
 	}
 
 	// Query all services assigned to this host
-	sql, args := db.Select("id", "ip_addresses", "ports", "status").
+	sql, args := db.Select("id", "status").
 		From("service").
 		Where("host = ?", config.Global.Default.Host).
 		Where("provider = 'cp'").
@@ -208,25 +216,10 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 	var toUpdate []strfmt.UUID
 	for _, svc := range services {
 		if svc.Status == string(models.ServiceStatusPENDINGDELETE) {
-			a.proxyManager.StopProxy(svc.ID)
 			toDelete = append(toDelete, svc.ID)
-		} else {
-			if !a.proxyManager.IsRunning(svc.ID) && len(svc.IPAddresses) > 0 && len(svc.Ports) > 0 {
-				// INET values may include CIDR prefix (e.g., "1.1.1.1/32" or "2001:db8::1/128")
-				ip, _, err := net.ParseCIDR(string(svc.IPAddresses[0]))
-				if err != nil {
-					ip = net.ParseIP(string(svc.IPAddresses[0]))
-				}
-				if ip == nil {
-					log.WithField("service_id", svc.ID).Warnf("invalid IP: %s", svc.IPAddresses[0])
-					continue
-				}
-				a.proxyManager.StartProxy(svc.ID, ip.String(), svc.Ports)
-			}
+		} else if svc.Status != string(models.ServiceStatusAVAILABLE) {
 			// Mark for status update to AVAILABLE
-			if svc.Status != string(models.ServiceStatusAVAILABLE) {
-				toUpdate = append(toUpdate, svc.ID)
-			}
+			toUpdate = append(toUpdate, svc.ID)
 		}
 	}
 
