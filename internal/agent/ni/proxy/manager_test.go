@@ -5,504 +5,167 @@ package proxy
 
 import (
 	"context"
-	"errors"
-	"net"
-	"os"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/sapcc/archer/v2/internal/config"
 )
 
-func setupTempDir(t *testing.T) func() {
-	t.Helper()
-	tmpDir, err := os.MkdirTemp("", "proxy-test-*")
-	require.NoError(t, err)
-	config.Global.Agent.TempDir = tmpDir
-	return func() {
-		_ = os.RemoveAll(tmpDir)
+// newStubManager returns a Manager whose startProc blocks until ctx is cancelled
+// and records how many times it was invoked per network, so supervision can be
+// tested without spawning real socat processes.
+func newStubManager(ctx context.Context) (*Manager, func(strfmt.UUID) int) {
+	m := NewManager(ctx)
+
+	var mu sync.Mutex
+	runs := map[strfmt.UUID]int{}
+	m.startProc = func(ctx context.Context, networkID strfmt.UUID, _ string, _ []int32) error {
+		mu.Lock()
+		runs[networkID]++
+		mu.Unlock()
+		<-ctx.Done()
+		return nil
+	}
+	return m, func(n strfmt.UUID) int {
+		mu.Lock()
+		defer mu.Unlock()
+		return runs[n]
 	}
 }
 
 func TestNewManager(t *testing.T) {
-	ctx := context.Background()
-	m := NewManager(ctx)
-
+	m := NewManager(context.Background())
 	assert.NotNil(t, m)
 	assert.NotNil(t, m.proxies)
 	assert.Equal(t, 0, len(m.proxies))
 }
 
 func TestManager_IsRunning_Empty(t *testing.T) {
-	ctx := context.Background()
-	m := NewManager(ctx)
-
-	serviceID := strfmt.UUID("550e8400-e29b-41d4-a716-446655440000")
-	assert.False(t, m.IsRunning(serviceID))
+	m := NewManager(context.Background())
+	assert.False(t, m.IsRunning(strfmt.UUID("550e8400-e29b-41d4-a716-446655440000")))
 }
 
-func TestManager_StartProxy(t *testing.T) {
-	cleanup := setupTempDir(t)
-	defer cleanup()
-
+func TestManager_StartStop(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	m := NewManager(ctx)
-	serviceID := strfmt.UUID("550e8400-e29b-41d4-a716-446655440000")
-	ports := []int32{18080, 18443}
+	m, runs := newStubManager(ctx)
+	networkID := strfmt.UUID("550e8400-e29b-41d4-a716-446655440000")
 
-	m.StartProxy(serviceID, "127.0.0.1", ports)
+	m.StartProxy(networkID, "127.0.0.1", []int32{18080, 18443})
+	assert.Eventually(t, func() bool { return runs(networkID) == 1 }, time.Second, 5*time.Millisecond)
+	assert.True(t, m.IsRunning(networkID))
 
-	// Give the goroutine time to start
-	time.Sleep(50 * time.Millisecond)
-
-	assert.True(t, m.IsRunning(serviceID))
-
-	// Verify socket files were created
-	assert.FileExists(t, GetSocketPath(serviceID.String(), 18080))
-	assert.FileExists(t, GetSocketPath(serviceID.String(), 18443))
+	m.StopProxy(networkID)
+	assert.False(t, m.IsRunning(networkID))
 }
 
-func TestManager_StartProxy_ReplacesExisting(t *testing.T) {
-	cleanup := setupTempDir(t)
-	defer cleanup()
-
+func TestManager_StartProxy_Idempotent(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	m := NewManager(ctx)
-	serviceID := strfmt.UUID("550e8400-e29b-41d4-a716-446655440000")
+	m, runs := newStubManager(ctx)
+	networkID := strfmt.UUID("550e8400-e29b-41d4-a716-446655440000")
 
-	// Start first proxy
-	m.StartProxy(serviceID, "127.0.0.1", []int32{18080})
+	m.StartProxy(networkID, "127.0.0.1", []int32{18080})
+	assert.Eventually(t, func() bool { return runs(networkID) == 1 }, time.Second, 5*time.Millisecond)
+
+	// Second StartProxy for the same network is a no-op (endpoints in a network
+	// share one proxy set, mirroring HAProxy).
+	m.StartProxy(networkID, "127.0.0.1", []int32{18443})
 	time.Sleep(50 * time.Millisecond)
-	assert.True(t, m.IsRunning(serviceID))
 
-	// Start second proxy with same service ID - should replace
-	m.StartProxy(serviceID, "127.0.0.1", []int32{18443})
-	time.Sleep(50 * time.Millisecond)
-	assert.True(t, m.IsRunning(serviceID))
-
-	// Should still only have one proxy
 	m.mu.RLock()
 	assert.Equal(t, 1, len(m.proxies))
-	assert.Equal(t, []int32{18443}, m.proxies[serviceID].ports)
+	assert.Equal(t, []int32{18080}, m.proxies[networkID].ports, "second StartProxy should not replace the ports")
 	m.mu.RUnlock()
-}
-
-func TestManager_StopProxy(t *testing.T) {
-	cleanup := setupTempDir(t)
-	defer cleanup()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	m := NewManager(ctx)
-	serviceID := strfmt.UUID("550e8400-e29b-41d4-a716-446655440000")
-
-	m.StartProxy(serviceID, "127.0.0.1", []int32{18080})
-	time.Sleep(50 * time.Millisecond)
-	assert.True(t, m.IsRunning(serviceID))
-
-	m.StopProxy(serviceID)
-	assert.False(t, m.IsRunning(serviceID))
+	assert.Equal(t, 1, runs(networkID), "second StartProxy should not re-invoke startProc")
 }
 
 func TestManager_StopProxy_NotRunning(t *testing.T) {
-	ctx := context.Background()
-	m := NewManager(ctx)
-
-	serviceID := strfmt.UUID("550e8400-e29b-41d4-a716-446655440000")
-
-	// Should not panic when stopping a non-existent proxy
+	m := NewManager(context.Background())
 	assert.NotPanics(t, func() {
-		m.StopProxy(serviceID)
+		m.StopProxy(strfmt.UUID("550e8400-e29b-41d4-a716-446655440000"))
 	})
-	assert.False(t, m.IsRunning(serviceID))
 }
 
 func TestManager_StopAll(t *testing.T) {
-	cleanup := setupTempDir(t)
-	defer cleanup()
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	m := NewManager(ctx)
-	service1 := strfmt.UUID("550e8400-e29b-41d4-a716-446655440001")
-	service2 := strfmt.UUID("550e8400-e29b-41d4-a716-446655440002")
-	service3 := strfmt.UUID("550e8400-e29b-41d4-a716-446655440003")
-
-	m.StartProxy(service1, "127.0.0.1", []int32{18080})
-	m.StartProxy(service2, "127.0.0.1", []int32{18081})
-	m.StartProxy(service3, "127.0.0.1", []int32{18082})
-	time.Sleep(50 * time.Millisecond)
-
-	assert.True(t, m.IsRunning(service1))
-	assert.True(t, m.IsRunning(service2))
-	assert.True(t, m.IsRunning(service3))
+	m, _ := newStubManager(ctx)
+	ids := []strfmt.UUID{
+		"550e8400-e29b-41d4-a716-446655440001",
+		"550e8400-e29b-41d4-a716-446655440002",
+		"550e8400-e29b-41d4-a716-446655440003",
+	}
+	for _, id := range ids {
+		m.StartProxy(id, "127.0.0.1", []int32{18080})
+	}
+	assert.Eventually(t, func() bool { return m.IsRunning(ids[0]) && m.IsRunning(ids[2]) }, time.Second, 5*time.Millisecond)
 
 	m.StopAll()
-
-	assert.False(t, m.IsRunning(service1))
-	assert.False(t, m.IsRunning(service2))
-	assert.False(t, m.IsRunning(service3))
+	for _, id := range ids {
+		assert.False(t, m.IsRunning(id))
+	}
 }
 
-func TestManager_StopAll_Empty(t *testing.T) {
-	ctx := context.Background()
-	m := NewManager(ctx)
+func TestManager_Supervise_Restarts(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	// Should not panic when stopping all with no proxies
-	assert.NotPanics(t, func() {
-		m.StopAll()
+	m := NewManager(ctx)
+	var mu sync.Mutex
+	var count int
+	m.startProc = func(ctx context.Context, _ strfmt.UUID, _ string, _ []int32) error {
+		mu.Lock()
+		count++
+		mu.Unlock()
+		return assert.AnError // exit immediately to trigger restart
+	}
+
+	orig := restartBackoffForTest
+	restartBackoffForTest = 5 * time.Millisecond
+	defer func() { restartBackoffForTest = orig }()
+
+	networkID := strfmt.UUID("550e8400-e29b-41d4-a716-446655440000")
+	m.StartProxy(networkID, "127.0.0.1", []int32{18080})
+
+	assert.Eventually(t, func() bool {
+		mu.Lock()
+		defer mu.Unlock()
+		return count >= 3
+	}, time.Second, 5*time.Millisecond, "supervisor should restart after unexpected exit")
+
+	m.StopProxy(networkID)
+}
+
+func TestManager_InjectedStartProc(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// NewManager accepts a StartProc override (used by callers' tests to avoid
+	// spawning socat).
+	m := NewManager(ctx, func(ctx context.Context, _ strfmt.UUID, _ string, _ []int32) error {
+		<-ctx.Done()
+		return nil
 	})
+	networkID := strfmt.UUID("550e8400-e29b-41d4-a716-446655440000")
+	m.StartProxy(networkID, "127.0.0.1", []int32{18080})
+	assert.True(t, m.IsRunning(networkID))
+	m.StopProxy(networkID)
+	assert.False(t, m.IsRunning(networkID))
 }
 
-func TestManager_ConcurrentAccess(t *testing.T) {
-	cleanup := setupTempDir(t)
-	defer cleanup()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	m := NewManager(ctx)
-
-	// Run concurrent operations
-	var wg sync.WaitGroup
-	for i := 0; i < 5; i++ {
-		wg.Add(1)
-		go func(id int) {
-			defer wg.Done()
-			serviceID := strfmt.UUID("550e8400-e29b-41d4-a716-44665544000" + string(rune('0'+id)))
-			m.StartProxy(serviceID, "127.0.0.1", []int32{int32(19000 + id)})
-			time.Sleep(10 * time.Millisecond)
-			m.IsRunning(serviceID)
-			m.StopProxy(serviceID)
-		}(i)
-	}
-
-	// Wait for all goroutines
-	wg.Wait()
-
-	// Should not have panicked and all proxies should be stopped
-	m.mu.RLock()
-	assert.Equal(t, 0, len(m.proxies))
-	m.mu.RUnlock()
-}
-
-func TestManager_UnixProxyConnection(t *testing.T) {
-	cleanup := setupTempDir(t)
-	defer cleanup()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// Start a TCP echo server
-	tcpListener, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-	defer func() { _ = tcpListener.Close() }()
-
-	tcpPort := tcpListener.Addr().(*net.TCPAddr).Port
-
-	// Echo server goroutine
-	go func() {
-		for {
-			conn, err := tcpListener.Accept()
-			if err != nil {
-				return
-			}
-			go func(c net.Conn) {
-				defer func() { _ = c.Close() }()
-				buf := make([]byte, 1024)
-				for {
-					n, err := c.Read(buf)
-					if err != nil {
-						return
-					}
-					_, _ = c.Write(buf[:n])
-				}
-			}(conn)
-		}
-	}()
-
-	// Start the proxy manager
-	m := NewManager(ctx)
-	serviceID := strfmt.UUID("550e8400-e29b-41d4-a716-446655440000")
-	m.StartProxy(serviceID, "127.0.0.1", []int32{int32(tcpPort)})
-
-	// Give the proxy time to start listening
-	time.Sleep(50 * time.Millisecond)
-
-	// Connect to the Unix socket
-	socketPath := GetSocketPath(serviceID.String(), tcpPort)
-	unixConn, err := net.Dial("unix", socketPath)
-	require.NoError(t, err)
-	defer func() { _ = unixConn.Close() }()
-
-	// Send test data through the proxy
-	testData := []byte("hello proxy")
-	_, err = unixConn.Write(testData)
-	require.NoError(t, err)
-
-	// Read the echoed response
-	buf := make([]byte, 1024)
-	err = unixConn.SetReadDeadline(time.Now().Add(time.Second))
-	require.NoError(t, err)
-	n, err := unixConn.Read(buf)
-	require.NoError(t, err)
-
-	assert.Equal(t, testData, buf[:n])
-
-	// Cleanup
-	m.StopProxy(serviceID)
-	assert.False(t, m.IsRunning(serviceID))
-}
-
-func TestManager_ParallelConnections(t *testing.T) {
-	cleanup := setupTempDir(t)
-	defer cleanup()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// Start a TCP echo server that tracks concurrent connections
-	tcpListener, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-	defer func() { _ = tcpListener.Close() }()
-
-	tcpPort := tcpListener.Addr().(*net.TCPAddr).Port
-
-	var (
-		activeConns    int32
-		maxActiveConns int32
-		connMu         sync.Mutex
-	)
-
-	// Echo server that tracks concurrent connections
-	go func() {
-		for {
-			conn, err := tcpListener.Accept()
-			if err != nil {
-				return
-			}
-			go func(c net.Conn) {
-				defer func() { _ = c.Close() }()
-
-				// Track connection count
-				connMu.Lock()
-				activeConns++
-				if activeConns > maxActiveConns {
-					maxActiveConns = activeConns
-				}
-				connMu.Unlock()
-
-				defer func() {
-					connMu.Lock()
-					activeConns--
-					connMu.Unlock()
-				}()
-
-				buf := make([]byte, 1024)
-				for {
-					n, err := c.Read(buf)
-					if err != nil {
-						return
-					}
-					_, _ = c.Write(buf[:n])
-				}
-			}(conn)
-		}
-	}()
-
-	// Start the proxy manager
-	m := NewManager(ctx)
-	serviceID := strfmt.UUID("550e8400-e29b-41d4-a716-446655440000")
-	m.StartProxy(serviceID, "127.0.0.1", []int32{int32(tcpPort)})
-
-	// Give the proxy time to start listening
-	time.Sleep(50 * time.Millisecond)
-
-	socketPath := GetSocketPath(serviceID.String(), tcpPort)
-	numConnections := 10
-
-	// Create multiple connections in parallel
-	var wg sync.WaitGroup
-	connectedCh := make(chan struct{})
-	startCh := make(chan struct{})
-	connections := make([]net.Conn, numConnections)
-	connErrors := make([]error, numConnections)
-
-	// Launch goroutines to establish connections
-	for i := 0; i < numConnections; i++ {
-		wg.Add(1)
-		go func(idx int) {
-			defer wg.Done()
-
-			conn, err := net.Dial("unix", socketPath)
-			if err != nil {
-				connErrors[idx] = err
-				return
-			}
-			connections[idx] = conn
-
-			// Signal that we're connected
-			connectedCh <- struct{}{}
-
-			// Wait for start signal to send data
-			<-startCh
-
-			// Send and receive data
-			testData := []byte("hello from connection " + string(rune('0'+idx)))
-			_, err = conn.Write(testData)
-			if err != nil {
-				connErrors[idx] = err
-				return
-			}
-
-			buf := make([]byte, 1024)
-			_ = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
-			n, err := conn.Read(buf)
-			if err != nil {
-				connErrors[idx] = err
-				return
-			}
-
-			if string(buf[:n]) != string(testData) {
-				connErrors[idx] = errors.New("data mismatch")
-			}
-		}(i)
-	}
-
-	// Wait for all connections to be established
-	for i := 0; i < numConnections; i++ {
-		select {
-		case <-connectedCh:
-		case <-time.After(2 * time.Second):
-			t.Fatal("timeout waiting for connections to be established")
-		}
-	}
-
-	// Give a moment for all connections to be fully established
-	time.Sleep(50 * time.Millisecond)
-
-	// Record the max concurrent connections at this point
-	connMu.Lock()
-	currentMax := maxActiveConns
-	connMu.Unlock()
-
-	// Signal all goroutines to start sending data
-	close(startCh)
-
-	// Wait for all operations to complete
-	wg.Wait()
-
-	// Close all connections
-	for _, conn := range connections {
-		if conn != nil {
-			_ = conn.Close()
-		}
-	}
-
-	// Check for connection errors
-	for i, err := range connErrors {
-		assert.NoError(t, err, "connection %d should not have error", i)
-	}
-
-	// Verify that multiple connections were active simultaneously
-	// This proves the fix works - before the fix, maxActiveConns would be 1
-	assert.GreaterOrEqual(t, currentMax, int32(numConnections),
-		"should have had %d concurrent connections, but max was %d", numConnections, currentMax)
-
-	// Cleanup
-	m.StopProxy(serviceID)
-	assert.False(t, m.IsRunning(serviceID))
-}
-
-func TestManager_StartProxy_IPv6(t *testing.T) {
-	cleanup := setupTempDir(t)
-	defer cleanup()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	m := NewManager(ctx)
-	serviceID := strfmt.UUID("550e8400-e29b-41d4-a716-446655440099")
-	ports := []int32{18080}
-
-	m.StartProxy(serviceID, "::1", ports)
-
-	time.Sleep(50 * time.Millisecond)
-
-	assert.True(t, m.IsRunning(serviceID))
-	assert.FileExists(t, GetSocketPath(serviceID.String(), 18080))
-
-	m.StopProxy(serviceID)
-	assert.False(t, m.IsRunning(serviceID))
-}
-
-func TestManager_UnixProxyConnection_IPv6(t *testing.T) {
-	cleanup := setupTempDir(t)
-	defer cleanup()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// Start a TCP echo server on IPv6 loopback
-	tcpListener, err := net.Listen("tcp6", "[::1]:0")
-	require.NoError(t, err)
-	defer func() { _ = tcpListener.Close() }()
-
-	tcpPort := tcpListener.Addr().(*net.TCPAddr).Port
-
-	go func() {
-		for {
-			conn, err := tcpListener.Accept()
-			if err != nil {
-				return
-			}
-			go func(c net.Conn) {
-				defer func() { _ = c.Close() }()
-				buf := make([]byte, 1024)
-				for {
-					n, err := c.Read(buf)
-					if err != nil {
-						return
-					}
-					_, _ = c.Write(buf[:n])
-				}
-			}(conn)
-		}
-	}()
-
-	m := NewManager(ctx)
-	serviceID := strfmt.UUID("550e8400-e29b-41d4-a716-446655440099")
-	m.StartProxy(serviceID, "::1", []int32{int32(tcpPort)})
-
-	time.Sleep(50 * time.Millisecond)
-
-	socketPath := GetSocketPath(serviceID.String(), tcpPort)
-	unixConn, err := net.Dial("unix", socketPath)
-	require.NoError(t, err)
-	defer func() { _ = unixConn.Close() }()
-
-	testData := []byte("hello ipv6 proxy")
-	_, err = unixConn.Write(testData)
-	require.NoError(t, err)
-
-	buf := make([]byte, 1024)
-	err = unixConn.SetReadDeadline(time.Now().Add(time.Second))
-	require.NoError(t, err)
-	n, err := unixConn.Read(buf)
-	require.NoError(t, err)
-
-	assert.Equal(t, testData, buf[:n])
-
-	m.StopProxy(serviceID)
+// TestGetSocketPaths pins the per-network path layout the HAProxy backend and
+// socat listener rely on.
+func TestGetSocketPaths(t *testing.T) {
+	config.Global.Agent.RunDir = "/run/archer"
+	net := "660e8400-e29b-41d4-a716-446655440000"
+	assert.Equal(t, "/run/archer/"+net, GetNetworkDir(net))
+	assert.Equal(t, "/run/archer/"+net+"/80.sock", GetSocketPath(net, 80))
 }
