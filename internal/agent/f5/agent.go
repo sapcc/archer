@@ -25,6 +25,7 @@ import (
 	"github.com/sapcc/archer/v2/internal/config"
 	"github.com/sapcc/archer/v2/internal/db"
 	"github.com/sapcc/archer/v2/internal/neutron"
+	"github.com/sapcc/archer/v2/internal/profiling"
 	"github.com/sapcc/archer/v2/models"
 )
 
@@ -133,6 +134,7 @@ func (a *Agent) Run() {
 	go common.DBNotificationThread(context.Background(), a)
 	prom := common.NewPrometheusListener()
 	go prom.Run()
+	profiling.Start()
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)

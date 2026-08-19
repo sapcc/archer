@@ -47,6 +47,8 @@ type Default struct {
 	Host             string `long:"hostname" ini-name:"host" description:"Hostname used by the server/agent. Defaults to auto-discovery."`
 	Prometheus       bool   `long:"prometheus" description:"Enable prometheus exporter."`
 	PrometheusListen string `long:"prometheus-listen" ini-name:"prometheus_listen" default:"127.0.0.1:9090" description:"Prometheus listen TCP network address."`
+	Pprof            bool   `long:"pprof" ini-name:"pprof" description:"Enable net/http/pprof profiling endpoints."`
+	PprofListen      string `long:"pprof-listen" ini-name:"pprof_listen" default:"127.0.0.1:6060" description:"pprof listen TCP network address."`
 	Sentry           bool   `long:"sentry" ini-name:"sentry" description:"Enable Sentry"`
 	SentryDSN        string `long:"sentry-dsn" ini-name:"sentry_dsn" description:"Sentry Data Source Name."`
 	EndpointType     string `ini-name:"endpoint_type" default:"public"`

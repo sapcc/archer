@@ -36,6 +36,7 @@ import (
 	"github.com/sapcc/archer/v2/internal/neutron"
 	"github.com/sapcc/archer/v2/internal/notifier"
 	"github.com/sapcc/archer/v2/internal/policy"
+	"github.com/sapcc/archer/v2/internal/profiling"
 	"github.com/sapcc/archer/v2/internal/scheduler"
 	"github.com/sapcc/archer/v2/restapi/operations"
 	"github.com/sapcc/archer/v2/restapi/operations/agent"
@@ -109,6 +110,8 @@ func configureAPI(api *operations.ArcherAPI) http.Handler {
 		prometheus.MustRegister(collector)
 		prometheus.MustRegister(httpRequestDuration, httpRequestsTotal, httpResponseSize)
 	}
+
+	profiling.Start()
 
 	// Keystone authentication
 	authInfo := clientconfig.AuthInfo(config.Global.ServiceAuth)
