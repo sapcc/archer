@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- archer-server, archer-f5-agent, archer-ni-agent: optional `net/http/pprof` profiling endpoints, enabled with `--pprof` (config `pprof`) and served on a dedicated listener configurable via `--pprof-listen` (config `pprof_listen`, default `127.0.0.1:6060`). Access is restricted to requests from localhost. In addition to the standard endpoints under `/debug/pprof/`, `GET /debug/pprof/exe` returns the running binary for use with `go tool pprof`.
+
 ### Changed
 
 - archer-ni-agent: HAProxy log verbosity now follows the agent's log level — `--debug` surfaces HAProxy `debug` logs, otherwise it is capped at `info` (previously HAProxy defaulted to emitting all levels).

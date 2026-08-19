@@ -29,6 +29,7 @@ import (
 	"github.com/sapcc/archer/v2/internal/config"
 	"github.com/sapcc/archer/v2/internal/db"
 	"github.com/sapcc/archer/v2/internal/neutron"
+	"github.com/sapcc/archer/v2/internal/profiling"
 	"github.com/sapcc/archer/v2/models"
 )
 
@@ -112,6 +113,7 @@ func (a *Agent) Run() {
 
 	prom := common.NewPrometheusListener()
 	go prom.Run()
+	profiling.Start()
 	go common.DBNotificationThread(ctx, a)
 	go a.haproxy.Run(ctx)
 
