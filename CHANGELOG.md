@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-08-20
+
 ### Added
 
 - archer-server, archer-f5-agent, archer-ni-agent: optional `net/http/pprof` profiling endpoints, enabled with `--pprof` (config `pprof`) and served on a dedicated listener configurable via `--pprof-listen` (config `pprof_listen`, default `127.0.0.1:6060`). Access is restricted to requests from localhost. In addition to the standard endpoints under `/debug/pprof/`, `GET /debug/pprof/exe` returns the running binary for use with `go tool pprof`.
@@ -194,7 +196,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-Release with goreleaser
 
-[Unreleased]: https://github.com/sapcc/archer/compare/v2.5.4...HEAD
+[Unreleased]: https://github.com/sapcc/archer/compare/v2.6.0...HEAD
+
+[2.6.0]: https://github.com/sapcc/archer/compare/v2.5.4...v2.6.0
 
 [2.5.4]: https://github.com/sapcc/archer/compare/v2.5.3...v2.5.4
 
