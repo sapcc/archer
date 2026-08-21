@@ -143,7 +143,7 @@ func (t *SuiteTest) TestServicePost() {
 		service.GetServiceServiceIDParams{HTTPRequest: &http.Request{}, ServiceID: serviceId},
 		nil)
 	assert.IsType(t.T(), &service.GetServiceServiceIDOK{}, res)
-	assert.EqualValues(t.T(), 1, res.(*service.GetServiceServiceIDOK).Payload.InUse)
+	assert.Zero(t.T(), res.(*service.GetServiceServiceIDOK).Payload.InUse)
 }
 
 func (t *SuiteTest) TestServicePostScoped() {
