@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.0] - 2026-08-21
+
 ### Added
 
 - F5 agent: services with `ports: [0]` (wildcard) are now supported for the tenant provider, representing all TCP ports. A wildcard service generates a single AS3 pool and virtual service instead of expanding the full port range, preventing AS3 declaration bloat and BIG-IP task-status timeouts.
@@ -210,7 +212,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-Release with goreleaser
 
-[Unreleased]: https://github.com/sapcc/archer/compare/v2.6.0...HEAD
+[Unreleased]: https://github.com/sapcc/archer/compare/v2.7.0...HEAD
+
+[2.7.0]: https://github.com/sapcc/archer/compare/v2.6.0...v2.7.0
 
 [2.6.0]: https://github.com/sapcc/archer/compare/v2.5.4...v2.6.0
 
