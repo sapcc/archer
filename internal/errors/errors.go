@@ -25,4 +25,5 @@ var (
 
 	ErrSnatPoolSizeUnsupportedProvider = errors.New("snat_pool_size is only supported for provider=f5")
 	ErrSnatIPConflict                  = errors.New("SNAT IP conflict")
+	ErrInvalidPorts                    = errors.New("invalid ports")
 )

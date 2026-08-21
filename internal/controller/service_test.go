@@ -186,11 +186,17 @@ func (t *SuiteTest) TestServicePostConflictPorts() {
 	// post and get
 	t.createService(testService)
 
-	// same IP with same port overlap -> conflict
-	testServiceOtherPort := testService
-	testServiceOtherPort.Ports = []int32{0, 1234}
+	// same IP with same wildcard port -> conflict
+	testServiceSamePort := testService
+	testServiceSamePort.Ports = []int32{0}
 
-	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &testServiceOtherPort},
+	t.ResetHttpServer()
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
+		"", GetNetworkResponseFixture, http.StatusOK)
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
+		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
+
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &testServiceSamePort},
 		nil)
 	assert.NotNil(t.T(), res)
 	assert.IsType(t.T(), &service.PostServiceConflict{}, res)
@@ -242,6 +248,90 @@ func (t *SuiteTest) TestServicePostSnatIPNoConflict() {
 	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &svc}, nil)
 	assert.NotNil(t.T(), res)
 	assert.IsType(t.T(), &service.PostServiceCreated{}, res)
+}
+
+func (t *SuiteTest) TestServicePostWildcardConflictsWithSpecificPort() {
+	// Create a service with specific ports
+	testServiceSpecific := testService
+	testServiceSpecific.Ports = []int32{80, 443}
+	t.createService(testServiceSpecific)
+
+	// Try to create a wildcard service on same IP -> conflict
+	testServiceWildcard := testService
+	testServiceWildcard.Ports = []int32{0}
+
+	t.ResetHttpServer()
+	t.setupNeutronHandlersForServiceCreate(networkId)
+
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &testServiceWildcard},
+		nil)
+	assert.NotNil(t.T(), res)
+	assert.IsType(t.T(), &service.PostServiceConflict{}, res)
+	assert.Equal(t.T(), "Entry for network_id, ip_address and port(s) already exists.",
+		res.(*service.PostServiceConflict).Payload.Message)
+}
+
+func (t *SuiteTest) TestServicePostSpecificPortConflictsWithWildcard() {
+	// Create a wildcard service
+	t.createService(testService) // ports: [0]
+
+	// Try to create a specific-port service on same IP -> conflict
+	testServiceSpecific := testService
+	testServiceSpecific.Ports = []int32{443}
+
+	t.ResetHttpServer()
+	t.setupNeutronHandlersForServiceCreate(networkId)
+
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &testServiceSpecific},
+		nil)
+	assert.NotNil(t.T(), res)
+	assert.IsType(t.T(), &service.PostServiceConflict{}, res)
+	assert.Equal(t.T(), "Entry for network_id, ip_address and port(s) already exists.",
+		res.(*service.PostServiceConflict).Payload.Message)
+}
+
+func (t *SuiteTest) TestServicePostWildcardMixedPortsRejected() {
+	// Port 0 cannot be combined with other ports -> 400
+	testServiceMixed := testService
+	testServiceMixed.Ports = []int32{0, 1234}
+
+	t.addAgent(nil)
+	t.ResetHttpServer()
+	t.setupNeutronHandlersForServiceCreate(networkId)
+
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &testServiceMixed},
+		nil)
+	assert.NotNil(t.T(), res)
+	assert.IsType(t.T(), &service.PostServiceBadRequest{}, res)
+	assert.Contains(t.T(), res.(*service.PostServiceBadRequest).Payload.Message,
+		"port 0 (wildcard) cannot be combined with other ports")
+}
+
+func (t *SuiteTest) TestServicePostWildcardCPProviderRejected() {
+	// Port 0 is not supported for cp provider -> 400
+	testServiceCP := models.Service{
+		Name:        "test-cp",
+		IPAddresses: []models.InetAddress{"1.2.3.4"},
+		Ports:       []int32{0},
+		ProjectID:   testProject1,
+		Provider:    conv.Pointer("cp"),
+	}
+
+	// Insert a cp agent
+	sql, args := db.Insert("agents").
+		Columns("host", "availability_zone", "provider", "physnet", "heartbeat_at").
+		Values("test-host-cp", nil, "cp", config.Global.Agent.PhysicalNetwork, sq.Expr("NOW()")).
+		Suffix("ON CONFLICT DO NOTHING").
+		MustSql()
+	_, err := t.c.pool.Exec(context.Background(), sql, args...)
+	assert.NoError(t.T(), err)
+
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &testServiceCP},
+		nil)
+	assert.NotNil(t.T(), res)
+	assert.IsType(t.T(), &service.PostServiceBadRequest{}, res)
+	assert.Contains(t.T(), res.(*service.PostServiceBadRequest).Payload.Message,
+		"port 0 (wildcard) is not supported for cp provider")
 }
 
 func (t *SuiteTest) TestServicePostQuotaMet() {
@@ -316,6 +406,7 @@ func (t *TestEnforcerDenyAll) Enforce(_ string, _ policy.Context) bool {
 func (t *SuiteTest) TestServicePostNotTenant() {
 	testServiceNotTenantProvider := testService
 	testServiceNotTenantProvider.Provider = conv.Pointer("cp")
+	testServiceNotTenantProvider.Ports = []int32{80}
 	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
 		"", GetNetworkResponseFixture, http.StatusOK)
 	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
@@ -967,18 +1058,27 @@ func (t *SuiteTest) TestPutServiceServiceIDAcceptEndpointHandlerMultipleServices
 }
 
 func (t *SuiteTest) TestServicePutConflictPorts() {
-	// post and get
-	svc := t.createService(testService)
+	// Create first service with specific ports
+	testServiceFirst := testService
+	testServiceFirst.Ports = []int32{80, 443}
+	svc := t.createService(testServiceFirst)
 
+	// Create second service with non-overlapping ports
 	testServiceOtherPort := testService
 	testServiceOtherPort.Ports = []int32{1234, 2345}
+
+	t.ResetHttpServer()
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
+		"", GetNetworkResponseFixture, http.StatusOK)
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
+		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
 
 	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &testServiceOtherPort},
 		nil)
 	assert.NotNil(t.T(), res)
 	assert.IsType(t.T(), &service.PostServiceCreated{}, res)
 
-	// update to port 2345 -> conflict
+	// Update first service to port 2345 -> conflict with second service
 	res = t.c.PutServiceServiceIDHandler(
 		service.PutServiceServiceIDParams{HTTPRequest: &headerProject1,
 			ServiceID: svc, Body: &models.ServiceUpdatable{Ports: []int32{2345, 3456}}},

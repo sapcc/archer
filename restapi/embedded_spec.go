@@ -2041,15 +2041,16 @@ func init() {
           "x-nullable": true
         },
         "ports": {
-          "description": "Ports exposed by the service.",
+          "description": "Ports exposed by the service. Port 0 is a wildcard meaning \"all TCP ports\". When used it must be the sole element of the array. Maximum 8 ports per service; use port 0 for all-ports instead of enumerating.",
           "type": "array",
+          "maxItems": 8,
           "minItems": 1,
           "uniqueItems": true,
           "items": {
             "type": "integer",
             "format": "int32",
             "maximum": 65535,
-            "minimum": 1,
+            "x-nullable": false,
             "example": 80
           },
           "x-nullable": false
@@ -2171,14 +2172,15 @@ func init() {
           "example": "ExampleService"
         },
         "ports": {
-          "description": "Ports exposed by the service.",
+          "description": "Ports exposed by the service. Port 0 is a wildcard meaning \"all TCP ports\". When used it must be the sole element of the array. Maximum 8 ports per service; use port 0 for all-ports instead of enumerating.",
           "type": "array",
+          "maxItems": 8,
           "uniqueItems": true,
           "items": {
             "type": "integer",
             "format": "int32",
             "maximum": 65535,
-            "minimum": 1,
+            "x-nullable": false,
             "example": 80
           }
         },
@@ -4772,15 +4774,17 @@ func init() {
           "x-nullable": true
         },
         "ports": {
-          "description": "Ports exposed by the service.",
+          "description": "Ports exposed by the service. Port 0 is a wildcard meaning \"all TCP ports\". When used it must be the sole element of the array. Maximum 8 ports per service; use port 0 for all-ports instead of enumerating.",
           "type": "array",
+          "maxItems": 8,
           "minItems": 1,
           "uniqueItems": true,
           "items": {
             "type": "integer",
             "format": "int32",
             "maximum": 65535,
-            "minimum": 1,
+            "minimum": 0,
+            "x-nullable": false,
             "example": 80
           },
           "x-nullable": false
@@ -4902,15 +4906,17 @@ func init() {
           "example": "ExampleService"
         },
         "ports": {
-          "description": "Ports exposed by the service.",
+          "description": "Ports exposed by the service. Port 0 is a wildcard meaning \"all TCP ports\". When used it must be the sole element of the array. Maximum 8 ports per service; use port 0 for all-ports instead of enumerating.",
           "type": "array",
+          "maxItems": 8,
           "minItems": 0,
           "uniqueItems": true,
           "items": {
             "type": "integer",
             "format": "int32",
             "maximum": 65535,
-            "minimum": 1,
+            "minimum": 0,
+            "x-nullable": false,
             "example": 80
           }
         },

@@ -49,7 +49,7 @@ func TestGetEndpointTenants(t *testing.T) {
 	json, err := tenant.MarshalJSON()
 	assert.Nil(t, err)
 
-	expectedJSON := fmt.Sprintf(`{"class":"Tenant","si-endpoints":{"class":"Application","endpoint-0-3ad9b1f0-4e5a-44c3-ada6-71696925ae64":{"label":"endpoint-0-3ad9b1f0-4e5a-44c3-ada6-71696925ae64","class":"Service_TCP","allowVlans":["/Common/vlan-1"],"iRules":[{"use":"irule-3ad9b1f0-4e5a-44c3-ada6-71696925ae64"}],"mirroring":"L4","persistenceMethods":[],"pool":{"bigip":"/Common/Shared/pool-4e50bf87-e597-41f2-9ce0-83d3e24dedf3-0"},"profileTCP":{"bigip":"test-tcp-profile"},"snat":{"bigip":"/Common/Shared/snatpool-4e50bf87-e597-41f2-9ce0-83d3e24dedf3"},"virtualAddresses":["1.2.3.4%%1"],"translateServerPort":true,"virtualPort":0},"irule-3ad9b1f0-4e5a-44c3-ada6-71696925ae64":{"label":"irule-endpoint-3ad9b1f0-4e5a-44c3-ada6-71696925ae64","class":"iRule","iRule":{"base64":"%s"}},"template":"generic"}}`, base64.StdEncoding.EncodeToString([]byte(pp2)))
+	expectedJSON := fmt.Sprintf(`{"class":"Tenant","si-endpoints":{"class":"Application","endpoint-0-3ad9b1f0-4e5a-44c3-ada6-71696925ae64":{"label":"endpoint-0-3ad9b1f0-4e5a-44c3-ada6-71696925ae64","class":"Service_TCP","allowVlans":["/Common/vlan-1"],"iRules":[{"use":"irule-3ad9b1f0-4e5a-44c3-ada6-71696925ae64"}],"mirroring":"L4","persistenceMethods":[],"pool":{"bigip":"/Common/Shared/pool-4e50bf87-e597-41f2-9ce0-83d3e24dedf3-0"},"profileTCP":{"bigip":"test-tcp-profile"},"snat":{"bigip":"/Common/Shared/snatpool-4e50bf87-e597-41f2-9ce0-83d3e24dedf3"},"virtualAddresses":["1.2.3.4%%1"],"translateServerPort":false,"virtualPort":0},"irule-3ad9b1f0-4e5a-44c3-ada6-71696925ae64":{"label":"irule-endpoint-3ad9b1f0-4e5a-44c3-ada6-71696925ae64","class":"iRule","iRule":{"base64":"%s"}},"template":"generic"}}`, base64.StdEncoding.EncodeToString([]byte(pp2)))
 	assert.JSONEq(t, expectedJSON, string(json), "Tenant JSON should be equal")
 }
 
@@ -109,6 +109,57 @@ func TestGetEndpointTenantsMirroringEnabled(t *testing.T) {
 	json, err := tenant.MarshalJSON()
 	assert.Nil(t, err)
 	assert.Contains(t, string(json), `"mirroring":"L4"`)
+}
+
+func TestGetEndpointTenantsWildcardPort(t *testing.T) {
+	config.Global.Agent.L4Profile = "test-l4-profile"
+	config.Global.Agent.TCPProfile = "test-tcp-profile"
+	endpoints := []*ExtendedEndpoint{
+		{
+			Endpoint: models.Endpoint{
+				ID:        "3ad9b1f0-4e5a-44c3-ada6-71696925ae64",
+				ServiceID: strfmt.UUID("4e50bf87-e597-41f2-9ce0-83d3e24dedf3"),
+			},
+			ProxyProtocol:       false,
+			ConnectionMirroring: false,
+			Port: &ports.Port{
+				FixedIPs: []ports.IP{{IPAddress: "10.0.0.1"}},
+			},
+			SegmentId:    conv.Pointer(1),
+			ServicePorts: []int32{0},
+		},
+	}
+	tenant := GetEndpointTenants(endpoints)
+	json, err := tenant.MarshalJSON()
+	assert.Nil(t, err)
+	// Wildcard port (0) should set translateServerPort to false
+	assert.Contains(t, string(json), `"translateServerPort":false`)
+	assert.Contains(t, string(json), `"virtualPort":0`)
+}
+
+func TestGetEndpointTenantsNonWildcardPort(t *testing.T) {
+	config.Global.Agent.L4Profile = "test-l4-profile"
+	config.Global.Agent.TCPProfile = "test-tcp-profile"
+	endpoints := []*ExtendedEndpoint{
+		{
+			Endpoint: models.Endpoint{
+				ID:        "3ad9b1f0-4e5a-44c3-ada6-71696925ae64",
+				ServiceID: strfmt.UUID("4e50bf87-e597-41f2-9ce0-83d3e24dedf3"),
+			},
+			ProxyProtocol:       false,
+			ConnectionMirroring: false,
+			Port: &ports.Port{
+				FixedIPs: []ports.IP{{IPAddress: "10.0.0.1"}},
+			},
+			SegmentId:    conv.Pointer(1),
+			ServicePorts: []int32{80, 443},
+		},
+	}
+	tenant := GetEndpointTenants(endpoints)
+	json, err := tenant.MarshalJSON()
+	assert.Nil(t, err)
+	// Non-wildcard ports should keep translateServerPort as true
+	assert.Contains(t, string(json), `"translateServerPort":true`)
 }
 
 func TestGetServiceName(t *testing.T) {

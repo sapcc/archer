@@ -97,8 +97,9 @@ type Service struct {
 	// Format: uuid
 	NetworkID *strfmt.UUID `json:"network_id,omitempty"`
 
-	// Ports exposed by the service.
+	// Ports exposed by the service. Port 0 is a wildcard meaning "all TCP ports". When used it must be the sole element of the array. Maximum 8 ports per service; use port 0 for all-ports instead of enumerating.
 	// Required: true
+	// Max Items: 8
 	// Min Items: 1
 	// Unique: true
 	Ports []int32 `json:"ports"`
@@ -401,13 +402,17 @@ func (m *Service) validatePorts(formats strfmt.Registry) error {
 		return err
 	}
 
+	if err := validate.MaxItems("ports", "body", iPortsSize, 8); err != nil {
+		return err
+	}
+
 	if err := validate.UniqueItems("ports", "body", m.Ports); err != nil {
 		return err
 	}
 
 	for i := 0; i < len(m.Ports); i++ {
 
-		if err := validate.MinimumInt("ports"+"."+strconv.Itoa(i), "body", int64(m.Ports[i]), 1, false); err != nil {
+		if err := validate.MinimumInt("ports"+"."+strconv.Itoa(i), "body", int64(m.Ports[i]), 0, false); err != nil {
 			return err
 		}
 
