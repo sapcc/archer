@@ -68,6 +68,32 @@ func (t *SuiteTest) TestEndpointList() {
 	assert.Equal(t.T(), endpoints.Payload.Items[0].Target.Network.String(), network.String())
 }
 
+func (t *SuiteTest) TestEndpointListFilters() {
+	network := strfmt.UUID("d714f65e-bffd-494f-8219-8eb0a85d7a2d")
+	serviceID := t.createService(testService)
+	t.createEndpoint(serviceID, models.EndpointTarget{Network: &network})
+
+	header := headerProject1
+	header.URL = new(url.URL)
+	res := t.c.GetEndpointHandler(endpoint.GetEndpointParams{
+		HTTPRequest:         &header,
+		ServiceID:           &serviceID,
+		NetworkID:           &network,
+		Status:              new("PENDING_CREATE"),
+		ConnectionMirroring: new(false),
+	}, nil)
+	assert.IsType(t.T(), &endpoint.GetEndpointOK{}, res)
+	assert.Len(t.T(), res.(*endpoint.GetEndpointOK).Payload.Items, 1)
+
+	otherNetwork := strfmt.UUID("00000000-0000-0000-0000-000000000001")
+	res = t.c.GetEndpointHandler(endpoint.GetEndpointParams{
+		HTTPRequest: &header,
+		NetworkID:   &otherNetwork,
+	}, nil)
+	assert.IsType(t.T(), &endpoint.GetEndpointOK{}, res)
+	assert.Empty(t.T(), res.(*endpoint.GetEndpointOK).Payload.Items)
+}
+
 func (t *SuiteTest) TestEndpointListUnknownSortColumn() {
 	header := headerProject1
 	header.URL = new(url.URL)

@@ -79,6 +79,10 @@ type Service struct {
 	// Format: uuid
 	ID strfmt.UUID `json:"id,omitempty"`
 
+	// Number of endpoints using this service.
+	// Read Only: true
+	InUse int64 `json:"in_use,omitempty"`
+
 	// IP Addresses of the providing service (IPv4 or IPv6), multiple addresses will be round robin load balanced.
 	// Required: true
 	// Min Items: 1
@@ -640,6 +644,10 @@ func (m *Service) ContextValidate(ctx context.Context, formats strfmt.Registry) 
 		res = append(res, err)
 	}
 
+	if err := m.contextValidateInUse(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.contextValidateProjectID(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -675,6 +683,15 @@ func (m *Service) contextValidateHost(ctx context.Context, formats strfmt.Regist
 func (m *Service) contextValidateID(ctx context.Context, formats strfmt.Registry) error {
 
 	if err := validate.ReadOnly(ctx, "id", "body", m.ID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Service) contextValidateInUse(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := validate.ReadOnly(ctx, "in_use", "body", m.InUse); err != nil {
 		return err
 	}
 

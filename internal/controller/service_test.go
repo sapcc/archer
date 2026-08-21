@@ -83,6 +83,36 @@ func (t *SuiteTest) TestGetServiceHandler() {
 	assert.Len(t.T(), services.Payload.Items, 1)
 	assert.Equal(t.T(), serviceId, services.Payload.Items[0].ID)
 	assert.Equal(t.T(), &networkId, services.Payload.Items[0].NetworkID)
+	assert.Zero(t.T(), services.Payload.Items[0].InUse)
+}
+
+func (t *SuiteTest) TestGetServiceHandlerFilters() {
+	serviceID := t.createService(testService)
+	az := "test-az"
+	_, err := t.c.pool.Exec(t.ctx, "UPDATE service SET availability_zone = $1 WHERE id = $2", az, serviceID)
+	assert.NoError(t.T(), err)
+
+	header := headerProject1
+	header.URL = new(url.URL)
+	res := t.c.GetServiceHandler(service.GetServiceParams{
+		HTTPRequest:      &header,
+		Host:             new("test-host"),
+		Provider:         new("tenant"),
+		Status:           new("PENDING_CREATE"),
+		AvailabilityZone: &az,
+		NetworkID:        &networkId,
+		Visibility:       new("private"),
+		Enabled:          new(true),
+	}, nil)
+	assert.IsType(t.T(), &service.GetServiceOK{}, res)
+	assert.Len(t.T(), res.(*service.GetServiceOK).Payload.Items, 1)
+
+	res = t.c.GetServiceHandler(service.GetServiceParams{
+		HTTPRequest: &header,
+		Host:        new("other-host"),
+	}, nil)
+	assert.IsType(t.T(), &service.GetServiceOK{}, res)
+	assert.Empty(t.T(), res.(*service.GetServiceOK).Payload.Items)
 }
 
 func (t *SuiteTest) TestGetServiceHandlerUnknownSortColumn() {
@@ -113,6 +143,7 @@ func (t *SuiteTest) TestServicePost() {
 		service.GetServiceServiceIDParams{HTTPRequest: &http.Request{}, ServiceID: serviceId},
 		nil)
 	assert.IsType(t.T(), &service.GetServiceServiceIDOK{}, res)
+	assert.EqualValues(t.T(), 1, res.(*service.GetServiceServiceIDOK).Payload.InUse)
 }
 
 func (t *SuiteTest) TestServicePostScoped() {

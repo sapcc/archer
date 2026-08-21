@@ -39,17 +39,29 @@ var ServiceOptions struct {
 }
 
 type ServiceList struct {
-	Tags       []string `long:"tags" description:"List services which have all given tag(s) (repeat option for multiple tags)"`
-	AnyTags    []string `long:"any-tags" description:"List services which have any given tag(s) (repeat option for multiple tags)"`
-	NotTags    []string `long:"not-tags" description:"Exclude services which have all given tag(s) (repeat option for multiple tags)"`
-	NotAnyTags []string `long:"not-any-tags" description:"Exclude services which have any given tag(s) (repeat option for multiple tags)"`
-	Project    *string  `short:"p" long:"project" description:"List services in the given project (ID)"`
+	Tags             []string `long:"tags" description:"List services which have all given tag(s) (repeat option for multiple tags)"`
+	AnyTags          []string `long:"any-tags" description:"List services which have any given tag(s) (repeat option for multiple tags)"`
+	NotTags          []string `long:"not-tags" description:"Exclude services which have all given tag(s) (repeat option for multiple tags)"`
+	NotAnyTags       []string `long:"not-any-tags" description:"Exclude services which have any given tag(s) (repeat option for multiple tags)"`
+	Project          *string  `short:"p" long:"project" description:"List services in the given project (ID)"`
+	Host             *string  `long:"host" description:"List services assigned to the given agent hostname"`
+	Provider         *string  `long:"provider" description:"List services using the given provider" choice:"tenant" choice:"cp"`
+	Status           *string  `long:"status" description:"List services with the given provisioning status" choice:"AVAILABLE" choice:"PENDING_CREATE" choice:"PENDING_UPDATE" choice:"PENDING_DELETE" choice:"UNAVAILABLE" choice:"ERROR_QUOTA"`
+	AvailabilityZone *string  `long:"availability-zone" description:"List services in the given availability zone"`
+	Network          *string  `long:"network" description:"List services on the given provider network (name or ID)"`
+	Visibility       *string  `long:"visibility" description:"List services with the given visibility" choice:"private" choice:"public"`
+	Enabled          bool     `long:"enabled" description:"List enabled services"`
+	Disabled         bool     `long:"disabled" description:"List disabled services"`
 }
 
 func (*ServiceList) Execute(_ []string) error {
-	type serviceWithEndpoints struct {
-		*models.Service
-		Endpoints int `json:"in_use"`
+	var networkID *strfmt.UUID
+	if ServiceOptions.ServiceList.Network != nil {
+		id, err := ResolveNetworkID(*ServiceOptions.ServiceList.Network)
+		if err != nil {
+			return err
+		}
+		networkID = &id
 	}
 
 	params := service.NewGetServiceParams().
@@ -57,27 +69,20 @@ func (*ServiceList) Execute(_ []string) error {
 		WithTagsAny(ServiceOptions.ServiceList.AnyTags).
 		WithNotTags(ServiceOptions.ServiceList.NotTags).
 		WithNotTagsAny(ServiceOptions.ServiceList.NotAnyTags).
-		WithProjectID(ServiceOptions.ServiceList.Project)
+		WithProjectID(ServiceOptions.ServiceList.Project).
+		WithHost(ServiceOptions.ServiceList.Host).
+		WithProvider(ServiceOptions.ServiceList.Provider).
+		WithStatus(ServiceOptions.ServiceList.Status).
+		WithAvailabilityZone(ServiceOptions.ServiceList.AvailabilityZone).
+		WithNetworkID(networkID).
+		WithVisibility(ServiceOptions.ServiceList.Visibility).
+		WithEnabled(boolFlag(ServiceOptions.ServiceList.Enabled, ServiceOptions.ServiceList.Disabled))
 	resp, err := ArcherClient.Service.GetService(params, nil)
 	if err != nil {
 		return err
 	}
-	DefaultColumns = []string{"id", "name", "ports", "enabled", "provider", "status", "health_status", "visibility", "availability_zone", "project_id", "in_use"}
-	items := resp.GetPayload().Items
-
-	// Build enriched list with endpoint counts
-	enriched := make([]serviceWithEndpoints, 0, len(items))
-	for _, svc := range items {
-		epParams := service.NewGetServiceServiceIDEndpointsParams().WithServiceID(svc.ID)
-		epResp, epErr := ArcherClient.Service.GetServiceServiceIDEndpoints(epParams, nil)
-		count := 0
-		if epErr == nil {
-			count = len(epResp.GetPayload().Items)
-		}
-		enriched = append(enriched, serviceWithEndpoints{Service: svc, Endpoints: count})
-	}
-
-	return WriteTable(enriched)
+	DefaultColumns = []string{"id", "name", "ports", "enabled", "provider", "host", "status", "health_status", "visibility", "availability_zone", "project_id", "in_use"}
+	return WriteTable(resp.GetPayload().Items)
 }
 
 type ServiceShow struct {

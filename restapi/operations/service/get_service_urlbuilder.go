@@ -32,15 +32,22 @@ import (
 
 // GetServiceURL generates an URL for the get service operation
 type GetServiceURL struct {
-	Limit       *int64
-	Marker      *strfmt.UUID
-	NotTags     []string
-	NotTagsAny  []string
-	PageReverse *bool
-	ProjectID   *string
-	Sort        *string
-	Tags        []string
-	TagsAny     []string
+	AvailabilityZone *string
+	Enabled          *bool
+	Host             *string
+	Limit            *int64
+	Marker           *strfmt.UUID
+	NetworkID        *strfmt.UUID
+	NotTags          []string
+	NotTagsAny       []string
+	PageReverse      *bool
+	ProjectID        *string
+	Provider         *string
+	Sort             *string
+	Status           *string
+	Tags             []string
+	TagsAny          []string
+	Visibility       *string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -73,6 +80,30 @@ func (o *GetServiceURL) Build() (*url.URL, error) {
 
 	qs := make(url.Values)
 
+	var availabilityZoneQ string
+	if o.AvailabilityZone != nil {
+		availabilityZoneQ = *o.AvailabilityZone
+	}
+	if availabilityZoneQ != "" {
+		qs.Set("availability_zone", availabilityZoneQ)
+	}
+
+	var enabledQ string
+	if o.Enabled != nil {
+		enabledQ = swag.FormatBool(*o.Enabled)
+	}
+	if enabledQ != "" {
+		qs.Set("enabled", enabledQ)
+	}
+
+	var hostQ string
+	if o.Host != nil {
+		hostQ = *o.Host
+	}
+	if hostQ != "" {
+		qs.Set("host", hostQ)
+	}
+
 	var limitQ string
 	if o.Limit != nil {
 		limitQ = swag.FormatInt64(*o.Limit)
@@ -87,6 +118,14 @@ func (o *GetServiceURL) Build() (*url.URL, error) {
 	}
 	if markerQ != "" {
 		qs.Set("marker", markerQ)
+	}
+
+	var networkIDQ string
+	if o.NetworkID != nil {
+		networkIDQ = o.NetworkID.String()
+	}
+	if networkIDQ != "" {
+		qs.Set("network_id", networkIDQ)
 	}
 
 	var notTagsIR []string
@@ -139,12 +178,28 @@ func (o *GetServiceURL) Build() (*url.URL, error) {
 		qs.Set("project_id", projectIDQ)
 	}
 
+	var providerQ string
+	if o.Provider != nil {
+		providerQ = *o.Provider
+	}
+	if providerQ != "" {
+		qs.Set("provider", providerQ)
+	}
+
 	var sortQ string
 	if o.Sort != nil {
 		sortQ = *o.Sort
 	}
 	if sortQ != "" {
 		qs.Set("sort", sortQ)
+	}
+
+	var statusQ string
+	if o.Status != nil {
+		statusQ = *o.Status
+	}
+	if statusQ != "" {
+		qs.Set("status", statusQ)
 	}
 
 	var tagsIR []string
@@ -179,6 +234,14 @@ func (o *GetServiceURL) Build() (*url.URL, error) {
 		if qsv != "" {
 			qs.Set("tags-any", qsv)
 		}
+	}
+
+	var visibilityQ string
+	if o.Visibility != nil {
+		visibilityQ = *o.Visibility
+	}
+	if visibilityQ != "" {
+		qs.Set("visibility", visibilityQ)
 	}
 
 	_result.RawQuery = qs.Encode()

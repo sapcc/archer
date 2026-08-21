@@ -78,6 +78,12 @@ GetEndpointParams contains all the parameters to send to the API endpoint
 */
 type GetEndpointParams struct {
 
+	/* ConnectionMirroring.
+
+	   Filter endpoints by whether connection mirroring is enabled.
+	*/
+	ConnectionMirroring *bool
+
 	/* Limit.
 
 	   Sets the page size.
@@ -91,6 +97,14 @@ type GetEndpointParams struct {
 	   Format: uuid
 	*/
 	Marker *strfmt.UUID
+
+	/* NetworkID.
+
+	   Filter endpoints by target network ID.
+
+	   Format: uuid
+	*/
+	NetworkID *strfmt.UUID
 
 	/* NotTags.
 
@@ -121,11 +135,25 @@ type GetEndpointParams struct {
 	*/
 	ProjectID *string
 
+	/* ServiceID.
+
+	   Filter endpoints by service ID.
+
+	   Format: uuid
+	*/
+	ServiceID *strfmt.UUID
+
 	/* Sort.
 
 	   Comma-separated list of sort keys, optionally prefix with - to reverse sort order.
 	*/
 	Sort *string
+
+	/* Status.
+
+	   Filter endpoints by provisioning status.
+	*/
+	Status *string
 
 	/* Tags.
 
@@ -196,6 +224,17 @@ func (o *GetEndpointParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithConnectionMirroring adds the connectionMirroring to the get endpoint params
+func (o *GetEndpointParams) WithConnectionMirroring(connectionMirroring *bool) *GetEndpointParams {
+	o.SetConnectionMirroring(connectionMirroring)
+	return o
+}
+
+// SetConnectionMirroring adds the connectionMirroring to the get endpoint params
+func (o *GetEndpointParams) SetConnectionMirroring(connectionMirroring *bool) {
+	o.ConnectionMirroring = connectionMirroring
+}
+
 // WithLimit adds the limit to the get endpoint params
 func (o *GetEndpointParams) WithLimit(limit *int64) *GetEndpointParams {
 	o.SetLimit(limit)
@@ -216,6 +255,17 @@ func (o *GetEndpointParams) WithMarker(marker *strfmt.UUID) *GetEndpointParams {
 // SetMarker adds the marker to the get endpoint params
 func (o *GetEndpointParams) SetMarker(marker *strfmt.UUID) {
 	o.Marker = marker
+}
+
+// WithNetworkID adds the networkID to the get endpoint params
+func (o *GetEndpointParams) WithNetworkID(networkID *strfmt.UUID) *GetEndpointParams {
+	o.SetNetworkID(networkID)
+	return o
+}
+
+// SetNetworkID adds the networkId to the get endpoint params
+func (o *GetEndpointParams) SetNetworkID(networkID *strfmt.UUID) {
+	o.NetworkID = networkID
 }
 
 // WithNotTags adds the notTags to the get endpoint params
@@ -262,6 +312,17 @@ func (o *GetEndpointParams) SetProjectID(projectID *string) {
 	o.ProjectID = projectID
 }
 
+// WithServiceID adds the serviceID to the get endpoint params
+func (o *GetEndpointParams) WithServiceID(serviceID *strfmt.UUID) *GetEndpointParams {
+	o.SetServiceID(serviceID)
+	return o
+}
+
+// SetServiceID adds the serviceId to the get endpoint params
+func (o *GetEndpointParams) SetServiceID(serviceID *strfmt.UUID) {
+	o.ServiceID = serviceID
+}
+
 // WithSort adds the sort to the get endpoint params
 func (o *GetEndpointParams) WithSort(sort *string) *GetEndpointParams {
 	o.SetSort(sort)
@@ -271,6 +332,17 @@ func (o *GetEndpointParams) WithSort(sort *string) *GetEndpointParams {
 // SetSort adds the sort to the get endpoint params
 func (o *GetEndpointParams) SetSort(sort *string) {
 	o.Sort = sort
+}
+
+// WithStatus adds the status to the get endpoint params
+func (o *GetEndpointParams) WithStatus(status *string) *GetEndpointParams {
+	o.SetStatus(status)
+	return o
+}
+
+// SetStatus adds the status to the get endpoint params
+func (o *GetEndpointParams) SetStatus(status *string) {
+	o.Status = status
 }
 
 // WithTags adds the tags to the get endpoint params
@@ -303,6 +375,23 @@ func (o *GetEndpointParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.R
 	}
 	var res []error
 
+	if o.ConnectionMirroring != nil {
+
+		// query param connection_mirroring
+		var qrConnectionMirroring bool
+
+		if o.ConnectionMirroring != nil {
+			qrConnectionMirroring = *o.ConnectionMirroring
+		}
+		qConnectionMirroring := swag.FormatBool(qrConnectionMirroring)
+		if qConnectionMirroring != "" {
+
+			if err := r.SetQueryParam("connection_mirroring", qConnectionMirroring); err != nil {
+				return err
+			}
+		}
+	}
+
 	if o.Limit != nil {
 
 		// query param limit
@@ -332,6 +421,23 @@ func (o *GetEndpointParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.R
 		if qMarker != "" {
 
 			if err := r.SetQueryParam("marker", qMarker); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.NetworkID != nil {
+
+		// query param network_id
+		var qrNetworkID strfmt.UUID
+
+		if o.NetworkID != nil {
+			qrNetworkID = *o.NetworkID
+		}
+		qNetworkID := qrNetworkID.String()
+		if qNetworkID != "" {
+
+			if err := r.SetQueryParam("network_id", qNetworkID); err != nil {
 				return err
 			}
 		}
@@ -393,6 +499,23 @@ func (o *GetEndpointParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.R
 		}
 	}
 
+	if o.ServiceID != nil {
+
+		// query param service_id
+		var qrServiceID strfmt.UUID
+
+		if o.ServiceID != nil {
+			qrServiceID = *o.ServiceID
+		}
+		qServiceID := qrServiceID.String()
+		if qServiceID != "" {
+
+			if err := r.SetQueryParam("service_id", qServiceID); err != nil {
+				return err
+			}
+		}
+	}
+
 	if o.Sort != nil {
 
 		// query param sort
@@ -405,6 +528,23 @@ func (o *GetEndpointParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.R
 		if qSort != "" {
 
 			if err := r.SetQueryParam("sort", qSort); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.Status != nil {
+
+		// query param status
+		var qrStatus string
+
+		if o.Status != nil {
+			qrStatus = *o.Status
+		}
+		qStatus := qrStatus
+		if qStatus != "" {
+
+			if err := r.SetQueryParam("status", qStatus); err != nil {
 				return err
 			}
 		}

@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- archerctl: `service list` supports server-side filtering by `--host`, `--provider`, `--status`, `--availability-zone`, `--network`, `--visibility`, and `--enabled`/`--disabled`.
+- archerctl: `endpoint list` supports server-side filtering by `--service`, `--network`, `--status`, and `--connection-mirroring`/`--no-connection-mirroring`.
+- API: service responses include the number of associated endpoints in the optional `in_use` field; `archerctl service list` uses this field instead of issuing one request per service.
+
 ## [2.6.0] - 2026-08-20
 
 ### Added

@@ -28,13 +28,7 @@ func (c *Controller) GetRbacPoliciesHandler(params rbac.GetRbacPoliciesParams, _
 		q = q.Where("project_id = ?", projectId)
 	}
 
-	pagination := db.Pagination{
-		HTTPRequest: params.HTTPRequest,
-		Limit:       params.Limit,
-		Marker:      params.Marker,
-		PageReverse: params.PageReverse,
-		Sort:        params.Sort,
-	}
+	pagination := db.NewPagination(params)
 
 	sql, args, err := pagination.Query(c.pool, q)
 	if err != nil {
