@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- archer-server: reject service creation/update when the specified IP address conflicts with an already-allocated SNAT port on the same network, preventing unresolvable provisioning failures on the F5 agent.
+
 ## [2.6.0] - 2026-08-20
 
 ### Added

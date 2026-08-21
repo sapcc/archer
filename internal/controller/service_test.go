@@ -58,10 +58,7 @@ func (t *SuiteTest) addAgent(az *string) {
 func (t *SuiteTest) createService(svc models.Service) strfmt.UUID {
 	t.addAgent(nil)
 	t.ResetHttpServer()
-	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+svc.NetworkID.String(), "GET",
-		"", GetNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+svc.NetworkID.String(), "GET",
-		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
+	t.setupNeutronHandlersForServiceCreate(*svc.NetworkID)
 	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &svc},
 		nil)
 
@@ -129,10 +126,7 @@ func (t *SuiteTest) TestServiceAZPost() {
 	testServiceWithAZ := testService
 	testServiceWithAZ.AvailabilityZone = conv.Pointer("test-az")
 
-	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
-		"", GetNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
-		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
+	t.setupNeutronHandlersForServiceCreate(networkId)
 
 	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1,
 		Body: &testServiceWithAZ}, nil)
@@ -435,10 +429,7 @@ func (t *SuiteTest) TestLogLockBlockersIntegration() {
 }
 
 func (t *SuiteTest) TestServiceDuplicatePayload() {
-	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
-		"", GetNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
-		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
+	t.setupNeutronHandlersForServiceCreate(networkId)
 
 	t.addAgent(conv.Pointer("zone1"))
 	s := models.Service{
@@ -971,10 +962,7 @@ func (t *SuiteTest) TestServiceMigrateWithAZ() {
 	// Create a service in that AZ
 	testServiceWithAZ := testService
 	testServiceWithAZ.AvailabilityZone = &az
-	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
-		"", GetNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
-		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
+	t.setupNeutronHandlersForServiceCreate(networkId)
 
 	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &testServiceWithAZ},
 		nil)
@@ -1315,6 +1303,11 @@ func (t *SuiteTest) TestServicePostNetworkLargeIPv6Subnet() {
 		"", GetNetworkResponseFixture, http.StatusOK)
 	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
 		"", GetNetworkIpAvailabilityLargeIPv6ResponseFixture, http.StatusOK)
+	t.fakeServer.Mux.HandleFunc("GET /v2.0/ports", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"ports": []}`))
+	})
 
 	svc := models.Service{
 		Name:        "ipv6-large-subnet",

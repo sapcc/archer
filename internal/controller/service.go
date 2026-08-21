@@ -20,6 +20,7 @@ import (
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/networkipavailabilities"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/networks"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -31,6 +32,7 @@ import (
 	"github.com/sapcc/archer/v2/internal/config"
 	"github.com/sapcc/archer/v2/internal/db"
 	aerr "github.com/sapcc/archer/v2/internal/errors"
+	"github.com/sapcc/archer/v2/internal/neutron"
 	"github.com/sapcc/archer/v2/models"
 	"github.com/sapcc/archer/v2/restapi/operations/service"
 )
@@ -83,7 +85,7 @@ func (c *Controller) GetServiceHandler(params service.GetServiceParams, principa
 		var pe *pgconn.PgError
 		if errors.As(err, &pe) && pe.Code == pgerrcode.UndefinedColumn {
 			return service.NewGetServiceBadRequest().WithPayload(&models.Error{
-				Code:    400,
+				Code:    http.StatusBadRequest,
 				Message: "Unknown sort column.",
 			})
 		}
@@ -243,6 +245,11 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 			if err = check.checkForServiceConflict(ctx, tx); err != nil {
 				return err
 			}
+
+			// Check that the service IP addresses don't collide with existing SNAT ports on this host.
+			if err = c.checkSnatIPConflict(ctx, *params.Body.NetworkID, params.Body.IPAddresses, host); err != nil {
+				return err
+			}
 		}
 
 		// When the client didn't supply snat_pool_size, bind the literal SQL
@@ -275,14 +282,21 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 	}); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return service.NewPostServiceConflict().WithPayload(&models.Error{
-				Code:    409,
+				Code:    http.StatusConflict,
 				Message: "No available host agent found.",
+			})
+		}
+
+		if errors.Is(err, aerr.ErrSnatIPConflict) {
+			return service.NewPostServiceConflict().WithPayload(&models.Error{
+				Code:    http.StatusConflict,
+				Message: err.Error(),
 			})
 		}
 
 		if pe, ok := errors.AsType[*pgconn.PgError](err); ok && pgerrcode.IsIntegrityConstraintViolation(pe.Code) {
 			return service.NewPostServiceConflict().WithPayload(&models.Error{
-				Code:    409,
+				Code:    http.StatusConflict,
 				Message: "Entry for network_id, ip_address and port(s) already exists.",
 			})
 		}
@@ -345,14 +359,15 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 	if err := pgx.BeginFunc(ctx, c.pool, func(tx pgx.Tx) error {
 		// Check for conflicts only for tenant/F5 provider when IP or ports change
 		var existingProvider string
+		var existingHost string
 		var existingNetworkID *strfmt.UUID
 		var existingIPAddresses []models.InetAddress
 		var existingPorts []int32
-		q := db.Select("provider", "network_id", "ip_addresses", "ports").
+		q := db.Select("provider", "host", "network_id", "ip_addresses", "ports").
 			From("service").
 			Where("id = ?", params.ServiceID)
 		sql, args := q.MustSql()
-		if err := tx.QueryRow(ctx, sql, args...).Scan(&existingProvider, &existingNetworkID, &existingIPAddresses, &existingPorts); err != nil {
+		if err := tx.QueryRow(ctx, sql, args...).Scan(&existingProvider, &existingHost, &existingNetworkID, &existingIPAddresses, &existingPorts); err != nil {
 			return err
 		}
 
@@ -377,6 +392,13 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 				if err := check.checkForServiceConflict(ctx, tx); err != nil {
 					return err
 				}
+			}
+		}
+
+		// Check SNAT IP conflict when IP addresses are being changed
+		if params.Body.IPAddresses != nil && existingProvider == "tenant" {
+			if err := c.checkSnatIPConflict(ctx, *existingNetworkID, params.Body.IPAddresses, existingHost); err != nil {
+				return err
 			}
 		}
 
@@ -414,6 +436,13 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 			return service.NewPutServiceServiceIDNotFound()
 		}
 
+		if errors.Is(err, aerr.ErrSnatIPConflict) {
+			return service.NewPutServiceServiceIDConflict().WithPayload(&models.Error{
+				Code:    http.StatusConflict,
+				Message: err.Error(),
+			})
+		}
+
 		if errors.Is(err, aerr.ErrSnatPoolSizeUnsupportedProvider) {
 			return service.NewPutServiceServiceIDUnprocessableEntity().WithPayload(&models.Error{
 				Code:    http.StatusUnprocessableEntity,
@@ -423,7 +452,7 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 
 		if pe, ok := errors.AsType[*pgconn.PgError](err); ok && pgerrcode.IsIntegrityConstraintViolation(pe.Code) {
 			return service.NewPutServiceServiceIDConflict().WithPayload(&models.Error{
-				Code:    409,
+				Code:    http.StatusConflict,
 				Message: "Entry for network_id, ip_address and port(s) already exists.",
 			})
 		}
@@ -512,7 +541,7 @@ func (c *Controller) DeleteServiceServiceIDHandler(params service.DeleteServiceS
 		panic(err)
 	} else if ct.RowsAffected() == 0 {
 		return service.NewDeleteServiceServiceIDConflict().WithPayload(&models.Error{
-			Code:    409,
+			Code:    http.StatusConflict,
 			Message: "Service in use",
 		})
 	}
@@ -572,7 +601,7 @@ func (c *Controller) GetServiceServiceIDEndpointsHandler(params service.GetServi
 	if err = pgxscan.Select(ctx, c.pool, &endpointsResponse, sql, args...); err != nil {
 		if pe, ok := errors.AsType[*pgconn.PgError](err); ok && pe.Code == pgerrcode.UndefinedColumn {
 			return service.NewGetServiceServiceIDEndpointsBadRequest().WithPayload(&models.Error{
-				Code:    400,
+				Code:    http.StatusBadRequest,
 				Message: "Unknown sort column.",
 			})
 		}
@@ -590,7 +619,7 @@ func (c *Controller) PutServiceServiceIDAcceptEndpointsHandler(params service.Pu
 	case errors.Is(err, aerr.ErrBadRequest):
 		return service.NewPutServiceServiceIDAcceptEndpointsBadRequest().WithPayload(
 			&models.Error{
-				Code:    400,
+				Code:    http.StatusBadRequest,
 				Message: "Must declare at least one, endpoint_id(s) or project_id(s)",
 			})
 	case errors.Is(err, dbscan.ErrNotFound):
@@ -606,7 +635,7 @@ func (c *Controller) PutServiceServiceIDRejectEndpointsHandler(params service.Pu
 	case errors.Is(err, aerr.ErrBadRequest):
 		return service.NewPutServiceServiceIDRejectEndpointsBadRequest().WithPayload(
 			&models.Error{
-				Code:    400,
+				Code:    http.StatusBadRequest,
 				Message: "Must declare at least one, endpoint_id(s) or project_id(s)",
 			})
 	case errors.Is(err, dbscan.ErrNotFound):
@@ -757,6 +786,34 @@ func validateIPAddresses(ipAddresses []models.InetAddress) error {
 	return nil
 }
 
+// checkSnatIPConflict verifies that the proposed service IP addresses do not collide with
+// SNAT ports already allocated on the same host/network. SNAT ports are allocated by the F5
+// agent from the same subnet and tracked as Neutron ports with device_owner "network:f5snat".
+func (c *Controller) checkSnatIPConflict(ctx context.Context, networkID strfmt.UUID, ipAddresses []models.InetAddress, host string) error {
+	snatPorts, err := c.neutron.ListPorts(ctx, ports.ListOpts{
+		NetworkID:   networkID.String(),
+		DeviceOwner: neutron.SnatPortDeviceOwner,
+	}, host)
+	if err != nil {
+		return fmt.Errorf("listing SNAT ports: %w", err)
+	}
+
+	snatIPs := make(map[string]struct{}, len(snatPorts))
+	for _, p := range snatPorts {
+		for _, fixedIP := range p.FixedIPs {
+			snatIPs[fixedIP.IPAddress] = struct{}{}
+		}
+	}
+
+	for _, ip := range ipAddresses {
+		if _, conflict := snatIPs[string(ip)]; conflict {
+			return fmt.Errorf("%w: IP address %s conflicts with an allocated SNAT port on the same network",
+				aerr.ErrSnatIPConflict, ip)
+		}
+	}
+	return nil
+}
+
 func (c *Controller) PostServiceServiceIDMigrateHandler(params service.PostServiceServiceIDMigrateParams, _ any) middleware.Responder {
 	ctx := params.HTTPRequest.Context()
 	var serviceResponse models.Service
@@ -876,25 +933,25 @@ func (c *Controller) PostServiceServiceIDMigrateHandler(params service.PostServi
 	}); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return service.NewPostServiceServiceIDMigrateNotFound().WithPayload(&models.Error{
-				Code:    404,
+				Code:    http.StatusNotFound,
 				Message: "Service not found or no available agent",
 			})
 		}
 		if errors.Is(err, aerr.ErrNotFound) {
 			return service.NewPostServiceServiceIDMigrateNotFound().WithPayload(&models.Error{
-				Code:    404,
+				Code:    http.StatusNotFound,
 				Message: "Target agent not found or not healthy",
 			})
 		}
 		if errors.Is(err, aerr.ErrBadRequest) {
 			return service.NewPostServiceServiceIDMigrateBadRequest().WithPayload(&models.Error{
-				Code:    400,
+				Code:    http.StatusBadRequest,
 				Message: "Service is already on the target host",
 			})
 		}
 		if errors.Is(err, aerr.ErrMigrationInProgress) {
 			return service.NewPostServiceServiceIDMigrateBadRequest().WithPayload(&models.Error{
-				Code:    400,
+				Code:    http.StatusBadRequest,
 				Message: "Migration already in progress; wait for the service to become AVAILABLE before migrating again",
 			})
 		}
