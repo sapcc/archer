@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - archerctl: `endpoint list` supports server-side filtering by `--service`, `--network`, `--status`, and `--connection-mirroring`/`--no-connection-mirroring`.
 - API: service responses include the number of associated endpoints in the optional `in_use` field; `archerctl service list` uses this field instead of issuing one request per service.
 
+### Fixed
+
+- archer-f5-agent: recover from panics in `go-bigip`'s `PostAs3Bigip` (nil interface conversion on malformed AS3 task-status response) instead of crashing the process and leaving the advisory lock stranded in the database.
+
 ## [2.6.0] - 2026-08-20
 
 ### Added
