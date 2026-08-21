@@ -58,10 +58,7 @@ func (t *SuiteTest) addAgent(az *string) {
 func (t *SuiteTest) createService(svc models.Service) strfmt.UUID {
 	t.addAgent(nil)
 	t.ResetHttpServer()
-	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+svc.NetworkID.String(), "GET",
-		"", GetNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+svc.NetworkID.String(), "GET",
-		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
+	t.setupNeutronHandlersForServiceCreate(*svc.NetworkID)
 	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &svc},
 		nil)
 
@@ -160,10 +157,7 @@ func (t *SuiteTest) TestServiceAZPost() {
 	testServiceWithAZ := testService
 	testServiceWithAZ.AvailabilityZone = conv.Pointer("test-az")
 
-	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
-		"", GetNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
-		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
+	t.setupNeutronHandlersForServiceCreate(networkId)
 
 	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1,
 		Body: &testServiceWithAZ}, nil)
@@ -202,6 +196,52 @@ func (t *SuiteTest) TestServicePostConflictPorts() {
 	assert.IsType(t.T(), &service.PostServiceConflict{}, res)
 	assert.Equal(t.T(), "Entry for network_id, ip_address and port(s) already exists.",
 		res.(*service.PostServiceConflict).Payload.Message)
+}
+
+func (t *SuiteTest) TestServicePostSnatIPConflict() {
+	// Mock Neutron to return a SNAT port with the same IP we're trying to use
+	t.addAgent(nil)
+	t.ResetHttpServer()
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
+		"", GetNetworkResponseFixture, http.StatusOK)
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
+		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
+	t.fakeServer.Mux.HandleFunc("GET /v2.0/ports", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"ports": [{"id": "snat-port-1", "network_id": "` + string(networkId) + `", "device_owner": "network:f5snat", "device_id": "other-service", "fixed_ips": [{"subnet_id": "sub1", "ip_address": "1.2.3.4"}], "mac_address": "fa:16:3e:00:00:01"}]}`))
+	})
+
+	svc := testService
+	svc.IPAddresses = []models.InetAddress{"1.2.3.4"}
+
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &svc}, nil)
+	assert.NotNil(t.T(), res)
+	assert.IsType(t.T(), &service.PostServiceConflict{}, res)
+	assert.Contains(t.T(), res.(*service.PostServiceConflict).Payload.Message,
+		"conflicts with an allocated SNAT port")
+}
+
+func (t *SuiteTest) TestServicePostSnatIPNoConflict() {
+	// Mock Neutron to return a SNAT port with a different IP
+	t.addAgent(nil)
+	t.ResetHttpServer()
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
+		"", GetNetworkResponseFixture, http.StatusOK)
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
+		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
+	t.fakeServer.Mux.HandleFunc("GET /v2.0/ports", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"ports": [{"id": "snat-port-1", "network_id": "` + string(networkId) + `", "device_owner": "network:f5snat", "device_id": "other-service", "fixed_ips": [{"subnet_id": "sub1", "ip_address": "9.9.9.9"}], "mac_address": "fa:16:3e:00:00:01"}]}`))
+	})
+
+	svc := testService
+	svc.IPAddresses = []models.InetAddress{"1.2.3.4"}
+
+	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &svc}, nil)
+	assert.NotNil(t.T(), res)
+	assert.IsType(t.T(), &service.PostServiceCreated{}, res)
 }
 
 func (t *SuiteTest) TestServicePostQuotaMet() {
@@ -466,10 +506,7 @@ func (t *SuiteTest) TestLogLockBlockersIntegration() {
 }
 
 func (t *SuiteTest) TestServiceDuplicatePayload() {
-	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
-		"", GetNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
-		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
+	t.setupNeutronHandlersForServiceCreate(networkId)
 
 	t.addAgent(conv.Pointer("zone1"))
 	s := models.Service{
@@ -1002,10 +1039,7 @@ func (t *SuiteTest) TestServiceMigrateWithAZ() {
 	// Create a service in that AZ
 	testServiceWithAZ := testService
 	testServiceWithAZ.AvailabilityZone = &az
-	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
-		"", GetNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
-		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
+	t.setupNeutronHandlersForServiceCreate(networkId)
 
 	res := t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1, Body: &testServiceWithAZ},
 		nil)
@@ -1346,6 +1380,11 @@ func (t *SuiteTest) TestServicePostNetworkLargeIPv6Subnet() {
 		"", GetNetworkResponseFixture, http.StatusOK)
 	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
 		"", GetNetworkIpAvailabilityLargeIPv6ResponseFixture, http.StatusOK)
+	t.fakeServer.Mux.HandleFunc("GET /v2.0/ports", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"ports": []}`))
+	})
 
 	svc := models.Service{
 		Name:        "ipv6-large-subnet",
