@@ -33,6 +33,9 @@ type Pagination struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
+	// Filters contains exact-match column/value filters supplied by the handler.
+	Filters map[string]any
+
 	/*Sets the page size.
 	  In: query
 	*/
@@ -57,13 +60,6 @@ type Pagination struct {
 	  In: query
 	*/
 	PageReverse *bool
-	/*Filter for resources belonging or accessible by a specific project.
-
-	  Max Length: 32
-	  Min Length: 32
-	  In: query
-	*/
-	ProjectID *string
 	/*Comma-separated list of sort keys, optionally prefix with - to reverse sort order.
 	  In: query
 	*/
@@ -82,6 +78,47 @@ type Pagination struct {
 	TagsAny []string
 }
 
+func NewPagination(params any) *Pagination {
+	source := reflect.Indirect(reflect.ValueOf(params))
+	target := reflect.ValueOf(&Pagination{}).Elem()
+	for _, name := range []string{
+		"HTTPRequest", "Limit", "Marker", "NotTags", "NotTagsAny", "PageReverse", "Sort", "Tags", "TagsAny",
+	} {
+		field := source.FieldByName(name)
+		if field.IsValid() {
+			target.FieldByName(name).Set(field)
+		}
+	}
+	return target.Addr().Interface().(*Pagination)
+}
+
+func (p *Pagination) WithFilter(column string, value any) *Pagination {
+	switch value := value.(type) {
+	case *bool:
+		if value == nil {
+			return p
+		}
+		return p.WithFilter(column, *value)
+	case *string:
+		if value == nil {
+			return p
+		}
+		return p.WithFilter(column, *value)
+	case *strfmt.UUID:
+		if value == nil {
+			return p
+		}
+		return p.WithFilter(column, *value)
+	case nil:
+		return p
+	}
+	if p.Filters == nil {
+		p.Filters = make(map[string]any)
+	}
+	p.Filters[column] = value
+	return p
+}
+
 func stripDesc(sortDirKey string) (string, bool) {
 	sortKey := strings.TrimPrefix(sortDirKey, "-")
 	return sortKey, sortKey != sortDirKey
@@ -91,8 +128,8 @@ func (p *Pagination) Query(db pgxscan.Querier, q sq.SelectBuilder) (string, []an
 	var sortDirKeys []string
 	var pageReverse bool
 
-	if p.ProjectID != nil {
-		q = q.Where("project_id = ?", p.ProjectID)
+	if len(p.Filters) > 0 {
+		q = q.Where(sq.Eq(p.Filters))
 	}
 
 	// tags Filter

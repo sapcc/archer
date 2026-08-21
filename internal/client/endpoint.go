@@ -26,12 +26,16 @@ var EndpointOptions struct {
 }
 
 type EndpointList struct {
-	Tags       []string `long:"tags" description:"List endpoints which have all given tag(s) (repeat option for multiple tags)"`
-	AnyTags    []string `long:"any-tags" description:"List endpoints which have any given tag(s) (repeat option for multiple tags)"`
-	NotTags    []string `long:"not-tags" description:"Exclude endpoints which have all given tag(s) (repeat option for multiple tags)"`
-	NotAnyTags []string `long:"not-any-tags" description:"Exclude endpoints which have any given tag(s) (repeat option for multiple tags)"`
-	Project    *string  `short:"p" long:"project" description:"List endpoints in the given project (ID)"`
-	Service    *string  `short:"s" long:"service" description:"List endpoints for the given service (name or ID)"`
+	Tags        []string `long:"tags" description:"List endpoints which have all given tag(s) (repeat option for multiple tags)"`
+	AnyTags     []string `long:"any-tags" description:"List endpoints which have any given tag(s) (repeat option for multiple tags)"`
+	NotTags     []string `long:"not-tags" description:"Exclude endpoints which have all given tag(s) (repeat option for multiple tags)"`
+	NotAnyTags  []string `long:"not-any-tags" description:"Exclude endpoints which have any given tag(s) (repeat option for multiple tags)"`
+	Project     *string  `short:"p" long:"project" description:"List endpoints in the given project (ID)"`
+	Service     *string  `short:"s" long:"service" description:"List endpoints for the given service (name or ID)"`
+	Network     *string  `long:"network" description:"List endpoints on the given target network (name or ID)"`
+	Status      *string  `long:"status" description:"List endpoints with the given provisioning status" choice:"AVAILABLE" choice:"PENDING_APPROVAL" choice:"PENDING_CREATE" choice:"PENDING_UPDATE" choice:"PENDING_REJECTED" choice:"PENDING_DELETE" choice:"REJECTED" choice:"FAILED"`
+	Mirroring   bool     `long:"connection-mirroring" description:"List endpoints with connection mirroring enabled"`
+	NoMirroring bool     `long:"no-connection-mirroring" description:"List endpoints with connection mirroring disabled"`
 }
 
 type cliEndpoint struct {
@@ -49,26 +53,32 @@ func (*EndpointList) Execute(_ []string) error {
 		}
 		serviceID = &id
 	}
+	var networkID *strfmt.UUID
+	if EndpointOptions.EndpointList.Network != nil {
+		id, err := ResolveNetworkID(*EndpointOptions.EndpointList.Network)
+		if err != nil {
+			return err
+		}
+		networkID = &id
+	}
 
 	params := endpoint.NewGetEndpointParams().
 		WithTags(EndpointOptions.EndpointList.Tags).
 		WithTagsAny(EndpointOptions.EndpointList.AnyTags).
 		WithNotTags(EndpointOptions.EndpointList.NotTags).
 		WithNotTagsAny(EndpointOptions.EndpointList.NotAnyTags).
-		WithProjectID(EndpointOptions.EndpointList.Project)
+		WithProjectID(EndpointOptions.EndpointList.Project).
+		WithServiceID(serviceID).
+		WithNetworkID(networkID).
+		WithStatus(EndpointOptions.EndpointList.Status).
+		WithConnectionMirroring(boolFlag(EndpointOptions.EndpointList.Mirroring, EndpointOptions.EndpointList.NoMirroring))
 	resp, err := ArcherClient.Endpoint.GetEndpoint(params, nil)
 	if err != nil {
 		return err
 	}
 
 	DefaultColumns = []string{"id", "name", "service_id", "target.port", "status", "ip_address"}
-	var items []*models.Endpoint
-	for _, item := range resp.GetPayload().Items {
-		if serviceID == nil || item.ServiceID == *serviceID {
-			items = append(items, item)
-		}
-	}
-	return WriteTable(items)
+	return WriteTable(resp.GetPayload().Items)
 }
 
 type EndpointShow struct {

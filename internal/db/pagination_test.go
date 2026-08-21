@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/sapcc/archer/v2/internal/config"
+	"github.com/sapcc/archer/v2/restapi/operations/rbac"
 )
 
 // for a valid return value.
@@ -39,6 +40,43 @@ func TestPaginationGeneric(t *testing.T) {
 
 	links := p.GetLinks([]*struct{}{})
 	assert.Empty(t, links)
+}
+
+func TestPaginationFilters(t *testing.T) {
+	config.Global.ApiSettings.PaginationMaxLimit = 10
+	p := Pagination{
+		HTTPRequest: &http.Request{URL: &url.URL{}},
+		Filters: map[string]any{
+			"host":       "agent-1",
+			"project_id": "project-1",
+		},
+	}
+
+	dbMock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
+	assert.NoError(t, err)
+	defer dbMock.Close()
+
+	sql, args, err := p.Query(dbMock, Select("*").From("example"))
+	assert.NoError(t, err)
+	assert.Equal(t, "SELECT * FROM example WHERE host = $1 AND project_id = $2 ORDER BY id ASC, created_at ASC LIMIT 10", sql)
+	assert.Equal(t, []any{"agent-1", "project-1"}, args)
+}
+
+func TestNewPagination(t *testing.T) {
+	limit := int64(5)
+	projectID := "project-1"
+	params := rbac.GetRbacPoliciesParams{
+		HTTPRequest: &http.Request{URL: &url.URL{}},
+		Limit:       &limit,
+	}
+
+	p := NewPagination(params).
+		WithFilter("project_id", &projectID).
+		WithFilter("status", (*string)(nil))
+
+	assert.Same(t, params.HTTPRequest, p.HTTPRequest)
+	assert.Equal(t, params.Limit, p.Limit)
+	assert.Equal(t, map[string]any{"project_id": projectID}, p.Filters)
 }
 
 func TestPaginationLimit(t *testing.T) {

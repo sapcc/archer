@@ -197,6 +197,13 @@ paths:
         - $ref: '#/parameters/not-tags'
         - $ref: '#/parameters/not-tags-any'
         - $ref: '#/parameters/project_id'
+        - $ref: '#/parameters/host'
+        - $ref: '#/parameters/provider'
+        - $ref: '#/parameters/service_status'
+        - $ref: '#/parameters/availability_zone'
+        - $ref: '#/parameters/network_id'
+        - $ref: '#/parameters/visibility'
+        - $ref: '#/parameters/enabled'
       responses:
         200:
           description: An array of services.
@@ -605,6 +612,10 @@ paths:
         - $ref: '#/parameters/not-tags'
         - $ref: '#/parameters/not-tags-any'
         - $ref: '#/parameters/project_id'
+        - $ref: '#/parameters/endpoint_service_id'
+        - $ref: '#/parameters/endpoint_network_id'
+        - $ref: '#/parameters/endpoint_status'
+        - $ref: '#/parameters/connection_mirroring'
       responses:
         200:
           description: An array of endpoints.
@@ -1250,6 +1261,88 @@ parameters:
     description: |
       Filter for resources belonging or accessible by a specific project.
     maxLength: 36
+  host:
+    name: host
+    in: query
+    type: string
+    description: Filter services assigned to a specific agent hostname.
+    maxLength: 64
+  provider:
+    name: provider
+    in: query
+    type: string
+    description: Filter services by provider type.
+    enum:
+      - tenant
+      - cp
+  service_status:
+    name: status
+    in: query
+    type: string
+    description: Filter services by provisioning status.
+    enum:
+      - AVAILABLE
+      - PENDING_CREATE
+      - PENDING_UPDATE
+      - PENDING_DELETE
+      - UNAVAILABLE
+      - ERROR_QUOTA
+  availability_zone:
+    name: availability_zone
+    in: query
+    type: string
+    description: Filter services by availability zone.
+    maxLength: 64
+  network_id:
+    name: network_id
+    in: query
+    type: string
+    format: uuid
+    description: Filter services by provider network ID.
+  visibility:
+    name: visibility
+    in: query
+    type: string
+    description: Filter services by visibility.
+    enum:
+      - private
+      - public
+  enabled:
+    name: enabled
+    in: query
+    type: boolean
+    description: Filter services by whether they are enabled.
+  endpoint_service_id:
+    name: service_id
+    in: query
+    type: string
+    format: uuid
+    description: Filter endpoints by service ID.
+  endpoint_network_id:
+    name: network_id
+    in: query
+    type: string
+    format: uuid
+    description: Filter endpoints by target network ID.
+  endpoint_status:
+    name: status
+    in: query
+    type: string
+    description: Filter endpoints by provisioning status.
+    enum:
+      - AVAILABLE
+      - PENDING_APPROVAL
+      - PENDING_CREATE
+      - PENDING_UPDATE
+      - PENDING_REJECTED
+      - PENDING_DELETE
+      - REJECTED
+      - FAILED
+  connection_mirroring:
+    name: connection_mirroring
+    in: query
+    type: boolean
+    description: Filter endpoints by whether connection mirroring is enabled.
 
 definitions:
   Service:
@@ -1398,6 +1491,12 @@ definitions:
           - UNCHECKED
         readOnly: true
         x-nullable: true
+      in_use:
+        type: integer
+        format: int64
+        description: Number of endpoints using this service.
+        readOnly: true
+        x-omitempty: true
       snat_pool_size:
         type: integer
         format: int32

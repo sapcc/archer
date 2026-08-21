@@ -78,6 +78,24 @@ GetServiceParams contains all the parameters to send to the API endpoint
 */
 type GetServiceParams struct {
 
+	/* AvailabilityZone.
+
+	   Filter services by availability zone.
+	*/
+	AvailabilityZone *string
+
+	/* Enabled.
+
+	   Filter services by whether they are enabled.
+	*/
+	Enabled *bool
+
+	/* Host.
+
+	   Filter services assigned to a specific agent hostname.
+	*/
+	Host *string
+
 	/* Limit.
 
 	   Sets the page size.
@@ -91,6 +109,14 @@ type GetServiceParams struct {
 	   Format: uuid
 	*/
 	Marker *strfmt.UUID
+
+	/* NetworkID.
+
+	   Filter services by provider network ID.
+
+	   Format: uuid
+	*/
+	NetworkID *strfmt.UUID
 
 	/* NotTags.
 
@@ -121,11 +147,23 @@ type GetServiceParams struct {
 	*/
 	ProjectID *string
 
+	/* Provider.
+
+	   Filter services by provider type.
+	*/
+	Provider *string
+
 	/* Sort.
 
 	   Comma-separated list of sort keys, optionally prefix with - to reverse sort order.
 	*/
 	Sort *string
+
+	/* Status.
+
+	   Filter services by provisioning status.
+	*/
+	Status *string
 
 	/* Tags.
 
@@ -142,6 +180,12 @@ type GetServiceParams struct {
 
 	*/
 	TagsAny []string
+
+	/* Visibility.
+
+	   Filter services by visibility.
+	*/
+	Visibility *string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -196,6 +240,39 @@ func (o *GetServiceParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithAvailabilityZone adds the availabilityZone to the get service params
+func (o *GetServiceParams) WithAvailabilityZone(availabilityZone *string) *GetServiceParams {
+	o.SetAvailabilityZone(availabilityZone)
+	return o
+}
+
+// SetAvailabilityZone adds the availabilityZone to the get service params
+func (o *GetServiceParams) SetAvailabilityZone(availabilityZone *string) {
+	o.AvailabilityZone = availabilityZone
+}
+
+// WithEnabled adds the enabled to the get service params
+func (o *GetServiceParams) WithEnabled(enabled *bool) *GetServiceParams {
+	o.SetEnabled(enabled)
+	return o
+}
+
+// SetEnabled adds the enabled to the get service params
+func (o *GetServiceParams) SetEnabled(enabled *bool) {
+	o.Enabled = enabled
+}
+
+// WithHost adds the host to the get service params
+func (o *GetServiceParams) WithHost(host *string) *GetServiceParams {
+	o.SetHost(host)
+	return o
+}
+
+// SetHost adds the host to the get service params
+func (o *GetServiceParams) SetHost(host *string) {
+	o.Host = host
+}
+
 // WithLimit adds the limit to the get service params
 func (o *GetServiceParams) WithLimit(limit *int64) *GetServiceParams {
 	o.SetLimit(limit)
@@ -216,6 +293,17 @@ func (o *GetServiceParams) WithMarker(marker *strfmt.UUID) *GetServiceParams {
 // SetMarker adds the marker to the get service params
 func (o *GetServiceParams) SetMarker(marker *strfmt.UUID) {
 	o.Marker = marker
+}
+
+// WithNetworkID adds the networkID to the get service params
+func (o *GetServiceParams) WithNetworkID(networkID *strfmt.UUID) *GetServiceParams {
+	o.SetNetworkID(networkID)
+	return o
+}
+
+// SetNetworkID adds the networkId to the get service params
+func (o *GetServiceParams) SetNetworkID(networkID *strfmt.UUID) {
+	o.NetworkID = networkID
 }
 
 // WithNotTags adds the notTags to the get service params
@@ -262,6 +350,17 @@ func (o *GetServiceParams) SetProjectID(projectID *string) {
 	o.ProjectID = projectID
 }
 
+// WithProvider adds the provider to the get service params
+func (o *GetServiceParams) WithProvider(provider *string) *GetServiceParams {
+	o.SetProvider(provider)
+	return o
+}
+
+// SetProvider adds the provider to the get service params
+func (o *GetServiceParams) SetProvider(provider *string) {
+	o.Provider = provider
+}
+
 // WithSort adds the sort to the get service params
 func (o *GetServiceParams) WithSort(sort *string) *GetServiceParams {
 	o.SetSort(sort)
@@ -271,6 +370,17 @@ func (o *GetServiceParams) WithSort(sort *string) *GetServiceParams {
 // SetSort adds the sort to the get service params
 func (o *GetServiceParams) SetSort(sort *string) {
 	o.Sort = sort
+}
+
+// WithStatus adds the status to the get service params
+func (o *GetServiceParams) WithStatus(status *string) *GetServiceParams {
+	o.SetStatus(status)
+	return o
+}
+
+// SetStatus adds the status to the get service params
+func (o *GetServiceParams) SetStatus(status *string) {
+	o.Status = status
 }
 
 // WithTags adds the tags to the get service params
@@ -295,6 +405,17 @@ func (o *GetServiceParams) SetTagsAny(tagsAny []string) {
 	o.TagsAny = tagsAny
 }
 
+// WithVisibility adds the visibility to the get service params
+func (o *GetServiceParams) WithVisibility(visibility *string) *GetServiceParams {
+	o.SetVisibility(visibility)
+	return o
+}
+
+// SetVisibility adds the visibility to the get service params
+func (o *GetServiceParams) SetVisibility(visibility *string) {
+	o.Visibility = visibility
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *GetServiceParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -302,6 +423,57 @@ func (o *GetServiceParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Re
 		return err
 	}
 	var res []error
+
+	if o.AvailabilityZone != nil {
+
+		// query param availability_zone
+		var qrAvailabilityZone string
+
+		if o.AvailabilityZone != nil {
+			qrAvailabilityZone = *o.AvailabilityZone
+		}
+		qAvailabilityZone := qrAvailabilityZone
+		if qAvailabilityZone != "" {
+
+			if err := r.SetQueryParam("availability_zone", qAvailabilityZone); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.Enabled != nil {
+
+		// query param enabled
+		var qrEnabled bool
+
+		if o.Enabled != nil {
+			qrEnabled = *o.Enabled
+		}
+		qEnabled := swag.FormatBool(qrEnabled)
+		if qEnabled != "" {
+
+			if err := r.SetQueryParam("enabled", qEnabled); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.Host != nil {
+
+		// query param host
+		var qrHost string
+
+		if o.Host != nil {
+			qrHost = *o.Host
+		}
+		qHost := qrHost
+		if qHost != "" {
+
+			if err := r.SetQueryParam("host", qHost); err != nil {
+				return err
+			}
+		}
+	}
 
 	if o.Limit != nil {
 
@@ -332,6 +504,23 @@ func (o *GetServiceParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Re
 		if qMarker != "" {
 
 			if err := r.SetQueryParam("marker", qMarker); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.NetworkID != nil {
+
+		// query param network_id
+		var qrNetworkID strfmt.UUID
+
+		if o.NetworkID != nil {
+			qrNetworkID = *o.NetworkID
+		}
+		qNetworkID := qrNetworkID.String()
+		if qNetworkID != "" {
+
+			if err := r.SetQueryParam("network_id", qNetworkID); err != nil {
 				return err
 			}
 		}
@@ -393,6 +582,23 @@ func (o *GetServiceParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Re
 		}
 	}
 
+	if o.Provider != nil {
+
+		// query param provider
+		var qrProvider string
+
+		if o.Provider != nil {
+			qrProvider = *o.Provider
+		}
+		qProvider := qrProvider
+		if qProvider != "" {
+
+			if err := r.SetQueryParam("provider", qProvider); err != nil {
+				return err
+			}
+		}
+	}
+
 	if o.Sort != nil {
 
 		// query param sort
@@ -405,6 +611,23 @@ func (o *GetServiceParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Re
 		if qSort != "" {
 
 			if err := r.SetQueryParam("sort", qSort); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.Status != nil {
+
+		// query param status
+		var qrStatus string
+
+		if o.Status != nil {
+			qrStatus = *o.Status
+		}
+		qStatus := qrStatus
+		if qStatus != "" {
+
+			if err := r.SetQueryParam("status", qStatus); err != nil {
 				return err
 			}
 		}
@@ -429,6 +652,23 @@ func (o *GetServiceParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Re
 		// query array param tags-any
 		if err := r.SetQueryParam("tags-any", joinedTagsAny...); err != nil {
 			return err
+		}
+	}
+
+	if o.Visibility != nil {
+
+		// query param visibility
+		var qrVisibility string
+
+		if o.Visibility != nil {
+			qrVisibility = *o.Visibility
+		}
+		qVisibility := qrVisibility
+		if qVisibility != "" {
+
+			if err := r.SetQueryParam("visibility", qVisibility); err != nil {
+				return err
+			}
 		}
 	}
 

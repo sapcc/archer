@@ -56,7 +56,7 @@ func init() {
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "version": "2.5.2",
+    "version": "2.6.0",
     "x-logo": {
       "altText": "Archer logo",
       "backgroundColor": "#FFFFFF",
@@ -217,6 +217,18 @@ func init() {
           },
           {
             "$ref": "#/parameters/project_id"
+          },
+          {
+            "$ref": "#/parameters/endpoint_service_id"
+          },
+          {
+            "$ref": "#/parameters/endpoint_network_id"
+          },
+          {
+            "$ref": "#/parameters/endpoint_status"
+          },
+          {
+            "$ref": "#/parameters/connection_mirroring"
           }
         ],
         "responses": {
@@ -1017,6 +1029,27 @@ func init() {
           },
           {
             "$ref": "#/parameters/project_id"
+          },
+          {
+            "$ref": "#/parameters/host"
+          },
+          {
+            "$ref": "#/parameters/provider"
+          },
+          {
+            "$ref": "#/parameters/service_status"
+          },
+          {
+            "$ref": "#/parameters/availability_zone"
+          },
+          {
+            "$ref": "#/parameters/network_id"
+          },
+          {
+            "$ref": "#/parameters/visibility"
+          },
+          {
+            "$ref": "#/parameters/enabled"
           }
         ],
         "responses": {
@@ -1974,6 +2007,13 @@ func init() {
           "format": "uuid",
           "readOnly": true
         },
+        "in_use": {
+          "description": "Number of endpoints using this service.",
+          "type": "integer",
+          "format": "int64",
+          "x-omitempty": true,
+          "readOnly": true
+        },
         "ip_addresses": {
           "description": "IP Addresses of the providing service (IPv4 or IPv6), multiple addresses will be round robin load balanced.",
           "type": "array",
@@ -2287,6 +2327,62 @@ func init() {
     }
   },
   "parameters": {
+    "availability_zone": {
+      "maxLength": 64,
+      "type": "string",
+      "description": "Filter services by availability zone.",
+      "name": "availability_zone",
+      "in": "query"
+    },
+    "connection_mirroring": {
+      "type": "boolean",
+      "description": "Filter endpoints by whether connection mirroring is enabled.",
+      "name": "connection_mirroring",
+      "in": "query"
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Filter services by whether they are enabled.",
+      "name": "enabled",
+      "in": "query"
+    },
+    "endpoint_network_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Filter endpoints by target network ID.",
+      "name": "network_id",
+      "in": "query"
+    },
+    "endpoint_service_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Filter endpoints by service ID.",
+      "name": "service_id",
+      "in": "query"
+    },
+    "endpoint_status": {
+      "enum": [
+        "AVAILABLE",
+        "PENDING_APPROVAL",
+        "PENDING_CREATE",
+        "PENDING_UPDATE",
+        "PENDING_REJECTED",
+        "PENDING_DELETE",
+        "REJECTED",
+        "FAILED"
+      ],
+      "type": "string",
+      "description": "Filter endpoints by provisioning status.",
+      "name": "status",
+      "in": "query"
+    },
+    "host": {
+      "maxLength": 64,
+      "type": "string",
+      "description": "Filter services assigned to a specific agent hostname.",
+      "name": "host",
+      "in": "query"
+    },
     "limit": {
       "minimum": 1,
       "type": "integer",
@@ -2299,6 +2395,13 @@ func init() {
       "format": "uuid",
       "description": "Pagination ID of the last item in the previous list.",
       "name": "marker",
+      "in": "query"
+    },
+    "network_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Filter services by provider network ID.",
+      "name": "network_id",
       "in": "query"
     },
     "not-tags": {
@@ -2334,6 +2437,30 @@ func init() {
       "name": "project_id",
       "in": "query"
     },
+    "provider": {
+      "enum": [
+        "tenant",
+        "cp"
+      ],
+      "type": "string",
+      "description": "Filter services by provider type.",
+      "name": "provider",
+      "in": "query"
+    },
+    "service_status": {
+      "enum": [
+        "AVAILABLE",
+        "PENDING_CREATE",
+        "PENDING_UPDATE",
+        "PENDING_DELETE",
+        "UNAVAILABLE",
+        "ERROR_QUOTA"
+      ],
+      "type": "string",
+      "description": "Filter services by provisioning status.",
+      "name": "status",
+      "in": "query"
+    },
     "sort": {
       "maxLength": 256,
       "type": "string",
@@ -2359,6 +2486,16 @@ func init() {
       },
       "description": "Filter for tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
       "name": "tags-any",
+      "in": "query"
+    },
+    "visibility": {
+      "enum": [
+        "private",
+        "public"
+      ],
+      "type": "string",
+      "description": "Filter services by visibility.",
+      "name": "visibility",
       "in": "query"
     }
   },
@@ -2431,7 +2568,7 @@ func init() {
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "version": "2.5.2",
+    "version": "2.6.0",
     "x-logo": {
       "altText": "Archer logo",
       "backgroundColor": "#FFFFFF",
@@ -2638,6 +2775,42 @@ func init() {
             "type": "string",
             "description": "Filter for resources belonging or accessible by a specific project.\n",
             "name": "project_id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "Filter endpoints by service ID.",
+            "name": "service_id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "Filter endpoints by target network ID.",
+            "name": "network_id",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "AVAILABLE",
+              "PENDING_APPROVAL",
+              "PENDING_CREATE",
+              "PENDING_UPDATE",
+              "PENDING_REJECTED",
+              "PENDING_DELETE",
+              "REJECTED",
+              "FAILED"
+            ],
+            "type": "string",
+            "description": "Filter endpoints by provisioning status.",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "Filter endpoints by whether connection mirroring is enabled.",
+            "name": "connection_mirroring",
             "in": "query"
           }
         ],
@@ -3485,6 +3658,67 @@ func init() {
             "type": "string",
             "description": "Filter for resources belonging or accessible by a specific project.\n",
             "name": "project_id",
+            "in": "query"
+          },
+          {
+            "maxLength": 64,
+            "type": "string",
+            "description": "Filter services assigned to a specific agent hostname.",
+            "name": "host",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "tenant",
+              "cp"
+            ],
+            "type": "string",
+            "description": "Filter services by provider type.",
+            "name": "provider",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "AVAILABLE",
+              "PENDING_CREATE",
+              "PENDING_UPDATE",
+              "PENDING_DELETE",
+              "UNAVAILABLE",
+              "ERROR_QUOTA"
+            ],
+            "type": "string",
+            "description": "Filter services by provisioning status.",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "maxLength": 64,
+            "type": "string",
+            "description": "Filter services by availability zone.",
+            "name": "availability_zone",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "Filter services by provider network ID.",
+            "name": "network_id",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "private",
+              "public"
+            ],
+            "type": "string",
+            "description": "Filter services by visibility.",
+            "name": "visibility",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "Filter services by whether they are enabled.",
+            "name": "enabled",
             "in": "query"
           }
         ],
@@ -4504,6 +4738,13 @@ func init() {
           "format": "uuid",
           "readOnly": true
         },
+        "in_use": {
+          "description": "Number of endpoints using this service.",
+          "type": "integer",
+          "format": "int64",
+          "x-omitempty": true,
+          "readOnly": true
+        },
         "ip_addresses": {
           "description": "IP Addresses of the providing service (IPv4 or IPv6), multiple addresses will be round robin load balanced.",
           "type": "array",
@@ -4818,6 +5059,62 @@ func init() {
     }
   },
   "parameters": {
+    "availability_zone": {
+      "maxLength": 64,
+      "type": "string",
+      "description": "Filter services by availability zone.",
+      "name": "availability_zone",
+      "in": "query"
+    },
+    "connection_mirroring": {
+      "type": "boolean",
+      "description": "Filter endpoints by whether connection mirroring is enabled.",
+      "name": "connection_mirroring",
+      "in": "query"
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Filter services by whether they are enabled.",
+      "name": "enabled",
+      "in": "query"
+    },
+    "endpoint_network_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Filter endpoints by target network ID.",
+      "name": "network_id",
+      "in": "query"
+    },
+    "endpoint_service_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Filter endpoints by service ID.",
+      "name": "service_id",
+      "in": "query"
+    },
+    "endpoint_status": {
+      "enum": [
+        "AVAILABLE",
+        "PENDING_APPROVAL",
+        "PENDING_CREATE",
+        "PENDING_UPDATE",
+        "PENDING_REJECTED",
+        "PENDING_DELETE",
+        "REJECTED",
+        "FAILED"
+      ],
+      "type": "string",
+      "description": "Filter endpoints by provisioning status.",
+      "name": "status",
+      "in": "query"
+    },
+    "host": {
+      "maxLength": 64,
+      "type": "string",
+      "description": "Filter services assigned to a specific agent hostname.",
+      "name": "host",
+      "in": "query"
+    },
     "limit": {
       "minimum": 1,
       "type": "integer",
@@ -4830,6 +5127,13 @@ func init() {
       "format": "uuid",
       "description": "Pagination ID of the last item in the previous list.",
       "name": "marker",
+      "in": "query"
+    },
+    "network_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Filter services by provider network ID.",
+      "name": "network_id",
       "in": "query"
     },
     "not-tags": {
@@ -4865,6 +5169,30 @@ func init() {
       "name": "project_id",
       "in": "query"
     },
+    "provider": {
+      "enum": [
+        "tenant",
+        "cp"
+      ],
+      "type": "string",
+      "description": "Filter services by provider type.",
+      "name": "provider",
+      "in": "query"
+    },
+    "service_status": {
+      "enum": [
+        "AVAILABLE",
+        "PENDING_CREATE",
+        "PENDING_UPDATE",
+        "PENDING_DELETE",
+        "UNAVAILABLE",
+        "ERROR_QUOTA"
+      ],
+      "type": "string",
+      "description": "Filter services by provisioning status.",
+      "name": "status",
+      "in": "query"
+    },
     "sort": {
       "maxLength": 256,
       "type": "string",
@@ -4890,6 +5218,16 @@ func init() {
       },
       "description": "Filter for tags, multiple tags are considered as logical OR.\nShould be provided in a comma separated list.\n",
       "name": "tags-any",
+      "in": "query"
+    },
+    "visibility": {
+      "enum": [
+        "private",
+        "public"
+      ],
+      "type": "string",
+      "description": "Filter services by visibility.",
+      "name": "visibility",
       "in": "query"
     }
   },

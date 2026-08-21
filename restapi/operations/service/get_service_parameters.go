@@ -49,6 +49,23 @@ type GetServiceParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
+	/*Filter services by availability zone.
+	  Max Length: 64
+	  In: query
+	*/
+	AvailabilityZone *string
+
+	/*Filter services by whether they are enabled.
+	  In: query
+	*/
+	Enabled *bool
+
+	/*Filter services assigned to a specific agent hostname.
+	  Max Length: 64
+	  In: query
+	*/
+	Host *string
+
 	/*Sets the page size.
 	  Minimum: 1
 	  In: query
@@ -59,6 +76,11 @@ type GetServiceParams struct {
 	  In: query
 	*/
 	Marker *strfmt.UUID
+
+	/*Filter services by provider network ID.
+	  In: query
+	*/
+	NetworkID *strfmt.UUID
 
 	/*Filter for resources not having tags, multiple not-tags are considered as logical AND.
 	Should be provided in a comma separated list.
@@ -86,11 +108,21 @@ type GetServiceParams struct {
 	*/
 	ProjectID *string
 
+	/*Filter services by provider type.
+	  In: query
+	*/
+	Provider *string
+
 	/*Comma-separated list of sort keys, optionally prefix with - to reverse sort order.
 	  Max Length: 256
 	  In: query
 	*/
 	Sort *string
+
+	/*Filter services by provisioning status.
+	  In: query
+	*/
+	Status *string
 
 	/*Filter for tags, multiple tags are considered as logical AND.
 	Should be provided in a comma separated list.
@@ -105,6 +137,11 @@ type GetServiceParams struct {
 	  In: query
 	*/
 	TagsAny []string
+
+	/*Filter services by visibility.
+	  In: query
+	*/
+	Visibility *string
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -117,6 +154,21 @@ func (o *GetServiceParams) BindRequest(r *http.Request, route *middleware.Matche
 	o.HTTPRequest = r
 	qs := runtime.Values(r.URL.Query())
 
+	qAvailabilityZone, qhkAvailabilityZone, _ := qs.GetOK("availability_zone")
+	if err := o.bindAvailabilityZone(qAvailabilityZone, qhkAvailabilityZone, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qEnabled, qhkEnabled, _ := qs.GetOK("enabled")
+	if err := o.bindEnabled(qEnabled, qhkEnabled, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qHost, qhkHost, _ := qs.GetOK("host")
+	if err := o.bindHost(qHost, qhkHost, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	qLimit, qhkLimit, _ := qs.GetOK("limit")
 	if err := o.bindLimit(qLimit, qhkLimit, route.Formats); err != nil {
 		res = append(res, err)
@@ -124,6 +176,11 @@ func (o *GetServiceParams) BindRequest(r *http.Request, route *middleware.Matche
 
 	qMarker, qhkMarker, _ := qs.GetOK("marker")
 	if err := o.bindMarker(qMarker, qhkMarker, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qNetworkID, qhkNetworkID, _ := qs.GetOK("network_id")
+	if err := o.bindNetworkID(qNetworkID, qhkNetworkID, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -147,8 +204,18 @@ func (o *GetServiceParams) BindRequest(r *http.Request, route *middleware.Matche
 		res = append(res, err)
 	}
 
+	qProvider, qhkProvider, _ := qs.GetOK("provider")
+	if err := o.bindProvider(qProvider, qhkProvider, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	qSort, qhkSort, _ := qs.GetOK("sort")
 	if err := o.bindSort(qSort, qhkSort, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qStatus, qhkStatus, _ := qs.GetOK("status")
+	if err := o.bindStatus(qStatus, qhkStatus, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -161,9 +228,101 @@ func (o *GetServiceParams) BindRequest(r *http.Request, route *middleware.Matche
 	if err := o.bindTagsAny(qTagsAny, qhkTagsAny, route.Formats); err != nil {
 		res = append(res, err)
 	}
+
+	qVisibility, qhkVisibility, _ := qs.GetOK("visibility")
+	if err := o.bindVisibility(qVisibility, qhkVisibility, route.Formats); err != nil {
+		res = append(res, err)
+	}
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// bindAvailabilityZone binds and validates parameter AvailabilityZone from query.
+func (o *GetServiceParams) bindAvailabilityZone(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+	o.AvailabilityZone = &raw
+
+	if err := o.validateAvailabilityZone(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateAvailabilityZone carries out validations for parameter AvailabilityZone
+func (o *GetServiceParams) validateAvailabilityZone(formats strfmt.Registry) error {
+
+	if err := validate.MaxLength("availability_zone", "query", *o.AvailabilityZone, 64); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// bindEnabled binds and validates parameter Enabled from query.
+func (o *GetServiceParams) bindEnabled(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	value, err := swag.ConvertBool(raw)
+	if err != nil {
+		return errors.InvalidType("enabled", "query", "bool", raw)
+	}
+	o.Enabled = &value
+
+	return nil
+}
+
+// bindHost binds and validates parameter Host from query.
+func (o *GetServiceParams) bindHost(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+	o.Host = &raw
+
+	if err := o.validateHost(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateHost carries out validations for parameter Host
+func (o *GetServiceParams) validateHost(formats strfmt.Registry) error {
+
+	if err := validate.MaxLength("host", "query", *o.Host, 64); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -236,6 +395,43 @@ func (o *GetServiceParams) bindMarker(rawData []string, hasKey bool, formats str
 func (o *GetServiceParams) validateMarker(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("marker", "query", "uuid", o.Marker.String(), formats); err != nil {
+		return err
+	}
+	return nil
+}
+
+// bindNetworkID binds and validates parameter NetworkID from query.
+func (o *GetServiceParams) bindNetworkID(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	// Format: uuid
+	value, err := formats.Parse("uuid", raw)
+	if err != nil {
+		return errors.InvalidType("network_id", "query", "strfmt.UUID", raw)
+	}
+	o.NetworkID = (value.(*strfmt.UUID))
+
+	if err := o.validateNetworkID(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateNetworkID carries out validations for parameter NetworkID
+func (o *GetServiceParams) validateNetworkID(formats strfmt.Registry) error {
+
+	if err := validate.FormatOf("network_id", "query", "uuid", o.NetworkID.String(), formats); err != nil {
 		return err
 	}
 	return nil
@@ -358,6 +554,38 @@ func (o *GetServiceParams) validateProjectID(formats strfmt.Registry) error {
 	return nil
 }
 
+// bindProvider binds and validates parameter Provider from query.
+func (o *GetServiceParams) bindProvider(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+	o.Provider = &raw
+
+	if err := o.validateProvider(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateProvider carries out validations for parameter Provider
+func (o *GetServiceParams) validateProvider(formats strfmt.Registry) error {
+
+	if err := validate.EnumCase("provider", "query", *o.Provider, []any{"tenant", "cp"}, true); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // bindSort binds and validates parameter Sort from query.
 func (o *GetServiceParams) bindSort(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
@@ -384,6 +612,38 @@ func (o *GetServiceParams) bindSort(rawData []string, hasKey bool, formats strfm
 func (o *GetServiceParams) validateSort(formats strfmt.Registry) error {
 
 	if err := validate.MaxLength("sort", "query", *o.Sort, 256); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// bindStatus binds and validates parameter Status from query.
+func (o *GetServiceParams) bindStatus(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+	o.Status = &raw
+
+	if err := o.validateStatus(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateStatus carries out validations for parameter Status
+func (o *GetServiceParams) validateStatus(formats strfmt.Registry) error {
+
+	if err := validate.EnumCase("status", "query", *o.Status, []any{"AVAILABLE", "PENDING_CREATE", "PENDING_UPDATE", "PENDING_DELETE", "UNAVAILABLE", "ERROR_QUOTA"}, true); err != nil {
 		return err
 	}
 
@@ -448,6 +708,38 @@ func (o *GetServiceParams) bindTagsAny(rawData []string, hasKey bool, formats st
 	}
 
 	o.TagsAny = tagsAnyIR
+
+	return nil
+}
+
+// bindVisibility binds and validates parameter Visibility from query.
+func (o *GetServiceParams) bindVisibility(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+	o.Visibility = &raw
+
+	if err := o.validateVisibility(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateVisibility carries out validations for parameter Visibility
+func (o *GetServiceParams) validateVisibility(formats strfmt.Registry) error {
+
+	if err := validate.EnumCase("visibility", "query", *o.Visibility, []any{"private", "public"}, true); err != nil {
+		return err
+	}
 
 	return nil
 }

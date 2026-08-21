@@ -36,7 +36,12 @@ func (c *Controller) GetEndpointHandler(params endpoint.GetEndpointParams, _ any
 		q = q.Where("endpoint.project_id = ?", projectId)
 	}
 
-	pagination := db.Pagination(params)
+	pagination := db.NewPagination(params).
+		WithFilter("endpoint.connection_mirroring", params.ConnectionMirroring).
+		WithFilter("endpoint.project_id", params.ProjectID).
+		WithFilter("endpoint.service_id", params.ServiceID).
+		WithFilter("endpoint.status", params.Status).
+		WithFilter("endpoint_port.network", params.NetworkID)
 	sql, args, err := pagination.Query(c.pool, q.
 		Select("endpoint.*",
 			`endpoint_port.port_id AS "target.port"`,

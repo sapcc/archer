@@ -32,15 +32,19 @@ import (
 
 // GetEndpointURL generates an URL for the get endpoint operation
 type GetEndpointURL struct {
-	Limit       *int64
-	Marker      *strfmt.UUID
-	NotTags     []string
-	NotTagsAny  []string
-	PageReverse *bool
-	ProjectID   *string
-	Sort        *string
-	Tags        []string
-	TagsAny     []string
+	ConnectionMirroring *bool
+	Limit               *int64
+	Marker              *strfmt.UUID
+	NetworkID           *strfmt.UUID
+	NotTags             []string
+	NotTagsAny          []string
+	PageReverse         *bool
+	ProjectID           *string
+	ServiceID           *strfmt.UUID
+	Sort                *string
+	Status              *string
+	Tags                []string
+	TagsAny             []string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -73,6 +77,14 @@ func (o *GetEndpointURL) Build() (*url.URL, error) {
 
 	qs := make(url.Values)
 
+	var connectionMirroringQ string
+	if o.ConnectionMirroring != nil {
+		connectionMirroringQ = swag.FormatBool(*o.ConnectionMirroring)
+	}
+	if connectionMirroringQ != "" {
+		qs.Set("connection_mirroring", connectionMirroringQ)
+	}
+
 	var limitQ string
 	if o.Limit != nil {
 		limitQ = swag.FormatInt64(*o.Limit)
@@ -87,6 +99,14 @@ func (o *GetEndpointURL) Build() (*url.URL, error) {
 	}
 	if markerQ != "" {
 		qs.Set("marker", markerQ)
+	}
+
+	var networkIDQ string
+	if o.NetworkID != nil {
+		networkIDQ = o.NetworkID.String()
+	}
+	if networkIDQ != "" {
+		qs.Set("network_id", networkIDQ)
 	}
 
 	var notTagsIR []string
@@ -139,12 +159,28 @@ func (o *GetEndpointURL) Build() (*url.URL, error) {
 		qs.Set("project_id", projectIDQ)
 	}
 
+	var serviceIDQ string
+	if o.ServiceID != nil {
+		serviceIDQ = o.ServiceID.String()
+	}
+	if serviceIDQ != "" {
+		qs.Set("service_id", serviceIDQ)
+	}
+
 	var sortQ string
 	if o.Sort != nil {
 		sortQ = *o.Sort
 	}
 	if sortQ != "" {
 		qs.Set("sort", sortQ)
+	}
+
+	var statusQ string
+	if o.Status != nil {
+		statusQ = *o.Status
+	}
+	if statusQ != "" {
+		qs.Set("status", statusQ)
 	}
 
 	var tagsIR []string

@@ -28,3 +28,6 @@ build/
 
 # Claude Code user-specific settings
 .claude/
+
+# Serena user-specific settings
+.serena/

@@ -49,6 +49,11 @@ type GetEndpointParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
+	/*Filter endpoints by whether connection mirroring is enabled.
+	  In: query
+	*/
+	ConnectionMirroring *bool
+
 	/*Sets the page size.
 	  Minimum: 1
 	  In: query
@@ -59,6 +64,11 @@ type GetEndpointParams struct {
 	  In: query
 	*/
 	Marker *strfmt.UUID
+
+	/*Filter endpoints by target network ID.
+	  In: query
+	*/
+	NetworkID *strfmt.UUID
 
 	/*Filter for resources not having tags, multiple not-tags are considered as logical AND.
 	Should be provided in a comma separated list.
@@ -86,11 +96,21 @@ type GetEndpointParams struct {
 	*/
 	ProjectID *string
 
+	/*Filter endpoints by service ID.
+	  In: query
+	*/
+	ServiceID *strfmt.UUID
+
 	/*Comma-separated list of sort keys, optionally prefix with - to reverse sort order.
 	  Max Length: 256
 	  In: query
 	*/
 	Sort *string
+
+	/*Filter endpoints by provisioning status.
+	  In: query
+	*/
+	Status *string
 
 	/*Filter for tags, multiple tags are considered as logical AND.
 	Should be provided in a comma separated list.
@@ -117,6 +137,11 @@ func (o *GetEndpointParams) BindRequest(r *http.Request, route *middleware.Match
 	o.HTTPRequest = r
 	qs := runtime.Values(r.URL.Query())
 
+	qConnectionMirroring, qhkConnectionMirroring, _ := qs.GetOK("connection_mirroring")
+	if err := o.bindConnectionMirroring(qConnectionMirroring, qhkConnectionMirroring, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	qLimit, qhkLimit, _ := qs.GetOK("limit")
 	if err := o.bindLimit(qLimit, qhkLimit, route.Formats); err != nil {
 		res = append(res, err)
@@ -124,6 +149,11 @@ func (o *GetEndpointParams) BindRequest(r *http.Request, route *middleware.Match
 
 	qMarker, qhkMarker, _ := qs.GetOK("marker")
 	if err := o.bindMarker(qMarker, qhkMarker, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qNetworkID, qhkNetworkID, _ := qs.GetOK("network_id")
+	if err := o.bindNetworkID(qNetworkID, qhkNetworkID, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -147,8 +177,18 @@ func (o *GetEndpointParams) BindRequest(r *http.Request, route *middleware.Match
 		res = append(res, err)
 	}
 
+	qServiceID, qhkServiceID, _ := qs.GetOK("service_id")
+	if err := o.bindServiceID(qServiceID, qhkServiceID, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	qSort, qhkSort, _ := qs.GetOK("sort")
 	if err := o.bindSort(qSort, qhkSort, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qStatus, qhkStatus, _ := qs.GetOK("status")
+	if err := o.bindStatus(qStatus, qhkStatus, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -164,6 +204,29 @@ func (o *GetEndpointParams) BindRequest(r *http.Request, route *middleware.Match
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// bindConnectionMirroring binds and validates parameter ConnectionMirroring from query.
+func (o *GetEndpointParams) bindConnectionMirroring(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	value, err := swag.ConvertBool(raw)
+	if err != nil {
+		return errors.InvalidType("connection_mirroring", "query", "bool", raw)
+	}
+	o.ConnectionMirroring = &value
+
 	return nil
 }
 
@@ -236,6 +299,43 @@ func (o *GetEndpointParams) bindMarker(rawData []string, hasKey bool, formats st
 func (o *GetEndpointParams) validateMarker(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("marker", "query", "uuid", o.Marker.String(), formats); err != nil {
+		return err
+	}
+	return nil
+}
+
+// bindNetworkID binds and validates parameter NetworkID from query.
+func (o *GetEndpointParams) bindNetworkID(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	// Format: uuid
+	value, err := formats.Parse("uuid", raw)
+	if err != nil {
+		return errors.InvalidType("network_id", "query", "strfmt.UUID", raw)
+	}
+	o.NetworkID = (value.(*strfmt.UUID))
+
+	if err := o.validateNetworkID(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateNetworkID carries out validations for parameter NetworkID
+func (o *GetEndpointParams) validateNetworkID(formats strfmt.Registry) error {
+
+	if err := validate.FormatOf("network_id", "query", "uuid", o.NetworkID.String(), formats); err != nil {
 		return err
 	}
 	return nil
@@ -358,6 +458,43 @@ func (o *GetEndpointParams) validateProjectID(formats strfmt.Registry) error {
 	return nil
 }
 
+// bindServiceID binds and validates parameter ServiceID from query.
+func (o *GetEndpointParams) bindServiceID(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	// Format: uuid
+	value, err := formats.Parse("uuid", raw)
+	if err != nil {
+		return errors.InvalidType("service_id", "query", "strfmt.UUID", raw)
+	}
+	o.ServiceID = (value.(*strfmt.UUID))
+
+	if err := o.validateServiceID(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateServiceID carries out validations for parameter ServiceID
+func (o *GetEndpointParams) validateServiceID(formats strfmt.Registry) error {
+
+	if err := validate.FormatOf("service_id", "query", "uuid", o.ServiceID.String(), formats); err != nil {
+		return err
+	}
+	return nil
+}
+
 // bindSort binds and validates parameter Sort from query.
 func (o *GetEndpointParams) bindSort(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
@@ -384,6 +521,38 @@ func (o *GetEndpointParams) bindSort(rawData []string, hasKey bool, formats strf
 func (o *GetEndpointParams) validateSort(formats strfmt.Registry) error {
 
 	if err := validate.MaxLength("sort", "query", *o.Sort, 256); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// bindStatus binds and validates parameter Status from query.
+func (o *GetEndpointParams) bindStatus(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+	o.Status = &raw
+
+	if err := o.validateStatus(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateStatus carries out validations for parameter Status
+func (o *GetEndpointParams) validateStatus(formats strfmt.Registry) error {
+
+	if err := validate.EnumCase("status", "query", *o.Status, []any{"AVAILABLE", "PENDING_APPROVAL", "PENDING_CREATE", "PENDING_UPDATE", "PENDING_REJECTED", "PENDING_DELETE", "REJECTED", "FAILED"}, true); err != nil {
 		return err
 	}
 

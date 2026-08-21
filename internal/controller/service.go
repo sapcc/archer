@@ -55,7 +55,8 @@ func maskCPServiceIPAddresses(svc *models.Service, principal any) {
 }
 
 func (c *Controller) GetServiceHandler(params service.GetServiceParams, principal any) middleware.Responder {
-	q := db.Select("*").From("service")
+	q := db.Select("service.*", "(SELECT COUNT(*) FROM endpoint WHERE endpoint.service_id = service.id) AS in_use").
+		From("service")
 	projectId := auth.GetProjectID(params.HTTPRequest)
 	if projectId != "" {
 		// RBAC support
@@ -71,8 +72,15 @@ func (c *Controller) GetServiceHandler(params service.GetServiceParams, principa
 					Suffix(")"),
 			})
 	}
-
-	pagination := db.Pagination(params)
+	pagination := db.NewPagination(params).
+		WithFilter("availability_zone", params.AvailabilityZone).
+		WithFilter("enabled", params.Enabled).
+		WithFilter("host", params.Host).
+		WithFilter("network_id", params.NetworkID).
+		WithFilter("project_id", params.ProjectID).
+		WithFilter("provider", params.Provider).
+		WithFilter("status", params.Status).
+		WithFilter("visibility", params.Visibility)
 	sql, args, err := pagination.Query(c.pool, q)
 	if err != nil {
 		panic(err)
@@ -294,7 +302,9 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 }
 
 func (c *Controller) GetServiceServiceIDHandler(params service.GetServiceServiceIDParams, principal any) middleware.Responder {
-	q := db.Select("*").From("service").Where("id = ?", params.ServiceID)
+	q := db.Select("service.*", "(SELECT COUNT(*) FROM endpoint WHERE endpoint.service_id = service.id) AS in_use").
+		From("service").
+		Where("id = ?", params.ServiceID)
 
 	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
 		// RBAC support
@@ -553,13 +563,7 @@ func (c *Controller) GetServiceServiceIDEndpointsHandler(params service.GetServi
 		return service.NewGetServiceServiceIDEndpointsNotFound()
 	}
 
-	pagination := db.Pagination{
-		HTTPRequest: params.HTTPRequest,
-		Limit:       params.Limit,
-		Marker:      params.Marker,
-		PageReverse: params.PageReverse,
-		Sort:        params.Sort,
-	}
+	pagination := db.NewPagination(params)
 	q = db.Select("id", "project_id", "status").
 		From("endpoint").
 		Where("service_id = ?", params.ServiceID)

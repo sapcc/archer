@@ -123,7 +123,7 @@
 //	  https
 //	Host: localhost
 //	BasePath: /
-//	Version: 2.5.2
+//	Version: 2.6.0
 //	License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.html
 //	Contact: SAP SE / Converged Cloud https://sap.com
 //
