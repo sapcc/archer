@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - archer-f5-agent: recover from panics in `go-bigip`'s `PostAs3Bigip` (nil interface conversion on malformed AS3 task-status response) instead of crashing the process and leaving the advisory lock stranded in the database.
+- archer-server: reject service creation/update when the specified IP address conflicts with an already-allocated SNAT port on the same network, preventing unresolvable provisioning failures on the F5 agent.
 
 ## [2.6.0] - 2026-08-20
 

@@ -481,10 +481,7 @@ func (t *SuiteTest) TestEndpointPut() {
 func (t *SuiteTest) TestEndpointRequireApproval() {
 	// create service with require approval
 	t.addAgent(nil)
-	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+string(networkId), "GET",
-		"", GetNetworkResponseFixture, http.StatusOK)
-	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+string(networkId), "GET",
-		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
+	t.setupNeutronHandlersForServiceCreate(networkId)
 	serviceCopy := testService
 	serviceCopy.RequireApproval = conv.Pointer(true)
 	res := t.c.PostServiceHandler(

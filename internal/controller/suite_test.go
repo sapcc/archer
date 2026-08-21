@@ -6,6 +6,7 @@ package controller
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -14,8 +15,10 @@ import (
 	"time"
 
 	"github.com/go-openapi/loads"
+	"github.com/go-openapi/strfmt"
 	fake "github.com/gophercloud/gophercloud/v2/openstack/networking/v2/common"
 	th "github.com/gophercloud/gophercloud/v2/testhelper"
+	"github.com/gophercloud/gophercloud/v2/testhelper/fixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pashagolub/pgxmock/v5"
 	"github.com/sapcc/go-bits/osext"
@@ -144,6 +147,20 @@ func (t *SuiteTest) GetMockedController() *MockedController {
 func (t *SuiteTest) ResetHttpServer() {
 	t.fakeServer.Teardown()
 	t.fakeServer = th.SetupPersistentPortHTTP(t.T(), 8931)
+}
+
+// setupNeutronHandlersForServiceCreate registers the Neutron mock handlers needed
+// for creating a tenant service: network lookup, IP availability, and empty SNAT port list.
+func (t *SuiteTest) setupNeutronHandlersForServiceCreate(networkID strfmt.UUID) {
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/networks/"+networkID.String(), "GET",
+		"", GetNetworkResponseFixture, http.StatusOK)
+	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/network-ip-availabilities/"+networkID.String(), "GET",
+		"", GetNetworkIpAvailabilityResponseFixture, http.StatusOK)
+	t.fakeServer.Mux.HandleFunc("GET /v2.0/ports", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"ports": []}`))
+	})
 }
 
 // Setup db value
