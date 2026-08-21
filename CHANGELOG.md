@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- F5 agent: services with `ports: [0]` (wildcard) are now supported for the tenant provider, representing all TCP ports. A wildcard service generates a single AS3 pool and virtual service instead of expanding the full port range, preventing AS3 declaration bloat and BIG-IP task-status timeouts.
+- archerctl: `--all-ports` flag for `service create` as a convenience shorthand for `--port 0`.
+- API: limit maximum number of ports per service to 8; use port 0 (wildcard) for all-ports instead of enumerating large ranges.
 - archerctl: `service list` supports server-side filtering by `--host`, `--provider`, `--status`, `--availability-zone`, `--network`, `--visibility`, and `--enabled`/`--disabled`.
 - archerctl: `endpoint list` supports server-side filtering by `--service`, `--network`, `--status`, and `--connection-mirroring`/`--no-connection-mirroring`.
 - API: service responses include the number of associated endpoints in the optional `in_use` field; `archerctl service list` uses this field instead of issuing one request per service.

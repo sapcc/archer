@@ -195,6 +195,14 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 		panic(err)
 	}
 
+	// Validate wildcard port constraints
+	if err := validatePorts(params.Body.Ports, *params.Body.Provider); err != nil {
+		return service.NewPostServiceBadRequest().WithPayload(&models.Error{
+			Code:    http.StatusBadRequest,
+			Message: err.Error(),
+		})
+	}
+
 	if *params.Body.Provider != "tenant" {
 		if t, ok := principal.(*gopherpolicy.Token); ok {
 			if !t.Check("service:create:provider") {
@@ -381,6 +389,13 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 			return err
 		}
 
+		// Validate wildcard port constraints on update
+		if params.Body.Ports != nil {
+			if err := validatePorts(params.Body.Ports, existingProvider); err != nil {
+				return err
+			}
+		}
+
 		if params.Body.IPAddresses != nil || params.Body.Ports != nil {
 			// Only check conflicts for tenant/F5 provider
 			if existingProvider == "tenant" {
@@ -449,6 +464,13 @@ func (c *Controller) PutServiceServiceIDHandler(params service.PutServiceService
 		if errors.Is(err, aerr.ErrSnatIPConflict) {
 			return service.NewPutServiceServiceIDConflict().WithPayload(&models.Error{
 				Code:    http.StatusConflict,
+				Message: err.Error(),
+			})
+		}
+
+		if errors.Is(err, aerr.ErrInvalidPorts) {
+			return service.NewPutServiceServiceIDBadRequest().WithPayload(&models.Error{
+				Code:    http.StatusBadRequest,
 				Message: err.Error(),
 			})
 		}
@@ -750,13 +772,28 @@ type ServiceConflictChecker struct {
 }
 
 func (s *ServiceConflictChecker) checkForServiceConflict(ctx context.Context, tx pgx.Tx) error {
-	// Check if port/ip/network combination already exists
+	// Check if port/ip/network combination already exists.
+	// A wildcard port (0) overlaps with any other port(s) on the same IP/network.
+	//
+	// Port overlap conditions:
+	//   1. Normal overlap: ports && <new_ports>
+	//   2. New service is wildcard (ports=[0]): conflicts with anything
+	//   3. Existing service is wildcard (ports @> ARRAY[0]): conflicts with anything
+	portCondition := sq.Or{
+		sq.Expr("ports && ?", s.ports),
+		sq.Expr("ports @> ARRAY[0]::INTEGER[]"),
+	}
+	// If the new service uses wildcard port, it conflicts with any existing service
+	if len(s.ports) == 1 && s.ports[0] == 0 {
+		portCondition = append(portCondition, sq.Expr("TRUE"))
+	}
+
 	q := db.Select("1").
 		From("service").
 		Where(sq.And{
 			sq.Eq{"network_id": s.networkID},
 			sq.Expr("ip_addresses && ?", s.ipAddresses),
-			sq.Expr("ports && ?", s.ports),
+			portCondition,
 		})
 
 	// Exclude self in case of update
@@ -813,6 +850,22 @@ func (c *Controller) checkSnatIPConflict(ctx context.Context, networkID strfmt.U
 		if _, conflict := snatIPs[string(ip)]; conflict {
 			return fmt.Errorf("%w: IP address %s conflicts with an allocated SNAT port on the same network",
 				aerr.ErrSnatIPConflict, ip)
+		}
+	}
+	return nil
+}
+
+// validatePorts checks wildcard port constraints: port 0 (wildcard) cannot be
+// combined with other ports, and is not supported for the cp provider.
+func validatePorts(ports []int32, provider string) error {
+	for _, p := range ports {
+		if p == 0 {
+			if len(ports) != 1 {
+				return fmt.Errorf("%w: port 0 (wildcard) cannot be combined with other ports", aerr.ErrInvalidPorts)
+			}
+			if provider == "cp" {
+				return fmt.Errorf("%w: port 0 (wildcard) is not supported for cp provider", aerr.ErrInvalidPorts)
+			}
 		}
 	}
 	return nil

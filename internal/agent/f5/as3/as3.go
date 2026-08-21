@@ -159,6 +159,10 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 			l4profile = &Pointer{BigIP: config.Global.Agent.L4Profile}
 		}
 
+		// Wildcard port (0) means "all TCP ports"; disable server port translation
+		// so the backend receives traffic on the original client destination port.
+		translateServerPort := len(endpoint.ServicePorts) != 1 || endpoint.ServicePorts[0] != 0
+
 		for _, port := range endpoint.ServicePorts {
 			endpointName = fmt.Sprintf("endpoint-%d-%s", port, endpoint.ID)
 			pool := fmt.Sprintf("/Common/Shared/%s", GetServicePoolName(endpoint.ServiceID, port))
@@ -173,7 +177,7 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 				ProfileL4:           l4profile,
 				ProfileTCP:          &Pointer{BigIP: config.Global.Agent.TCPProfile},
 				Snat:                Pointer{BigIP: snat},
-				TranslateServerPort: true,
+				TranslateServerPort: translateServerPort,
 				VirtualPort:         port,
 				AllowVlans: []string{
 					fmt.Sprintf("/Common/vlan-%d", *endpoint.SegmentId),

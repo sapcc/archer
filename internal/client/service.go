@@ -113,7 +113,8 @@ type ServiceCreate struct {
 	Disable           bool     `long:"disable" description:"Disable service"`
 	Network           *string  `long:"network" description:"Network (name or ID, required for tenant provider)"`
 	IPAddresses       []string `long:"ip-address" description:"IP Addresses of the providing service (IPv4 or IPv6), multiple addresses will be round robin load balanced." required:"true"`
-	Port              []int32  `long:"port" description:"Port exposed by the service (repeat option to set multiple ports)" required:"true"`
+	Port              []int32  `long:"port" description:"Port exposed by the service (repeat option to set multiple ports)"`
+	AllPorts          bool     `long:"all-ports" description:"Expose all TCP ports (wildcard, equivalent to --port 0). Mutually exclusive with --port."`
 	Protocol          *string  `long:"protocol" description:"Protocol type of the service" choice:"TCP" choice:"HTTP"`
 	ProxyProtocol     bool     `long:"proxy-protocol" description:"Enable proxy protocol v2."`
 	NoProxyProtocol   bool     `long:"no-proxy-protocol" description:"Disable proxy protocol v2."`
@@ -132,6 +133,16 @@ func (*ServiceCreate) Execute(_ []string) error {
 		if ServiceOptions.ServiceCreate.Provider == nil || *ServiceOptions.ServiceCreate.Provider != "cp" {
 			return errors.New("--network is required for tenant provider")
 		}
+	}
+
+	// Handle --all-ports flag
+	if ServiceOptions.ServiceCreate.AllPorts {
+		if len(ServiceOptions.ServiceCreate.Port) > 0 {
+			return errors.New("--all-ports and --port are mutually exclusive")
+		}
+		ServiceOptions.ServiceCreate.Port = []int32{0}
+	} else if len(ServiceOptions.ServiceCreate.Port) == 0 {
+		return errors.New("--port or --all-ports is required")
 	}
 
 	var networkID *strfmt.UUID

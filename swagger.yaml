@@ -1377,12 +1377,17 @@ definitions:
         items:
           type: integer
           format: int32
-          minimum: 1
+          minimum: 0
           maximum: 65535
           example: 80
-        description: Ports exposed by the service.
+          x-nullable: false
+        description: >-
+          Ports exposed by the service. Port 0 is a wildcard meaning "all TCP
+          ports". When used it must be the sole element of the array. Maximum
+          8 ports per service; use port 0 for all-ports instead of enumerating.
         x-nullable: false
         minItems: 1
+        maxItems: 8
         uniqueItems: true
       network_id:
         type: string
@@ -1564,11 +1569,16 @@ definitions:
         items:
           type: integer
           format: int32
-          minimum: 1
+          minimum: 0
           maximum: 65535
           example: 80
-        description: Ports exposed by the service.
+          x-nullable: false
+        description: >-
+          Ports exposed by the service. Port 0 is a wildcard meaning "all TCP
+          ports". When used it must be the sole element of the array. Maximum
+          8 ports per service; use port 0 for all-ports instead of enumerating.
         minItems: 0
+        maxItems: 8
         uniqueItems: true
       require_approval:
         type: boolean
