@@ -121,14 +121,21 @@ func (b *BigIP) PostAS3(as3 *as3.AS3, tenant string) error {
 		fmt.Printf("-------------------> %s\n%s\n-------------------\n", b.Host, data)
 	}
 
+	call := func() (err error) {
+		defer func() {
+			if p := recover(); p != nil {
+				err = fmt.Errorf("PostAs3Bigip panic: %v", p)
+			}
+		}()
+		err, _, _ = (*bigip.BigIP)(b).PostAs3Bigip(string(data), tenant, "")
+		return
+	}
 	r := retry.WithMaxDuration(config.Global.Agent.MaxDuration,
 		retry.WithMaxRetries(config.Global.Agent.MaxRetries,
 			retry.NewExponential(5*time.Second)))
-	err = retry.Do(context.Background(), r, func(ctx context.Context) error {
-		err, _, _ = (*bigip.BigIP)(b).PostAs3Bigip(string(data), tenant, "")
-		return retry.RetryableError(err)
+	return retry.Do(context.Background(), r, func(ctx context.Context) error {
+		return retry.RetryableError(call())
 	})
-	return err
 }
 
 type VcmpGuests struct {
