@@ -118,6 +118,36 @@ const EmptyPortListResponseFixture = `
 }
 `
 
+// GetPortListWithEndpointFixture extends GetPortListResponseFixture with the
+// endpoint port used in TestAgent_DeleteEndpointBlockedByPendingDeleteService.
+const GetPortListWithEndpointFixture = `
+{
+	"ports": [
+		{
+			"fixed_ips": [{"subnet_id": "e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e", "ip_address": "2.3.4.5"}],
+			"device_owner": "network:f5snat",
+			"id": "c0c0c0c0-c0c0-4c0c-8c0c-0c0c0c0c0c0c",
+			"network_id": "35a3ca82-62af-4e0a-9472-92331500fb3a",
+			"project_id": "test-project-1"
+		},
+		{
+			"name": "local-dummybigiphost",
+			"fixed_ips": [{"subnet_id": "e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e", "ip_address": "42.42.42.42"}],
+			"device_owner": "network:f5selfip",
+			"id": "5a8ad669-4ffe-4133-b9f9-6de62cd654a4",
+			"network_id": "35a3ca82-62af-4e0a-9472-92331500fb3a",
+			"project_id": "test-project-1"
+		},
+		{
+			"fixed_ips": [{"subnet_id": "e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e", "ip_address": "10.0.0.1"}],
+			"id": "c1c1c1c1-c1c1-4c1c-8c1c-1c1c1c1c1c1c",
+			"network_id": "35a3ca82-62af-4e0a-9472-92331500fb3a",
+			"project_id": "test-project-1"
+		}
+	]
+}
+`
+
 var PostBigIPFixture = &as3.AS3{
 	Persist: false,
 	Class:   "AS3",
@@ -233,7 +263,7 @@ func TestAgent_ProcessEndpoint(t *testing.T) {
 	dbMock.
 		ExpectBegin()
 	dbMock.ExpectQuery("SELECT pg_try_advisory_xact_lock($1)").
-		WithArgs(advisoryLockProcessEndpoints).
+		WithArgs(hostLockID(advisoryLockProcessEndpoints)).
 		WillReturnRows(pgxmock.NewRows([]string{"pg_try_advisory_xact_lock"}).AddRow(true))
 	dbMock.ExpectQuery("SELECT network, subnet FROM endpoint_port WHERE endpoint_id = $1").
 		WithArgs(endpoint).
@@ -324,7 +354,7 @@ func TestAgent_ProcessEndpointDefersWhenServiceNotReady(t *testing.T) {
 	}
 	dbMock.ExpectBegin()
 	dbMock.ExpectQuery("SELECT pg_try_advisory_xact_lock($1)").
-		WithArgs(advisoryLockProcessEndpoints).
+		WithArgs(hostLockID(advisoryLockProcessEndpoints)).
 		WillReturnRows(pgxmock.NewRows([]string{"pg_try_advisory_xact_lock"}).AddRow(true))
 	dbMock.ExpectQuery("SELECT network, subnet FROM endpoint_port WHERE endpoint_id = $1").
 		WithArgs(endpoint).
@@ -392,7 +422,7 @@ func TestAgent_DeleteEndpointWithDeletedNetwork(t *testing.T) {
 	dbMock.
 		ExpectBegin()
 	dbMock.ExpectQuery("SELECT pg_try_advisory_xact_lock($1)").
-		WithArgs(advisoryLockProcessEndpoints).
+		WithArgs(hostLockID(advisoryLockProcessEndpoints)).
 		WillReturnRows(pgxmock.NewRows([]string{"pg_try_advisory_xact_lock"}).AddRow(true))
 	dbMock.ExpectQuery("SELECT network, subnet FROM endpoint_port WHERE endpoint_id = $1").
 		WithArgs(endpoint).
@@ -431,6 +461,96 @@ func TestAgent_DeleteEndpointWithDeletedNetwork(t *testing.T) {
 	}
 }
 
+// TestAgent_DeleteEndpointBlockedByPendingDeleteService verifies that a
+// non-delete endpoint whose service is PENDING_DELETE is processed (not
+// deferred) without an AS3 post, unblocking the subsequent service deletion.
+func TestAgent_DeleteEndpointBlockedByPendingDeleteService(t *testing.T) {
+	endpoint := strfmt.UUID("bfab83f8-9582-4e88-b3dd-96a006ba95d6")
+	port := strfmt.UUID("c1c1c1c1-c1c1-4c1c-8c1c-1c1c1c1c1c1c")
+	network := strfmt.UUID("35a3ca82-62af-4e0a-9472-92331500fb3a")
+	subnet := strfmt.UUID("e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e")
+	service := strfmt.UUID("dad9b89f-5619-4738-aecf-f7ce76b98b79")
+	serviceNetwork := strfmt.UUID("b0b0b0b0-b0b0-4b0b-8b0b-0b0b0b0b0b0b")
+
+	fakeServer := th.SetupPersistentPortHTTP(t, 8932)
+	defer fakeServer.Teardown()
+	config.Global.Agent.PhysicalNetwork = "physnet1"
+	config.Global.Agent.L4Profile = "/Common/cc_fastL4_noaging_profile"
+	config.Global.Agent.TCPProfile = "/Common/cc_tcp_archer_profile"
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/"+network.String(), "GET",
+		"", GetNetworkResponseFixture, http.StatusOK)
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/"+serviceNetwork.String(), "GET",
+		"", GetServiceNetworkResponseFixture, http.StatusOK)
+	fixture.SetupHandler(t, fakeServer, "/v2.0/ports", "GET", "",
+		GetPortListWithEndpointFixture, http.StatusOK)
+	fixture.SetupHandler(t, fakeServer, "/v2.0/subnets/"+subnet.String(), "GET", "",
+		GetSubnetResponseFixture, http.StatusOK)
+
+	ctx := context.Background()
+	dbMock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dbMock.Close()
+
+	f5DeviceHost := NewMockF5Device(t)
+	f5DeviceHost.On("GetHostname").Return("dummybigiphost")
+	f5DeviceHost.EXPECT().EnsureVLAN(123, 0).Return(nil)
+	f5DeviceHost.EXPECT().EnsureRouteDomain(123, conv.Pointer(666)).Return(nil)
+	f5DeviceHost.EXPECT().EnsureBigIPSelfIP(
+		"selfip-5a8ad669-4ffe-4133-b9f9-6de62cd654a4",
+		"42.42.42.42%123/8",
+		123,
+	).Return(nil)
+	// PostAS3 must NOT be called — service is PENDING_DELETE.
+
+	config.Global.Default.Host = "host-123"
+	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)}
+	neutronClient.InitCache()
+	a := &Agent{
+		pool:    dbMock,
+		neutron: &neutronClient,
+		devices: []F5Device{f5DeviceHost},
+		hosts:   []F5Device{},
+		active:  f5DeviceHost,
+	}
+
+	dbMock.ExpectBegin()
+	dbMock.ExpectQuery("SELECT pg_try_advisory_xact_lock($1)").
+		WithArgs(hostLockID(advisoryLockProcessEndpoints)).
+		WillReturnRows(pgxmock.NewRows([]string{"pg_try_advisory_xact_lock"}).AddRow(true))
+	dbMock.ExpectQuery("SELECT network, subnet FROM endpoint_port WHERE endpoint_id = $1").
+		WithArgs(endpoint).
+		WillReturnRows(pgxmock.NewRows([]string{"network", "subnet"}).AddRow(network, subnet.String()))
+	dbMock.ExpectQuery("SELECT endpoint.*, service.ports AS service_ports, service.proxy_protocol, service.network_id AS service_network_id, service.status AS service_status, endpoint_port.segment_id, endpoint_port.port_id AS \"target.port\", endpoint_port.network AS \"target.network\", endpoint_port.subnet AS \"target.subnet\", endpoint_port.owned FROM endpoint INNER JOIN service ON endpoint.service_id = service.id JOIN endpoint_port ON endpoint_id = endpoint.id WHERE endpoint.status NOT IN ($1,$2) AND network = $3 AND service.host = $4 AND service.provider = $5").
+		WithArgs(models.EndpointStatusPENDINGAPPROVAL, models.EndpointStatusREJECTED, network, config.Global.Default.Host, models.ServiceProviderTenant).
+		WillReturnRows(pgxmock.
+			NewRows([]string{"id", "service_id", "status", "name", "service_ports", "proxy_protocol", "service_network_id", "service_status", "segment_id", "target.port", "target.network", "target.subnet"}).
+			// PENDING_CREATE endpoint whose service is PENDING_DELETE
+			AddRow(endpoint, service, models.EndpointStatusPENDINGCREATE, "test-service", []int32{80}, false, serviceNetwork, string(models.ServiceStatusPENDINGDELETE), nil, &port, &network, &subnet))
+	dbMock.ExpectExec("UPDATE endpoint_port SET segment_id = $1 WHERE endpoint_id = $2").
+		WithArgs(123, endpoint).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+	dbMock.ExpectExec("SELECT 1 FROM endpoint INNER JOIN service ON endpoint.service_id = service.id JOIN endpoint_port ON endpoint_id = endpoint.id WHERE endpoint_port.subnet = $1 AND service.host = $2 AND service.provider = $3 AND endpoint.status NOT IN ($4,$5)").
+		WithArgs(subnet.String(), config.Global.Default.Host, models.ServiceProviderTenant, models.EndpointStatusPENDINGDELETE, models.EndpointStatusPENDINGREJECTED).
+		WillReturnResult(pgxmock.NewResult("SELECT", 1))
+	// Write transaction: endpoint transitions to AVAILABLE (postAS3=false, writes still run).
+	dbMock.ExpectBegin()
+	dbMock.ExpectExec("UPDATE endpoint SET status = $1, updated_at = NOW() WHERE id = $2 AND status = $3").
+		WithArgs(models.EndpointStatusAVAILABLE, endpoint, models.EndpointStatusPENDINGCREATE).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+	dbMock.ExpectCommit()
+	dbMock.ExpectRollback() // write tx defer (no-op after commit)
+	dbMock.ExpectRollback() // advisory-lock tx defer
+
+	if err = a.ProcessEndpoint(ctx, endpoint); err != nil {
+		t.Errorf("Agent.ProcessEndpoint() error = %v", err)
+	}
+	if err = dbMock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
+}
+
 func TestAgent_TestEndpointRequiringApproval(t *testing.T) {
 	endpoint := strfmt.UUID("95dbe813-62f9-47f1-90ba-09f2dadcaefa")
 	network := strfmt.UUID("35a3ca82-62af-4e0a-9472-92331500fb3a")
@@ -447,7 +567,7 @@ func TestAgent_TestEndpointRequiringApproval(t *testing.T) {
 	dbMock.
 		ExpectBegin()
 	dbMock.ExpectQuery("SELECT pg_try_advisory_xact_lock($1)").
-		WithArgs(advisoryLockProcessEndpoints).
+		WithArgs(hostLockID(advisoryLockProcessEndpoints)).
 		WillReturnRows(pgxmock.NewRows([]string{"pg_try_advisory_xact_lock"}).AddRow(true))
 	dbMock.ExpectQuery("SELECT network, subnet FROM endpoint_port WHERE endpoint_id = $1").
 		WithArgs(endpoint).
@@ -525,7 +645,7 @@ func TestAgent_DeleteEndpointWithMissingNeutronPort(t *testing.T) {
 
 	dbMock.ExpectBegin()
 	dbMock.ExpectQuery("SELECT pg_try_advisory_xact_lock($1)").
-		WithArgs(advisoryLockProcessEndpoints).
+		WithArgs(hostLockID(advisoryLockProcessEndpoints)).
 		WillReturnRows(pgxmock.NewRows([]string{"pg_try_advisory_xact_lock"}).AddRow(true))
 	dbMock.ExpectQuery("SELECT network, subnet FROM endpoint_port WHERE endpoint_id = $1").
 		WithArgs(endpoint1).
