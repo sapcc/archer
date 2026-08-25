@@ -9,7 +9,7 @@ mkShell {
   nativeBuildInputs = [
     addlicense
     go-licence-detector
-    go_1_26
+    go_1_27
     goreleaser
     gotools # goimports
     postgresql_18
