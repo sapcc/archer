@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.1] - 2026-08-25
+
 ### Fixed
 
 - archer-f5-agent: `ProcessEndpoint` now deletes blocking endpoint rows when the parent service is `PENDING_DELETE`, unblocking service deletion that was previously stuck due to a foreign-key constraint.
@@ -218,7 +220,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-Release with goreleaser
 
-[Unreleased]: https://github.com/sapcc/archer/compare/v2.7.0...HEAD
+[Unreleased]: https://github.com/sapcc/archer/compare/v2.7.1...HEAD
+
+[2.7.1]: https://github.com/sapcc/archer/compare/v2.7.0...v2.7.1
 
 [2.7.0]: https://github.com/sapcc/archer/compare/v2.6.0...v2.7.0
 
