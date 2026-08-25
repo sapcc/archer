@@ -86,7 +86,7 @@ func TestProcessServicesWithDeletedNetwork(t *testing.T) {
 	// Advisory-lock transaction: acquired successfully.
 	dbMock.ExpectBegin()
 	dbMock.ExpectQuery("SELECT pg_try_advisory_xact_lock($1)").
-		WithArgs(advisoryLockProcessServices).
+		WithArgs(hostLockID(advisoryLockProcessServices)).
 		WillReturnRows(dbMock.NewRows([]string{"pg_try_advisory_xact_lock"}).AddRow(true))
 	// Services are read without FOR UPDATE now.
 	dbMock.ExpectQuery("SELECT * FROM service WHERE host = $1 AND provider = $2").
@@ -157,7 +157,7 @@ func TestProcessServicesRepostsCommonDespiteServiceError(t *testing.T) {
 
 	dbMock.ExpectBegin()
 	dbMock.ExpectQuery("SELECT pg_try_advisory_xact_lock($1)").
-		WithArgs(advisoryLockProcessServices).
+		WithArgs(hostLockID(advisoryLockProcessServices)).
 		WillReturnRows(dbMock.NewRows([]string{"pg_try_advisory_xact_lock"}).AddRow(true))
 	dbMock.ExpectQuery("SELECT * FROM service WHERE host = $1 AND provider = $2").
 		WithArgs("host-123", models.ServiceProviderTenant).
@@ -216,7 +216,7 @@ func TestProcessServicesSkipsWhenLockHeld(t *testing.T) {
 	// Advisory-lock transaction: not acquired -> rolled back, no further queries.
 	dbMock.ExpectBegin()
 	dbMock.ExpectQuery("SELECT pg_try_advisory_xact_lock($1)").
-		WithArgs(advisoryLockProcessServices).
+		WithArgs(hostLockID(advisoryLockProcessServices)).
 		WillReturnRows(dbMock.NewRows([]string{"pg_try_advisory_xact_lock"}).AddRow(false))
 	dbMock.ExpectRollback()
 
