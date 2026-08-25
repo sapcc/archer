@@ -7,8 +7,11 @@ package f5
 import (
 	"context"
 	"errors"
+	"hash/fnv"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/sapcc/archer/v2/internal/config"
 )
 
 // errAdvisoryLockHeld is returned by tryAdvisoryLock when another run holds the
@@ -22,12 +25,21 @@ var errAdvisoryLockHeld = errors.New("advisory lock already held by another run"
 // in the DELETE/PUT handlers — so the agent holding one across seconds of
 // BigIP/Neutron I/O no longer starves API requests into a lock timeout (503).
 //
-// Values are arbitrary but must be unique across all advisory locks in the app
-// (cf. scheduler.advisoryLockID = 8675309).
+// Lock IDs are derived per-host so agents managing different F5 hosts do not
+// serialize each other (cf. scheduler.advisoryLockID = 8675309).
 const (
-	advisoryLockProcessServices  int64 = 5476001
-	advisoryLockProcessEndpoints int64 = 5476002
+	advisoryLockProcessServices  = 0
+	advisoryLockProcessEndpoints = 1
 )
+
+// hostLockID returns a stable int64 advisory lock ID for the given host and
+// lock slot (0 = ProcessServices, 1 = ProcessEndpoints).
+func hostLockID(slot int64) int64 {
+	h := fnv.New64a()
+	_, _ = h.Write([]byte(config.Global.Default.Host))
+	// XOR with slot so ProcessServices and ProcessEndpoints get distinct IDs.
+	return int64(h.Sum64()^uint64(slot)) & 0x7fffffffffffffff // keep positive
+}
 
 // tryAdvisoryLock takes the given advisory lock without blocking, via a
 // transaction-scoped `pg_try_advisory_xact_lock`. The returned lockTx MUST be
@@ -39,14 +51,14 @@ const (
 // Returns errAdvisoryLockHeld (match with errors.Is) when another run holds the
 // lock; any other error is a genuine DB failure. lockTx is non-nil only when
 // err is nil (the tx is rolled back before returning on any error).
-func (a *Agent) tryAdvisoryLock(ctx context.Context, lockID int64) (lockTx pgx.Tx, err error) {
+func (a *Agent) tryAdvisoryLock(ctx context.Context, slot int64) (lockTx pgx.Tx, err error) {
 	tx, err := a.pool.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var acquired bool
-	if err = tx.QueryRow(ctx, "SELECT pg_try_advisory_xact_lock($1)", lockID).Scan(&acquired); err != nil {
+	if err = tx.QueryRow(ctx, "SELECT pg_try_advisory_xact_lock($1)", hostLockID(slot)).Scan(&acquired); err != nil {
 		_ = tx.Rollback(ctx)
 		return nil, err
 	}
