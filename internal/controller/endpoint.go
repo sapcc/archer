@@ -74,6 +74,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, tok
 	var host string
 	var requireApproval bool
 	var serviceNetwork string
+	var serviceStatus models.ServiceStatus
 
 	if projectId := auth.GetProjectID(params.HTTPRequest); projectId != "" {
 		params.Body.ProjectID = models.Project(projectId)
@@ -106,8 +107,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, tok
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	// Check if service is accessible
-	sql, args := db.Select("host", "require_approval", "network_id").
+	sql, args := db.Select("host", "require_approval", "network_id", "status").
 		From("service").
 		Where(sq.Or{
 			sq.Eq{"visibility": "public"},              // public service?
@@ -125,7 +125,7 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, tok
 		Suffix("FOR UPDATE"). // Lock service/rbac row in this transaction
 		MustSql()
 
-	if err = tx.QueryRow(ctx, sql, args...).Scan(&host, &requireApproval, &serviceNetwork); err != nil {
+	if err = tx.QueryRow(ctx, sql, args...).Scan(&host, &requireApproval, &serviceNetwork, &serviceStatus); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
 				Code: 400,
@@ -137,6 +137,13 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, tok
 			db.LogLockBlockers(ctx, c.pool, "service")
 		}
 		panic(err)
+	}
+
+	if serviceStatus == models.ServiceStatusPENDINGDELETE {
+		return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
+			Code:    400,
+			Message: fmt.Sprintf("Service '%s' is being deleted.", params.Body.ServiceID),
+		})
 	}
 
 	status := models.EndpointStatusPENDINGCREATE
