@@ -245,6 +245,8 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 	   Post AS3 Declaration to active BigIP
 	   ================================================== */
 	// Defer until the owning service is AVAILABLE, else its /Common/Shared snatpool is missing and AS3 422s.
+	// If the service is PENDING_DELETE, skip the AS3 post but still process endpoint deletions below.
+	postAS3 := true
 	for _, ep := range endpoints {
 		if ep.Status == models.EndpointStatusPENDINGDELETE || ep.Status == models.EndpointStatusPENDINGREJECTED {
 			continue
@@ -252,17 +254,24 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 		if ep.ServiceStatus != string(models.ServiceStatusAVAILABLE) {
 			log.WithFields(log.Fields{"endpoint": endpointID, "service": ep.ServiceID, "service_status": ep.ServiceStatus}).
 				Debug("ProcessEndpoint: owning service not yet AVAILABLE, deferring AS3 post")
+			if ep.ServiceStatus == string(models.ServiceStatusPENDINGDELETE) {
+				// Service is being deleted: skip AS3 but still delete the endpoint below.
+				postAS3 = false
+				break
+			}
 			return nil
 		}
 	}
 
-	tenantName := as3.GetEndpointTenantName(networkID)
-	data := as3.GetAS3Declaration(map[string]as3.Tenant{
-		tenantName: as3.GetEndpointTenants(endpoints),
-	})
+	if postAS3 {
+		tenantName := as3.GetEndpointTenantName(networkID)
+		data := as3.GetAS3Declaration(map[string]as3.Tenant{
+			tenantName: as3.GetEndpointTenants(endpoints),
+		})
 
-	if err := a.active.PostAS3(&data, tenantName); err != nil {
-		return err
+		if err := a.active.PostAS3(&data, tenantName); err != nil {
+			return err
+		}
 	}
 
 	/* ==================================================
