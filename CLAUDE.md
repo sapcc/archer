@@ -21,10 +21,10 @@ Archer is an OpenStack-compatible endpoint service that enables private connecti
 ### Essential Commands
 ```bash
 # Run all checks (linters, tests, builds) - USE THIS AFTER EVERY CHANGE
-make check
+gmake check
 
 # Build all binaries
-make build-all
+gmake build-all
 
 # Run tests for a specific package
 go test -v ./internal/agent/ni/...
@@ -36,10 +36,10 @@ go test -v ./internal/agent/ni -run TestAgent_EnableInjection
 make build/cover.html
 
 # Format code
-make goimports
+gmake goimports
 
 # Clean build artifacts
-make clean
+gmake clean
 ```
 
 ### Validation Workflow

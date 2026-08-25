@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- archer-f5-agent: `ProcessEndpoint` now deletes blocking endpoint rows when the parent service is `PENDING_DELETE`, unblocking service deletion that was previously stuck due to a foreign-key constraint.
+- archer-server: reject `POST /endpoint` with 400 when the target service is in `PENDING_DELETE` state, preventing new endpoints from being created on a service being torn down.
+- archer-f5-agent: advisory lock IDs are now derived per-host (FNV-1a hash of the agent hostname) so agents managing different F5 hosts no longer compete for the same PostgreSQL advisory lock, preventing lock starvation when one agent runs a long `ProcessServices` cycle.
+
 ## [2.7.0] - 2026-08-21
 
 ### Added
