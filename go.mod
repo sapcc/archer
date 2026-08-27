@@ -27,7 +27,7 @@ require (
 	github.com/go-openapi/validate v0.26.3
 	github.com/google/uuid v1.6.0
 	github.com/gophercloud/gophercloud/v2 v2.14.0
-	github.com/gophercloud/utils/v2 v2.0.0-20260820140002-321c0f238d1a
+	github.com/gophercloud/utils/v2 v2.0.0-20260824073324-42b9474d09d4
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/iancoleman/strcase v0.3.0
@@ -42,7 +42,7 @@ require (
 	github.com/prometheus/client_golang v1.24.1
 	github.com/rs/cors v1.11.1
 	github.com/sapcc/go-api-declarations v1.25.0
-	github.com/sapcc/go-bits v0.0.0-20260818140528-75bdd20c7867
+	github.com/sapcc/go-bits v0.0.0-20260827091731-7669cbdb53fb
 	github.com/sethvargo/go-retry v0.4.0
 	github.com/sirupsen/logrus v1.10.1
 	github.com/stretchr/testify v1.12.1
