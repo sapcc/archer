@@ -66,26 +66,14 @@ func (a *Agent) EnsureL2(ctx context.Context, segmentID int, parentSegmentID *in
 	return nil
 }
 
-// CleanupL2 cleans up L2 configuration on BIG-IP(s) and VCMP(s) for the given segmentID.
+// CleanupL2 cleans up L2 configuration on BIG-IP guest(s) for the given segmentID.
+// VCMP host VLAN cleanup is handled by the periodic SyncGuestVLANs sweep to avoid
+// deleting a host VLAN that another guest on the same host still references.
 func (a *Agent) CleanupL2(ctx context.Context, segmentID int) error {
 	logger := log.WithField("segmentID", segmentID)
 	logger.Debug("CleanupL2")
 
 	g, _ := errgroup.WithContext(ctx)
-
-	// Cleanup VCMP
-	g.Go(func() error {
-		for _, vcmp := range a.hosts {
-			logger.WithField("vcmp", vcmp.GetHostname()).Debug("CleanupL2: cleaning up VCMP L2 configuration")
-			if err := vcmp.DeleteGuestVLAN(segmentID); err != nil {
-				return fmt.Errorf("CleanupGuestVlan: %s", err.Error())
-			}
-			if err := vcmp.DeleteVLAN(segmentID); err != nil {
-				return fmt.Errorf("CleanupVLAN: %s", err.Error())
-			}
-		}
-		return nil
-	})
 
 	// Cleanup Guest
 	g.Go(func() error {
