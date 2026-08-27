@@ -5,8 +5,10 @@
 package netlink
 
 import (
+	"bufio"
 	"context"
 	"io"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -18,6 +20,23 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
+
+// goVersionFromMod reads the Go version directive from the nearest go.mod file.
+func goVersionFromMod(rootpath string) string {
+	f, err := os.Open(filepath.Join(rootpath, "go.mod"))
+	if err != nil {
+		panic("Failed to open go.mod: " + err.Error())
+	}
+	defer func() { _ = f.Close() }()
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if after, ok := strings.CutPrefix(line, "go "); ok {
+			return after
+		}
+	}
+	return "1.27"
+}
 
 // TestNetlinkPrivilegedContainer runs all Linux netlink tests inside a
 // privileged container. This test can be run from any OS (macOS, Linux, etc.)
@@ -41,7 +60,7 @@ func TestNetlinkPrivilegedContainer(t *testing.T) {
 	rootpath := filepath.Join(filepath.Dir(b), "../../../..")
 
 	req := testcontainers.ContainerRequest{
-		Image: "golang:1.26-alpine",
+		Image: "golang:" + goVersionFromMod(rootpath) + "-alpine",
 		Cmd:   []string{"sleep", "infinity"},
 		HostConfigModifier: func(hc *container.HostConfig) {
 			hc.Privileged = true
