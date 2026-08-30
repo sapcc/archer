@@ -17,14 +17,14 @@ require (
 	github.com/getsentry/sentry-go v0.20.0
 	github.com/go-co-op/gocron/v2 v2.22.0
 	github.com/go-openapi/errors v0.22.8
-	github.com/go-openapi/loads v0.25.1
+	github.com/go-openapi/loads v0.25.2
 	github.com/go-openapi/runtime v0.33.1
-	github.com/go-openapi/spec v0.22.9
+	github.com/go-openapi/spec v0.22.11
 	github.com/go-openapi/strfmt v0.27.0
 	github.com/go-openapi/swag v0.29.1
 	github.com/go-openapi/swag/cmdutils v0.29.1
 	github.com/go-openapi/swag/conv v0.29.1
-	github.com/go-openapi/validate v0.26.3
+	github.com/go-openapi/validate v0.26.5
 	github.com/google/uuid v1.6.0
 	github.com/gophercloud/gophercloud/v2 v2.14.0
 	github.com/gophercloud/utils/v2 v2.0.0-20260824073324-42b9474d09d4
@@ -44,7 +44,7 @@ require (
 	github.com/sapcc/go-api-declarations v1.25.0
 	github.com/sapcc/go-bits v0.0.0-20260827091731-7669cbdb53fb
 	github.com/sethvargo/go-retry v0.4.0
-	github.com/sirupsen/logrus v1.10.1
+	github.com/sirupsen/logrus v1.10.2
 	github.com/stretchr/testify v1.12.1
 	github.com/testcontainers/testcontainers-go v0.44.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.44.0
@@ -77,9 +77,9 @@ require (
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
-	github.com/go-openapi/analysis v0.26.0 // indirect
+	github.com/go-openapi/analysis v0.26.2 // indirect
 	github.com/go-openapi/jsonpointer v1.0.0 // indirect
-	github.com/go-openapi/jsonreference v1.0.0 // indirect
+	github.com/go-openapi/jsonreference v1.0.1 // indirect
 	github.com/go-openapi/runtime/server-middleware v0.33.1 // indirect
 	github.com/go-openapi/swag/fileutils v0.29.1 // indirect
 	github.com/go-openapi/swag/jsonutils v0.29.1 // indirect
