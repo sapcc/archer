@@ -1384,10 +1384,10 @@ definitions:
         description: >-
           Ports exposed by the service. Port 0 is a wildcard meaning "all TCP
           ports". When used it must be the sole element of the array. Maximum
-          8 ports per service; use port 0 for all-ports instead of enumerating.
+          10 ports per service; use port 0 for all-ports instead of enumerating.
         x-nullable: false
         minItems: 1
-        maxItems: 8
+        maxItems: 10
         uniqueItems: true
       network_id:
         type: string
@@ -1576,9 +1576,9 @@ definitions:
         description: >-
           Ports exposed by the service. Port 0 is a wildcard meaning "all TCP
           ports". When used it must be the sole element of the array. Maximum
-          8 ports per service; use port 0 for all-ports instead of enumerating.
+          10 ports per service; use port 0 for all-ports instead of enumerating.
         minItems: 0
-        maxItems: 8
+        maxItems: 10
         uniqueItems: true
       require_approval:
         type: boolean

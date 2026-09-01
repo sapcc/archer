@@ -55,8 +55,8 @@ type ServiceUpdatable struct {
 	// Max Length: 64
 	Name *string `json:"name,omitempty"`
 
-	// Ports exposed by the service. Port 0 is a wildcard meaning "all TCP ports". When used it must be the sole element of the array. Maximum 8 ports per service; use port 0 for all-ports instead of enumerating.
-	// Max Items: 8
+	// Ports exposed by the service. Port 0 is a wildcard meaning "all TCP ports". When used it must be the sole element of the array. Maximum 10 ports per service; use port 0 for all-ports instead of enumerating.
+	// Max Items: 10
 	// Min Items: 0
 	// Unique: true
 	Ports []int32 `json:"ports"`
@@ -200,7 +200,7 @@ func (m *ServiceUpdatable) validatePorts(formats strfmt.Registry) error {
 		return err
 	}
 
-	if err := validate.MaxItems("ports", "body", iPortsSize, 8); err != nil {
+	if err := validate.MaxItems("ports", "body", iPortsSize, 10); err != nil {
 		return err
 	}
 
