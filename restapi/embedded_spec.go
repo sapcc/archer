@@ -56,7 +56,7 @@ func init() {
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "version": "2.6.0",
+    "version": "2.7.1",
     "x-logo": {
       "altText": "Archer logo",
       "backgroundColor": "#FFFFFF",
@@ -2041,9 +2041,9 @@ func init() {
           "x-nullable": true
         },
         "ports": {
-          "description": "Ports exposed by the service. Port 0 is a wildcard meaning \"all TCP ports\". When used it must be the sole element of the array. Maximum 8 ports per service; use port 0 for all-ports instead of enumerating.",
+          "description": "Ports exposed by the service. Port 0 is a wildcard meaning \"all TCP ports\". When used it must be the sole element of the array. Maximum 10 ports per service; use port 0 for all-ports instead of enumerating.",
           "type": "array",
-          "maxItems": 8,
+          "maxItems": 10,
           "minItems": 1,
           "uniqueItems": true,
           "items": {
@@ -2172,9 +2172,9 @@ func init() {
           "example": "ExampleService"
         },
         "ports": {
-          "description": "Ports exposed by the service. Port 0 is a wildcard meaning \"all TCP ports\". When used it must be the sole element of the array. Maximum 8 ports per service; use port 0 for all-ports instead of enumerating.",
+          "description": "Ports exposed by the service. Port 0 is a wildcard meaning \"all TCP ports\". When used it must be the sole element of the array. Maximum 10 ports per service; use port 0 for all-ports instead of enumerating.",
           "type": "array",
-          "maxItems": 8,
+          "maxItems": 10,
           "uniqueItems": true,
           "items": {
             "type": "integer",
@@ -2570,7 +2570,7 @@ func init() {
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "version": "2.6.0",
+    "version": "2.7.1",
     "x-logo": {
       "altText": "Archer logo",
       "backgroundColor": "#FFFFFF",
@@ -4774,9 +4774,9 @@ func init() {
           "x-nullable": true
         },
         "ports": {
-          "description": "Ports exposed by the service. Port 0 is a wildcard meaning \"all TCP ports\". When used it must be the sole element of the array. Maximum 8 ports per service; use port 0 for all-ports instead of enumerating.",
+          "description": "Ports exposed by the service. Port 0 is a wildcard meaning \"all TCP ports\". When used it must be the sole element of the array. Maximum 10 ports per service; use port 0 for all-ports instead of enumerating.",
           "type": "array",
-          "maxItems": 8,
+          "maxItems": 10,
           "minItems": 1,
           "uniqueItems": true,
           "items": {
@@ -4906,9 +4906,9 @@ func init() {
           "example": "ExampleService"
         },
         "ports": {
-          "description": "Ports exposed by the service. Port 0 is a wildcard meaning \"all TCP ports\". When used it must be the sole element of the array. Maximum 8 ports per service; use port 0 for all-ports instead of enumerating.",
+          "description": "Ports exposed by the service. Port 0 is a wildcard meaning \"all TCP ports\". When used it must be the sole element of the array. Maximum 10 ports per service; use port 0 for all-ports instead of enumerating.",
           "type": "array",
-          "maxItems": 8,
+          "maxItems": 10,
           "minItems": 0,
           "uniqueItems": true,
           "items": {
