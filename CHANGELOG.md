@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- archer-server: increased maximum number of ports per service from 8 to 10.
+
 ## [2.7.1] - 2026-08-25
 
 ### Fixed
