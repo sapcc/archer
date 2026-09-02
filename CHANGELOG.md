@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - archer-server: increased maximum number of ports per service from 8 to 10.
+- archer-f5-agent: removed `timeout` metering from pp2 irule after performance adjustments
 
 ## [2.7.1] - 2026-08-25
 
