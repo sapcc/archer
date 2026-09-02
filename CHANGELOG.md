@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.3] - 2026-09-02
+
 - archer-f5-agent: removed `timeout` metering from pp2 irule after performance adjustments
 
 ## [2.7.2] - 2026-09-02
@@ -228,7 +230,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-Release with goreleaser
 
-[Unreleased]: https://github.com/sapcc/archer/compare/v2.7.2...HEAD
+[Unreleased]: https://github.com/sapcc/archer/compare/v2.7.3...HEAD
+
+[2.7.3]: https://github.com/sapcc/archer/compare/v2.7.2...v2.7.3
 
 [2.7.2]: https://github.com/sapcc/archer/compare/v2.7.1...v2.7.2
 
