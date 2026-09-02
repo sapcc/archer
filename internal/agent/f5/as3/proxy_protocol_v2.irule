@@ -71,7 +71,7 @@ proc tlv_sapcc_hex {uuid4} {
     return "ec${tlv_len}${uuid_hex}"
 }
 
-when SERVER_CONNECTED priority 900 timing on {
+when SERVER_CONNECTED priority 900 {
     # create TLV type 5
     #set pp2_tlv [call tlv_type5]
     #set pp2_tlv [call tlv_sapcc {497f6eca-6276-4993-bfeb-53cbbbba6f08}]
