@@ -40,7 +40,9 @@ var PostAs3BigipFixture = &as3.AS3{
 					"Shared": {
 						Class:    "Application",
 						Template: "shared",
-						Services: map[string]any{},
+						Services: map[string]any{
+							as3.ProxyProtocolIRuleName: as3.ProxyProtocolIRule(),
+						},
 					},
 				},
 			},

@@ -18,6 +18,22 @@ func GetServiceSnatPoolName(Id strfmt.UUID) string {
 	return fmt.Sprintf("snatpool-%s", Id)
 }
 
+// ProxyProtocolIRuleName is the name of the shared proxy protocol v2 iRule
+// declared once in /Common/Shared and referenced by proxy-protocol endpoints.
+const ProxyProtocolIRuleName = "pp2-irule"
+
+// ProxyProtocolIRulePath is the cross-partition BigIP path used by endpoint
+// declarations to reference the shared proxy protocol v2 iRule.
+const ProxyProtocolIRulePath = "/Common/Shared/" + ProxyProtocolIRuleName
+
+// ProxyProtocolIRule returns the shared proxy protocol v2 iRule object.
+func ProxyProtocolIRule() IRule {
+	return IRule{
+		Class: "iRule",
+		IRule: IRuleBase64{pp2},
+	}
+}
+
 func GetServicePoolName(Id strfmt.UUID, Port int32) string {
 	return fmt.Sprintf("pool-%s-%d", Id, Port)
 }
@@ -110,6 +126,8 @@ func GetServiceTenants(endpointServices []*ExtendedService) Tenant {
 		}
 	}
 
+	services[ProxyProtocolIRuleName] = ProxyProtocolIRule()
+
 	return Tenant{
 		Class: "Tenant",
 		Applications: map[string]Application{
@@ -131,8 +149,6 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 			continue
 		}
 
-		endpointName := fmt.Sprintf("endpoint-%s", endpoint.ID)
-		iRuleName := fmt.Sprintf("irule-%s", endpoint.ID)
 		snat := fmt.Sprintf("/Common/Shared/%s", GetServiceSnatPoolName(endpoint.ServiceID))
 		var virtualAddresses []string
 		for _, fixedIP := range endpoint.Port.FixedIPs {
@@ -144,16 +160,8 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 		var class string
 		var l4profile *Pointer
 		if endpoint.ProxyProtocol {
-			// Add iRule for proxy protocol v2
 			class = "Service_TCP"
-			services[iRuleName] = IRule{
-				Label: fmt.Sprint("irule-", endpointName),
-				Class: "iRule",
-				IRule: IRuleBase64{pp2},
-			}
-			iRules = append(iRules, Pointer{
-				Use: iRuleName,
-			})
+			iRules = append(iRules, Pointer{BigIP: ProxyProtocolIRulePath})
 		} else {
 			class = "Service_L4"
 			l4profile = &Pointer{BigIP: config.Global.Agent.L4Profile}
@@ -164,7 +172,7 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 		translateServerPort := len(endpoint.ServicePorts) != 1 || endpoint.ServicePorts[0] != 0
 
 		for _, port := range endpoint.ServicePorts {
-			endpointName = fmt.Sprintf("endpoint-%d-%s", port, endpoint.ID)
+			endpointName := fmt.Sprintf("endpoint-%d-%s", port, endpoint.ID)
 			pool := fmt.Sprintf("/Common/Shared/%s", GetServicePoolName(endpoint.ServiceID, port))
 
 			services[endpointName] = Service{

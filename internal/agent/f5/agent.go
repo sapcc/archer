@@ -184,6 +184,11 @@ func (a *Agent) Run() {
 		log.Fatal(err)
 	}
 
+	// Ensure pp2-irule exists in Common/Shared before any endpoint job can reference it.
+	if err := a.ProcessServices(context.Background()); err != nil {
+		log.WithError(err).Fatal("ProcessServices failed on startup")
+	}
+
 	// start the scheduler
 	a.scheduler.Start()
 
