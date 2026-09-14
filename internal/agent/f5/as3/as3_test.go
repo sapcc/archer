@@ -5,8 +5,6 @@
 package as3
 
 import (
-	"encoding/base64"
-	"fmt"
 	"testing"
 	"time"
 
@@ -49,7 +47,7 @@ func TestGetEndpointTenants(t *testing.T) {
 	json, err := tenant.MarshalJSON()
 	assert.Nil(t, err)
 
-	expectedJSON := fmt.Sprintf(`{"class":"Tenant","si-endpoints":{"class":"Application","endpoint-0-3ad9b1f0-4e5a-44c3-ada6-71696925ae64":{"label":"endpoint-0-3ad9b1f0-4e5a-44c3-ada6-71696925ae64","class":"Service_TCP","allowVlans":["/Common/vlan-1"],"iRules":[{"use":"irule-3ad9b1f0-4e5a-44c3-ada6-71696925ae64"}],"mirroring":"L4","persistenceMethods":[],"pool":{"bigip":"/Common/Shared/pool-4e50bf87-e597-41f2-9ce0-83d3e24dedf3-0"},"profileTCP":{"bigip":"test-tcp-profile"},"snat":{"bigip":"/Common/Shared/snatpool-4e50bf87-e597-41f2-9ce0-83d3e24dedf3"},"virtualAddresses":["1.2.3.4%%1"],"translateServerPort":false,"virtualPort":0},"irule-3ad9b1f0-4e5a-44c3-ada6-71696925ae64":{"label":"irule-endpoint-3ad9b1f0-4e5a-44c3-ada6-71696925ae64","class":"iRule","iRule":{"base64":"%s"}},"template":"generic"}}`, base64.StdEncoding.EncodeToString([]byte(pp2)))
+	expectedJSON := `{"class":"Tenant","si-endpoints":{"class":"Application","endpoint-0-3ad9b1f0-4e5a-44c3-ada6-71696925ae64":{"label":"endpoint-0-3ad9b1f0-4e5a-44c3-ada6-71696925ae64","class":"Service_TCP","allowVlans":["/Common/vlan-1"],"iRules":[{"bigip":"/Common/Shared/pp2-irule"}],"mirroring":"L4","persistenceMethods":[],"pool":{"bigip":"/Common/Shared/pool-4e50bf87-e597-41f2-9ce0-83d3e24dedf3-0"},"profileTCP":{"bigip":"test-tcp-profile"},"snat":{"bigip":"/Common/Shared/snatpool-4e50bf87-e597-41f2-9ce0-83d3e24dedf3"},"virtualAddresses":["1.2.3.4%1"],"translateServerPort":false,"virtualPort":0},"template":"generic"}}`
 	assert.JSONEq(t, expectedJSON, string(json), "Tenant JSON should be equal")
 }
 
@@ -247,6 +245,7 @@ func TestGetServiceTenants(t *testing.T) {
 					Remark:        "",
 					SnatAddresses: []string{"1.2.3.4%54321"},
 				},
+				"pp2-irule": ProxyProtocolIRule(),
 			},
 		}},
 	}
@@ -255,7 +254,7 @@ func TestGetServiceTenants(t *testing.T) {
 }
 
 func TestGetServiceTenantsWithoutServices(t *testing.T) {
-	expected := Tenant{Class: "Tenant", Label: "", Remark: "", Applications: map[string]Application{"Shared": {Class: "Application", Label: "", Remark: "", Template: "shared", Services: map[string]any{}}}}
+	expected := Tenant{Class: "Tenant", Label: "", Remark: "", Applications: map[string]Application{"Shared": {Class: "Application", Label: "", Remark: "", Template: "shared", Services: map[string]any{"pp2-irule": ProxyProtocolIRule()}}}}
 	assert.EqualValues(t, expected, GetServiceTenants([]*ExtendedService{}))
 }
 
