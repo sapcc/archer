@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.4] - 2026-09-17
+
 ### Changed
 
 - archer-f5-agent: the proxy protocol v2 iRule is now declared once in `/Common/Shared` and referenced by endpoints, instead of being embedded into every endpoint declaration. `ProcessServices` runs synchronously on startup to ensure the shared iRule exists before any endpoint job references it.
@@ -234,7 +236,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-Release with goreleaser
 
-[Unreleased]: https://github.com/sapcc/archer/compare/v2.7.3...HEAD
+[Unreleased]: https://github.com/sapcc/archer/compare/v2.7.4...HEAD
+
+[2.7.4]: https://github.com/sapcc/archer/compare/v2.7.3...v2.7.4
 
 [2.7.3]: https://github.com/sapcc/archer/compare/v2.7.2...v2.7.3
 
