@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- archer-ni-agent: endpoint ports (device_owner `network:archer`) are now deleted from Neutron when an owned endpoint is deleted, preventing permanent port leaks for the `cp` provider.
+- archer-server: two `POST /endpoint` error paths (no agent found for host, no physical network segment found) now correctly delete the just-allocated Neutron port before returning 400.
+
 ### Changed
 
 - archer-f5-agent: the proxy protocol v2 iRule is now declared once in `/Common/Shared` and referenced by endpoints, instead of being embedded into every endpoint declaration. `ProcessServices` runs synchronously on startup to ensure the shared iRule exists before any endpoint job references it.
