@@ -264,6 +264,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
 		var err error
 
 		sql, args := db.Select("e.id", "e.status", "ep.port_id", "ep.network", "host(ep.ip_address) AS ip_address",
+			"ep.owned",
 			"s.id AS service_id", "s.protocol AS service_protocol", "s.ports AS service_ports",
 			"host(s.ip_addresses[1]) AS service_ip_address", "s.proxy_protocol").
 			From("endpoint e").
@@ -293,6 +294,9 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, id strfmt.UUID) error {
 			}
 		case models.EndpointStatusPENDINGDELETE:
 			if err = a.DisableInjection(&si); err != nil {
+				return err
+			}
+			if err = a.deleteOwnedPort(ctx, &si); err != nil {
 				return err
 			}
 			sql, args = db.DeleteIfStatus("endpoint", si.ID, models.EndpointStatusPENDINGDELETE)

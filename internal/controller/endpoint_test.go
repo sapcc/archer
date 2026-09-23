@@ -416,8 +416,14 @@ func (t *SuiteTest) TestEndpointSegmentCouldNotBeFound() {
 	portID, _ := uuid.GenerateUUID()
 	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/ports", "POST", "",
 		fmt.Sprintf(CreatePortResponseFixture, portID, string(network)), http.StatusCreated)
-	fixture.SetupHandler(t.T(), t.fakeServer, "/v2.0/ports/"+portID, "GET", "",
-		fmt.Sprintf(CreatePortResponseFixture, portID, string(network)), http.StatusOK)
+	t.fakeServer.Mux.HandleFunc("GET /v2.0/ports/"+portID, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, CreatePortResponseFixture, portID, string(network)) //nolint:errcheck
+	})
+	t.fakeServer.Mux.HandleFunc("DELETE /v2.0/ports/"+portID, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
 
 	// manipulate physical of the agent to require a segment that does not exist
 	_, _ = t.c.pool.Exec(context.Background(), `UPDATE agents SET physnet = 'phys_unknown';`)

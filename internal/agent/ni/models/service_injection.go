@@ -15,6 +15,7 @@ type ServiceInjection struct {
 	models.Endpoint              // Embedded endpoint with ID, status, etc.
 	PortId           strfmt.UUID // Neutron port ID for the endpoint
 	Network          strfmt.UUID // Network ID where the endpoint resides
+	Owned            bool        // Whether the port was created by Archer (not user-supplied)
 	ServiceID        strfmt.UUID // ID of the service this endpoint belongs to
 	ServicePorts     []int       // Ports exposed by the service
 	ServiceProtocol  string      // Protocol type (HTTP or TCP)

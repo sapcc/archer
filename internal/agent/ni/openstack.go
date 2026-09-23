@@ -6,6 +6,7 @@ package ni
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
@@ -115,8 +116,8 @@ func (a *Agent) DisableInjection(si *models.ServiceInjection) error {
 
 	// Only stop haproxy - don't delete the namespace.
 	// Other endpoints may still be using this network's namespace.
-	// The namespace will be cleaned up when the Neutron port is deleted,
-	// or reused if another endpoint is created for this network.
+	// Namespace cleanup on last endpoint deletion is not implemented;
+	// namespaces and veth pairs persist until the host is rebooted or cleaned manually.
 	if a.haproxy.IsRunning(networkID) {
 		if err := a.haproxy.RemoveInstance(networkID); err != nil {
 			return fmt.Errorf("failed to remove haproxy instance: %w", err)
@@ -128,4 +129,18 @@ func (a *Agent) DisableInjection(si *models.ServiceInjection) error {
 
 func (a *Agent) CollectStats() {
 	a.haproxy.CollectStats()
+}
+
+// deleteOwnedPort deletes the Neutron port for si if it was created by Archer (Owned=true).
+// A 404 is tolerated — the port may already be gone.
+func (a *Agent) deleteOwnedPort(ctx context.Context, si *models.ServiceInjection) error {
+	if !si.Owned {
+		return nil
+	}
+	if err := a.neutron.DeletePort(ctx, si.PortId.String()); err != nil {
+		if !gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
+			return fmt.Errorf("failed to delete endpoint port %s: %w", si.PortId, err)
+		}
+	}
+	return nil
 }

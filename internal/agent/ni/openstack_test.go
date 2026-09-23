@@ -280,6 +280,68 @@ func TestAgent_EnableInjection_GetPortSuccess(t *testing.T) {
 	}
 }
 
+func TestAgent_DisableInjection_DeletesOwnedPort(t *testing.T) {
+	// Regression test: before the fix, the PENDING_DELETE branch of ProcessEndpoint
+	// never deleted the Neutron port even when Owned=true, causing every cp-provider
+	// endpoint deletion to leak the port permanently.
+	fakeServer := th.SetupHTTP()
+	defer fakeServer.Teardown()
+
+	portID := "550e8400-e29b-41d4-a716-446655440000"
+	networkID := strfmt.UUID("660e8400-e29b-41d4-a716-446655440000")
+
+	deleteCalled := false
+	fakeServer.Mux.HandleFunc("DELETE /v2.0/ports/"+portID, func(w http.ResponseWriter, _ *http.Request) {
+		deleteCalled = true
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	a := &Agent{
+		neutron:      &neutron.NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)},
+		haproxy:      haproxy.NewFakeHaproxy(),
+		proxyManager: proxy.NewManager(t.Context(), noopStartProc),
+	}
+	si := &models.ServiceInjection{
+		PortId:  strfmt.UUID(portID),
+		Network: networkID,
+		Owned:   true,
+	}
+
+	assert.NoError(t, a.DisableInjection(si))
+	assert.NoError(t, a.deleteOwnedPort(t.Context(), si))
+	assert.True(t, deleteCalled, "expected DELETE /v2.0/ports/%s to be called for owned port", portID)
+}
+
+func TestAgent_DisableInjection_DoesNotDeleteUnownedPort(t *testing.T) {
+	// User-supplied ports (Owned=false) must never be deleted by the agent.
+	fakeServer := th.SetupHTTP()
+	defer fakeServer.Teardown()
+
+	portID := "550e8400-e29b-41d4-a716-446655440001"
+	networkID := strfmt.UUID("660e8400-e29b-41d4-a716-446655440000")
+
+	deleteCalled := false
+	fakeServer.Mux.HandleFunc("DELETE /v2.0/ports/"+portID, func(w http.ResponseWriter, _ *http.Request) {
+		deleteCalled = true
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	a := &Agent{
+		neutron:      &neutron.NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)},
+		haproxy:      haproxy.NewFakeHaproxy(),
+		proxyManager: proxy.NewManager(t.Context(), noopStartProc),
+	}
+	si := &models.ServiceInjection{
+		PortId:  strfmt.UUID(portID),
+		Network: networkID,
+		Owned:   false,
+	}
+
+	assert.NoError(t, a.DisableInjection(si))
+	assert.NoError(t, a.deleteOwnedPort(t.Context(), si))
+	assert.False(t, deleteCalled, "DELETE must not be called for user-supplied (unowned) port")
+}
+
 func TestAgent_DisableInjection_GetPortSuccess(t *testing.T) {
 	portID := "550e8400-e29b-41d4-a716-446655440000"
 	networkID := "660e8400-e29b-41d4-a716-446655440000"

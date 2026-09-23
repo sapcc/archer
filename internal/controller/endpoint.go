@@ -213,6 +213,9 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, tok
 	var physnet pgtype.Text
 	if err = pgxscan.Get(ctx, tx, &physnet, sql, args...); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
+			if owned {
+				log.Infof("Deallocating port %s: %+v", port.ID, c.neutron.DeletePort(ctx, port.ID))
+			}
 			return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
 				Code:    400,
 				Message: fmt.Sprintf("No agent found for host '%s'.", host),
@@ -228,6 +231,9 @@ func (c *Controller) PostEndpointHandler(params endpoint.PostEndpointParams, tok
 		if err != nil {
 			if errors.Is(err, aerr.ErrNoPhysNetFound) {
 				log.WithError(err)
+				if owned {
+					log.Infof("Deallocating port %s: %+v", port.ID, c.neutron.DeletePort(ctx, port.ID))
+				}
 				return endpoint.NewPostEndpointBadRequest().WithPayload(&models.Error{
 					Code:    400,
 					Message: fmt.Sprintf("No segment found for network '%s' on host '%s'.", port.NetworkID, host),
