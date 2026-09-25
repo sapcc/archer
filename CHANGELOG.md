@@ -13,9 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.4] - 2026-09-25
+
 ### Fixed
 
-- archer-ni-agent: endpoint ports (device_owner `network:archer`) are now deleted from Neutron when an owned endpoint is deleted, preventing permanent port leaks for the `cp` provider.
+- archer-ni-agent: endpoint ports (device\_owner `network:archer`) are now deleted from Neutron when an owned endpoint is deleted, preventing permanent port leaks for the `cp` provider.
 - archer-server: two `POST /endpoint` error paths (no agent found for host, no physical network segment found) now correctly delete the just-allocated Neutron port before returning 400.
 
 ### Changed
@@ -239,7 +241,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-Release with goreleaser
 
-[Unreleased]: https://github.com/sapcc/archer/compare/v2.7.3...HEAD
+[Unreleased]: https://github.com/sapcc/archer/compare/v2.7.4...HEAD
+
+[2.7.4]: https://github.com/sapcc/archer/compare/v2.7.3...v2.7.4
 
 [2.7.3]: https://github.com/sapcc/archer/compare/v2.7.2...v2.7.3
 
