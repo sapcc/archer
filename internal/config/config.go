@@ -61,7 +61,7 @@ type ApiSettings struct {
 	DisablePagination         bool    `long:"disable-pagination" ini-name:"disable_pagination" description:"Disable the usage of pagination"`
 	DisableSorting            bool    `long:"disable-sorting" ini-name:"disable_sorting" description:"Disable the usage of sorting"`
 	PaginationMaxLimit        int64   `long:"pagination-max-limit" ini-name:"pagination_max_limit" default:"1000" description:"The maximum number of items returned in a single response."`
-	RateLimit                 float64 `long:"rate-limit" ini-name:"rate_limit" default:"100" description:"Maximum number of requests to limit per second."`
+	RateLimit                 float64 `long:"rate-limit" ini-name:"rate_limit" default:"30" description:"Maximum number of requests to limit per second."`
 	DisableCors               bool    `long:"disable-cors" ini-name:"disable_cors" description:"Stops sending Access-Control-Allow-Origin Header to allow cross-origin requests."`
 	EnableProxyHeadersParsing bool    `long:"enable-proxy-headers-parsing" ini-name:"enable_proxy_headers_parsing" description:"Try parsing proxy headers for http scheme and base url."`
 }

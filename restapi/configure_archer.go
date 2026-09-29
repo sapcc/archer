@@ -14,6 +14,7 @@ import (
 
 	"github.com/IBM/pgxpoolprometheus"
 	"github.com/didip/tollbooth/v8"
+	tbLimiter "github.com/didip/tollbooth/v8/limiter"
 	"github.com/getsentry/sentry-go"
 	sentryhttp "github.com/getsentry/sentry-go/http"
 	"github.com/go-openapi/errors"
@@ -273,6 +274,13 @@ func setupMiddlewares(handler http.Handler) http.Handler {
 	if rl := config.Global.ApiSettings.RateLimit; rl > .0 {
 		log.Info("Initializing rate limit middleware")
 		limiter := tollbooth.NewLimiter(rl, nil)
+		// Without an explicit IP lookup tollbooth cannot identify clients and
+		// silently skips rate limiting (see tollbooth.ShouldSkipLimiter).
+		ipSource := "X-Forwarded-For"
+		if !config.Global.ApiSettings.EnableProxyHeadersParsing {
+			ipSource = "RemoteAddr"
+		}
+		limiter.SetIPLookup(tbLimiter.IPLookup{Name: ipSource})
 		limiter.SetHeader("X-Auth-Token", nil)
 		limiter.SetMethods([]string{"GET", "POST", "PUT", "DELETE"})
 		handler = tollbooth.LimitHandler(limiter, handler)
