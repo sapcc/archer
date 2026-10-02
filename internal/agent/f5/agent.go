@@ -8,7 +8,9 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
+	"time"
 
 	"github.com/IBM/pgxpoolprometheus"
 	sq "github.com/Masterminds/squirrel"
@@ -35,7 +37,8 @@ type Agent struct {
 	neutron    *neutron.NeutronClient
 	devices    []F5Device
 	hosts      []F5Device
-	active     F5Device // active target
+	activeMu   sync.RWMutex
+	active     F5Device // active target, guarded by activeMu
 	psCoalesce common.Coalescer
 }
 
@@ -171,6 +174,16 @@ func (a *Agent) Run() {
 		gocron.NewTask(a.HealthScrapeLoop),
 		gocron.WithName("HealthScrapeLoop"),
 		gocron.WithStartAt(gocron.WithStartImmediately()),
+	); err != nil {
+		log.Fatal(err)
+	}
+
+	// failover re-detection — offset by half the scrape interval to avoid coinciding with HealthScrapeLoop
+	if _, err := a.scheduler.NewJob(
+		gocron.DurationJob(config.Global.Agent.HealthScrapeInterval),
+		gocron.NewTask(a.SyncActiveDevice),
+		gocron.WithName("SyncActiveDevice"),
+		gocron.WithStartAt(gocron.WithStartDateTime(time.Now().Add(config.Global.Agent.HealthScrapeInterval/2))),
 	); err != nil {
 		log.Fatal(err)
 	}

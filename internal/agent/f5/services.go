@@ -200,7 +200,7 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 	data := as3.GetAS3Declaration(map[string]as3.Tenant{
 		"Common": as3.GetServiceTenants(services),
 	})
-	if err = a.active.PostAS3(&data, "Common"); err != nil {
+	if err = a.getActive().PostAS3(&data, "Common"); err != nil {
 		return err
 	}
 

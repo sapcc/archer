@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- archer-f5-agent: Prometheus-based health scraping and failover detection via `health_scrape_prometheus` config option. When configured, a single PromQL query replaces N per-service F5 API calls each scrape cycle, with automatic fallback to direct device polling on Prometheus unavailability.
+
+### Changed
+
+- archer-f5-agent: direct health scraping now fetches all pool stats in one bulk F5 API call (`ltm/pool/stats`) instead of one call per service port.
+- archer-f5-agent: default `health_scrape_interval` reduced from 5m to 1m.
+- archer-f5-agent: `SyncActiveDevice` scheduler job is staggered by half the scrape interval to avoid coinciding with `HealthScrapeLoop`.
+
 ## [2.7.4] - 2026-09-25
 
 ### Fixed

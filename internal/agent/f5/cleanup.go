@@ -352,7 +352,7 @@ func (a *Agent) cleanupOrphanedTenants(usedSegments map[int]string) error {
 			data := as3.GetAS3Declaration(map[string]as3.Tenant{
 				partition: as3.GetEndpointTenants([]*as3.ExtendedEndpoint{}),
 			})
-			if err := a.active.PostAS3(&data, partition); err != nil {
+			if err := a.getActive().PostAS3(&data, partition); err != nil {
 				return err
 			}
 		}
