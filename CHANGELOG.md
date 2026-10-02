@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - archer-server: the rate limit middleware is now actually enforced. Previously no IP lookup was configured on the tollbooth limiter, so tollbooth silently skipped rate limiting for every request (it cannot identify a client without one), and the `rate_limit` setting had no effect. The limiter now keys on `X-Forwarded-For` when `enable_proxy_headers_parsing` is set (behind an ingress), or on `RemoteAddr` for direct connections. The default `rate_limit` has been reduced from 100 to 30 requests per second.
+- archer-f5-agent: gocron structured log arguments (key-value pairs) are now correctly forwarded to logrus as fields instead of being passed as `Printf` format args, which produced garbled `%!(EXTRA ...)` output.
 
 ## [2.7.4] - 2026-09-25
 
