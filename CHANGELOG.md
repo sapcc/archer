@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- archer-f5-agent: removed synchronous `ProcessServices` call on startup; pending services are picked up by the existing `PendingSyncLoop` scheduler job instead.
+
 ### Added
 
 - archer-f5-agent: Prometheus-based health scraping and failover detection via `health_scrape_prometheus` config option. When configured, a single PromQL query replaces N per-service F5 API calls each scrape cycle, with automatic fallback to direct device polling on Prometheus unavailability.
