@@ -15,20 +15,31 @@ import (
 
 type logger struct{}
 
+// argsToFields converts gocron's key-value args pairs into logrus fields.
+func argsToFields(args []any) log.Fields {
+	fields := make(log.Fields, len(args)/2)
+	for i := 0; i+1 < len(args); i += 2 {
+		if key, ok := args[i].(string); ok {
+			fields[key] = args[i+1]
+		}
+	}
+	return fields
+}
+
 func (l *logger) Debug(msg string, args ...any) {
-	log.Debugf(msg, args...)
+	log.WithFields(argsToFields(args)).Debug(msg)
 }
 
 func (l *logger) Error(msg string, args ...any) {
-	log.Errorf(msg, args...)
+	log.WithFields(argsToFields(args)).Error(msg)
 }
 
 func (l *logger) Info(msg string, args ...any) {
-	log.Infof(msg, args...)
+	log.WithFields(argsToFields(args)).Info(msg)
 }
 
 func (l *logger) Warn(msg string, args ...any) {
-	log.Warnf(msg, args...)
+	log.WithFields(argsToFields(args)).Warn(msg)
 }
 
 func NewGoCronLogger() gocron.Logger {
