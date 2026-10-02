@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - archer-f5-agent: default `health_scrape_interval` reduced from 5m to 1m.
 - archer-f5-agent: `SyncActiveDevice` scheduler job is staggered by half the scrape interval to avoid coinciding with `HealthScrapeLoop`.
 
+### Fixed
+
+- archer-f5-agent: gocron structured log arguments (key-value pairs) are now correctly forwarded to logrus as fields instead of being passed as `Printf` format args, which produced garbled `%!(EXTRA ...)` output.
+
 ## [2.7.4] - 2026-09-25
 
 ### Fixed
