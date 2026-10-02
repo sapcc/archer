@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.5] - 2026-10-02
+
 ### Fixed
 
 - archer-server: the rate limit middleware is now actually enforced. Previously no IP lookup was configured on the tollbooth limiter, so tollbooth silently skipped rate limiting for every request (it cannot identify a client without one), and the `rate_limit` setting had no effect. The limiter now keys on `X-Forwarded-For` when `enable_proxy_headers_parsing` is set (behind an ingress), or on `RemoteAddr` for direct connections. The default `rate_limit` has been reduced from 100 to 30 requests per second.
@@ -245,7 +247,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-Release with goreleaser
 
-[Unreleased]: https://github.com/sapcc/archer/compare/v2.7.4...HEAD
+[Unreleased]: https://github.com/sapcc/archer/compare/v2.7.5...HEAD
+
+[2.7.5]: https://github.com/sapcc/archer/compare/v2.7.4...v2.7.5
 
 [2.7.4]: https://github.com/sapcc/archer/compare/v2.7.3...v2.7.4
 
