@@ -99,8 +99,8 @@ type Agent struct {
 	PhysicalNetwork        string        `long:"physical-network" ini-name:"physical_network" env:"PHYSICAL_NETWORK" description:"Physical Network"`
 	PhysicalInterface      string        `long:"physical-interface" ini-name:"physical_interface" description:"Physical Interface" default:"portchannel1"`
 	PendingSyncInterval    time.Duration `long:"pending-sync-interval" ini-name:"sync-interval" default:"120s" description:"Interval for pending sync scans, supports suffix (e.g. 10s)."`
-	HealthScrapeInterval   time.Duration `long:"health-scrape-interval" ini-name:"health_scrape_interval" default:"5m" description:"Interval for health monitor status scraping."`
-	HealthScrapePrometheus string        `long:"health-scrape-prometheus" ini-name:"health_scrape_prometheus" description:"Prometheus API URL for health scraping. If set, uses Prometheus instead of direct F5 API."`
+	HealthScrapeInterval   time.Duration `long:"health-scrape-interval" ini-name:"health_scrape_interval" default:"1m" description:"Interval for health monitor status scraping."`
+	HealthScrapePrometheus string        `long:"health-scrape-prometheus" ini-name:"health_scrape_prometheus" description:"Prometheus base URL (e.g. http://localhost:9090) for pool health and failover detection via SNMP metrics. Falls back to direct F5 device polling when unset or unreachable."`
 	L4Profile              string        `long:"l4-profile" ini-name:"l4_profile" description:"L4 profile to use for F5 endpoint service." default:"/Common/fastL4"`
 	TCPProfile             string        `long:"tcp-profile" ini-name:"tcp_profile" description:"TCP profile to use for F5 endpoint service." default:"/Common/tcp"`
 	MaxRetries             uint64        `long:"max-retries" ini-name:"max_retries" description:"Maximum number of retries for F5 operations." default:"3"`
