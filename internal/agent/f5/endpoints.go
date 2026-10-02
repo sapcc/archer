@@ -269,7 +269,7 @@ func (a *Agent) ProcessEndpoint(ctx context.Context, endpointID strfmt.UUID) err
 			tenantName: as3.GetEndpointTenants(endpoints),
 		})
 
-		if err := a.active.PostAS3(&data, tenantName); err != nil {
+		if err := a.getActive().PostAS3(&data, tenantName); err != nil {
 			return err
 		}
 	}
