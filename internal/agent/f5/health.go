@@ -6,14 +6,9 @@ package f5
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/url"
-	"time"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
-	"github.com/go-co-op/gocron/v2"
 	"github.com/go-openapi/strfmt"
 	log "github.com/sirupsen/logrus"
 
@@ -49,18 +44,6 @@ var healthStatusPriority = map[string]int{
 	HealthStatusOffline:   3,
 }
 
-// PrometheusQueryResponse represents the response from Prometheus /api/v1/query
-type PrometheusQueryResponse struct {
-	Status string `json:"status"`
-	Data   struct {
-		ResultType string `json:"resultType"`
-		Result     []struct {
-			Metric map[string]string `json:"metric"`
-			Value  []any             `json:"value"` // [timestamp, value]
-		} `json:"result"`
-	} `json:"data"`
-}
-
 // ComputePoolHealthStatus computes the aggregate health status from pool member stats.
 // Returns ONLINE if all members are up, OFFLINE if all are down, DEGRADED if mixed,
 // and UNCHECKED if no members or status unknown.
@@ -75,14 +58,12 @@ func ComputePoolHealthStatus(stats *bigip.PoolMemberStatsResponse) string {
 
 	for _, entry := range stats.Entries {
 		totalCount++
-		// monitorStatus can be: "up", "down", "unchecked", "checking", etc.
 		status := entry.NestedStats.Entries.MonitorStatus.Description
 		switch status {
 		case "up":
 			upCount++
 		case "down":
 			downCount++
-			// other statuses (unchecked, checking) don't count as up or down
 		}
 	}
 
@@ -99,7 +80,6 @@ func ComputePoolHealthStatus(stats *bigip.PoolMemberStatsResponse) string {
 	if upCount > 0 && downCount > 0 {
 		return HealthStatusDegraded
 	}
-	// All members are in an unknown/checking state
 	return HealthStatusUnchecked
 }
 
@@ -125,165 +105,6 @@ func ComputeServiceHealth(portStatuses []string) string {
 	}
 
 	return worst
-}
-
-// ScrapeServiceHealth queries the F5 device for all pools of a service and computes aggregate health.
-func (a *Agent) ScrapeServiceHealth(ctx context.Context, service *models.Service) string {
-	// Get the active BigIP device
-	device, ok := a.active.(*bigip.BigIP)
-	if !ok {
-		log.WithField("service_id", service.ID).Debug("Active device is not a BigIP, cannot scrape health")
-		return HealthStatusUnchecked
-	}
-
-	var portStatuses []string
-
-	for _, port := range service.Ports {
-		poolName := as3.GetServicePoolName(service.ID, port)
-		// Format: ~Common~Shared~pool-{id}-{port}
-		poolPath := fmt.Sprintf("~Common~Shared~%s", poolName)
-
-		stats, err := device.GetPoolMemberStats(poolPath)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"service_id": service.ID,
-				"port":       port,
-				"pool":       poolName,
-			}).WithError(err).Debug("Failed to get pool member stats")
-			portStatuses = append(portStatuses, HealthStatusUnchecked)
-			continue
-		}
-
-		poolHealth := ComputePoolHealthStatus(stats)
-		portStatuses = append(portStatuses, poolHealth)
-
-		log.WithFields(log.Fields{
-			"service_id": service.ID,
-			"port":       port,
-			"pool":       poolName,
-			"health":     poolHealth,
-		}).Debug("Scraped pool health")
-	}
-
-	return ComputeServiceHealth(portStatuses)
-}
-
-// ScrapeServiceHealthPrometheus queries Prometheus for pool health status using SNMP metrics.
-func (a *Agent) ScrapeServiceHealthPrometheus(ctx context.Context, service *models.Service) string {
-	var portStatuses []string
-
-	for _, port := range service.Ports {
-		poolName := as3.GetServicePoolName(service.ID, port)
-		// Format: /Common/Shared/pool-{id}-{port}
-		poolPath := fmt.Sprintf("/Common/Shared/%s", poolName)
-
-		health, err := a.queryPrometheusPoolHealth(ctx, poolPath)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"service_id": service.ID,
-				"port":       port,
-				"pool":       poolName,
-			}).WithError(err).Debug("Failed to query Prometheus for pool health")
-			portStatuses = append(portStatuses, HealthStatusUnchecked)
-			continue
-		}
-
-		portStatuses = append(portStatuses, health)
-
-		log.WithFields(log.Fields{
-			"service_id": service.ID,
-			"port":       port,
-			"pool":       poolName,
-			"health":     health,
-		}).Debug("Scraped pool health from Prometheus")
-	}
-
-	return ComputeServiceHealth(portStatuses)
-}
-
-// queryPrometheusPoolHealth queries Prometheus for the health of a specific pool.
-func (a *Agent) queryPrometheusPoolHealth(ctx context.Context, poolPath string) (string, error) {
-	promURL := config.Global.Agent.HealthScrapePrometheus
-
-	// Build the PromQL query
-	query := fmt.Sprintf(`snmp_f5_ltmPoolMbrStatusAvailState{ltmPoolMbrStatusPoolName="%s"}`, poolPath)
-
-	// Build request URL
-	reqURL, err := url.Parse(promURL + "/api/v1/query")
-	if err != nil {
-		return "", fmt.Errorf("invalid prometheus URL: %w", err)
-	}
-
-	params := url.Values{}
-	params.Set("query", query)
-	reqURL.RawQuery = params.Encode()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL.String(), nil)
-	if err != nil {
-		return "", fmt.Errorf("failed to create request: %w", err)
-	}
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("prometheus query failed: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("prometheus returned status %d", resp.StatusCode)
-	}
-
-	var promResp PrometheusQueryResponse
-	if err := json.NewDecoder(resp.Body).Decode(&promResp); err != nil {
-		return "", fmt.Errorf("failed to decode prometheus response: %w", err)
-	}
-
-	if promResp.Status != "success" {
-		return "", fmt.Errorf("prometheus query status: %s", promResp.Status)
-	}
-
-	return computeHealthFromPrometheusResult(promResp), nil
-}
-
-// computeHealthFromPrometheusResult computes health status from Prometheus query results.
-// It filters for active devices and uses the "worst wins" strategy across all members.
-func computeHealthFromPrometheusResult(resp PrometheusQueryResponse) string {
-	if len(resp.Data.Result) == 0 {
-		return HealthStatusUnchecked
-	}
-
-	var memberStatuses []string
-
-	for _, result := range resp.Data.Result {
-		// Only consider results from active devices
-		if status, ok := result.Metric["status"]; !ok || status != "active" {
-			continue
-		}
-
-		// Parse the value (second element in the value array)
-		if len(result.Value) < 2 {
-			continue
-		}
-
-		valueStr, ok := result.Value[1].(string)
-		if !ok {
-			continue
-		}
-
-		var value int
-		if _, err := fmt.Sscanf(valueStr, "%d", &value); err != nil {
-			continue
-		}
-
-		memberStatuses = append(memberStatuses, f5AvailStateToHealthStatus(value))
-	}
-
-	if len(memberStatuses) == 0 {
-		return HealthStatusUnchecked
-	}
-
-	return ComputeServiceHealth(memberStatuses)
 }
 
 // f5AvailStateToHealthStatus converts F5 SNMP ltmPoolMbrStatusAvailState to health status.
@@ -312,12 +133,11 @@ func (a *Agent) UpdateServiceHealthStatus(ctx context.Context, serviceID strfmt.
 	return err
 }
 
-// HealthScrapeLoop is the main loop that scrapes health status for all available services.
-// It distributes individual service scrapes evenly within the scrape interval.
+// HealthScrapeLoop scrapes health status for all available services each interval.
+// With Prometheus configured, all services are updated in a single bulk query.
 func (a *Agent) HealthScrapeLoop() error {
 	ctx := context.Background()
 
-	// Get all AVAILABLE services for this host
 	sql, args := db.Select("id", "ports").
 		From("service").
 		Where("host = ?", config.Global.Default.Host).
@@ -336,56 +156,82 @@ func (a *Agent) HealthScrapeLoop() error {
 		return nil
 	}
 
-	// Calculate time offset between each service scrape to distribute load
-	interval := config.Global.Agent.HealthScrapeInterval
-	offset := interval / time.Duration(len(services))
-
-	log.WithFields(log.Fields{
-		"service_count": len(services),
-		"interval":      interval,
-		"offset":        offset,
-	}).Debug("HealthScrapeLoop: scheduling service health scrapes")
-
-	// Schedule individual scrapes with staggered start times
-	// Use a base time with small buffer to ensure all scheduled times are in the future
-	baseTime := time.Now().Add(100 * time.Millisecond)
-	for i, service := range services {
-		startDelay := offset * time.Duration(i)
-		svc := service // capture for closure
-
-		if _, err := a.scheduler.NewJob(
-			gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(baseTime.Add(startDelay))),
-			gocron.NewTask(a.scrapeAndUpdateServiceHealth, svc),
-			gocron.WithName(fmt.Sprintf("HealthScrape-%s", svc.ID)),
-		); err != nil {
-			log.WithField("service_id", svc.ID).WithError(err).Error("Failed to schedule health scrape job")
-		}
+	if config.Global.Agent.HealthScrapePrometheus == "" {
+		return a.scrapeAllServicesDirect(ctx, services)
 	}
-
+	if err := a.scrapeAllServicesPrometheus(ctx, services); err != nil {
+		log.WithError(err).Warning("HealthScrapeLoop: Prometheus scrape failed, falling back to direct device scraping")
+		return a.scrapeAllServicesDirect(ctx, services)
+	}
 	return nil
 }
 
-// scrapeAndUpdateServiceHealth scrapes health for a single service and updates the database.
-func (a *Agent) scrapeAndUpdateServiceHealth(ctx context.Context, service *models.Service) {
-	var health string
+// poolAvailStateToHealthStatus maps F5 pool availability state strings to health status.
+func poolAvailStateToHealthStatus(state string) string {
+	switch state {
+	case "available":
+		return HealthStatusOnline
+	case "degraded":
+		return HealthStatusDegraded
+	case "offline":
+		return HealthStatusOffline
+	default:
+		return HealthStatusUnchecked
+	}
+}
 
-	// Use Prometheus if configured, otherwise use direct F5 API
-	if config.Global.Agent.HealthScrapePrometheus != "" {
-		health = a.ScrapeServiceHealthPrometheus(ctx, service)
-	} else {
-		health = a.ScrapeServiceHealth(ctx, service)
+// scrapeAllServicesDirect fetches all pool stats in one F5 API call and updates all services.
+func (a *Agent) scrapeAllServicesDirect(ctx context.Context, services []*models.Service) error {
+	device, ok := a.getActive().(*bigip.BigIP)
+	if !ok {
+		return fmt.Errorf("scrapeAllServicesDirect: active device is not a BigIP")
 	}
 
-	if err := a.UpdateServiceHealthStatus(ctx, service.ID, health); err != nil {
+	allStats, err := device.GetAllPoolStats()
+	if err != nil {
+		return err
+	}
+
+	// Build pool path → availability state from the bulk response.
+	// Response keys are full URLs: https://localhost/mgmt/tm/ltm/pool/~Common~Shared~pool-.../stats
+	poolState := make(map[string]string, len(allStats.Entries))
+	for key, entry := range allStats.Entries {
+		// Extract the pool path between "pool/" and "/stats"
+		start := len("https://localhost/mgmt/tm/ltm/pool/")
+		end := len(key) - len("/stats")
+		if end <= start {
+			continue
+		}
+		poolPath := key[start:end]
+		poolState[poolPath] = entry.NestedStats.Entries.AvailabilityState.Description
+	}
+
+	for _, svc := range services {
+		var portStatuses []string
+		for _, port := range svc.Ports {
+			poolName := as3.GetServicePoolName(svc.ID, port)
+			poolPath := fmt.Sprintf("~Common~Shared~%s", poolName)
+			state, ok := poolState[poolPath]
+			if !ok {
+				portStatuses = append(portStatuses, HealthStatusUnchecked)
+				continue
+			}
+			portStatuses = append(portStatuses, poolAvailStateToHealthStatus(state))
+		}
+
+		health := ComputeServiceHealth(portStatuses)
 		log.WithFields(log.Fields{
-			"service_id": service.ID,
+			"service_id": svc.ID,
 			"health":     health,
-		}).WithError(err).Error("Failed to update service health status")
-		return
+		}).Debug("HealthScrapeLoop: service health (direct)")
+		if err := a.UpdateServiceHealthStatus(ctx, svc.ID, health); err != nil {
+			log.WithFields(log.Fields{
+				"service_id": svc.ID,
+				"health":     health,
+			}).WithError(err).Error("Failed to update service health status")
+		}
 	}
 
-	log.WithFields(log.Fields{
-		"service_id": service.ID,
-		"health":     health,
-	}).Debug("Updated service health status")
+	log.WithField("service_count", len(services)).Debug("HealthScrapeLoop: bulk direct scrape complete")
+	return nil
 }

@@ -164,6 +164,50 @@ type PoolMemberStatsResponse struct {
 	} `json:"entries"`
 }
 
+// PoolStatsEntry contains aggregate health stats for a pool.
+type PoolStatsEntry struct {
+	ActiveMemberCnt struct {
+		Value int `json:"value"`
+	} `json:"activeMemberCnt"`
+	MemberCnt struct {
+		Value int `json:"value"`
+	} `json:"memberCnt"`
+	AvailabilityState struct {
+		Description string `json:"description"`
+	} `json:"status.availabilityState"`
+}
+
+// PoolStatsResponse is the response from the bulk ltm/pool/stats endpoint.
+type PoolStatsResponse struct {
+	Entries map[string]struct {
+		NestedStats struct {
+			Entries PoolStatsEntry `json:"entries"`
+		} `json:"nestedStats"`
+	} `json:"entries"`
+}
+
+// GetAllPoolStats fetches aggregate stats for all pools in one request.
+func (b *BigIP) GetAllPoolStats() (*PoolStatsResponse, error) {
+	var stats PoolStatsResponse
+	req := &bigip.APIRequest{
+		Method:      "get",
+		URL:         "ltm/pool/stats",
+		ContentType: "application/json",
+	}
+	resp, err := (*bigip.BigIP)(b).APICall(req)
+	if err != nil {
+		return nil, fmt.Errorf("GetAllPoolStats: %w", err)
+	}
+	var reqError bigip.RequestError
+	if json.Unmarshal(resp, &reqError) == nil && reqError.Code != 0 {
+		return nil, fmt.Errorf("GetAllPoolStats: %s", reqError.Error())
+	}
+	if err := json.Unmarshal(resp, &stats); err != nil {
+		return nil, fmt.Errorf("GetAllPoolStats: %w", err)
+	}
+	return &stats, nil
+}
+
 // GetPoolMemberStats fetches pool member statistics including health monitor status.
 // poolPath should be the full path like "~Common~Shared~pool-{service-id}-{port}"
 func (b *BigIP) GetPoolMemberStats(poolPath string) (*PoolMemberStatsResponse, error) {
