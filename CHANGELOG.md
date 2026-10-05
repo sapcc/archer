@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - archer-f5-agent: direct health scraping now fetches all pool stats in one bulk F5 API call (`ltm/pool/stats`) instead of one call per service port.
 - archer-f5-agent: default `health_scrape_interval` reduced from 5m to 1m.
 - archer-f5-agent: `SyncActiveDevice` scheduler job is staggered by half the scrape interval to avoid coinciding with `HealthScrapeLoop`.
+- archer-f5-agent: removed synchronous `ProcessServices` call on startup; pending services are picked up by the existing `PendingSyncLoop` scheduler job instead.
 
 ### Fixed
 
