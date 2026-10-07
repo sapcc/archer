@@ -27,11 +27,11 @@ func (a *Agent) cleanupL2(ctx context.Context) error {
 		// continue
 	}
 
-	usedSegments, err := a.getUsedSegments(ctx)
+	usedSegments, endpointNetworks, err := a.getUsedSegments(ctx)
 	if err != nil {
 		return err
 	}
-	if err := a.cleanupOrphanedTenants(usedSegments); err != nil {
+	if err := a.cleanupOrphanedTenants(endpointNetworks); err != nil {
 		log.WithError(err).Error("cleanupOrphanedTenants")
 		// continue
 	}
@@ -97,7 +97,13 @@ func (a *Agent) cleanOrphanSelfIPs(ctx context.Context) error {
 	return nil
 }
 
-func (a *Agent) getUsedSegments(ctx context.Context) (map[int]string, error) {
+// getUsedSegments returns two values:
+//   - usedSegments: maps segment ID → network ID for every network (service or
+//     endpoint) that needs L2 resources (VLAN, route domain, SelfIP) on this host.
+//   - endpointNetworks: set of endpoint network IDs whose AS3 tenant partition
+//     (net-<id>) must be kept. Service networks are intentionally excluded because
+//     their AS3 objects live in Common/Shared, not in a net-* partition.
+func (a *Agent) getUsedSegments(ctx context.Context) (usedSegments map[int]string, endpointNetworks map[string]struct{}, err error) {
 	sql, args := db.Select("s.network_id", "ep.segment_id", "ep.network").
 		LeftJoin("endpoint e ON s.id = e.service_id").
 		LeftJoin("endpoint_port ep ON ep.endpoint_id = e.id").
@@ -108,42 +114,47 @@ func (a *Agent) getUsedSegments(ctx context.Context) (map[int]string, error) {
 
 	rows, err := a.pool.Query(ctx, sql, args...)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer rows.Close()
 
-	usedSegments := map[int]string{}
+	usedSegments = map[int]string{}
+	endpointNetworks = map[string]struct{}{}
 	for rows.Next() {
 		var networkID string
 		var epNetworkID pgtype.UUID
 		var segmentID pgtype.Int4
 
 		if err = rows.Scan(&networkID, &segmentID, &epNetworkID); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if epNetworkID.Valid && !segmentID.Valid {
 			// refresh segmentID from neutron
 			var tmp int
 			if tmp, err = a.neutron.GetNetworkSegment(ctx, epNetworkID.String(),
 				config.Global.Agent.PhysicalNetwork); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			if err = segmentID.Scan(int64(tmp)); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		}
 		if segmentID.Valid && epNetworkID.Valid {
 			// add endpoint to used segment map
 			usedSegments[int(segmentID.Int32)] = epNetworkID.String()
+			endpointNetworks[epNetworkID.String()] = struct{}{}
 		}
 		serviceSegment, err := a.neutron.GetNetworkSegment(ctx, networkID, config.Global.Agent.PhysicalNetwork)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		usedSegments[serviceSegment] = networkID
 	}
+	if err := rows.Err(); err != nil {
+		return nil, nil, err
+	}
 
-	return usedSegments, nil
+	return usedSegments, endpointNetworks, nil
 }
 
 func (a *Agent) cleanOrphanedRDs(usedSegments map[int]string) error {
@@ -314,7 +325,7 @@ func (a *Agent) cleanOrphanedSnatPorts(ctx context.Context) error {
 	return nil
 }
 
-func (a *Agent) cleanupOrphanedTenants(usedSegments map[int]string) error {
+func (a *Agent) cleanupOrphanedTenants(endpointNetworks map[string]struct{}) error {
 	log.Debug("Running cleanupOrphanedTenants")
 
 	for _, bigip := range a.devices {
@@ -335,15 +346,9 @@ func (a *Agent) cleanupOrphanedTenants(usedSegments map[int]string) error {
 				continue
 			}
 
-			// Check if partition is used
-			used := false
-			for _, networkID := range usedSegments {
-				if as3.GetEndpointTenantName(strfmt.UUID(networkID)) == partition {
-					used = true
-					break
-				}
-			}
-			if used {
+			// Check if partition is used by an active endpoint
+			networkID := strings.TrimPrefix(partition, "net-")
+			if _, ok := endpointNetworks[networkID]; ok {
 				continue
 			}
 
