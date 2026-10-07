@@ -441,7 +441,14 @@ func (b *BigIP) EnsureVLAN(segmentId int, mtu int) error {
 			Tag:  segmentId,
 			MTU:  mtu,
 		}
-		return (*bigip.BigIP)(b).CreateVlan(&vlan)
+		if err = (*bigip.BigIP)(b).CreateVlan(&vlan); err != nil {
+			// concurrent job may have created it between our list and create
+			if strings.Contains(err.Error(), "already exists") {
+				return nil
+			}
+			return err
+		}
+		return nil
 	}
 
 	if existingVLAN.MTU != mtu {
