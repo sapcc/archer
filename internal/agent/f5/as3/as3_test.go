@@ -61,6 +61,28 @@ func TestGetEndpointWithoutTenants(t *testing.T) {
 	assert.Equal(t, expected, GetEndpointTenants([]*ExtendedEndpoint{}))
 }
 
+// TestGetEndpointTenantsRejectedSkipped: a REJECTED endpoint emits no Virtual Server
+// (a dangling VS would block deletion of its Common/Shared pool, AS3 01070265).
+func TestGetEndpointTenantsRejectedSkipped(t *testing.T) {
+	endpoints := []*ExtendedEndpoint{
+		{
+			Endpoint: models.Endpoint{
+				ID:        "3ad9b1f0-4e5a-44c3-ada6-71696925ae64",
+				ServiceID: strfmt.UUID("4e50bf87-e597-41f2-9ce0-83d3e24dedf3"),
+				Status:    models.EndpointStatusREJECTED,
+			},
+			Port: &ports.Port{
+				FixedIPs: []ports.IP{{IPAddress: "1.2.3.4"}},
+			},
+			SegmentId:    conv.Pointer(1),
+			ServicePorts: []int32{80},
+		},
+	}
+	expected := Tenant{Class: "Tenant", Applications: nil}
+	assert.Equal(t, expected, GetEndpointTenants(endpoints),
+		"REJECTED endpoint must not emit a Virtual Server")
+}
+
 func TestGetEndpointTenantsMirroringDisabled(t *testing.T) {
 	config.Global.Agent.L4Profile = "test-l4-profile"
 	config.Global.Agent.TCPProfile = "test-tcp-profile"

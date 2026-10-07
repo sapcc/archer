@@ -192,6 +192,19 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 	}
 
 	/* ==================================================
+	   Clean up orphaned endpoint tenants (e.g. after service migration)
+	   ================================================== */
+	// Before the Common post: deleting an orphaned net-* tenant drops any stale VS
+	// referencing a Common/Shared pool, so the Common post can then delete that pool
+	// instead of failing with AS3 01070265 (pool in use by a virtual server).
+	var endpointNetworks map[string]struct{}
+	if _, endpointNetworks, err = a.getUsedSegments(ctx); err != nil {
+		log.WithError(err).Warning("ProcessServices: failed to get used segments for orphan cleanup")
+	} else if err = a.cleanupOrphanedTenants(endpointNetworks); err != nil {
+		log.WithError(err).Warning("ProcessServices: failed to clean up orphaned tenants")
+	}
+
+	/* ==================================================
 	   Post AS3 Declaration to active BigIP
 	   ================================================== */
 	// updateMode "selective" fully reconciles the named tenant, so services
@@ -202,16 +215,6 @@ func (a *Agent) ProcessServices(ctx context.Context) error {
 	})
 	if err = a.getActive().PostAS3(&data, "Common"); err != nil {
 		return err
-	}
-
-	/* ==================================================
-	   Clean up orphaned endpoint tenants (e.g. after service migration)
-	   ================================================== */
-	var endpointNetworks map[string]struct{}
-	if _, endpointNetworks, err = a.getUsedSegments(ctx); err != nil {
-		log.WithError(err).Warning("ProcessServices: failed to get used segments for orphan cleanup")
-	} else if err = a.cleanupOrphanedTenants(endpointNetworks); err != nil {
-		log.WithError(err).Warning("ProcessServices: failed to clean up orphaned tenants")
 	}
 
 	/* ==================================================

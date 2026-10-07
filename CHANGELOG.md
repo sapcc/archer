@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - archer-server: the rate limit middleware is now actually enforced. Previously no IP lookup was configured on the tollbooth limiter, so tollbooth silently skipped rate limiting for every request (it cannot identify a client without one), and the `rate_limit` setting had no effect. The limiter now keys on `X-Forwarded-For` when `enable_proxy_headers_parsing` is set (behind an ingress), or on `RemoteAddr` for direct connections. The default `rate_limit` has been reduced from 100 to 30 requests per second.
 - archer-f5-agent: gocron structured log arguments (key-value pairs) are now correctly forwarded to logrus as fields instead of being passed as `Printf` format args, which produced garbled `%!(EXTRA ...)` output.
 - archer-f5-agent: `cleanupOrphanedTenants` no longer skips deleting an orphaned endpoint tenant partition (`net-<network>`) when an unrelated service on the same host happens to use that network. Previously such a service permanently protected the orphaned partition from cleanup.
+- archer-f5-agent: REJECTED endpoints no longer keep their `net-<network>` tenant partition alive, and no longer render a dangling Virtual Server. A stale Virtual Server referencing a `Common/Shared` pool previously blocked that pool's deletion (AS3 error `01070265`), failing every `ProcessServices` run. Orphan cleanup now also runs before the Common post so the freed pool can be deleted in the same pass.
 
 ## [2.7.4] - 2026-09-25
 

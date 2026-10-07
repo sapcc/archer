@@ -94,6 +94,11 @@ func TestProcessServicesWithDeletedNetwork(t *testing.T) {
 	dbMock.ExpectQuery("SELECT * FROM service WHERE host = $1 AND provider = $2").
 		WithArgs("host-123", models.ServiceProviderTenant).
 		WillReturnRows(dbMock.NewRows([]string{"id", "network_id", "status"}).AddRow(service, &network, models.ServiceStatusPENDINGDELETE))
+	// Orphan cleanup runs before the Common post; getUsedSegments bails on the 404
+	// service network, so cleanupOrphanedTenants is skipped (no GetPartitions).
+	dbMock.ExpectQuery("SELECT s.network_id, ep.segment_id, ep.network, e.status FROM service s LEFT JOIN endpoint e ON s.id = e.service_id LEFT JOIN endpoint_port ep ON ep.endpoint_id = e.id WHERE s.host = $1 AND s.provider = $2").
+		WithArgs("host-123", models.ServiceProviderTenant).
+		WillReturnRows(dbMock.NewRows([]string{"network_id", "segment_id", "network", "status"}).AddRow(&network, nil, nil, nil))
 	f5DeviceHost.EXPECT().
 		PostAS3(PostAs3BigipFixture, "Common").
 		Return(nil)
@@ -166,6 +171,13 @@ func TestProcessServicesRepostsCommonDespiteServiceError(t *testing.T) {
 		WillReturnRows(dbMock.NewRows([]string{"id", "network_id", "status"}).
 			AddRow(deletingSvc, &deletingNet, models.ServiceStatusPENDINGDELETE).
 			AddRow(brokenSvc, &brokenNet, models.ServiceStatusPENDINGCREATE))
+
+	// Orphan cleanup runs before the Common post; getUsedSegments bails on the
+	// first service network (404/500), so cleanupOrphanedTenants is skipped.
+	dbMock.ExpectQuery("SELECT s.network_id, ep.segment_id, ep.network, e.status FROM service s LEFT JOIN endpoint e ON s.id = e.service_id LEFT JOIN endpoint_port ep ON ep.endpoint_id = e.id WHERE s.host = $1 AND s.provider = $2").
+		WithArgs("host-123", models.ServiceProviderTenant).
+		WillReturnRows(dbMock.NewRows([]string{"network_id", "segment_id", "network", "status"}).
+			AddRow(&deletingNet, nil, nil, nil))
 
 	// The Common re-post must still happen even though brokenSvc errored. We
 	// don't pin the exact declaration here (the deleting service contributes

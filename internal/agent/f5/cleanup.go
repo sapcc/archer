@@ -104,7 +104,7 @@ func (a *Agent) cleanOrphanSelfIPs(ctx context.Context) error {
 //     (net-<id>) must be kept. Service networks are intentionally excluded because
 //     their AS3 objects live in Common/Shared, not in a net-* partition.
 func (a *Agent) getUsedSegments(ctx context.Context) (usedSegments map[int]string, endpointNetworks map[string]struct{}, err error) {
-	sql, args := db.Select("s.network_id", "ep.segment_id", "ep.network").
+	sql, args := db.Select("s.network_id", "ep.segment_id", "ep.network", "e.status").
 		LeftJoin("endpoint e ON s.id = e.service_id").
 		LeftJoin("endpoint_port ep ON ep.endpoint_id = e.id").
 		From("service s").
@@ -124,9 +124,17 @@ func (a *Agent) getUsedSegments(ctx context.Context) (usedSegments map[int]strin
 		var networkID string
 		var epNetworkID pgtype.UUID
 		var segmentID pgtype.Int4
+		var epStatus pgtype.Text
 
-		if err = rows.Scan(&networkID, &segmentID, &epNetworkID); err != nil {
+		if err = rows.Scan(&networkID, &segmentID, &epNetworkID, &epStatus); err != nil {
 			return nil, nil, err
+		}
+		// REJECTED/PENDING_APPROVAL endpoints are treated as deleted (cf. ProcessEndpoint),
+		// so they must not keep their net-* tenant alive: treat the row as service-only.
+		if epStatus.Valid && (epStatus.String == string(models.EndpointStatusREJECTED) ||
+			epStatus.String == string(models.EndpointStatusPENDINGAPPROVAL)) {
+			epNetworkID = pgtype.UUID{}
+			segmentID = pgtype.Int4{}
 		}
 		if epNetworkID.Valid && !segmentID.Valid {
 			// refresh segmentID from neutron

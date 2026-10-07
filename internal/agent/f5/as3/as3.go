@@ -144,8 +144,10 @@ func GetEndpointTenants(endpoints []*ExtendedEndpoint) Tenant {
 	services := make(map[string]any, len(endpoints))
 
 	for _, endpoint := range endpoints {
-		// Skip pending delete endpoints
-		if endpoint.Status == models.EndpointStatusPENDINGDELETE || endpoint.Status == models.EndpointStatusPENDINGREJECTED {
+		// Skip endpoints that are deleted or not yet realized
+		if endpoint.Status == models.EndpointStatusPENDINGDELETE ||
+			endpoint.Status == models.EndpointStatusPENDINGREJECTED ||
+			endpoint.Status == models.EndpointStatusREJECTED {
 			continue
 		}
 

@@ -66,14 +66,14 @@ func TestAgent_TestGetUsedSegments(t *testing.T) {
 	var epNetworkID pgtype.UUID
 	_ = epNetworkID.Scan(someOtherNetwork)
 
-	sql := `SELECT s.network_id, ep.segment_id, ep.network FROM service s LEFT JOIN endpoint e ON s.id = e.service_id LEFT JOIN endpoint_port ep ON ep.endpoint_id = e.id WHERE s.host = $1 AND s.provider = $2`
+	sql := `SELECT s.network_id, ep.segment_id, ep.network, e.status FROM service s LEFT JOIN endpoint e ON s.id = e.service_id LEFT JOIN endpoint_port ep ON ep.endpoint_id = e.id WHERE s.host = $1 AND s.provider = $2`
 	dbMock.
 		ExpectQuery(sql).
 		WithArgs("host-123", models.ServiceProviderTenant).
-		WillReturnRows(pgxmock.NewRows([]string{"network_id", "segment_id", "network"}).
-			AddRow(serviceNetwork, segmentID, epNetworkID).
-			AddRow(someOtherNetwork, nil, nil).
-			AddRow(serviceNetwork, nil, anotherOneBitesTheDust))
+		WillReturnRows(pgxmock.NewRows([]string{"network_id", "segment_id", "network", "status"}).
+			AddRow(serviceNetwork, segmentID, epNetworkID, string(models.EndpointStatusAVAILABLE)).
+			AddRow(someOtherNetwork, nil, nil, nil).
+			AddRow(serviceNetwork, nil, anotherOneBitesTheDust, string(models.EndpointStatusAVAILABLE)))
 
 	// run the test function
 	usedSegments, endpointNetworks, err := a.getUsedSegments(t.Context())
@@ -256,11 +256,11 @@ func TestCleanupOrphanedTenants_ServiceNetworkNotProtected(t *testing.T) {
 	defer dbMock.Close()
 	config.Global.Default.Host = "host-123"
 	config.Global.Agent.PhysicalNetwork = "physnet1"
-	sql := `SELECT s.network_id, ep.segment_id, ep.network FROM service s LEFT JOIN endpoint e ON s.id = e.service_id LEFT JOIN endpoint_port ep ON ep.endpoint_id = e.id WHERE s.host = $1 AND s.provider = $2`
+	sql := `SELECT s.network_id, ep.segment_id, ep.network, e.status FROM service s LEFT JOIN endpoint e ON s.id = e.service_id LEFT JOIN endpoint_port ep ON ep.endpoint_id = e.id WHERE s.host = $1 AND s.provider = $2`
 	dbMock.ExpectQuery(sql).
 		WithArgs("host-123", models.ServiceProviderTenant).
-		WillReturnRows(pgxmock.NewRows([]string{"network_id", "segment_id", "network"}).
-			AddRow(serviceNetwork, nil, nil)) // service only, no endpoint
+		WillReturnRows(pgxmock.NewRows([]string{"network_id", "segment_id", "network", "status"}).
+			AddRow(serviceNetwork, nil, nil, nil)) // service only, no endpoint
 
 	fakeServer := th.SetupPersistentPortHTTP(t, 8931)
 	defer fakeServer.Teardown()
@@ -310,5 +310,52 @@ func TestCleanupOrphanedTenants_ServiceNetworkNotProtected(t *testing.T) {
 		"service network must not appear in endpointNetworks")
 
 	assert.NoError(t, a.cleanupOrphanedTenants(endpointNetworks))
+	assert.NoError(t, dbMock.ExpectationsWereMet())
+}
+
+// TestGetUsedSegments_RejectedEndpointNotProtected: a REJECTED endpoint's network
+// must not land in endpointNetworks, else cleanupOrphanedTenants keeps its orphaned
+// net-* partition (and the stale VS blocks the Common pool delete, AS3 01070265).
+func TestGetUsedSegments_RejectedEndpointNotProtected(t *testing.T) {
+	const serviceNetwork = "b0b0b0b0-b0b0-4b0b-8b0b-0b0b0b0b0b0b"
+	const rejectedNetwork = "a1a1a1a1-a1a1-4a1a-8a1a-1a1a1a1a1a1a"
+
+	dbMock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dbMock.Close()
+	config.Global.Default.Host = "host-123"
+	config.Global.Agent.PhysicalNetwork = "physnet1"
+
+	var segmentID pgtype.Int4
+	_ = segmentID.Scan(int64(777))
+	var epNetworkID pgtype.UUID
+	_ = epNetworkID.Scan(rejectedNetwork)
+
+	// REJECTED endpoint with a valid segment+network.
+	sql := `SELECT s.network_id, ep.segment_id, ep.network, e.status FROM service s LEFT JOIN endpoint e ON s.id = e.service_id LEFT JOIN endpoint_port ep ON ep.endpoint_id = e.id WHERE s.host = $1 AND s.provider = $2`
+	dbMock.ExpectQuery(sql).
+		WithArgs("host-123", models.ServiceProviderTenant).
+		WillReturnRows(pgxmock.NewRows([]string{"network_id", "segment_id", "network", "status"}).
+			AddRow(serviceNetwork, segmentID, epNetworkID, string(models.EndpointStatusREJECTED)))
+
+	fakeServer := th.SetupPersistentPortHTTP(t, 8931)
+	defer fakeServer.Teardown()
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/"+serviceNetwork, "GET",
+		"", GetServiceNetworkResponseFixture, http.StatusOK)
+
+	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)}
+	neutronClient.InitCache()
+
+	a := &Agent{
+		pool:    dbMock,
+		neutron: &neutronClient,
+	}
+
+	_, endpointNetworks, err := a.getUsedSegments(t.Context())
+	assert.NoError(t, err)
+	assert.NotContains(t, endpointNetworks, rejectedNetwork,
+		"REJECTED endpoint network must not protect its net-* partition")
 	assert.NoError(t, dbMock.ExpectationsWereMet())
 }
