@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.8.0] - 2026-10-07
+
 ### Added
 
 - archer-f5-agent: Prometheus-based health scraping and failover detection via `health_scrape_prometheus` config option. When configured, a single PromQL query replaces N per-service F5 API calls each scrape cycle, with automatic fallback to direct device polling on Prometheus unavailability.
@@ -259,7 +261,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-Release with goreleaser
 
-[Unreleased]: https://github.com/sapcc/archer/compare/v2.7.4...HEAD
+[Unreleased]: https://github.com/sapcc/archer/compare/v2.8.0...HEAD
+
+[2.8.0]: https://github.com/sapcc/archer/compare/v2.7.4...v2.8.0
 
 [2.7.4]: https://github.com/sapcc/archer/compare/v2.7.3...v2.7.4
 
