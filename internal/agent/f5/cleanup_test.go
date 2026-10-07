@@ -76,10 +76,10 @@ func TestAgent_TestGetUsedSegments(t *testing.T) {
 			AddRow(serviceNetwork, nil, anotherOneBitesTheDust))
 
 	// run the test function
-	var usedSegments map[int]string
-	usedSegments, err = a.getUsedSegments(t.Context())
+	usedSegments, endpointNetworks, err := a.getUsedSegments(t.Context())
 	assert.Nil(t, err)
 	assert.EqualValues(t, map[int]string{123: someOtherNetwork, 666: serviceNetwork, 999: anotherOneBitesTheDust}, usedSegments)
+	assert.EqualValues(t, map[string]struct{}{someOtherNetwork: {}, anotherOneBitesTheDust: {}}, endpointNetworks)
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
@@ -229,9 +229,86 @@ func TestAgent_TestCleanupOrphanedTenants(t *testing.T) {
 	}
 
 	// run the test function
-	usedSegments := map[int]string{
-		123: "4f891be2-c32f-4356-81c4-056b6101463a",
-		666: "3ac03bd0-477d-4aa9-85f9-c1a95ca3a962",
+	endpointNetworks := map[string]struct{}{
+		"4f891be2-c32f-4356-81c4-056b6101463a": {},
+		"3ac03bd0-477d-4aa9-85f9-c1a95ca3a962": {},
 	}
-	assert.Nil(t, a.cleanupOrphanedTenants(usedSegments))
+	assert.Nil(t, a.cleanupOrphanedTenants(endpointNetworks))
+}
+
+// TestCleanupOrphanedTenants_ServiceNetworkNotProtected is a regression test for
+// the bug where a service's own network_id was added to the endpoint-network set,
+// causing cleanupOrphanedTenants to skip deletion of net-<service-network-id>
+// partitions that had no active endpoints.
+//
+// Setup: one service on serviceNetwork (b0b0b0b0, segment 666), no endpoints.
+// The F5 has a partition "net-b0b0b0b0-..." which has no endpoints and must
+// be deleted. The old code incorrectly protected it; the new code must delete it.
+func TestCleanupOrphanedTenants_ServiceNetworkNotProtected(t *testing.T) {
+	const serviceNetwork = "b0b0b0b0-b0b0-4b0b-8b0b-0b0b0b0b0b0b"
+	const serviceNetworkPartition = "net-" + serviceNetwork
+
+	// DB returns one service row with no endpoint (LEFT JOIN produces NULLs).
+	dbMock, err := pgxmock.NewPool(pgxmock.QueryMatcherOption(pgxmock.QueryMatcherEqual))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dbMock.Close()
+	config.Global.Default.Host = "host-123"
+	config.Global.Agent.PhysicalNetwork = "physnet1"
+	sql := `SELECT s.network_id, ep.segment_id, ep.network FROM service s LEFT JOIN endpoint e ON s.id = e.service_id LEFT JOIN endpoint_port ep ON ep.endpoint_id = e.id WHERE s.host = $1 AND s.provider = $2`
+	dbMock.ExpectQuery(sql).
+		WithArgs("host-123", models.ServiceProviderTenant).
+		WillReturnRows(pgxmock.NewRows([]string{"network_id", "segment_id", "network"}).
+			AddRow(serviceNetwork, nil, nil)) // service only, no endpoint
+
+	fakeServer := th.SetupPersistentPortHTTP(t, 8931)
+	defer fakeServer.Teardown()
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/"+serviceNetwork, "GET",
+		"", GetServiceNetworkResponseFixture, http.StatusOK)
+
+	neutronClient := neutron.NeutronClient{ServiceClient: fake.ServiceClient(fakeServer)}
+	neutronClient.InitCache()
+
+	// F5 mock: partition list includes net-<serviceNetwork> and one legit endpoint partition.
+	f5DeviceMock := NewMockF5Device(t)
+	f5DeviceMock.On("GetHostname").Return("host-123")
+	f5DeviceMock.EXPECT().GetPartitions().Return([]string{
+		"Common",
+		serviceNetworkPartition, // should be deleted — no endpoints on this network
+	}, nil)
+
+	expectAS3 := &as3.AS3{
+		Persist: false,
+		Class:   "AS3",
+		Action:  "deploy",
+		Declaration: as3.ADC{
+			Class:         "ADC",
+			SchemaVersion: "3.36.0",
+			UpdateMode:    "selective",
+			Id:            "urn:uuid:07649173-4AF7-48DF-963F-84000C70F0DD",
+			Tenants: map[string]as3.Tenant{
+				serviceNetworkPartition: {
+					Class:        "Tenant",
+					Applications: map[string]as3.Application(nil),
+				},
+			},
+		},
+	}
+	f5DeviceMock.EXPECT().PostAS3(expectAS3, serviceNetworkPartition).Return(nil)
+
+	a := &Agent{
+		pool:    dbMock,
+		neutron: &neutronClient,
+		devices: []F5Device{f5DeviceMock},
+		active:  f5DeviceMock,
+	}
+
+	_, endpointNetworks, err := a.getUsedSegments(t.Context())
+	assert.NoError(t, err)
+	assert.NotContains(t, endpointNetworks, serviceNetwork,
+		"service network must not appear in endpointNetworks")
+
+	assert.NoError(t, a.cleanupOrphanedTenants(endpointNetworks))
+	assert.NoError(t, dbMock.ExpectationsWereMet())
 }
