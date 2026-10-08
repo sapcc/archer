@@ -103,8 +103,9 @@ func poolHealthResponse(poolName string, members []struct{ node, state string })
 				"__name__":                 "snmp_f5_ltmPoolMbrStatusAvailState",
 				"availability_zone":        "qa-de-1",
 				"cluster":                  "qa-de-1-lb011-cluster-01",
-				"device":                   "lb011b-01",
+				"device":                   "lb999z-test",
 				"device_type":              "f5-vcmp",
+				"devicename":               "qa-de-1-lb999z-test",
 				"instance":                 "10.46.100.233",
 				"job":                      "scrapeConfig/infra-monitoring/snmp-exporter-f5archer",
 				"ltmPoolMbrStatusNodeName": m.node,
@@ -293,7 +294,10 @@ func TestQueryPrometheusPoolHealth_AllMembersOnline(t *testing.T) {
 
 	config.Global.Agent.HealthScrapePrometheus = srv.URL
 	t.Cleanup(func() { config.Global.Agent.HealthScrapePrometheus = "" })
-	a := &Agent{}
+
+	dev := NewMockF5Device(t)
+	dev.EXPECT().GetHostname().Return("qa-de-1-lb999z-test.cc.qa-de-1.example.test")
+	a := &Agent{active: dev}
 	got, err := a.queryPrometheusPoolHealth(context.Background(), poolName)
 
 	require.NoError(t, err)
@@ -310,7 +314,10 @@ func TestQueryPrometheusPoolHealth_OneMemberDownYieldsOffline(t *testing.T) {
 
 	config.Global.Agent.HealthScrapePrometheus = srv.URL
 	t.Cleanup(func() { config.Global.Agent.HealthScrapePrometheus = "" })
-	a := &Agent{}
+
+	dev := NewMockF5Device(t)
+	dev.EXPECT().GetHostname().Return("qa-de-1-lb999z-test.cc.qa-de-1.example.test")
+	a := &Agent{active: dev}
 	got, err := a.queryPrometheusPoolHealth(context.Background(), poolName)
 
 	require.NoError(t, err)
@@ -327,7 +334,10 @@ func TestQueryPrometheusPoolHealth_AllMembersDownYieldsOffline(t *testing.T) {
 
 	config.Global.Agent.HealthScrapePrometheus = srv.URL
 	t.Cleanup(func() { config.Global.Agent.HealthScrapePrometheus = "" })
-	a := &Agent{}
+
+	dev := NewMockF5Device(t)
+	dev.EXPECT().GetHostname().Return("qa-de-1-lb999z-test.cc.qa-de-1.example.test")
+	a := &Agent{active: dev}
 	got, err := a.queryPrometheusPoolHealth(context.Background(), poolName)
 
 	require.NoError(t, err)
@@ -341,7 +351,10 @@ func TestQueryPrometheusPoolHealth_EmptyPoolYieldsUnchecked(t *testing.T) {
 
 	config.Global.Agent.HealthScrapePrometheus = srv.URL
 	t.Cleanup(func() { config.Global.Agent.HealthScrapePrometheus = "" })
-	a := &Agent{}
+
+	dev := NewMockF5Device(t)
+	dev.EXPECT().GetHostname().Return("qa-de-1-lb999z-test.cc.qa-de-1.example.test")
+	a := &Agent{active: dev}
 	got, err := a.queryPrometheusPoolHealth(context.Background(), poolName)
 
 	require.NoError(t, err)
@@ -362,29 +375,24 @@ func TestComputeHealthFromPrometheusResult(t *testing.T) {
 			expected: HealthStatusUnchecked,
 		},
 		{
-			name:     "single active green member returns ONLINE",
-			resp:     makePromResponse([]promMember{{"active", "1"}}),
+			name:     "single green member returns ONLINE",
+			resp:     makePromResponse([]promMember{{"1"}}),
 			expected: HealthStatusOnline,
 		},
 		{
-			name:     "single active red member returns OFFLINE",
-			resp:     makePromResponse([]promMember{{"active", "3"}}),
+			name:     "single red member returns OFFLINE",
+			resp:     makePromResponse([]promMember{{"3"}}),
 			expected: HealthStatusOffline,
 		},
 		{
-			name:     "standby red member ignored, active green member yields ONLINE",
-			resp:     makePromResponse([]promMember{{"standby", "3"}, {"active", "1"}}),
+			name:     "green and red members yields OFFLINE (worst wins)",
+			resp:     makePromResponse([]promMember{{"1"}, {"3"}}),
+			expected: HealthStatusOffline,
+		},
+		{
+			name:     "all green members yields ONLINE",
+			resp:     makePromResponse([]promMember{{"1"}, {"1"}}),
 			expected: HealthStatusOnline,
-		},
-		{
-			name:     "active green and red members yields OFFLINE (worst wins)",
-			resp:     makePromResponse([]promMember{{"active", "1"}, {"active", "3"}}),
-			expected: HealthStatusOffline,
-		},
-		{
-			name:     "only standby members yields UNCHECKED",
-			resp:     makePromResponse([]promMember{{"standby", "1"}, {"standby", "3"}}),
-			expected: HealthStatusUnchecked,
 		},
 	}
 
@@ -395,13 +403,9 @@ func TestComputeHealthFromPrometheusResult(t *testing.T) {
 	}
 }
 
-type promMember struct{ status, value string }
+type promMember struct{ value string }
 
 func makePromResponse(members []promMember) PrometheusQueryResponse {
-	type result struct {
-		Metric map[string]string `json:"metric"`
-		Value  []any             `json:"value"`
-	}
 	var results []struct {
 		Metric map[string]string `json:"metric"`
 		Value  []any             `json:"value"`
@@ -411,11 +415,10 @@ func makePromResponse(members []promMember) PrometheusQueryResponse {
 			Metric map[string]string `json:"metric"`
 			Value  []any             `json:"value"`
 		}{
-			Metric: map[string]string{"status": m.status},
+			Metric: map[string]string{},
 			Value:  []any{1234567890.0, m.value},
 		})
 	}
-	_ = result{}
 	return PrometheusQueryResponse{
 		Status: "success",
 		Data: struct {

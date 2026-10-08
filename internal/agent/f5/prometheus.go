@@ -140,9 +140,19 @@ func (a *Agent) syncActiveFromDevices() F5Device {
 	return nil
 }
 
-// queryPrometheusPoolHealth queries Prometheus for the health of a specific pool.
+// activeDeviceName returns the short hostname (Prometheus devicename label) for a device.
+// F5 device URLs use FQDNs (e.g. "qa-de-1-lb017a-archer.cc.qa-de-1.cloud.sap") but the
+// Prometheus devicename label only contains the first segment ("qa-de-1-lb017a-archer").
+func activeDeviceName(dev F5Device) string {
+	hostname := dev.GetHostname()
+	short, _, _ := strings.Cut(hostname, ".")
+	return short
+}
+
+// queryPrometheusPoolHealth queries Prometheus for the health of a specific pool on the active device.
 func (a *Agent) queryPrometheusPoolHealth(ctx context.Context, poolPath string) (string, error) {
-	query := fmt.Sprintf(`snmp_f5_ltmPoolMbrStatusAvailState{ltmPoolMbrStatusPoolName="%s"}`, poolPath)
+	query := fmt.Sprintf(`snmp_f5_ltmPoolMbrStatusAvailState{devicename="%s",ltmPoolMbrStatusPoolName="%s"}`,
+		activeDeviceName(a.getActive()), poolPath)
 	promResp, err := queryPrometheus(ctx, config.Global.Agent.HealthScrapePrometheus, query)
 	if err != nil {
 		return "", err
@@ -152,8 +162,12 @@ func (a *Agent) queryPrometheusPoolHealth(ctx context.Context, poolPath string) 
 
 // scrapeAllServicesPrometheus fetches all pool member health in one Prometheus query and updates all services.
 func (a *Agent) scrapeAllServicesPrometheus(ctx context.Context, services []*models.Service) error {
-	promResp, err := queryPrometheus(ctx, config.Global.Agent.HealthScrapePrometheus,
-		`snmp_f5_ltmPoolMbrStatusAvailState{ltmPoolMbrStatusPoolName=~"/Common/Shared/pool-.*"}`)
+	devName := activeDeviceName(a.getActive())
+	query := fmt.Sprintf(
+		`snmp_f5_ltmPoolMbrStatusAvailState{devicename="%s",ltmPoolMbrStatusPoolName=~"/Common/Shared/pool-.*"}`,
+		devName,
+	)
+	promResp, err := queryPrometheus(ctx, config.Global.Agent.HealthScrapePrometheus, query)
 	if err != nil {
 		return fmt.Errorf("scrapeAllServicesPrometheus: %w", err)
 	}
@@ -161,9 +175,6 @@ func (a *Agent) scrapeAllServicesPrometheus(ctx context.Context, services []*mod
 	// Build pool path → member avail states from the single response.
 	poolStates := make(map[string][]int)
 	for _, result := range promResp.Data.Result {
-		if result.Metric["status"] != "active" {
-			continue
-		}
 		poolName := result.Metric["ltmPoolMbrStatusPoolName"]
 		if len(result.Value) < 2 {
 			continue
@@ -179,8 +190,10 @@ func (a *Agent) scrapeAllServicesPrometheus(ctx context.Context, services []*mod
 		poolStates[poolName] = append(poolStates[poolName], value)
 	}
 
+	var missingFromPrometheus []*models.Service
 	for _, svc := range services {
 		var portStatuses []string
+		allMissing := true
 		for _, port := range svc.Ports {
 			poolName := as3.GetServicePoolName(svc.ID, port)
 			poolPath := fmt.Sprintf("/Common/Shared/%s", poolName)
@@ -189,11 +202,18 @@ func (a *Agent) scrapeAllServicesPrometheus(ctx context.Context, services []*mod
 				portStatuses = append(portStatuses, HealthStatusUnchecked)
 				continue
 			}
+			allMissing = false
 			var memberStatuses []string
 			for _, state := range members {
 				memberStatuses = append(memberStatuses, f5AvailStateToHealthStatus(state))
 			}
 			portStatuses = append(portStatuses, ComputeServiceHealth(memberStatuses))
+		}
+
+		if allMissing {
+			log.WithField("service_id", svc.ID).Warning("HealthScrapeLoop: no Prometheus data for service, falling back to direct scrape")
+			missingFromPrometheus = append(missingFromPrometheus, svc)
+			continue
 		}
 
 		health := ComputeServiceHealth(portStatuses)
@@ -209,12 +229,18 @@ func (a *Agent) scrapeAllServicesPrometheus(ctx context.Context, services []*mod
 		}
 	}
 
+	if len(missingFromPrometheus) > 0 {
+		if err := a.scrapeAllServicesDirect(ctx, missingFromPrometheus); err != nil {
+			return fmt.Errorf("scrapeAllServicesPrometheus: direct fallback failed: %w", err)
+		}
+	}
+
 	log.WithField("service_count", len(services)).Debug("HealthScrapeLoop: bulk Prometheus scrape complete")
 	return nil
 }
 
-// computeHealthFromPrometheusResult computes health status from Prometheus pool member results.
-// It filters for active devices (netbox `status` label) and uses the "worst wins" strategy.
+// computeHealthFromPrometheusResult computes health status from Prometheus pool member results
+// using the "worst wins" strategy.
 func computeHealthFromPrometheusResult(resp PrometheusQueryResponse) string {
 	if len(resp.Data.Result) == 0 {
 		return HealthStatusUnchecked
@@ -223,11 +249,6 @@ func computeHealthFromPrometheusResult(resp PrometheusQueryResponse) string {
 	var memberStatuses []string
 
 	for _, result := range resp.Data.Result {
-		// Only consider results from active devices (netbox status label)
-		if status, ok := result.Metric["status"]; !ok || status != "active" {
-			continue
-		}
-
 		if len(result.Value) < 2 {
 			continue
 		}
