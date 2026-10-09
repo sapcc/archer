@@ -232,6 +232,15 @@ func (s *ServiceScheduler) MigrateService(ctx context.Context, serviceID strfmt.
 			"to":      newHost,
 		}).Info("Migrating service")
 
+		// Mark service offline immediately — the new agent sets it back to ONLINE once it comes up.
+		sql, args = db.Update("service").
+			Set("health_status", models.ServiceHealthStatusOFFLINE).
+			Where("id = ?", serviceID).
+			MustSql()
+		if _, err = tx.Exec(ctx, sql, args...); err != nil {
+			return err
+		}
+
 		// Update service host
 		sql, args = db.Update("service").
 			Set("host", newHost).
