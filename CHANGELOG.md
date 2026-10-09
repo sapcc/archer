@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- archer-f5-agent: Prometheus health scraping now correctly filters by `devicename` (active device) instead of `status=active` (a NetBox label carried by both HA peers). Previously the standby device's red pool member states caused worst-wins aggregation to return OFFLINE even when the active device was healthy. Also adds a per-service fallback to direct F5 device scraping when a service has no data in Prometheus, with a warning log.
+
 ## [2.8.0] - 2026-10-07
 
 ### Added
