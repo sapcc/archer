@@ -35,7 +35,7 @@ import (
 
 type Agent struct {
 	scheduler    gocron.Scheduler
-	pool         *pgxpool.Pool // thread safe
+	pool         db.PgxIface // thread safe
 	neutron      *neutron.NeutronClient
 	haproxy      haproxy.HAProxy
 	proxyManager *proxy.Manager // manages Unix proxy threads per service
@@ -62,13 +62,15 @@ func NewAgent() *Agent {
 	}
 	connConfig.ConnConfig.Tracer = db.GetTracer()
 	connConfig.ConnConfig.RuntimeParams["application_name"] = "archer-ni-agent"
-	if agent.pool, err = pgxpool.NewWithConfig(context.Background(), connConfig); err != nil {
+	pgxPool, err := pgxpool.NewWithConfig(context.Background(), connConfig)
+	if err != nil {
 		log.Fatal(err.Error())
 	}
+	agent.pool = pgxPool
 
 	// install postgres status exporter
-	dbConfig := agent.pool.Config()
-	collector := pgxpoolprometheus.NewCollector(agent.pool, map[string]string{"db_name": dbConfig.ConnConfig.Database})
+	dbConfig := pgxPool.Config()
+	collector := pgxpoolprometheus.NewCollector(pgxPool, map[string]string{"db_name": dbConfig.ConnConfig.Database})
 	prometheus.MustRegister(collector)
 	log.Infof("Connected to PostgreSQL host=%s, max_conns=%d, health_check_period=%s",
 		dbConfig.ConnConfig.Host, dbConfig.MaxConns, dbConfig.HealthCheckPeriod)
@@ -140,6 +142,19 @@ func (a *Agent) Run() {
 		log.Fatal(err)
 	}
 
+	// health scrape loop
+	if _, err := a.scheduler.NewJob(
+		gocron.DurationJob(1*time.Minute),
+		gocron.NewTask(func() {
+			if err := a.HealthScrapeLoop(context.Background()); err != nil {
+				log.WithError(err).Error("HealthScrapeLoop failed")
+			}
+		}),
+		gocron.WithName("HealthScrapeLoop"),
+	); err != nil {
+		log.Fatal(err)
+	}
+
 	// heartbeat job
 	if _, err := a.scheduler.NewJob(
 		gocron.DurationJob(config.Global.Agent.HeartbeatInterval),
@@ -165,6 +180,72 @@ func (a *Agent) Run() {
 // UpdateHeartbeat updates the agent's heartbeat in the database.
 func (a *Agent) UpdateHeartbeat() {
 	common.UpdateHeartbeat(a.pool)
+}
+
+// HealthScrapeLoop checks whether all haproxy instances for AVAILABLE services are running
+// and updates health_status accordingly (ONLINE / OFFLINE / UNCHECKED).
+func (a *Agent) HealthScrapeLoop(ctx context.Context) error {
+	type serviceEndpoint struct {
+		ServiceID  strfmt.UUID  `db:"service_id"`
+		EndpointID *strfmt.UUID `db:"endpoint_id"` // NULL when no AVAILABLE endpoints exist
+	}
+
+	// Single LEFT JOIN: each service appears once per AVAILABLE endpoint, or once with
+	// endpoint_id = NULL when it has no AVAILABLE endpoints yet.
+	sql, args := db.Select("s.id AS service_id", "e.id AS endpoint_id").
+		From("service s").
+		LeftJoin("endpoint e ON e.service_id = s.id AND e.status = ?", models.EndpointStatusAVAILABLE).
+		Where("s.host = ?", config.Global.Default.Host).
+		Where("s.provider = 'cp'").
+		Where("s.status = ?", models.ServiceStatusAVAILABLE).
+		MustSql()
+
+	var rows []serviceEndpoint
+	if err := pgxscan.Select(ctx, a.pool, &rows, sql, args...); err != nil {
+		return err
+	}
+
+	// Group endpoints by service; track which services we've seen (including those with no endpoints).
+	endpointsByService := make(map[strfmt.UUID][]strfmt.UUID)
+	for _, r := range rows {
+		if _, seen := endpointsByService[r.ServiceID]; !seen {
+			endpointsByService[r.ServiceID] = nil
+		}
+		if r.EndpointID != nil {
+			endpointsByService[r.ServiceID] = append(endpointsByService[r.ServiceID], *r.EndpointID)
+		}
+	}
+
+	for svcID, epIDs := range endpointsByService {
+		var healthStatus string
+		if len(epIDs) == 0 {
+			healthStatus = models.ServiceHealthStatusUNCHECKED
+		} else {
+			allRunning := true
+			for _, epID := range epIDs {
+				if !a.haproxy.IsRunning(epID.String()) {
+					allRunning = false
+					break
+				}
+			}
+			if allRunning {
+				healthStatus = models.ServiceHealthStatusONLINE
+			} else {
+				healthStatus = models.ServiceHealthStatusOFFLINE
+			}
+		}
+
+		// Skip the write when health_status is already correct.
+		sql, args = db.Update("service").
+			Set("health_status", healthStatus).
+			Where("id = ?", svcID).
+			Where("health_status != ?", healthStatus).
+			MustSql()
+		if _, err := a.pool.Exec(ctx, sql, args...); err != nil {
+			log.WithField("service_id", svcID).WithError(err).Error("HealthScrapeLoop: failed to update health status")
+		}
+	}
+	return nil
 }
 
 // migrateServiceIPAddresses updates services assigned to this host that have empty IP addresses

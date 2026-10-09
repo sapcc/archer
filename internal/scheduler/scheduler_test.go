@@ -13,6 +13,8 @@ import (
 	"github.com/pashagolub/pgxmock/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/sapcc/archer/v2/models"
 )
 
 func defaultConfig() Config {
@@ -186,5 +188,55 @@ func TestServiceScheduler_MigrateService_SkipsInProgress(t *testing.T) {
 	err = scheduler.MigrateService(ctx, serviceID, "lb011-01", "lb017-archer")
 	assert.NoError(t, err)
 	assert.Equal(t, 0, notified, "must not notify agents when skipping in-flight migration")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// TestServiceScheduler_MigrateService_SetsOffline verifies that MigrateService sets
+// health_status = OFFLINE on the service before updating the host, so users see the
+// service as offline during the migration window rather than a stale ONLINE.
+func TestServiceScheduler_MigrateService_SetsOffline(t *testing.T) {
+	ctx := context.Background()
+	cfg := defaultConfig()
+
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	notified := []string{}
+	scheduler := NewServiceScheduler(mock, cfg, func(host string) { notified = append(notified, host) })
+
+	serviceID := strfmt.UUID("46ca20cf-84c3-4210-a360-3f79875f6b9b")
+	az := "az1"
+	fromHost := "lb011-01"
+	toHost := "lb017-archer"
+
+	mock.ExpectBegin()
+	// 1. Read service status (not in-flight)
+	mock.ExpectQuery("SELECT provider, availability_zone, status FROM service").
+		WithArgs(serviceID).
+		WillReturnRows(pgxmock.NewRows([]string{"provider", "availability_zone", "status"}).
+			AddRow("cp", &az, "AVAILABLE"))
+	// 2. Validate target host exists and is healthy (4 args: host, provider, az, stale_seconds)
+	mock.ExpectQuery("SELECT 1 FROM agents").
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"1"}).AddRow(1))
+	// 3. Set health_status = OFFLINE (the new behaviour under test)
+	mock.ExpectExec("UPDATE service SET health_status").
+		WithArgs(models.ServiceHealthStatusOFFLINE, serviceID).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+	// 4. Update host + status (3 args: host, status, serviceID — NOW() is a SQL expr, not a param)
+	mock.ExpectExec("UPDATE service SET host").
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+	// 5. Update endpoints (3 args: status, serviceID, AVAILABLE — NOW() is a SQL expr)
+	mock.ExpectExec("UPDATE endpoint SET status").
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 0))
+	mock.ExpectCommit()
+	mock.ExpectRollback()
+
+	err = scheduler.MigrateService(ctx, serviceID, fromHost, toHost)
+	require.NoError(t, err)
+	assert.Equal(t, []string{fromHost, toHost}, notified)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
