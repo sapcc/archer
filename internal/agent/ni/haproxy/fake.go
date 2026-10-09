@@ -25,8 +25,8 @@ func (h *FakeHaproxy) CollectStats() {
 	log.Debug("collecting haproxy stats (fake)")
 }
 
-func (h *FakeHaproxy) IsRunning(network string) bool {
-	log.Debugf("checking if haproxy is running for network %s", network)
+func (h *FakeHaproxy) IsRunning(endpointID string) bool {
+	log.Debugf("checking if haproxy is running for endpoint %s", endpointID)
 	return h.Running
 }
 
@@ -35,8 +35,8 @@ func (h *FakeHaproxy) AddInstance(injection *models.ServiceInjection) error {
 	return h.AddInstanceReturnError
 }
 
-func (h *FakeHaproxy) RemoveInstance(networkID string) error {
-	log.Debugf("removing instance %s", networkID)
+func (h *FakeHaproxy) RemoveInstance(endpointID string) error {
+	log.Debugf("removing instance %s", endpointID)
 	return nil
 }
 

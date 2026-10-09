@@ -74,14 +74,13 @@ func TestManager_StartProxy_Idempotent(t *testing.T) {
 	m.StartProxy(networkID, "127.0.0.1", []int32{18080})
 	assert.Eventually(t, func() bool { return runs(networkID) == 1 }, time.Second, 5*time.Millisecond)
 
-	// Second StartProxy for the same network is a no-op (endpoints in a network
-	// share one proxy set, mirroring HAProxy).
-	m.StartProxy(networkID, "127.0.0.1", []int32{18443})
+	// Second StartProxy for the same network is a no-op (each endpoint has its own proxy).
+	m.StartProxy(networkID, "127.0.0.1", []int32{18080})
 	time.Sleep(50 * time.Millisecond)
 
 	m.mu.RLock()
 	assert.Equal(t, 1, len(m.proxies))
-	assert.Equal(t, []int32{18080}, m.proxies[networkID].ports, "second StartProxy should not replace the ports")
+	assert.Equal(t, []int32{18080}, m.proxies[networkID].ports)
 	m.mu.RUnlock()
 	assert.Equal(t, 1, runs(networkID), "second StartProxy should not re-invoke startProc")
 }

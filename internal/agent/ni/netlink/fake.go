@@ -35,9 +35,8 @@ func (ns *FakeNetlink) Close() error {
 	return nil
 }
 
-func (ns *FakeNetlink) EnsureNetworkNamespace(_ context.Context, port *ports.Port, _ *gophercloud.ServiceClient) error {
-	// Fake network namespace implementation for debugging
-	ns.name = fmt.Sprintf("qinjector-%s", port.NetworkID)
+func (ns *FakeNetlink) EnsureNetworkNamespace(_ context.Context, port *ports.Port, _ *gophercloud.ServiceClient, endpointID string) error {
+	ns.name = fmt.Sprintf("qinjector-%s", endpointID)
 	log.Infof("FakeNetlink: ensuring network namespace '%s'", ns.name)
 	return nil
 }

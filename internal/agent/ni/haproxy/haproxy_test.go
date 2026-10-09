@@ -30,6 +30,35 @@ func setupHaproxyTempDir(t *testing.T) func() {
 	}
 }
 
+func templateData(si *models.ServiceInjection, endpointID string) map[string]any {
+	return map[string]any{
+		"EndpointID":    endpointID,
+		"Ports":         si.ServicePorts,
+		"UpstreamHost":  si.ServiceIPAddress,
+		"Protocol":      si.ServiceProtocol,
+		"ProxyProtocol": si.ProxyProtocol,
+		"ChrootDir":     config.Global.Agent.RunDir,
+		"LogLevel":      "info",
+		"RunUser":       "nobody",
+		"RunGroup":      "nogroup",
+	}
+}
+
+func newTestTemplate(t *testing.T) *template.Template {
+	t.Helper()
+	funcMap := template.FuncMap{
+		"lower":               strings.ToLower,
+		"formatHost":          formatHost,
+		"getSocketPath":       func(serviceID string, port int) string { return "/tmp/test.sock" },
+		"getChrootSocketPath": func(port int) string { return "/test.sock" },
+		"getStatsSocketPath":  GetStatsSocketPath,
+		"getPidFilePath":      GetPidFilePath,
+	}
+	tmpl, err := template.New("haproxy").Funcs(funcMap).Parse(configTemplate)
+	require.NoError(t, err)
+	return tmpl
+}
+
 func TestConfigTemplate_IPv6BracketRendering(t *testing.T) {
 	cleanup := setupHaproxyTempDir(t)
 	defer cleanup()
@@ -56,38 +85,15 @@ func TestConfigTemplate_IPv6BracketRendering(t *testing.T) {
 				ServiceID:        strfmt.UUID("550e8400-e29b-41d4-a716-446655440000"),
 				Network:          strfmt.UUID("660e8400-e29b-41d4-a716-446655440000"),
 			}
+			endpointID := "test-endpoint-id"
 
-			configPath := GetConfigFilePath(si.Network.String())
-			require.NoError(t, os.MkdirAll(proxy.GetNetworkDir(si.Network.String()), 0o777))
+			configPath := GetConfigFilePath(endpointID)
+			require.NoError(t, os.MkdirAll(proxy.GetNetworkDir(endpointID), 0o777))
 			configFile, err := os.Create(configPath)
 			require.NoError(t, err)
 
-			funcMap := template.FuncMap{
-				"lower":               strings.ToLower,
-				"formatHost":          formatHost,
-				"getSocketPath":       func(serviceID string, port int) string { return "/tmp/test.sock" },
-				"getChrootSocketPath": func(port int) string { return "/test.sock" },
-				"getStatsSocketPath":  GetStatsSocketPath,
-				"getPidFilePath":      GetPidFilePath,
-			}
-
-			tmpl, err := template.New("haproxy").Funcs(funcMap).Parse(configTemplate)
-			require.NoError(t, err)
-
-			data := map[string]any{
-				"UpstreamHost":  si.ServiceIPAddress,
-				"UpstreamPorts": si.ServicePorts,
-				"Network":       si.Network.String(),
-				"Protocol":      si.ServiceProtocol,
-				"ServiceID":     si.ServiceID.String(),
-				"ProxyProtocol": false,
-				"EndpointID":    "test-endpoint-id",
-				"ChrootDir":     config.Global.Agent.RunDir,
-				"LogLevel":      "info",
-				"RunUser":       "nobody",
-				"RunGroup":      "nogroup",
-			}
-			err = tmpl.Execute(configFile, data)
+			tmpl := newTestTemplate(t)
+			err = tmpl.Execute(configFile, templateData(si, endpointID))
 			require.NoError(t, err)
 			_ = configFile.Close()
 
@@ -121,37 +127,13 @@ func TestConfigTemplate_ProxyProtocolEnabled(t *testing.T) {
 		ProxyProtocol:    true,
 	}
 
-	configPath := GetConfigFilePath(si.Network.String())
-	require.NoError(t, os.MkdirAll(proxy.GetNetworkDir(si.Network.String()), 0o777))
+	configPath := GetConfigFilePath(endpointID)
+	require.NoError(t, os.MkdirAll(proxy.GetNetworkDir(endpointID), 0o777))
 	configFile, err := os.Create(configPath)
 	require.NoError(t, err)
 
-	funcMap := template.FuncMap{
-		"lower":               strings.ToLower,
-		"formatHost":          formatHost,
-		"getSocketPath":       func(serviceID string, port int) string { return "/tmp/test.sock" },
-		"getChrootSocketPath": func(port int) string { return "/test.sock" },
-		"getStatsSocketPath":  GetStatsSocketPath,
-		"getPidFilePath":      GetPidFilePath,
-	}
-
-	tmpl, err := template.New("haproxy").Funcs(funcMap).Parse(configTemplate)
-	require.NoError(t, err)
-
-	data := map[string]any{
-		"UpstreamHost":  si.ServiceIPAddress,
-		"UpstreamPorts": si.ServicePorts,
-		"Network":       si.Network.String(),
-		"Protocol":      si.ServiceProtocol,
-		"ServiceID":     si.ServiceID.String(),
-		"ProxyProtocol": si.ProxyProtocol,
-		"EndpointID":    endpointID,
-		"ChrootDir":     config.Global.Agent.RunDir,
-		"LogLevel":      "info",
-		"RunUser":       "nobody",
-		"RunGroup":      "nogroup",
-	}
-	err = tmpl.Execute(configFile, data)
+	tmpl := newTestTemplate(t)
+	err = tmpl.Execute(configFile, templateData(si, endpointID))
 	require.NoError(t, err)
 	_ = configFile.Close()
 
@@ -169,6 +151,7 @@ func TestConfigTemplate_ProxyProtocolDisabled(t *testing.T) {
 	cleanup := setupHaproxyTempDir(t)
 	defer cleanup()
 
+	endpointID := "test-endpoint-disabled"
 	si := &models.ServiceInjection{
 		ServiceIPAddress: "10.0.0.1",
 		ServicePorts:     []int{80},
@@ -178,37 +161,13 @@ func TestConfigTemplate_ProxyProtocolDisabled(t *testing.T) {
 		ProxyProtocol:    false,
 	}
 
-	configPath := GetConfigFilePath(si.Network.String())
-	require.NoError(t, os.MkdirAll(proxy.GetNetworkDir(si.Network.String()), 0o777))
+	configPath := GetConfigFilePath(endpointID)
+	require.NoError(t, os.MkdirAll(proxy.GetNetworkDir(endpointID), 0o777))
 	configFile, err := os.Create(configPath)
 	require.NoError(t, err)
 
-	funcMap := template.FuncMap{
-		"lower":               strings.ToLower,
-		"formatHost":          formatHost,
-		"getSocketPath":       func(serviceID string, port int) string { return "/tmp/test.sock" },
-		"getChrootSocketPath": func(port int) string { return "/test.sock" },
-		"getStatsSocketPath":  GetStatsSocketPath,
-		"getPidFilePath":      GetPidFilePath,
-	}
-
-	tmpl, err := template.New("haproxy").Funcs(funcMap).Parse(configTemplate)
-	require.NoError(t, err)
-
-	data := map[string]any{
-		"UpstreamHost":  si.ServiceIPAddress,
-		"UpstreamPorts": si.ServicePorts,
-		"Network":       si.Network.String(),
-		"Protocol":      si.ServiceProtocol,
-		"ServiceID":     si.ServiceID.String(),
-		"ProxyProtocol": si.ProxyProtocol,
-		"EndpointID":    "unused-when-disabled",
-		"ChrootDir":     config.Global.Agent.RunDir,
-		"LogLevel":      "info",
-		"RunUser":       "nobody",
-		"RunGroup":      "nogroup",
-	}
-	err = tmpl.Execute(configFile, data)
+	tmpl := newTestTemplate(t)
+	err = tmpl.Execute(configFile, templateData(si, endpointID))
 	require.NoError(t, err)
 	_ = configFile.Close()
 
@@ -224,6 +183,7 @@ func TestConfigTemplate_Hardening(t *testing.T) {
 	cleanup := setupHaproxyTempDir(t)
 	defer cleanup()
 
+	endpointID := "384678f1-0ca4-4ce1-bc66-047053f629dc"
 	si := &models.ServiceInjection{
 		ServiceIPAddress: "10.0.0.1",
 		ServicePorts:     []int{80},
@@ -244,30 +204,28 @@ func TestConfigTemplate_Hardening(t *testing.T) {
 	tmpl, err := template.New("haproxy").Funcs(funcMap).Parse(configTemplate)
 	require.NoError(t, err)
 
-	var buf strings.Builder
-	err = tmpl.Execute(&buf, map[string]any{
+	data := map[string]any{
+		"EndpointID":    endpointID,
+		"Ports":         si.ServicePorts,
 		"UpstreamHost":  si.ServiceIPAddress,
-		"UpstreamPorts": si.ServicePorts,
-		"Network":       si.Network.String(),
 		"Protocol":      si.ServiceProtocol,
-		"ServiceID":     si.ServiceID.String(),
 		"ProxyProtocol": false,
-		"EndpointID":    si.ID.String(),
-		"ChrootDir":     proxy.GetNetworkDir(si.Network.String()),
+		"ChrootDir":     proxy.GetNetworkDir(endpointID),
 		"LogLevel":      "info",
 		"RunUser":       "nobody",
 		"RunGroup":      "nogroup",
-	})
+	}
+
+	var buf strings.Builder
+	err = tmpl.Execute(&buf, data)
 	require.NoError(t, err)
 	configStr := buf.String()
 
 	assert.Contains(t, configStr, "user        nobody", "should drop privileges to nobody user")
 	assert.Contains(t, configStr, "group       nogroup", "should drop privileges to nogroup group")
-	assert.Contains(t, configStr, `chroot      "`+proxy.GetNetworkDir(si.Network.String())+`"`,
-		"should chroot into the per-network dir")
+	assert.Contains(t, configStr, `chroot      "`+proxy.GetNetworkDir(endpointID)+`"`,
+		"should chroot into the per-endpoint dir")
 
-	// The backend server line references the socket at the chroot root (HAProxy
-	// chroots into the network dir), so it is simply /<port>.sock.
 	assert.Contains(t, configStr, "server upstream /80.sock")
 	assert.NotContains(t, configStr, "server upstream "+config.Global.Agent.RunDir,
 		"backend server line must not use the host-absolute path")
@@ -277,12 +235,9 @@ func TestAddInstanceConfigFilePermissions(t *testing.T) {
 	cleanup := setupHaproxyTempDir(t)
 	defer cleanup()
 
-	// AddInstance spawns real haproxy, which is not available in unit tests.
-	// Verify the file-creation mode directly, matching how AddInstance opens
-	// the config file. The per-network dir is created by the agent before writing.
-	networkID := "660e8400-e29b-41d4-a716-446655440000"
-	require.NoError(t, os.MkdirAll(proxy.GetNetworkDir(networkID), 0o777))
-	path := GetConfigFilePath(networkID)
+	endpointID := "384678f1-0ca4-4ce1-bc66-047053f629dc"
+	require.NoError(t, os.MkdirAll(proxy.GetNetworkDir(endpointID), 0o777))
+	path := GetConfigFilePath(endpointID)
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
 	require.NoError(t, err)
 	require.NoError(t, f.Close())

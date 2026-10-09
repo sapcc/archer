@@ -11,7 +11,7 @@ import (
 )
 
 type Netlink interface {
-	EnsureNetworkNamespace(ctx context.Context, port *ports.Port, client *gophercloud.ServiceClient) error
+	EnsureNetworkNamespace(ctx context.Context, port *ports.Port, client *gophercloud.ServiceClient, endpointID string) error
 	EnableNetworkNamespace() error
 	DisableNetworkNamespace() error
 	DeleteNetworkNamespace() error

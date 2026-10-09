@@ -30,10 +30,10 @@ import (
 var configTemplate = `
 global
     log         stdout format raw local0 {{.LogLevel}}
-    stats       socket "{{getStatsSocketPath .Network}}" mode 600 level admin
+    stats       socket "{{getStatsSocketPath .EndpointID}}" mode 600 level admin
     stats       timeout 2m
     maxconn     1024
-    pidfile     "{{getPidFilePath .Network}}"
+    pidfile     "{{getPidFilePath .EndpointID}}"
     chroot      "{{.ChrootDir}}"
     user        {{.RunUser}}
     group       {{.RunGroup}}
@@ -48,30 +48,25 @@ defaults
     timeout server          32s
     timeout tunnel          1h
 
-{{- $protocol := .Protocol }}
-{{- $upstream := .UpstreamHost }}
-{{- $proxyProtocol := .ProxyProtocol }}
-{{- $endpointID := .EndpointID }}
-
-{{ range .UpstreamPorts }}
+{{ range .Ports }}
 frontend fronted_{{ . }}
     bind :::{{ . }} v4v6
-    mode {{ lower $protocol }}
-{{- if eq $protocol "HTTP" }}
+    mode {{ lower $.Protocol }}
+{{- if eq $.Protocol "HTTP" }}
     option httplog
     option forwardfor
 {{- end }}
     default_backend backend_{{ . }}
 
 backend backend_{{ . }}
-    mode {{ lower $protocol }}
-{{- if eq $protocol "HTTP" }}
+    mode {{ lower $.Protocol }}
+{{- if eq $.Protocol "HTTP" }}
     option http-server-close
     timeout http-request    30s
     timeout http-keep-alive 30s
-    http-request replace-header Host .* {{ formatHost $upstream }}
+    http-request replace-header Host .* {{ formatHost $.UpstreamHost }}
 {{- end }}
-    server upstream {{ getChrootSocketPath . }}{{- if $proxyProtocol }} send-proxy-v2 set-proxy-v2-tlv-fmt(0xEC) %[str({{ $endpointID }})]{{- end }}
+    server upstream {{ getChrootSocketPath . }}{{- if $.ProxyProtocol }} send-proxy-v2 set-proxy-v2-tlv-fmt(0xEC) %[str({{ $.EndpointID }})]{{- end }}
 
 {{ end }}
 `
@@ -91,15 +86,15 @@ var (
 	totalBytesOut = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "haproxy_total_bytes_out",
 		Help: "Total Bytes out",
-	}, []string{"network"})
+	}, []string{"endpoint"})
 	currConns = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "haproxy_curr_conns",
 		Help: "Current number of connections",
-	}, []string{"network"})
+	}, []string{"endpoint"})
 	metricScrape = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "haproxy_scraped",
 		Help: "Counter of haproxy metric scrapes",
-	}, []string{"network"})
+	}, []string{"endpoint"})
 )
 
 // formatHost returns the IP in HTTP Host header format.
@@ -126,25 +121,24 @@ func NewHAProxyController() *HAProxyController {
 }
 
 func (h *HAProxyController) CollectStats() {
-	for networkID, instance := range h.instances {
+	for endpointID, instance := range h.instances {
 		info, err := instance.client.Info()
 		if err != nil {
-			log.Debugf("Failed fetching stats for instance '%s'", networkID)
+			log.Debugf("Failed fetching stats for instance '%s'", endpointID)
 		}
-		totalBytesOut.WithLabelValues(networkID).Set(float64(info.TotalBytesOut))
-		currConns.WithLabelValues(networkID).Set(float64(info.CurrConns))
-		metricScrape.WithLabelValues(networkID).Inc()
+		totalBytesOut.WithLabelValues(endpointID).Set(float64(info.TotalBytesOut))
+		currConns.WithLabelValues(endpointID).Set(float64(info.CurrConns))
+		metricScrape.WithLabelValues(endpointID).Inc()
 	}
 }
 
-func (h *HAProxyController) IsRunning(networkID string) bool {
-	_, ok := h.instances[networkID]
+func (h *HAProxyController) IsRunning(endpointID string) bool {
+	_, ok := h.instances[endpointID]
 	if !ok {
 		return false
 	}
 
-	// read pid and check if process exists
-	pid, err := readPidFile(GetPidFilePath(networkID))
+	pid, err := readPidFile(GetPidFilePath(endpointID))
 	if err != nil {
 		return false
 	}
@@ -158,48 +152,17 @@ func (h *HAProxyController) IsRunning(networkID string) bool {
 }
 
 func (h *HAProxyController) AddInstance(si *models.ServiceInjection) error {
-	// create config
-	filename := GetConfigFilePath(si.Network.String())
-	configFile, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
+	endpointID := si.ID.String()
+	if h.IsRunning(endpointID) {
+		return nil
+	}
+
+	configFile, err := h.writeConfig(si)
 	if err != nil {
 		return err
 	}
-
 	defer func() { _ = configFile.Close() }()
-	log.Debugf("Created HAProxy config file '%s'", configFile.Name())
 
-	funcMap := template.FuncMap{
-		"lower":      strings.ToLower,
-		"formatHost": formatHost,
-		// Backend socket path inside HAProxy's chroot (rooted at the network dir).
-		"getChrootSocketPath": func(port int) string { return fmt.Sprintf("/%d.sock", port) },
-		"getStatsSocketPath":  GetStatsSocketPath,
-		"getPidFilePath":      GetPidFilePath,
-	}
-
-	// template config
-	t, err := template.New("haproxy").Funcs(funcMap).Parse(configTemplate)
-	if err != nil {
-		return err
-	}
-
-	data := map[string]any{
-		"UpstreamHost":  si.ServiceIPAddress,
-		"UpstreamPorts": si.ServicePorts,
-		"Network":       si.Network.String(),
-		"Protocol":      si.ServiceProtocol,
-		"ProxyProtocol": si.ProxyProtocol,
-		"EndpointID":    si.ID.String(),
-		"ChrootDir":     proxy.GetNetworkDir(si.Network.String()),
-		"LogLevel":      haproxyLogLevel(),
-		"RunUser":       config.Global.Agent.RunUser,
-		"RunGroup":      config.Global.Agent.RunGroup,
-	}
-	if err = t.Execute(configFile, data); err != nil {
-		return err
-	}
-
-	// run haproxy
 	haproxyPath, err := exec.LookPath("haproxy")
 	if err != nil {
 		return fmt.Errorf("haproxy binary not found in PATH: %w", err)
@@ -212,58 +175,92 @@ func (h *HAProxyController) AddInstance(si *models.ServiceInjection) error {
 		return err
 	}
 
-	// read pid
-	pid, err := readPidFile(GetPidFilePath(si.Network.String()))
+	pid, err := readPidFile(GetPidFilePath(endpointID))
 	if err != nil {
 		return err
 	}
 
-	// init haproxy stats client
 	haProxyClient := haproxy.HAProxyClient{
-		Addr: fmt.Sprintf("unix://%s", GetStatsSocketPath(si.Network.String())),
+		Addr: fmt.Sprintf("unix://%s", GetStatsSocketPath(endpointID)),
 	}
 	info, err := haProxyClient.Info()
 	if err != nil {
 		return err
 	}
-	log.Printf("Running %s version %s PID %d for %s", info.Name, info.Version, pid, si.Network)
+	log.Printf("Running %s version %s PID %d for endpoint %s", info.Name, info.Version, pid, endpointID)
 
-	instance := haProxyInstance{
+	h.instances[endpointID] = &haProxyInstance{
 		cmd:    cmd,
 		config: configFile,
 		client: &haProxyClient,
 		pid:    pid,
 	}
-
-	h.instances[si.Network.String()] = &instance
 	return nil
 }
 
-func (h *HAProxyController) RemoveInstance(networkID string) error {
-	instance, ok := h.instances[networkID]
-	if !ok {
-		return fmt.Errorf("instance '%s' not found", networkID)
+func (h *HAProxyController) writeConfig(si *models.ServiceInjection) (*os.File, error) {
+	endpointID := si.ID.String()
+	filename := GetConfigFilePath(endpointID)
+	configFile, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
+	if err != nil {
+		return nil, err
+	}
+	log.Debugf("Writing HAProxy config file '%s'", configFile.Name())
+
+	funcMap := template.FuncMap{
+		"lower":               strings.ToLower,
+		"formatHost":          formatHost,
+		"getChrootSocketPath": func(port int) string { return fmt.Sprintf("/%d.sock", port) },
+		"getStatsSocketPath":  GetStatsSocketPath,
+		"getPidFilePath":      GetPidFilePath,
+	}
+	t, err := template.New("haproxy").Funcs(funcMap).Parse(configTemplate)
+	if err != nil {
+		_ = configFile.Close()
+		return nil, err
 	}
 
-	// Terminate haproxy
+	data := map[string]any{
+		"EndpointID":    endpointID,
+		"Ports":         si.ServicePorts,
+		"UpstreamHost":  si.ServiceIPAddress,
+		"Protocol":      si.ServiceProtocol,
+		"ProxyProtocol": si.ProxyProtocol,
+		"ChrootDir":     proxy.GetNetworkDir(endpointID),
+		"LogLevel":      haproxyLogLevel(),
+		"RunUser":       config.Global.Agent.RunUser,
+		"RunGroup":      config.Global.Agent.RunGroup,
+	}
+	if err = t.Execute(configFile, data); err != nil {
+		_ = configFile.Close()
+		return nil, err
+	}
+	return configFile, nil
+}
+
+func (h *HAProxyController) RemoveInstance(endpointID string) error {
+	instance, ok := h.instances[endpointID]
+	if !ok {
+		return fmt.Errorf("instance '%s' not found", endpointID)
+	}
+
 	if err := syscall.Kill(instance.pid, syscall.SIGTERM); err != nil {
 		return err
 	}
 
-	// Remove config and pidfile
 	TryRemoveFile(instance.config.Name())
-	TryRemoveFile(GetPidFilePath(networkID))
+	TryRemoveFile(GetPidFilePath(endpointID))
 
-	delete(h.instances, networkID)
+	delete(h.instances, endpointID)
 	return nil
 }
 
 func (h *HAProxyController) Run(ctx context.Context) {
 	<-ctx.Done()
 	log.Debug("Shutting down HAProxy instances...")
-	for networkID := range h.instances {
-		if err := h.RemoveInstance(networkID); err != nil {
-			log.Errorf("Failed to remove instance '%s': %s", networkID, err)
+	for endpointID := range h.instances {
+		if err := h.RemoveInstance(endpointID); err != nil {
+			log.Errorf("Failed to remove instance '%s': %s", endpointID, err)
 		}
 	}
 }
@@ -305,14 +302,14 @@ func TryRemoveFile(file string) {
 	}
 }
 
-func GetStatsSocketPath(networkID string) string {
-	return fmt.Sprintf("%s/haproxy-stats.sock", proxy.GetNetworkDir(networkID))
+func GetStatsSocketPath(endpointID string) string {
+	return fmt.Sprintf("%s/haproxy-stats.sock", proxy.GetNetworkDir(endpointID))
 }
 
-func GetPidFilePath(networkID string) string {
-	return fmt.Sprintf("%s/haproxy.pid", proxy.GetNetworkDir(networkID))
+func GetPidFilePath(endpointID string) string {
+	return fmt.Sprintf("%s/haproxy.pid", proxy.GetNetworkDir(endpointID))
 }
 
-func GetConfigFilePath(networkID string) string {
-	return fmt.Sprintf("%s/haproxy.conf", proxy.GetNetworkDir(networkID))
+func GetConfigFilePath(endpointID string) string {
+	return fmt.Sprintf("%s/haproxy.conf", proxy.GetNetworkDir(endpointID))
 }

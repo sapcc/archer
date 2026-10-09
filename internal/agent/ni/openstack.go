@@ -64,30 +64,25 @@ func (a *Agent) EnableInjection(ctx context.Context, si *models.ServiceInjection
 		return fmt.Errorf("failed to get port %s: %w", si.PortId, err)
 	}
 
-	// Create network namespace with ip/mac
+	// Create network namespace with ip/mac, keyed by endpoint ID.
 	ns := netlink.NewNetworkNamespace()
 	defer func() { _ = ns.Close() }()
 
-	if err = ns.EnsureNetworkNamespace(ctx, injectorPort, a.neutron.ServiceClient); err != nil {
+	if err = ns.EnsureNetworkNamespace(ctx, injectorPort, a.neutron.ServiceClient, si.ID.String()); err != nil {
 		return fmt.Errorf("failed to ensure network namespace: %w", err)
 	}
 
-	if a.haproxy.IsRunning(injectorPort.NetworkID) {
-		// Nothing to do
-		return nil
-	}
-
-	// Ensure the per-network directory exists (holds the proxy socket + HAProxy
-	// files) and start the unprivileged proxy for this network's service before
-	// HAProxy, whose backend connects to the proxy socket.
-	if err = os.MkdirAll(proxy.GetNetworkDir(si.Network.String()), 0o777); err != nil {
-		return fmt.Errorf("failed to create network dir: %w", err)
+	// Ensure the per-endpoint directory exists (holds the proxy socket + HAProxy
+	// files) and start the unprivileged proxy for this endpoint's service.
+	endpointID := si.ID.String()
+	if err = os.MkdirAll(proxy.GetNetworkDir(endpointID), 0o777); err != nil {
+		return fmt.Errorf("failed to create endpoint dir: %w", err)
 	}
 	ports := make([]int32, len(si.ServicePorts))
 	for i, p := range si.ServicePorts {
 		ports[i] = int32(p)
 	}
-	a.proxyManager.StartProxy(si.Network, si.ServiceIPAddress, ports)
+	a.proxyManager.StartProxy(si.ID, si.ServiceIPAddress, ports)
 
 	// Run haproxy inside network namespace
 	if err = ns.EnableNetworkNamespace(); err != nil {
@@ -101,8 +96,8 @@ func (a *Agent) EnableInjection(ctx context.Context, si *models.ServiceInjection
 
 	if err = a.haproxy.AddInstance(si); err != nil {
 		log.Errorf("Error enabling haproxy: %s, dumping conf", err)
-		haproxy.Dump(haproxy.GetConfigFilePath(si.Network.String()))
-		haproxy.TryRemoveFile(haproxy.GetConfigFilePath(si.Network.String()))
+		haproxy.Dump(haproxy.GetConfigFilePath(endpointID))
+		haproxy.TryRemoveFile(haproxy.GetConfigFilePath(endpointID))
 		return fmt.Errorf("failed to add haproxy instance: %w", err)
 	}
 
@@ -110,20 +105,14 @@ func (a *Agent) EnableInjection(ctx context.Context, si *models.ServiceInjection
 }
 
 func (a *Agent) DisableInjection(si *models.ServiceInjection) error {
-	// Use the Network field directly instead of fetching from Neutron.
-	// This allows cleanup to proceed even if the port was manually deleted.
-	networkID := si.Network.String()
+	endpointID := si.ID.String()
 
-	// Only stop haproxy - don't delete the namespace.
-	// Other endpoints may still be using this network's namespace.
-	// Namespace cleanup on last endpoint deletion is not implemented;
-	// namespaces and veth pairs persist until the host is rebooted or cleaned manually.
-	if a.haproxy.IsRunning(networkID) {
-		if err := a.haproxy.RemoveInstance(networkID); err != nil {
+	if a.haproxy.IsRunning(endpointID) {
+		if err := a.haproxy.RemoveInstance(endpointID); err != nil {
 			return fmt.Errorf("failed to remove haproxy instance: %w", err)
 		}
 	}
-	a.proxyManager.StopProxy(si.Network)
+	a.proxyManager.StopProxy(si.ID)
 	return nil
 }
 
