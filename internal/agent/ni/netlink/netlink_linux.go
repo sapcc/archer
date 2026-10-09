@@ -118,8 +118,8 @@ func (ns *LinuxNetworkNamespace) Close() error {
 }
 
 // EnsureNetworkNamespace ensures that a network namespace for the given port exists
-func (ns *LinuxNetworkNamespace) EnsureNetworkNamespace(ctx context.Context, port *ports.Port, client *gophercloud.ServiceClient) error {
-	name := fmt.Sprintf("qinjector-%s", port.NetworkID)
+func (ns *LinuxNetworkNamespace) EnsureNetworkNamespace(ctx context.Context, port *ports.Port, client *gophercloud.ServiceClient, endpointID string) error {
+	name := fmt.Sprintf("qinjector-%s", endpointID)
 
 	// Check if namespace already exists and matches
 	if existingNS, err := netns.GetFromName(name); err == nil {
@@ -138,16 +138,15 @@ func (ns *LinuxNetworkNamespace) EnsureNetworkNamespace(ctx context.Context, por
 			_ = existingNS.Close()
 		}
 
-		// Validate veth pair exists
+		// Validate veth0 exists inside the namespace
 		handle, err := netlink.NewHandleAt(ns.newns)
 		if err != nil {
 			return fmt.Errorf("failed to get handle for namespace '%s': %w", name, err)
 		}
 		defer handle.Close()
 
-		peerName := fmt.Sprintf("tap%s", port.ID[:11])
-		if _, err := netlink.LinkByName(peerName); err != nil {
-			log.Warnf("namespace '%s' exists but veth pair '%s' not found, will recreate", name, peerName)
+		if _, err := handle.LinkByName("veth0"); err != nil {
+			log.Warnf("namespace '%s' exists but veth0 not found, will recreate", name)
 			// Namespace exists but veth is missing, delete and recreate
 			if err := ns.deleteNamespace(name); err != nil {
 				return fmt.Errorf("failed to delete broken namespace: %w", err)
@@ -171,8 +170,11 @@ func (ns *LinuxNetworkNamespace) EnsureNetworkNamespace(ctx context.Context, por
 			Name:         "veth0",
 			HardwareAddr: mac,
 		},
-		// Magic name tap<port-id> is detected by linuxbridge agent
-		PeerName: peerName,
+		// Magic name tap<port-id> is detected by linuxbridge agent.
+		// Peer MAC must match the Neutron port MAC so the linuxbridge agent's
+		// ebtables/arp filtering rules pass traffic through.
+		PeerName:         peerName,
+		PeerHardwareAddr: mac,
 	}
 
 	if err = netlink.LinkAdd(&veth); err != nil {

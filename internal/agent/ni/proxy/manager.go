@@ -63,7 +63,7 @@ func NewManager(ctx context.Context, startProc ...StartProc) *Manager {
 	return m
 }
 
-// StartProxy starts the supervised socat processes for a network; idempotent (no-op if already running, mirroring HAProxy).
+// StartProxy starts the supervised socat processes for a network; idempotent (no-op if already running).
 func (m *Manager) StartProxy(networkID strfmt.UUID, upstream string, ports []int32) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
