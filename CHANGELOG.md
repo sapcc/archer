@@ -13,6 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- archer-ni-agent: Add `HealthScrapeLoop` that runs every minute and sets `health_status` to `ONLINE`, `OFFLINE`, or `UNCHECKED` based on whether each service's HAProxy instances are running.
+- archer-server: Set `health_status = OFFLINE` on NI services immediately when the scheduler migrates them off a stale agent.
+- archer-ni-agent: `DEBUG` environment variable to enable debug logging without editing the config file.
+
+### Fixed
+
+- archer-ni-agent: Fix second endpoint on the same network failing to start — `EnsureNetworkNamespace` was incorrectly validating the namespace by looking up the current endpoint's tap interface, which doesn't exist yet for new endpoints. Now checks for `veth0` inside the namespace instead.
+- archer-ni-agent: Fix second service on the same network not being served — HAProxy config was generated for only the first service's ports. `AddInstance` now tracks all services per network and hot-reloads HAProxy (`-sf`) when a new service is added.
+
 ## [2.8.0] - 2026-10-07
 
 ### Added

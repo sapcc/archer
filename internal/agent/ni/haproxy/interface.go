@@ -12,8 +12,8 @@ import (
 
 type HAProxy interface {
 	CollectStats()
-	IsRunning(string) bool
+	IsRunning(endpointID string) bool
 	AddInstance(injection *models.ServiceInjection) error
-	RemoveInstance(networkID string) error
+	RemoveInstance(endpointID string) error
 	Run(ctx context.Context)
 }
