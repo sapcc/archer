@@ -441,7 +441,7 @@ func (*ServiceEndpointReject) Execute(_ []string) error {
 }
 
 func init() {
-	if _, err := Parser.AddCommand("service", "Services",
+	if _, err := Parser.AddCommand("service", "Services (requires authentication)",
 		"Service Commands.", &ServiceOptions); err != nil {
 		panic(err)
 	}

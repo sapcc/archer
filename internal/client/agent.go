@@ -81,7 +81,7 @@ func (a *AgentShow) Execute(_ []string) error {
 }
 
 func init() {
-	if _, err := Parser.AddCommand("agent", "Agents",
+	if _, err := Parser.AddCommand("agent", "Agents (requires authentication)",
 		"Agent Commands.", &AgentOptions); err != nil {
 		panic(err)
 	}

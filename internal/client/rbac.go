@@ -124,7 +124,7 @@ func (*RbacSet) Execute(_ []string) error {
 }
 
 func init() {
-	if _, err := Parser.AddCommand("rbac", "RBACs",
+	if _, err := Parser.AddCommand("rbac", "RBACs (requires authentication)",
 		"RBAC Policy Commands.", &RbacOptions); err != nil {
 		panic(err)
 	}

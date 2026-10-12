@@ -261,7 +261,7 @@ func (*EndpointSet) Execute(_ []string) error {
 }
 
 func init() {
-	if _, err := Parser.AddCommand("endpoint", "Endpoints",
+	if _, err := Parser.AddCommand("endpoint", "Endpoints (requires authentication)",
 		"Endpoint Commands.", &EndpointOptions); err != nil {
 		panic(err)
 	}

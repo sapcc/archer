@@ -52,7 +52,7 @@ var opts struct {
 	Debug      bool             `long:"debug" description:"Show verbose debug information"`
 	Formatters outputFormatters `group:"Output formatters"`
 	Timeout    time.Duration    `long:"timeout" description:"Timeout for requests, defaults to 120s" default:"120s"`
-	Version    func()           `short:"v" long:"version" description:"Show application version"`
+	Version    func()           `short:"v" long:"version" description:"Show CLI version and exit"`
 
 	OSEndpoint          string `long:"os-endpoint" env:"OS_ENDPOINT" description:"The endpoint that will always be used"`
 	OSAuthUrl           string `long:"os-auth-url" env:"OS_AUTH_URL" description:"Authentication URL"`

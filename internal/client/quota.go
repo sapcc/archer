@@ -109,7 +109,7 @@ func (*QuotaSet) Execute(_ []string) error {
 }
 
 func init() {
-	if _, err := Parser.AddCommand("quota", "Quotas",
+	if _, err := Parser.AddCommand("quota", "Quotas (requires authentication)",
 		"Quota Commands.", &QuotaOptions); err != nil {
 		panic(err)
 	}

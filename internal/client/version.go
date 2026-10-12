@@ -24,8 +24,8 @@ func (*VersionOptions) Execute(_ []string) error {
 }
 
 func init() {
-	if _, err := Parser.AddCommand("version", "Version",
-		"Show Version.", &VersionOptions{}); err != nil {
+	if _, err := Parser.AddCommand("version", "Show CLI and server version (requires authentication)",
+		"Show CLI and server version (requires OpenStack credentials).", &VersionOptions{}); err != nil {
 		panic(err)
 	}
 }
