@@ -218,6 +218,7 @@ func (ns *LinuxNetworkNamespace) EnsureNetworkNamespace(ctx context.Context, por
 		return fmt.Errorf("failed to move veth to namespace: %w", err)
 	}
 
+	var gatewayIP net.IP
 	for _, fixedIP := range port.FixedIPs {
 		ip := net.ParseIP(fixedIP.IPAddress)
 		if ip == nil {
@@ -243,12 +244,30 @@ func (ns *LinuxNetworkNamespace) EnsureNetworkNamespace(ctx context.Context, por
 			ns.cleanupFailedNamespace(name, newns, nil)
 			return fmt.Errorf("failed to add address: %w", err)
 		}
+
+		if gatewayIP == nil && subnet.GatewayIP != "" {
+			if gatewayIP = net.ParseIP(subnet.GatewayIP); gatewayIP == nil {
+				ns.cleanupFailedNamespace(name, newns, nil)
+				return fmt.Errorf("failed to parse gateway IP '%s'", subnet.GatewayIP)
+			}
+		}
 	}
 
 	// set veth0 up
 	if err := handle.LinkSetUp(&veth); err != nil {
 		ns.cleanupFailedNamespace(name, newns, nil)
 		return fmt.Errorf("failed to bring up veth: %w", err)
+	}
+
+	if gatewayIP != nil {
+		route := &netlink.Route{
+			LinkIndex: veth.Attrs().Index,
+			Gw:        gatewayIP,
+		}
+		if err := handle.RouteAdd(route); err != nil {
+			ns.cleanupFailedNamespace(name, newns, nil)
+			return fmt.Errorf("failed to add default route via %s: %w", gatewayIP, err)
+		}
 	}
 
 	ns.name = name
