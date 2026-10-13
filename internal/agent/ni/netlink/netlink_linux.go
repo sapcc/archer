@@ -171,10 +171,10 @@ func (ns *LinuxNetworkNamespace) EnsureNetworkNamespace(ctx context.Context, por
 			HardwareAddr: mac,
 		},
 		// Magic name tap<port-id> is detected by linuxbridge agent.
-		// Peer MAC must match the Neutron port MAC so the linuxbridge agent's
-		// ebtables/arp filtering rules pass traffic through.
-		PeerName:         peerName,
-		PeerHardwareAddr: mac,
+		// PeerHardwareAddr must stay unset: if the tap (bridge port) had the
+		// port MAC, the kernel would register it as a local FDB entry and
+		// consume unicast frames instead of forwarding them to the tap.
+		PeerName: peerName,
 	}
 
 	if err = netlink.LinkAdd(&veth); err != nil {

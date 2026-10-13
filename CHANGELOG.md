@@ -23,9 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - archer-ni-agent: Fix second endpoint on the same network failing to start — `EnsureNetworkNamespace` was incorrectly validating the namespace by looking up the current endpoint's tap interface, which doesn't exist yet for new endpoints. Now checks for `veth0` inside the namespace instead.
 - archer-ni-agent: Fix second service on the same network not being served — HAProxy config was generated for only the first service's ports. `AddInstance` now tracks all services per network and hot-reloads HAProxy (`-sf`) when a new service is added.
-
-### Fixed
-
+- archer-ni-agent: Fix endpoints unreachable for unicast traffic (ARP worked, ping/TCP failed) on linuxbridge deployments — the veth pair was created with the Neutron port MAC on both ends. The bridge then registered the port MAC as a local FDB entry for the tap, so the kernel delivered all unicast frames for the endpoint to the bridge's own stack and dropped them. The tap now keeps a random kernel-generated MAC; existing endpoints need their tap MAC changed (or the endpoint recreated) to recover.
 - archer-f5-agent: Prometheus health scraping now correctly filters by `devicename` (active device) instead of `status=active` (a NetBox label carried by both HA peers). Previously the standby device's red pool member states caused worst-wins aggregation to return OFFLINE even when the active device was healthy. Also adds a per-service fallback to direct F5 device scraping when a service has no data in Prometheus, with a warning log.
 
 ## [2.8.0] - 2026-10-07
