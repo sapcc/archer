@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.9.0] - 2026-10-14
+
 ### Added
 
 - archer-ni-agent: Add `HealthScrapeLoop` that runs every minute and sets `health_status` to `ONLINE`, `OFFLINE`, or `UNCHECKED` based on whether each service's HAProxy instances are running.
@@ -275,7 +277,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-Release with goreleaser
 
-[Unreleased]: https://github.com/sapcc/archer/compare/v2.8.0...HEAD
+[Unreleased]: https://github.com/sapcc/archer/compare/v2.9.0...HEAD
+
+[2.9.0]: https://github.com/sapcc/archer/compare/v2.8.0...v2.9.0
 
 [2.8.0]: https://github.com/sapcc/archer/compare/v2.7.4...v2.8.0
 
