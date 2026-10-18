@@ -17,6 +17,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag/conv"
 	"github.com/gophercloud/gophercloud/v2/testhelper/fixture"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sapcc/go-bits/gopherpolicy"
 	"github.com/sirupsen/logrus"
 	logtest "github.com/sirupsen/logrus/hooks/test"
@@ -167,6 +168,31 @@ func (t *SuiteTest) TestServiceAZPost() {
 	t.addAgent(conv.Pointer("test-az"))
 	res = t.c.PostServiceHandler(service.PostServiceParams{HTTPRequest: &headerProject1,
 		Body: &testServiceWithAZ}, nil)
+	assert.IsType(t.T(), &service.PostServiceCreated{}, res)
+}
+
+func (t *SuiteTest) TestServicePostOneConnectionPool() {
+	// Every query of the post runs on the transaction, so the post needs only
+	// the one connection the transaction holds.
+	cfg, err := pgxpool.ParseConfig(config.Global.Database.Connection)
+	if err != nil {
+		t.FailNow("Failed parsing connection string", err)
+	}
+	cfg.MaxConns = 1
+	pool, err := pgxpool.NewWithConfig(context.Background(), cfg)
+	if err != nil {
+		t.FailNow("Failed connecting to Database", err)
+	}
+	defer pool.Close()
+	c := NewController(pool, t.c.spec, t.c.neutron, nil)
+
+	t.addAgent(nil)
+	t.setupNeutronHandlersForServiceCreate(networkId)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	svc := testService
+	res := c.PostServiceHandler(service.PostServiceParams{HTTPRequest: headerProject1.WithContext(ctx),
+		Body: &svc}, nil)
 	assert.IsType(t.T(), &service.PostServiceCreated{}, res)
 }
 

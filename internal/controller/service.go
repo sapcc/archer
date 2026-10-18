@@ -243,7 +243,7 @@ func (c *Controller) PostServiceHandler(params service.PostServiceParams, princi
 		}
 
 		var usage int
-		if err = c.pool.QueryRow(ctx, sql, args...).Scan(&host, &usage); err != nil {
+		if err = tx.QueryRow(ctx, sql, args...).Scan(&host, &usage); err != nil {
 			return err
 		}
 
