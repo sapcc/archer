@@ -149,10 +149,22 @@ func activeDeviceName(dev F5Device) string {
 	return short
 }
 
+// poolMbrStatusQuery returns a PromQL query for pool member avail states.
+// On devices where F5 truncates ltmPoolMbrStatusPoolName in the SNMP OID index,
+// the prometheus-infra-collector exposes a companion metric snmp_f5_ltmPoolMbrStatusPoolName
+// that carries the full (untruncated) name. We join against it so pool lookups
+// work correctly on lb011 and similar devices.
+func poolMbrStatusQuery(devName, poolFilter string) string {
+	return fmt.Sprintf(
+		`snmp_f5_ltmPoolMbrStatusAvailState{devicename="%s"} * on(instance,ltmPoolMbrStatusPoolName,ltmPoolMbrStatusNodeName,ltmPoolMbrStatusPort) group_left(snmp_f5_ltmPoolMbrStatusPoolName) snmp_f5_ltmPoolMbrStatusPoolName{devicename="%s",%s}`,
+		devName, devName, poolFilter,
+	)
+}
+
 // queryPrometheusPoolHealth queries Prometheus for the health of a specific pool on the active device.
 func (a *Agent) queryPrometheusPoolHealth(ctx context.Context, poolPath string) (string, error) {
-	query := fmt.Sprintf(`snmp_f5_ltmPoolMbrStatusAvailState{devicename="%s",ltmPoolMbrStatusPoolName="%s"}`,
-		activeDeviceName(a.getActive()), poolPath)
+	devName := activeDeviceName(a.getActive())
+	query := poolMbrStatusQuery(devName, fmt.Sprintf(`snmp_f5_ltmPoolMbrStatusPoolName="%s"`, poolPath))
 	promResp, err := queryPrometheus(ctx, config.Global.Agent.HealthScrapePrometheus, query)
 	if err != nil {
 		return "", err
@@ -163,19 +175,21 @@ func (a *Agent) queryPrometheusPoolHealth(ctx context.Context, poolPath string) 
 // scrapeAllServicesPrometheus fetches all pool member health in one Prometheus query and updates all services.
 func (a *Agent) scrapeAllServicesPrometheus(ctx context.Context, services []*models.Service) error {
 	devName := activeDeviceName(a.getActive())
-	query := fmt.Sprintf(
-		`snmp_f5_ltmPoolMbrStatusAvailState{devicename="%s",ltmPoolMbrStatusPoolName=~"/Common/Shared/pool-.*"}`,
-		devName,
-	)
+	query := poolMbrStatusQuery(devName, `snmp_f5_ltmPoolMbrStatusPoolName=~"/Common/Shared/pool-.*"`)
 	promResp, err := queryPrometheus(ctx, config.Global.Agent.HealthScrapePrometheus, query)
 	if err != nil {
 		return fmt.Errorf("scrapeAllServicesPrometheus: %w", err)
 	}
 
 	// Build pool path → member avail states from the single response.
+	// After the join, snmp_f5_ltmPoolMbrStatusPoolName carries the full untruncated name.
 	poolStates := make(map[string][]int)
 	for _, result := range promResp.Data.Result {
-		poolName := result.Metric["ltmPoolMbrStatusPoolName"]
+		poolName := result.Metric["snmp_f5_ltmPoolMbrStatusPoolName"]
+		if poolName == "" {
+			// Fallback: device doesn't have the companion metric (no truncation issue)
+			poolName = result.Metric["ltmPoolMbrStatusPoolName"]
+		}
 		if len(result.Value) < 2 {
 			continue
 		}
