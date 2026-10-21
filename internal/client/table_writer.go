@@ -5,6 +5,7 @@
 package client
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"slices"
@@ -69,7 +70,10 @@ func formatValue(v reflect.Value) string {
 		if v.Type().String() == "time.Time" {
 			return v.Interface().(time.Time).In(time.Local).Format(time.RFC850)
 		}
-		fallthrough
+		if value, err := json.Marshal(v.Interface()); err == nil {
+			return string(value)
+		}
+		return fmt.Sprintf("%+v", v)
 	case reflect.Slice:
 		// check if slice elements are integers, if so, we can group consecutive integers into ranges
 		signedTypes := []reflect.Kind{reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64}
@@ -179,28 +183,18 @@ func getIndexMap(v reflect.Value) ([][]int, []any, error) {
 			indexMap = append(indexMap, IndexMap{tagName, fi.Index})
 		}
 
-		// Stable sort
+		// Stable sort: id/name first, created_at/updated_at last, then by struct index, then by name.
+		priority := func(h string) int {
+			return map[string]int{"id": -2, "name": -1, "created_at": 1, "updated_at": 2}[h]
+		}
 		sort.SliceStable(indexMap, func(i, j int) bool {
-			// Always prefer id, name as first columns, created_at and updated_at as last
-			if indexMap[i].Header == "id" {
-				return true
-			} else if indexMap[j].Header == "id" {
-				return false
-			} else if indexMap[i].Header == "name" {
-				return true
-			} else if indexMap[j].Header == "name" {
-				return false
-			} else if indexMap[i].Header == "updated_at" {
-				return false
-			} else if indexMap[j].Header == "updated_at" {
-				return true
-			} else if indexMap[i].Header == "created_at" {
-				return false
-			} else if indexMap[j].Header == "created_at" {
-				return true
-			} else {
-				return indexMap[i].Index[0] < indexMap[j].Index[0]
+			if pi, pj := priority(indexMap[i].Header), priority(indexMap[j].Header); pi != pj {
+				return pi < pj
 			}
+			if cmp := slices.Compare(indexMap[i].Index, indexMap[j].Index); cmp != 0 {
+				return cmp < 0
+			}
+			return indexMap[i].Header < indexMap[j].Header
 		})
 
 		for _, v := range indexMap {

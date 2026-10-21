@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - archer-server: `POST /service` no longer deadlocks when as many requests run at once as the database pool has connections. The query that picks the least-loaded agent ran on the pool instead of the open transaction, so each request held one connection and waited for a second one. With a pool of one connection, every post waited until its context ended.
 - archer-f5-agent: Pool health checks via Prometheus now work correctly on devices where F5 truncates `ltmPoolMbrStatusPoolName` in the SNMP OID index (e.g. lb011). The agent joins against the `snmp_f5_ltmPoolMbrStatusPoolName` companion metric, which carries the full untruncated pool name, so pool UUIDs are matched correctly.
+- archerctl: make `endpoint list --long` column ordering deterministic.
 
 ## [2.9.0] - 2026-10-14
 
