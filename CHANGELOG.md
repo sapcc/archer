@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.9.1] - 2026-10-22
+
 ### Fixed
 
 - archer-server: `POST /service` no longer deadlocks when as many requests run at once as the database pool has connections. The query that picks the least-loaded agent ran on the pool instead of the open transaction, so each request held one connection and waited for a second one. With a pool of one connection, every post waited until its context ended.
@@ -281,7 +283,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-Release with goreleaser
 
-[Unreleased]: https://github.com/sapcc/archer/compare/v2.9.0...HEAD
+[Unreleased]: https://github.com/sapcc/archer/compare/v2.9.1...HEAD
+
+[2.9.1]: https://github.com/sapcc/archer/compare/v2.9.0...v2.9.1
 
 [2.9.0]: https://github.com/sapcc/archer/compare/v2.8.0...v2.9.0
 
