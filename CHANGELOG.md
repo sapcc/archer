@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- archer-server: `proxy_protocol` now defaults to `false` when creating a service. Previously it defaulted to `true`.
+
 ## [2.9.1] - 2026-10-26
 
 ### Fixed

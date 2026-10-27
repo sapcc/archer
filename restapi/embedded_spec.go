@@ -56,7 +56,7 @@ func init() {
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "version": "2.7.1",
+    "version": "2.9.1",
     "x-logo": {
       "altText": "Archer logo",
       "backgroundColor": "#FFFFFF",
@@ -2081,7 +2081,7 @@ func init() {
         "proxy_protocol": {
           "description": "Proxy protocol v2 enabled for this service.",
           "type": "boolean",
-          "default": true
+          "default": false
         },
         "require_approval": {
           "description": "Require explicit project approval for the service owner.",
@@ -2570,7 +2570,7 @@ func init() {
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "version": "2.7.1",
+    "version": "2.9.1",
     "x-logo": {
       "altText": "Archer logo",
       "backgroundColor": "#FFFFFF",
@@ -4815,7 +4815,7 @@ func init() {
         "proxy_protocol": {
           "description": "Proxy protocol v2 enabled for this service.",
           "type": "boolean",
-          "default": true
+          "default": false
         },
         "require_approval": {
           "description": "Require explicit project approval for the service owner.",
