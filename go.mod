@@ -51,7 +51,7 @@ require (
 	github.com/vishvananda/netlink v1.3.1
 	github.com/vishvananda/netns v0.0.5
 	github.com/z0ne-dev/mgx/v2 v2.0.1
-	golang.org/x/net v0.61.0
+	golang.org/x/net v0.62.0
 	golang.org/x/sync v0.24.0
 	golang.org/x/term v0.47.0
 	gopkg.in/yaml.v3 v3.0.1
