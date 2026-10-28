@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - archer-server: `proxy_protocol` now defaults to `false` when creating a service. Previously it defaulted to `true`.
 
+### Fixed
+
+- archer-f5-agent: configure a default route in each endpoint route domain via the subnet gateway IP so virtual servers can reply to traffic from subnets outside the local VLAN; the route is updated if the gateway changes and creation is idempotent.
+
 ## [2.9.1] - 2026-10-26
 
 ### Fixed

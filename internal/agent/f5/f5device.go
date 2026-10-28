@@ -69,6 +69,12 @@ type F5Device interface {
 
 	// DeleteRouteDomain cleans up the route domain for the given segment ID.
 	DeleteRouteDomain(segmentId int) error
+
+	// EnsureDefaultRoute ensures a default route via gateway exists in the given route domain.
+	EnsureDefaultRoute(segmentId int, gateway string) error
+
+	// DeleteDefaultRoute removes the default route for the given route domain.
+	DeleteDefaultRoute(segmentId int) error
 }
 
 func GetF5DeviceSession(rawURL string) (F5Device, error) {

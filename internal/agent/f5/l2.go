@@ -119,6 +119,11 @@ func (a *Agent) EnsureSelfIPs(ctx context.Context, subnetID string, dryRun bool)
 		return err
 	}
 
+	subnet, err := a.neutron.GetSubnet(ctx, subnetID)
+	if err != nil {
+		return err
+	}
+
 	for _, big := range a.devices {
 		port, ok := neutronPorts[big.GetHostname()]
 		if !ok || port == nil {
@@ -139,6 +144,12 @@ func (a *Agent) EnsureSelfIPs(ctx context.Context, subnetID string, dryRun bool)
 		if err := big.EnsureBigIPSelfIP(name, address, segmentID); err != nil {
 			return err
 		}
+
+		if subnet.GatewayIP != "" {
+			if err := big.EnsureDefaultRoute(segmentID, subnet.GatewayIP); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
@@ -152,8 +163,18 @@ func (a *Agent) CleanupSelfIPs(ctx context.Context, subnetID string) error {
 		return err
 	}
 
+	segmentID, err := a.neutron.GetSubnetSegment(ctx, subnetID, config.Global.Agent.PhysicalNetwork)
+	if err != nil {
+		return err
+	}
+
 	// delete from device
 	for _, big := range a.devices {
+		if err := big.DeleteDefaultRoute(segmentID); err != nil {
+			log.WithFields(log.Fields{"device": big.GetHostname(), "segmentID": segmentID}).
+				WithError(err).Warning("CleanupSelfIPs: failed to delete default route, skipping")
+		}
+
 		if port, ok := neutronPorts[big.GetHostname()]; ok {
 			name := fmt.Sprint("selfip-", port.ID)
 			logger := log.WithFields(log.Fields{"name": name, "device": big.GetHostname()})

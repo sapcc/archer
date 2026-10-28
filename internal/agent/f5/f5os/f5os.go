@@ -467,6 +467,14 @@ func (f *F5OS) DeleteRouteDomain(_ int) error {
 	panic("not supported for F5OS")
 }
 
+func (f *F5OS) EnsureDefaultRoute(_ int, _ string) error {
+	return nil
+}
+
+func (f *F5OS) DeleteDefaultRoute(_ int) error {
+	return nil
+}
+
 func NewSession(uri *url.URL) (*F5OS, error) {
 	// Initialize F5OS http client
 	client := &http.Client{

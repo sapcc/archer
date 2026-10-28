@@ -27,6 +27,34 @@ func newTestBigIP(srv *httptest.Server) *BigIP {
 	return (*BigIP)(b)
 }
 
+func TestEnsureDefaultRoute_UpdatesStaleGateway(t *testing.T) {
+	modifyCalled := false
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/mgmt/tm/net/route/vlan-123":
+			// Route exists but with a stale gateway from a prior subnet on the same segment.
+			_ = json.NewEncoder(w).Encode(gobigip.Route{
+				Name:    "vlan-123",
+				Network: "default%123",
+				Gateway: "10.0.0.1%123",
+			})
+		case r.Method == http.MethodPut && r.URL.Path == "/mgmt/tm/net/route/vlan-123":
+			modifyCalled = true
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]any{})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	b := newTestBigIP(srv)
+	err := b.EnsureDefaultRoute(123, "192.168.1.1")
+	require.NoError(t, err)
+	assert.True(t, modifyCalled, "ModifyRoute must be called when gateway has changed")
+}
+
 func TestEnsureVLAN_AlreadyExists(t *testing.T) {
 	createCalled := false
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
