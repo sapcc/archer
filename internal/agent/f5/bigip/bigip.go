@@ -340,6 +340,33 @@ func (b *BigIP) DeleteRouteDomain(segmentId int) error {
 	return (*bigip.BigIP)(b).DeleteRouteDomain(fmt.Sprintf("vlan-%d", segmentId))
 }
 
+func (b *BigIP) EnsureDefaultRoute(segmentId int, gateway string) error {
+	name := fmt.Sprintf("vlan-%d", segmentId)
+	want := fmt.Sprintf("%s%%%d", gateway, segmentId)
+	existing, err := (*bigip.BigIP)(b).GetRoute(name)
+	if err != nil && !strings.Contains(strings.ToLower(err.Error()), "not found") {
+		return fmt.Errorf("EnsureDefaultRoute: GetRoute: %w", err)
+	}
+	if existing != nil {
+		if existing.Gateway == want {
+			return nil
+		}
+		return (*bigip.BigIP)(b).ModifyRoute(name, &bigip.Route{Gateway: want})
+	}
+	if err := (*bigip.BigIP)(b).CreateRoute(&bigip.Route{
+		Name:    name,
+		Network: fmt.Sprintf("default%%%d", segmentId),
+		Gateway: want,
+	}); err != nil && !strings.Contains(strings.ToLower(err.Error()), "already exists") {
+		return err
+	}
+	return nil
+}
+
+func (b *BigIP) DeleteDefaultRoute(segmentId int) error {
+	return (*bigip.BigIP)(b).DeleteRoute(fmt.Sprintf("vlan-%d", segmentId))
+}
+
 func (b *BigIP) EnsureGuestVlan(segmentId int) error {
 	guests, err := b.getVCMPGuests()
 	if err != nil {

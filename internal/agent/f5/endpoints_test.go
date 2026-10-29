@@ -60,7 +60,8 @@ const GetSubnetResponseFixture = `
 {
 	"subnet": {
         "cidr": "192.0.0.0/8",
-        "network_id": "35a3ca82-62af-4e0a-9472-92331500fb3a"
+        "network_id": "35a3ca82-62af-4e0a-9472-92331500fb3a",
+        "gateway_ip": "192.0.0.1"
 	}
 }
 `
@@ -247,6 +248,9 @@ func TestAgent_ProcessEndpoint(t *testing.T) {
 			123,
 		).Return(nil)
 	f5DeviceHost.EXPECT().
+		EnsureDefaultRoute(123, "192.0.0.1").
+		Return(nil)
+	f5DeviceHost.EXPECT().
 		PostAS3(PostBigIPFixture, "net-35a3ca82-62af-4e0a-9472-92331500fb3a").
 		Return(nil)
 
@@ -340,6 +344,9 @@ func TestAgent_ProcessEndpointDefersWhenServiceNotReady(t *testing.T) {
 		"42.42.42.42%123/8",
 		123,
 	).Return(nil)
+	f5DeviceHost.EXPECT().
+		EnsureDefaultRoute(123, "192.0.0.1").
+		Return(nil)
 	// Crucially: no PostAS3 expectation — the run must defer before posting.
 
 	config.Global.Default.Host = "host-123"
@@ -502,6 +509,9 @@ func TestAgent_DeleteEndpointBlockedByPendingDeleteService(t *testing.T) {
 		"42.42.42.42%123/8",
 		123,
 	).Return(nil)
+	f5DeviceHost.EXPECT().
+		EnsureDefaultRoute(123, "192.0.0.1").
+		Return(nil)
 	// PostAS3 must NOT be called — service is PENDING_DELETE.
 
 	config.Global.Default.Host = "host-123"
@@ -629,6 +639,9 @@ func TestAgent_DeleteEndpointWithMissingNeutronPort(t *testing.T) {
 		"42.42.42.42%123/8",
 		123,
 	).Return(nil)
+	f5DeviceHost.EXPECT().
+		EnsureDefaultRoute(123, "192.0.0.1").
+		Return(nil)
 	// AS3 declaration will only include endpoint2 (endpoint1 is being deleted)
 	f5DeviceHost.EXPECT().PostAS3(PostBigIPFixture, "net-35a3ca82-62af-4e0a-9472-92331500fb3a").Return(nil)
 

@@ -5,9 +5,8 @@
 package f5
 
 import (
-	mock "github.com/stretchr/testify/mock"
-
 	"github.com/sapcc/archer/v2/internal/agent/f5/as3"
+	mock "github.com/stretchr/testify/mock"
 )
 
 // NewMockF5Device creates a new instance of MockF5Device. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -16,10 +15,19 @@ func NewMockF5Device(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *MockF5Device {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &MockF5Device{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -35,6 +43,57 @@ type MockF5Device_Expecter struct {
 
 func (_m *MockF5Device) EXPECT() *MockF5Device_Expecter {
 	return &MockF5Device_Expecter{mock: &_m.Mock}
+}
+
+// DeleteDefaultRoute provides a mock function for the type MockF5Device
+func (_mock *MockF5Device) DeleteDefaultRoute(segmentId int) error {
+	ret := _mock.Called(segmentId)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteDefaultRoute")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int) error); ok {
+		r0 = returnFunc(segmentId)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockF5Device_DeleteDefaultRoute_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteDefaultRoute'
+type MockF5Device_DeleteDefaultRoute_Call struct {
+	*mock.Call
+}
+
+// DeleteDefaultRoute is a helper method to define mock.On call
+//   - segmentId int
+func (_e *MockF5Device_Expecter) DeleteDefaultRoute(segmentId any) *MockF5Device_DeleteDefaultRoute_Call {
+	return &MockF5Device_DeleteDefaultRoute_Call{Call: _e.mock.On("DeleteDefaultRoute", segmentId)}
+}
+
+func (_c *MockF5Device_DeleteDefaultRoute_Call) Run(run func(segmentId int)) *MockF5Device_DeleteDefaultRoute_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int
+		if args[0] != nil {
+			arg0 = args[0].(int)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockF5Device_DeleteDefaultRoute_Call) Return(err error) *MockF5Device_DeleteDefaultRoute_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockF5Device_DeleteDefaultRoute_Call) RunAndReturn(run func(segmentId int) error) *MockF5Device_DeleteDefaultRoute_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // DeleteGuestVLAN provides a mock function for the type MockF5Device
@@ -61,7 +120,7 @@ type MockF5Device_DeleteGuestVLAN_Call struct {
 
 // DeleteGuestVLAN is a helper method to define mock.On call
 //   - segmentId int
-func (_e *MockF5Device_Expecter) DeleteGuestVLAN(segmentId interface{}) *MockF5Device_DeleteGuestVLAN_Call {
+func (_e *MockF5Device_Expecter) DeleteGuestVLAN(segmentId any) *MockF5Device_DeleteGuestVLAN_Call {
 	return &MockF5Device_DeleteGuestVLAN_Call{Call: _e.mock.On("DeleteGuestVLAN", segmentId)}
 }
 
@@ -112,7 +171,7 @@ type MockF5Device_DeleteRouteDomain_Call struct {
 
 // DeleteRouteDomain is a helper method to define mock.On call
 //   - segmentId int
-func (_e *MockF5Device_Expecter) DeleteRouteDomain(segmentId interface{}) *MockF5Device_DeleteRouteDomain_Call {
+func (_e *MockF5Device_Expecter) DeleteRouteDomain(segmentId any) *MockF5Device_DeleteRouteDomain_Call {
 	return &MockF5Device_DeleteRouteDomain_Call{Call: _e.mock.On("DeleteRouteDomain", segmentId)}
 }
 
@@ -163,7 +222,7 @@ type MockF5Device_DeleteSelfIP_Call struct {
 
 // DeleteSelfIP is a helper method to define mock.On call
 //   - name string
-func (_e *MockF5Device_Expecter) DeleteSelfIP(name interface{}) *MockF5Device_DeleteSelfIP_Call {
+func (_e *MockF5Device_Expecter) DeleteSelfIP(name any) *MockF5Device_DeleteSelfIP_Call {
 	return &MockF5Device_DeleteSelfIP_Call{Call: _e.mock.On("DeleteSelfIP", name)}
 }
 
@@ -214,7 +273,7 @@ type MockF5Device_DeleteVLAN_Call struct {
 
 // DeleteVLAN is a helper method to define mock.On call
 //   - segmentId int
-func (_e *MockF5Device_Expecter) DeleteVLAN(segmentId interface{}) *MockF5Device_DeleteVLAN_Call {
+func (_e *MockF5Device_Expecter) DeleteVLAN(segmentId any) *MockF5Device_DeleteVLAN_Call {
 	return &MockF5Device_DeleteVLAN_Call{Call: _e.mock.On("DeleteVLAN", segmentId)}
 }
 
@@ -267,7 +326,7 @@ type MockF5Device_EnsureBigIPSelfIP_Call struct {
 //   - name string
 //   - address string
 //   - segmentId int
-func (_e *MockF5Device_Expecter) EnsureBigIPSelfIP(name interface{}, address interface{}, segmentId interface{}) *MockF5Device_EnsureBigIPSelfIP_Call {
+func (_e *MockF5Device_Expecter) EnsureBigIPSelfIP(name any, address any, segmentId any) *MockF5Device_EnsureBigIPSelfIP_Call {
 	return &MockF5Device_EnsureBigIPSelfIP_Call{Call: _e.mock.On("EnsureBigIPSelfIP", name, address, segmentId)}
 }
 
@@ -304,6 +363,63 @@ func (_c *MockF5Device_EnsureBigIPSelfIP_Call) RunAndReturn(run func(name string
 	return _c
 }
 
+// EnsureDefaultRoute provides a mock function for the type MockF5Device
+func (_mock *MockF5Device) EnsureDefaultRoute(segmentId int, gateway string) error {
+	ret := _mock.Called(segmentId, gateway)
+
+	if len(ret) == 0 {
+		panic("no return value specified for EnsureDefaultRoute")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(int, string) error); ok {
+		r0 = returnFunc(segmentId, gateway)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockF5Device_EnsureDefaultRoute_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'EnsureDefaultRoute'
+type MockF5Device_EnsureDefaultRoute_Call struct {
+	*mock.Call
+}
+
+// EnsureDefaultRoute is a helper method to define mock.On call
+//   - segmentId int
+//   - gateway string
+func (_e *MockF5Device_Expecter) EnsureDefaultRoute(segmentId any, gateway any) *MockF5Device_EnsureDefaultRoute_Call {
+	return &MockF5Device_EnsureDefaultRoute_Call{Call: _e.mock.On("EnsureDefaultRoute", segmentId, gateway)}
+}
+
+func (_c *MockF5Device_EnsureDefaultRoute_Call) Run(run func(segmentId int, gateway string)) *MockF5Device_EnsureDefaultRoute_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 int
+		if args[0] != nil {
+			arg0 = args[0].(int)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockF5Device_EnsureDefaultRoute_Call) Return(err error) *MockF5Device_EnsureDefaultRoute_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockF5Device_EnsureDefaultRoute_Call) RunAndReturn(run func(segmentId int, gateway string) error) *MockF5Device_EnsureDefaultRoute_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // EnsureGuestVlan provides a mock function for the type MockF5Device
 func (_mock *MockF5Device) EnsureGuestVlan(segmentId int) error {
 	ret := _mock.Called(segmentId)
@@ -328,7 +444,7 @@ type MockF5Device_EnsureGuestVlan_Call struct {
 
 // EnsureGuestVlan is a helper method to define mock.On call
 //   - segmentId int
-func (_e *MockF5Device_Expecter) EnsureGuestVlan(segmentId interface{}) *MockF5Device_EnsureGuestVlan_Call {
+func (_e *MockF5Device_Expecter) EnsureGuestVlan(segmentId any) *MockF5Device_EnsureGuestVlan_Call {
 	return &MockF5Device_EnsureGuestVlan_Call{Call: _e.mock.On("EnsureGuestVlan", segmentId)}
 }
 
@@ -379,7 +495,7 @@ type MockF5Device_EnsureInterfaceVlan_Call struct {
 
 // EnsureInterfaceVlan is a helper method to define mock.On call
 //   - segmentId int
-func (_e *MockF5Device_Expecter) EnsureInterfaceVlan(segmentId interface{}) *MockF5Device_EnsureInterfaceVlan_Call {
+func (_e *MockF5Device_Expecter) EnsureInterfaceVlan(segmentId any) *MockF5Device_EnsureInterfaceVlan_Call {
 	return &MockF5Device_EnsureInterfaceVlan_Call{Call: _e.mock.On("EnsureInterfaceVlan", segmentId)}
 }
 
@@ -431,7 +547,7 @@ type MockF5Device_EnsureRouteDomain_Call struct {
 // EnsureRouteDomain is a helper method to define mock.On call
 //   - segmentId int
 //   - parentSegmentID *int
-func (_e *MockF5Device_Expecter) EnsureRouteDomain(segmentId interface{}, parentSegmentID interface{}) *MockF5Device_EnsureRouteDomain_Call {
+func (_e *MockF5Device_Expecter) EnsureRouteDomain(segmentId any, parentSegmentID any) *MockF5Device_EnsureRouteDomain_Call {
 	return &MockF5Device_EnsureRouteDomain_Call{Call: _e.mock.On("EnsureRouteDomain", segmentId, parentSegmentID)}
 }
 
@@ -488,7 +604,7 @@ type MockF5Device_EnsureVLAN_Call struct {
 // EnsureVLAN is a helper method to define mock.On call
 //   - segmentId int
 //   - mtu int
-func (_e *MockF5Device_Expecter) EnsureVLAN(segmentId interface{}, mtu interface{}) *MockF5Device_EnsureVLAN_Call {
+func (_e *MockF5Device_Expecter) EnsureVLAN(segmentId any, mtu any) *MockF5Device_EnsureVLAN_Call {
 	return &MockF5Device_EnsureVLAN_Call{Call: _e.mock.On("EnsureVLAN", segmentId, mtu)}
 }
 
@@ -897,7 +1013,7 @@ type MockF5Device_PostAS3_Call struct {
 // PostAS3 is a helper method to define mock.On call
 //   - as31 *as3.AS3
 //   - tenant string
-func (_e *MockF5Device_Expecter) PostAS3(as31 interface{}, tenant interface{}) *MockF5Device_PostAS3_Call {
+func (_e *MockF5Device_Expecter) PostAS3(as31 any, tenant any) *MockF5Device_PostAS3_Call {
 	return &MockF5Device_PostAS3_Call{Call: _e.mock.On("PostAS3", as31, tenant)}
 }
 
@@ -953,7 +1069,7 @@ type MockF5Device_SyncGuestVLANs_Call struct {
 
 // SyncGuestVLANs is a helper method to define mock.On call
 //   - usedSegments map[int]string
-func (_e *MockF5Device_Expecter) SyncGuestVLANs(usedSegments interface{}) *MockF5Device_SyncGuestVLANs_Call {
+func (_e *MockF5Device_Expecter) SyncGuestVLANs(usedSegments any) *MockF5Device_SyncGuestVLANs_Call {
 	return &MockF5Device_SyncGuestVLANs_Call{Call: _e.mock.On("SyncGuestVLANs", usedSegments)}
 }
 

@@ -51,6 +51,9 @@ func TestAgent_EnsureSelfIPs_Create(t *testing.T) {
 			"42.42.42.42%123/8",
 			123,
 		).Return(nil)
+	f5DeviceHost.EXPECT().
+		EnsureDefaultRoute(123, "192.0.0.1").
+		Return(nil)
 
 	a := &Agent{
 		pool:    dbMock,
@@ -100,6 +103,9 @@ func TestAgent_EnsureSelfIPs_NoOp(t *testing.T) {
 			"42.42.42.42%123/8",
 			123,
 		).Return(nil)
+	f5DeviceHost.EXPECT().
+		EnsureDefaultRoute(123, "192.0.0.1").
+		Return(nil)
 
 	a := &Agent{
 		pool:    dbMock,
@@ -126,6 +132,8 @@ func TestAgent_CleanupSelfIPs(t *testing.T) {
 	defer fakeServer.Teardown()
 	fixture.SetupHandler(t, fakeServer, "/v2.0/subnets/e0e0e0e0-e0e0-4e0e-8e0e-0e0e0e0e0e0e", "GET", "",
 		GetSubnetResponseFixture, http.StatusOK)
+	fixture.SetupHandler(t, fakeServer, "/v2.0/networks/35a3ca82-62af-4e0a-9472-92331500fb3a", "GET", "",
+		GetNetworkResponseFixture, http.StatusOK)
 	fixture.SetupHandler(t, fakeServer, "/v2.0/ports", "GET", "",
 		GetPortListResponseFixture, http.StatusOK)
 	fixture.SetupHandler(t, fakeServer, "/v2.0/ports/5a8ad669-4ffe-4133-b9f9-6de62cd654a4", "DELETE", "",
@@ -136,6 +144,9 @@ func TestAgent_CleanupSelfIPs(t *testing.T) {
 
 	f5DeviceHost := NewMockF5Device(t)
 	f5DeviceHost.On("GetHostname").Return("dummybigiphost")
+	f5DeviceHost.EXPECT().
+		DeleteDefaultRoute(123).
+		Return(nil)
 	f5DeviceHost.EXPECT().
 		DeleteSelfIP("selfip-5a8ad669-4ffe-4133-b9f9-6de62cd654a4").
 		Return(nil)
