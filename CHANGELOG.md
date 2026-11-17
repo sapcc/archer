@@ -13,9 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- archer-server: new `archer_audit_events_total` Prometheus counter (label `outcome`: `recorded`, `skipped_4xx`, `dropped_no_principal`, `dropped_invalid_principal`). It makes audit events dropped before they reach the message bus observable, e.g. when every event is dropped because no security principal is present (auth strategy `none` or requests without a token) — in that case the `audittools_*` submission counters stay at zero and look identical to "no traffic".
+
 ### Changed
 
 - archer-server: `proxy_protocol` now defaults to `false` when creating a service. Previously it defaulted to `true`.
+- archer-server: audit backend errors from go-bits' audittools (RabbitMQ publish and connection failures) are now routed through logrus, so they show up in the same structured format as the rest of Archer's logs instead of as plain stdlib log lines that log pipelines expecting logrus format can miss.
 
 ## [2.9.1] - 2026-10-26
 
