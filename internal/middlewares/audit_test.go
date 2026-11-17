@@ -13,7 +13,12 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/sapcc/go-bits/audittools"
+	"github.com/sapcc/go-bits/gopherpolicy"
+	"github.com/sapcc/go-bits/logg"
+	logrus "github.com/sirupsen/logrus"
+	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -375,6 +380,17 @@ func TestNewAuditController_ReturnsErrorOnBadConfig(t *testing.T) {
 
 	require.Error(t, err, "invalid audit config must surface as an error")
 	assert.Nil(t, ac, "no controller should be returned on failure")
+
+	// NewAuditController sets up the logg->logrus bridge before it builds
+	// the auditor, so audittools' stdlib-log error lines (publish and
+	// connection failures) end up as logrus entries like everything else.
+	hook := logtest.NewGlobal()
+	defer hook.Reset()
+	logg.Error("audittools: failed to publish audit event with ID \"1234\": connection refused")
+	require.Len(t, hook.AllEntries(), 1)
+	assert.Equal(t, logrus.ErrorLevel, hook.LastEntry().Level)
+	assert.Equal(t, "audittools: failed to publish audit event with ID \"1234\": connection refused",
+		hook.LastEntry().Message)
 }
 
 func TestAuditResponseWriter_ClientErrorsAreNotAudited(t *testing.T) {
@@ -426,7 +442,7 @@ func TestAuditResponseWriter_ServerErrorsAreAudited(t *testing.T) {
 	// We can't easily assert the recording ran without a principal, but
 	// we can assert we didn't take the 4xx short-circuit by verifying
 	// `written` was set and the header made it through.
-	assert.True(t, arw.written,
+	assert.True(t, arw.written.Load(),
 		"5xx must flow through the full audit path (not short-circuit like 4xx)")
 }
 
@@ -445,7 +461,89 @@ func TestAuditResponseWriter_2xxAndRedirectsAreAudited(t *testing.T) {
 
 		assert.Equalf(t, int32(1), spy.headerCalls.Load(),
 			"status %d must reach the underlying writer", code)
-		assert.Truef(t, arw.written,
+		assert.Truef(t, arw.written.Load(),
 			"status %d must flow through the full audit path", code)
 	}
+}
+
+// auditEventsValue reads archer_audit_events_total for one outcome. The
+// counter is process-wide, so tests must measure deltas, not absolutes.
+func auditEventsValue(t *testing.T, outcome string) float64 {
+	t.Helper()
+	registerAuditMetrics()
+	return testutil.ToFloat64(auditEventsTotal.WithLabelValues(outcome))
+}
+
+func TestAuditEventsTotal_CountsOutcomes(t *testing.T) {
+	skipped4xx := auditEventsValue(t, "skipped_4xx")
+	noPrincipal := auditEventsValue(t, "dropped_no_principal")
+	invalidPrincipal := auditEventsValue(t, "dropped_invalid_principal")
+	recorded := auditEventsValue(t, "recorded")
+
+	// 4xx: skipped by design — no event, no drop either.
+	arw, _, auditor := newAuditWriterForTest(t)
+	arw.WriteHeader(http.StatusNotFound)
+	assert.Equal(t, skipped4xx+1, auditEventsValue(t, "skipped_4xx"),
+		"4xx must count as skipped_4xx")
+	assert.Empty(t, auditor.RecordedEvents())
+
+	// 2xx without a principal: dropped, not recorded.
+	arw, _, auditor = newAuditWriterForTest(t)
+	arw.WriteHeader(http.StatusOK)
+	assert.Equal(t, noPrincipal+1, auditEventsValue(t, "dropped_no_principal"),
+		"success without a principal must count as dropped_no_principal")
+	assert.Empty(t, auditor.RecordedEvents())
+
+	// 5xx runs the full audit path, but still drops without a principal.
+	arw, _, auditor = newAuditWriterForTest(t)
+	arw.WriteHeader(http.StatusInternalServerError)
+	assert.Equal(t, noPrincipal+2, auditEventsValue(t, "dropped_no_principal"),
+		"5xx must count as dropped_no_principal as well")
+	assert.Empty(t, auditor.RecordedEvents())
+
+	// A principal of the wrong type gets its own outcome.
+	arw, _, auditor = newAuditWriterForTest(t)
+	arw.recordAuditEvent(http.StatusOK, "not-a-token")
+	assert.Equal(t, invalidPrincipal+1, auditEventsValue(t, "dropped_invalid_principal"))
+	assert.Empty(t, auditor.RecordedEvents())
+
+	// A valid principal produces exactly one event and one "recorded".
+	// (recordAuditEvent is called directly because the security principal
+	// context key is unexported in go-openapi's middleware package.)
+	arw, _, auditor = newAuditWriterForTest(t)
+	arw.recordAuditEvent(http.StatusCreated, &gopherpolicy.Token{})
+	assert.Equal(t, recorded+1, auditEventsValue(t, "recorded"))
+	assert.Len(t, auditor.RecordedEvents(), 1,
+		"valid principal must produce exactly one audit event")
+}
+
+func TestLogrusLogWriter_MapsLevelPrefixes(t *testing.T) {
+	hook := logtest.NewGlobal()
+	defer hook.Reset()
+	prevLevel := logrus.GetLevel()
+	logrus.SetLevel(logrus.DebugLevel)
+	defer logrus.SetLevel(prevLevel)
+
+	w := logrusLogWriter{}
+	write := func(line string) {
+		t.Helper()
+		n, err := w.Write([]byte(line + "\n"))
+		require.NoError(t, err)
+		assert.Equal(t, len(line)+1, n)
+	}
+
+	write("ERROR: audittools: failed to publish audit event with ID \"x\": connection refused")
+	write("INFO: something happened")
+	write("DEBUG: token has auth = map[]")
+	write("unprefixed line")
+
+	entries := hook.AllEntries()
+	require.Len(t, entries, 4)
+	assert.Equal(t, logrus.ErrorLevel, entries[0].Level)
+	assert.Equal(t, "audittools: failed to publish audit event with ID \"x\": connection refused", entries[0].Message)
+	assert.Equal(t, logrus.InfoLevel, entries[1].Level)
+	assert.Equal(t, "something happened", entries[1].Message)
+	assert.Equal(t, logrus.DebugLevel, entries[2].Level)
+	assert.Equal(t, logrus.InfoLevel, entries[3].Level)
+	assert.Equal(t, "unprefixed line", entries[3].Message)
 }

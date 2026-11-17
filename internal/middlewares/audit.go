@@ -9,15 +9,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	stdlog "log"
 	"net/http"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sapcc/go-api-declarations/cadf"
 	"github.com/sapcc/go-bits/audittools"
 	"github.com/sapcc/go-bits/gopherpolicy"
+	"github.com/sapcc/go-bits/logg"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/sapcc/archer/v2/internal/config"
@@ -28,11 +33,59 @@ import (
 // event to protect the audit backend from oversized payloads.
 const maxAuditBodySize = 64 * 1024
 
+// auditEventsTotal counts audit events by outcome. Dropped events never
+// reach the message bus, so the audittools_* submission counters alone
+// cannot reveal them (e.g. a deployment without Keystone auth drops every
+// event and the bus counters stay at zero either way).
+var auditEventsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Name: "archer_audit_events_total",
+	Help: "Total number of audit events by outcome.",
+}, []string{"outcome"})
+
+var registerAuditMetrics = sync.OnceFunc(func() {
+	prometheus.MustRegister(auditEventsTotal)
+})
+
+// logrusLogWriter adapts stdlib log output (used by go-bits' logg package
+// for audit publish/connection errors) to logrus, so those lines keep the
+// same structured format as the rest of Archer's logs.
+type logrusLogWriter struct{}
+
+func (logrusLogWriter) Write(p []byte) (int, error) {
+	msg := strings.TrimRight(string(p), "\n")
+	level := log.InfoLevel
+	switch {
+	case strings.HasPrefix(msg, "ERROR: "):
+		level = log.ErrorLevel
+		msg = strings.TrimPrefix(msg, "ERROR: ")
+	case strings.HasPrefix(msg, "FATAL: "):
+		// logg.Fatal() terminates the process after logging; ErrorLevel
+		// avoids triggering logrus's own Fatal handling on top of that.
+		level = log.ErrorLevel
+		msg = strings.TrimPrefix(msg, "FATAL: ")
+	case strings.HasPrefix(msg, "DEBUG: "):
+		level = log.DebugLevel
+		msg = strings.TrimPrefix(msg, "DEBUG: ")
+	case strings.HasPrefix(msg, "INFO: "):
+		msg = strings.TrimPrefix(msg, "INFO: ")
+	}
+	log.StandardLogger().Logf(level, "%s", msg)
+	return len(p), nil
+}
+
 type AuditController struct {
 	Auditor audittools.Auditor
 }
 
 func NewAuditController() (*AuditController, error) {
+	// audittools reports publish and connection problems via go-bits' logg
+	// package, which by default writes unstructured stdlib log lines that
+	// log pipelines expecting logrus format miss. Route them through
+	// logrus so audit errors are visible like any other archer error.
+	logg.SetLogger(stdlog.New(logrusLogWriter{}, "", 0))
+
+	registerAuditMetrics()
+
 	auditor, err := audittools.NewAuditor(context.Background(), audittools.AuditorOpts{
 		Observer: audittools.Observer{
 			TypeURI: "service/injector",
@@ -57,7 +110,7 @@ type AuditResponseWriter struct {
 	controller  *AuditController
 	request     *http.Request
 	requestBody []byte
-	written     bool
+	written     atomic.Bool
 }
 
 // AuditResource is an audittools.EventRenderer.
@@ -104,13 +157,9 @@ func (a AuditResource) Render() cadf.Resource {
 }
 
 func (arw *AuditResponseWriter) WriteHeader(code int) {
-	if arw.written {
-		// Second call would produce a duplicate audit event; the
-		// underlying ResponseWriter also warns/no-ops on a second header
-		// write, so silently drop the redundant record.
+	if !arw.written.CompareAndSwap(false, true) {
 		return
 	}
-	arw.written = true
 	arw.ResponseWriter.WriteHeader(code)
 
 	// 4xx responses represent requests that never took effect — auth
@@ -119,28 +168,43 @@ func (arw *AuditResponseWriter) WriteHeader(code int) {
 	// 2xx/3xx succeed and 5xx indicate an attempted state change that
 	// errored — both are worth recording.
 	if code >= 400 && code < 500 {
+		auditEventsTotal.WithLabelValues("skipped_4xx").Inc()
 		return
 	}
 
-	uprinc := middleware.SecurityPrincipalFrom(arw.request)
-	if uprinc == nil {
+	arw.recordAuditEvent(code, middleware.SecurityPrincipalFrom(arw.request))
+}
+
+// recordAuditEvent submits one audit event for a non-4xx response, or logs
+// and counts the reason the event was dropped.
+func (arw *AuditResponseWriter) recordAuditEvent(code int, principal any) {
+	if principal == nil {
 		// No authenticated principal (e.g. request rejected before the
 		// auth middleware attached a token). Nothing to audit.
 		log.Error("Audit Middleware WriteHeader: missing security principal")
+		auditEventsTotal.WithLabelValues("dropped_no_principal").Inc()
 		return
 	}
-	user, ok := uprinc.(audittools.UserInfo)
+	user, ok := principal.(audittools.UserInfo)
 	if !ok {
-		log.Errorf("Audit Middleware WriteHeader: principal is not audittools.UserInfo (got %T)", uprinc)
+		log.Errorf("Audit Middleware WriteHeader: principal is not audittools.UserInfo (got %T)", principal)
+		auditEventsTotal.WithLabelValues("dropped_invalid_principal").Inc()
 		return
 	}
-	token, ok := uprinc.(*gopherpolicy.Token)
-	if !ok {
-		log.Errorf("Audit Middleware WriteHeader: principal is not *gopherpolicy.Token (got %T)", uprinc)
-		return
+	// ProjectID/DomainID are only available from a *gopherpolicy.Token; other
+	// UserInfo implementations (e.g. mocks, service tokens) still get audited,
+	// just without scope IDs in the target resource.
+	var projectID, domainID string
+	if token, ok := principal.(*gopherpolicy.Token); ok {
+		projectID = token.ProjectScopeUUID()
+		domainID = token.DomainScopeUUID()
 	}
 
 	mr := middleware.MatchedRouteFrom(arw.request)
+	var routeParams middleware.RouteParams
+	if mr != nil {
+		routeParams = mr.Params
+	}
 	resource := strings.Split(policy.RuleFromHTTPRequest(arw.request), ":")[0]
 
 	arw.controller.Auditor.Record(audittools.EventParameters{
@@ -150,14 +214,15 @@ func (arw *AuditResponseWriter) WriteHeader(code int) {
 		ReasonCode: code,
 		Action:     cadf.GetAction(arw.request.Method),
 		Target: AuditResource{
-			project:     token.ProjectScopeUUID(),
-			domain:      token.DomainScopeUUID(),
+			project:     projectID,
+			domain:      domainID,
 			resource:    resource,
-			routeParams: mr.Params,
+			routeParams: routeParams,
 			id:          arw.Header().Get("X-Target-Id"),
 			requestBody: arw.requestBody,
 		},
 	})
+	auditEventsTotal.WithLabelValues("recorded").Inc()
 }
 
 // Write implements http.ResponseWriter. The stdlib will invoke WriteHeader(200)
@@ -165,7 +230,7 @@ func (arw *AuditResponseWriter) WriteHeader(code int) {
 // funnel that through our wrapper so the implicit 200 also records an audit
 // event.
 func (arw *AuditResponseWriter) Write(b []byte) (int, error) {
-	if !arw.written {
+	if !arw.written.Load() {
 		arw.WriteHeader(http.StatusOK)
 	}
 	return arw.ResponseWriter.Write(b)
