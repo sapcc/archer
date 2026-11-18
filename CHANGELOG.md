@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.9.2] - 2026-11-18
+
 ### Added
 
 - archer-server: new `archer_audit_events_total` Prometheus counter (label `outcome`: `recorded`, `skipped_4xx`, `dropped_no_principal`, `dropped_invalid_principal`). It makes audit events dropped before they reach the message bus observable, e.g. when every event is dropped because no security principal is present (auth strategy `none` or requests without a token) — in that case the `audittools_*` submission counters stay at zero and look identical to "no traffic".
@@ -294,7 +296,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-Release with goreleaser
 
-[Unreleased]: https://github.com/sapcc/archer/compare/v2.9.1...HEAD
+[Unreleased]: https://github.com/sapcc/archer/compare/v2.9.2...HEAD
+
+[2.9.2]: https://github.com/sapcc/archer/compare/v2.9.1...v2.9.2
 
 [2.9.1]: https://github.com/sapcc/archer/compare/v2.9.0...v2.9.1
 
