@@ -9,7 +9,7 @@ go 1.27
 require (
 	github.com/IBM/pgxpoolprometheus v1.1.3
 	github.com/Masterminds/squirrel v1.5.4
-	github.com/bcicen/go-haproxy v0.0.0-20210728173702-412d077dabc1
+	github.com/bcicen/go-haproxy v0.0.0-20261121185200-86b33c2681e5
 	github.com/databus23/goslo.policy v0.0.0-20250326134918-4afc2c56a903
 	github.com/didip/tollbooth/v8 v8.0.1
 	github.com/f5devcentral/go-bigip v0.0.0-20260303071915-79fc4d8a2250
