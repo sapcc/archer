@@ -15,7 +15,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/jessevdk/go-flags"
-	"github.com/pashagolub/pgxmock/v5"
+	"github.com/pashagolub/pgxmock/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

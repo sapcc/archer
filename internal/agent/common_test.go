@@ -13,7 +13,7 @@ import (
 
 	"github.com/go-co-op/gocron/v2"
 	"github.com/go-openapi/strfmt"
-	"github.com/pashagolub/pgxmock/v5"
+	"github.com/pashagolub/pgxmock/v6"
 
 	"github.com/sapcc/archer/v2/internal/config"
 	"github.com/sapcc/archer/v2/internal/db"

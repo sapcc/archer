@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/pashagolub/pgxmock/v5"
+	"github.com/pashagolub/pgxmock/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/pashagolub/pgxmock/v5"
+	"github.com/pashagolub/pgxmock/v6"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/sapcc/archer/v2/internal/config"
