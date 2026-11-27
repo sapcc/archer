@@ -11,8 +11,8 @@ github.com/Masterminds/squirrel v1.5.4 h1:uUcX/aBc8O7Fg9kaISIUsHXdKuqehiXAMQTYX8
 github.com/Masterminds/squirrel v1.5.4/go.mod h1:NNaOrjSoIDfDA40n7sr2tPNZRfjzjA400rg+riTZj10=
 github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERoyfY=
 github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
-github.com/bcicen/go-haproxy v0.0.0-20210728173702-412d077dabc1 h1:KrHVC028Dns++bjhoquZR1oExe4uEOvhxj8z4Beytwg=
-github.com/bcicen/go-haproxy v0.0.0-20210728173702-412d077dabc1/go.mod h1:vFGIM2HkaBrXcFFvlOCbGOm3bQw2WILJownIyfUIRbg=
+github.com/bcicen/go-haproxy v0.0.0-20261121185200-86b33c2681e5 h1:5ZAQdSLQsk7dsJCMmHEy9HS6z/ldGpyYo2QYKg9BkVo=
+github.com/bcicen/go-haproxy v0.0.0-20261121185200-86b33c2681e5/go.mod h1:vFGIM2HkaBrXcFFvlOCbGOm3bQw2WILJownIyfUIRbg=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
 github.com/cenkalti/backoff/v4 v4.3.0 h1:MyRJ/UdXutAwSAT+s3wNd7MfTIcy71VQueUuFK343L8=
